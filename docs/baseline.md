@@ -1,7 +1,6 @@
 # Baseline — Figma AI Executor POC (`executor-poc-v0.1`)
 
-**Commit:** `1c55481a7f8149edfad60703fcdbb91fd578fb1e`
-**Tag:** `executor-poc-v0.1`
+**Tag:** `executor-poc-v0.1` — `git show executor-poc-v0.1` for the exact commit.
 **Date:** 2026-09-29
 
 This is the immutable snapshot of the working proof-of-concept, captured before splitting execution capabilities from transport (the MCP adapter work). If anything in that next phase breaks, `git checkout executor-poc-v0.1` returns to exactly this state.
