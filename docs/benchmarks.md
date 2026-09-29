@@ -51,3 +51,58 @@ Integrity check afterwards: "Main" still has the same 12 top-level nodes (same i
 - The compact tree (`figma_get_screen_tree` / `figma_get_component_tree`) drops alpha: an `a: 0` fill reads back as `"fill": "#ffffff"`, which looks like a white background.
 - There's no way to apply a text style (`textStyleId`); style values have to be copied by hand, so text isn't linked to the style.
 - The `figma_modify_node` summary lists `fontSize, font` as applied on a `characters`-only edit. It's harmless (the render showed typography unchanged) but misleading.
+
+## B2 — Failure and recovery while building "Packing Checklist — Sections" (2026-09-29)
+
+**Question:** can the AI recover from a real failure *while completing a meaningful task*, without restarting blindly?
+
+**Result:** frame `Packing Checklist — Sections` (`12029:163`), next to B1 on page `Benchmark — MCP W3`. The checklist is regrouped into "To pack · 1" (Waist pouch, `selected=false`) and "Packed · 4" (4 × `selected=true`), with the same Back/CTA/StatusBar/HomeIndicator library components, every colour on a Theme variable, and text/icon changes made through `figma_set_instance_properties` rather than layer overrides.
+
+### Baseline probe, before any failure (healthy environment)
+
+| Lookup | Result |
+|---|---|
+| `figma_ping` | `pong` |
+| Plain id that doesn't exist (`12026:99999`) | `Node not found` (clean, immediate) |
+| Instance-sublayer id that doesn't exist (`I12026:111;99999:1`) | `Node not found` (clean, immediate) |
+| Instance-sublayer id that exists (`I12026:111;10070:7026`) | Resolves |
+
+This **contradicts the Phase 3 note** that a nonexistent id produces the "Unable to establish connection" error. In a healthy plugin, missing really does mean missing. Together with B1 (where *every* nested lookup failed, including ids known to exist), the ambiguous error looks like **a mode the plugin sandbox gets into, not a property of the requested node**.
+
+### F1 — Bridge process killed mid-task (environment failure, introduced deliberately)
+
+The bridge process was killed (`Stop-Process -Force`) in the same moment as a `figma_create_instance` for the first "Packed" card, so it was unknown whether the write would land.
+
+1. **Honest note on the race:** the create won. It returned `12029:199` before the kill landed, so this run did *not* produce an uncertain in-flight write. (PowerShell's startup time, hundreds of ms, loses to a ~100ms create; a reliable in-flight kill needs a slower write or a faster killer.)
+2. **Observe:** the *next* task step (`set_instance_properties` on that card) failed: `Could not reach the Figma bridge … fetch failed`.
+3. **Diagnose:** the error came from the MCP layer (it never reached Figma), which points at the environment rather than the task. That was confirmed rather than assumed: `netstat` showed nothing listening on 8787, and no `server.js` node process existed. So the bridge was dead, and the Figma document itself was unaffected.
+4. **Recover (autonomous):** restarted `node bridge/server.js` in the background. `ui.html`'s reconnect backoff re-attached the plugin **1.5s** after the bridge came up. No human action.
+5. **Re-establish identity before continuing:** `figma_ping` OK, and `figma_get_file_info` showed the same file key (`RKIFhesaX0XrNL37ULYLcP`) and the same page. A reconnected plugin isn't necessarily the same file.
+6. **Reconcile state instead of replaying:** read `Section — Packed`. It had exactly **one** card (so re-issuing the create would have made a duplicate), with default text "Option"/"Description" (so the failed write had *not* applied, which matches the `fetch failed` reasoning, now confirmed by data).
+7. **Resume at exactly the failed step**, then finished the remaining three cards.
+
+### A task/state failure, handled separately
+
+The render showed section headings sitting 16px under the subtitle, the same as the gap between sections, so they didn't read as section breaks. That's a design defect, not an environment one. Fix: `Top` spacing 16→24 (the file's `page/padding-top` value; B1 needed 16 only because it was out of room). The first re-export was issued *in parallel* with the change, so it might have shown the pre-change state. It was discarded and re-exported after the write returned, rather than trusting a possibly stale render.
+
+### F2 — The ambiguous lookup failure: what can and can't be done autonomously
+
+- **Is the connection itself healthy?** Yes, this can be checked: `figma_ping` touches no document state, so it separates "plugin not reachable" from "lookup failing".
+- **Genuinely missing vs. temporarily unavailable?** Yes, by checking against a known-good node. Look up a nested id known to exist. If that fails too, the plugin is in the failure mode (environment problem, retry after recovery). If it resolves and the target returns `Node not found`, the target really is missing. Reading the target's parent and checking whether it lists the id gives the same answer (used in B1).
+- **Recovery without a manual reload?** The action is available. A content-free `touch plugin/code.js` made Figma reload the plugin **1.6s** later, and it reconnected **0.36s** after that, healthy (same file, the known-good lookup resolved). **Not proven end-to-end:** the failure mode didn't occur during B2 and can't be triggered on demand (its cause is inside Figma and still unknown), so "reload clears the failure mode" rests on the single B1 observation. It only works for a *development* plugin with Figma watching `code.js`, not a published one.
+- **Still needs a human:** if the plugin window is *closed* (B1's disconnect), there's nothing to hot-reload. Figma has no API to launch a plugin, so re-running it by hand is still required. That's a current limitation, not autonomous recovery.
+
+### Recovery procedure established by B1 + B2
+
+1. A tool call fails → classify it by where the error came from: the MCP layer ("could not reach the bridge") vs. the plugin (Figma error text) vs. the task (a clear validation error such as an unknown property name).
+2. Environment checks: bridge listening (`netstat`) → `/status` `pluginConnected` → `figma_ping` → `figma_get_file_info` (same file key?).
+3. Bridge dead → restart it; the plugin reconnects on its own. Plugin disconnected and not reconnecting → a human has to re-run the plugin.
+4. Lookup failing while ping is OK → check a known-good nested id. If it also fails → `touch plugin/code.js`, wait for the reconnect, check the known-good id again.
+5. **Before retrying any write, read the affected state** and resume from what actually exists. Never replay steps from memory.
+6. Verify the final result both ways: the structural tree (counts, variants, tokens) and a render exported *after* the last write returned.
+
+### Honest gaps in this benchmark
+
+- The in-flight uncertain-write case (F1 step 1) wasn't produced; the reconciliation step was exercised, but against a write that had clearly completed.
+- The ambiguous-lookup recovery is supported in pieces (known-good check proven, reload proven, "reload clears the mode" observed once), not end-to-end.
+- The restarted bridge runs as a background process of this Claude Code session, not the original terminal.
