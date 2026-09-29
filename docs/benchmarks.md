@@ -149,3 +149,46 @@ The render showed section headings sitting 16px under the subtitle, the same as 
 - **Goal decomposition from nothing:** the goal and the idea of verifying through a build came from the brief.
 - **Autonomous recovery from the Figma lookup mode:** a human was still needed; the reload remedy has now failed once and worked once.
 - Anything about React Native, dark mode, or production code.
+
+## B4 — Generalisation: a goal-driven order in a live web app (2026-09-30)
+
+**Goal (fixed before the site was inspected):** "Using the demo store at saucedemo.com, place the cheapest order that equips a new team member with three things: something to carry their gear, a light, and a top they can wear. Keep it under $60 before tax. Deliver a report of what was ordered and why, and prove the amount charged is correct."
+
+**Deliverable:** `deliverables/b4-saucedemo-order/`: `report.md`, the captured `products.json` (full catalogue plus the worker's classification) and `checkout-summary.json` (captured before Finish), `verify.mjs`, and `order-complete.png`.
+
+**Result:** order confirmed by the site ("Thank you for your order!", cart back to empty). Backpack + Bike Light + Bolt T-Shirt: $55.97 before tax, $4.48 tax, $60.45 charged. `verify.mjs` passed all 9 checks and was shown to fail on a mutated summary (the Onesie ordered instead). About 30 browser tool calls; no Figma.
+
+### How the worker ran it (the sequence was not supplied)
+Inspected the login page → found the accepted accounts and password on the page and **chose `standard_user`** (the other five are named as faulty) → looked up the real input selectors rather than guessing them (the site uses `data-test`) → logged in with dependent steps in sequence → captured the whole catalogue to a file → **classified the products and excluded the Onesie** (the cheapest "top", but an infant garment) → **found and reported the $15.99 tie** → added 3 items → **checked the cart page itself**, not just the badge count → filled checkout with **placeholder data, not a real person's** → captured the summary → **ran an independent verifier and mutation-tested it before pressing Finish** (the step that's irreversible in a real shop) → finished → checked the completion state.
+
+### Answers to the B4 questions
+- **What transferred from B1–B3:**
+  - Inspect before acting, and look up selectors or ids rather than guess them.
+  - Run dependent steps in order, never in parallel (learned the hard way in B2/B3).
+  - Check the authoritative state after acting (the cart page, as with B2's "read before retry").
+  - Save observations to files and verify from them with a separate deterministic script, then prove that script can fail (B3's mutation test).
+  - Keep judgements visible (ties, exclusions and assumptions reported, as with B3's open questions).
+- **What did not transfer, or wasn't needed:**
+  - All the visual-verification machinery (pixel diff, renderer rounding, reading renders). This environment exposes exact text state, so the screenshot is only evidence. That's the "prefer exact state" rule working as intended, not a gap.
+  - The Figma failure knowledge (lookup mode, remote libraries) has no counterpart here.
+  - **Recovery wasn't exercised at all:** no failure occurred, and none was faked.
+- **New behaviour this environment required:**
+  - Verify *before* the irreversible step, not just after. Figma edits were cheap to redo; checkout isn't.
+  - Judgement about what data to enter into a third-party system.
+  - Reading a constraint precisely: the charged $60.45 is over $60, but the goal limited the pre-tax amount.
+- **Did the worker choose environments rather than being told?** Weakly tested. The store is only reachable through the browser. The real choices were to verify with Node against captured files rather than trust the site's arithmetic or re-read the page, and to not use Figma at all.
+- **State across operations:** yes. The intended cart was carried from the decision through the inventory, cart and summary pages, and checked against the site's actual state at two points (the cart page and the summary).
+- **Independent verification:** yes. `verify.mjs` uses no browser, only captured data. It re-derives the optimum by brute force and re-derives the totals and the tax rate, and it rejects a plausible wrong order.
+- **Did reasoning change the result?** Yes. A price-only "cheapest top" would have ordered the infant Onesie ($47.97, a wrong order). The tie was reported instead of hidden.
+- **Is the tool interface enough for another environment?** For this task, yes: 5 generic browser tools, **no new capability needed**. Friction observed, not blocking:
+  - `browser_get_dom_state` with a selector returns details only for the *first* match (`matches: 4`), so each field had to be queried separately.
+  - There's no download capture, so the site's "Generate PDF order" receipt couldn't be collected. The proof didn't need it.
+  - There are no keyboard or `<select>` tools; this task didn't need them.
+- **New capability required:** none. Nothing was added to any adapter.
+
+### What B4 does not prove
+- **That the loop is "general":** that's 2 task types (design→package, research→transaction), not a class.
+- **Recovery in a non-Figma environment:** nothing failed.
+- **Choosing between environments:** only one was realistically usable.
+- **Robustness on real, messy sites:** saucedemo is built for automation (stable `data-test` attributes, no captcha, no latency tricks). The faulty accounts it offers (`problem_user`, etc.) were deliberately not used; a later benchmark could.
+- **Real consequences:** no real money, no real personal data.

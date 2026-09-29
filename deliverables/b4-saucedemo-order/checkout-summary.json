@@ -1,0 +1,13 @@
+{
+  "$source": "https://www.saucedemo.com/checkout-step-two.html, text of [data-test=checkout-summary-container], captured before pressing Finish, 2026-09-30.",
+  "lines": [
+    { "qty": 1, "name": "Sauce Labs Backpack", "price": 29.99 },
+    { "qty": 1, "name": "Sauce Labs Bike Light", "price": 9.99 },
+    { "qty": 1, "name": "Sauce Labs Bolt T-Shirt", "price": 15.99 }
+  ],
+  "payment": "SauceCard #31337",
+  "shipping": "Free Pony Express Delivery!",
+  "itemTotal": 55.97,
+  "tax": 4.48,
+  "total": 60.45
+}
