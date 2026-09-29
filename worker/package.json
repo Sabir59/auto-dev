@@ -1,0 +1,11 @@
+{
+  "name": "worker-checks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic, environment-agnostic checks the AI worker uses to verify its own deliverables.",
+  "dependencies": {
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0"
+  }
+}

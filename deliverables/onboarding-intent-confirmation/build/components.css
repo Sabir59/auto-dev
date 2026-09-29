@@ -1,0 +1,37 @@
+/* Components from components.json. Colours/space/radius come only from tokens.css variables.
+   Figma strokes on these frames are drawn inside, which is border-box borders in CSS. */
+* { box-sizing: border-box; margin: 0; }
+svg { display: block; flex: none; }
+.icon, .leading { display: block; flex: none; }
+.icon > svg, .leading > svg { width: 100%; height: 100%; }
+
+.screen { position: relative; width: 390px; height: 844px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+
+/* StatusBar / HomeIndicator: absolutely positioned overlays */
+.status-bar { position: absolute; left: 0; top: 0; width: 390px; height: 47px; display: flex; justify-content: space-between; align-items: center; padding: 8px 28px 0 32px; color: var(--color-foreground); }
+.status-bar .system { display: flex; gap: 6px; align-items: flex-end; }
+.status-bar .system i { display: block; width: 3px; border-radius: 1px; background: var(--color-foreground); }
+.status-bar .system i.battery { width: 25px; height: 12px; border-radius: 3.5px; }
+.home-indicator { position: absolute; left: 0; top: 810px; width: 390px; height: 34px; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 8px; }
+.home-indicator i { display: block; width: 134px; height: 5px; border-radius: 3px; background: var(--color-foreground); }
+
+/* Button */
+.btn { display: flex; align-items: center; justify-content: center; gap: var(--spacing-2); border: 0; border-radius: var(--radius-full); white-space: nowrap; }
+.btn--lg { height: 56px; padding: 0 var(--spacing-6); }
+.btn--default-size { height: 48px; padding: 0 var(--spacing-5); }
+.btn--primary { background: var(--color-primary); color: var(--color-primary-foreground); }
+.btn--ghost { background: none; color: var(--color-primary); }
+.btn--fill { align-self: stretch; }
+.btn .icon { width: 20px; height: 20px; }
+.btn--icon { width: 44px; height: 44px; padding: 0; background: var(--color-secondary); color: var(--color-secondary-foreground); }
+
+/* OptionCard + RadioIndicator */
+.option { display: flex; align-items: center; gap: 16px; padding: 18px var(--card-padding); border-radius: var(--radius-2xl); border: 1px solid var(--color-border); background: var(--color-card); }
+.option--selected { background: var(--color-highlight-muted); border-color: var(--color-gold-300); }
+.option .leading { width: 24px; height: 24px; color: var(--color-highlight); }
+.option .text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.option .title { color: var(--color-foreground); }
+.option .desc { color: var(--color-subtle-foreground); }
+.radio { width: 24px; height: 24px; flex: none; border-radius: var(--radius-full); background: var(--color-card); border: 1.5px solid var(--color-gold-300); display: flex; align-items: center; justify-content: center; }
+.radio--checked { background: var(--color-brand); border: 0; color: var(--color-foreground); }
+.radio--checked svg { width: 14px; height: 14px; }

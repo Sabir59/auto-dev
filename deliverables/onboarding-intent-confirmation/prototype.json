@@ -1,0 +1,13 @@
+{
+  "$source": "figma_get_prototype on page \"Main\", read 2026-09-30, while lookups were healthy (so a null destination means the reaction has none, not a failed lookup).",
+  "Intent": [
+    { "on": "Top › Back", "trigger": "on_click", "action": "back" },
+    { "on": "Options › OptionCard #1 (My first ‘Umrah, selected)", "trigger": "on_click", "action": "change_to", "to": "OptionCard {selected=false}", "transition": "smart_animate 0.25s" },
+    { "on": "Options › OptionCard #2 (A quick refresher)", "trigger": "on_click", "action": "change_to", "to": "OptionCard {selected=true}", "transition": "smart_animate 0.25s" },
+    { "on": "Options › OptionCard #3 (Helping family)", "trigger": "on_click", "action": "change_to", "to": "OptionCard {selected=true}", "transition": "smart_animate 0.25s" },
+    { "on": "Options › OptionCard #4 (Just learning)", "trigger": "on_click", "action": "change_to", "to": "OptionCard {selected=true}", "transition": "smart_animate 0.25s", "$note": "Figma only models each card toggling itself; it does not deselect the others. Whether this is single-select (RadioGroup, per the component description) is for the developer/designer to confirm." },
+    { "on": "Footer › Continue", "trigger": "on_click", "action": "navigate", "to": null, "transition": "push 0.3s", "status": "UNWIRED: no destination in Figma. The goal says it leads to Confirmation; confirm with the designer." },
+    { "on": "Footer › Skip for now", "trigger": "on_click", "action": "navigate", "to": null, "transition": "push 0.3s", "status": "UNWIRED: no destination in Figma. Destination unknown." }
+  ],
+  "Confirmation": []
+}

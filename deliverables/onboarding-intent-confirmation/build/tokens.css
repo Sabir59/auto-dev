@@ -1,0 +1,32 @@
+:root {
+  --color-background: #fcf9f2;
+  --color-foreground: #002419;
+  --color-card: #ffffff;
+  --color-primary: #163a2d;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f6f3ec;
+  --color-secondary-foreground: #163a2d;
+  --color-muted-foreground: #414844;
+  --color-subtle-foreground: #59605b;
+  --color-border: #ebe8e1;
+  --color-brand: #ba8e48;
+  --color-highlight: #7c5716;
+  --color-highlight-muted: #fbebcf;
+  --color-gold-300: #eac488;
+  --spacing-2: 8px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --page-padding-x: 20px;
+  --page-padding-top: 24px;
+  --card-gap: 12px;
+  --card-padding: 20px;
+  --inline-gap: 8px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+}
+.t-overline { font-family: "Plus Jakarta Sans"; font-weight: 600; font-size: 12px; line-height: 16px; letter-spacing: 0.12em; font-variation-settings: normal; text-transform: uppercase; }
+.t-display-lg { font-family: "Newsreader"; font-weight: 400; font-size: 42px; line-height: 52px; letter-spacing: -0.01em; font-variation-settings: normal; }
+.t-display-md { font-family: "Newsreader"; font-weight: 400; font-size: 36px; line-height: 44px; letter-spacing: -0.01em; font-variation-settings: normal; }
+.t-body-lg { font-family: "Plus Jakarta Sans"; font-weight: 400; font-size: 16px; line-height: 24px; letter-spacing: 0em; font-variation-settings: normal; }
+.t-body-sm { font-family: "Plus Jakarta Sans"; font-weight: 400; font-size: 12px; line-height: 18px; letter-spacing: 0em; font-variation-settings: normal; }
+.t-label-lg { font-family: "Plus Jakarta Sans"; font-weight: 500; font-size: 16px; line-height: 20px; letter-spacing: 0em; font-variation-settings: normal; }

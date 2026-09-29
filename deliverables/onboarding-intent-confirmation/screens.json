@@ -1,0 +1,54 @@
+{
+  "$source": "figma_get_screen_tree + figma_get_document_state, read 2026-09-30. Text values are exact. `pad` = [top, right, bottom, left]. Strings are token names (tokens.json); numbers are px.",
+  "$inferred": "A value marked {token, inferred: true, figma: <hex/raw>} is NOT bound to a variable in Figma. Its raw value equals that token exactly, so the token is used here, but the designer should bind it (see README › Open questions).",
+  "screens": {
+    "Intent": {
+      "figmaId": "12008:3970", "reference": "reference/intent.png",
+      "frame": { "w": 390, "h": 844, "fill": "background", "layout": { "dir": "col", "pad": [55, "page/padding-x", 42, "page/padding-x"], "main": "SPACE_BETWEEN" } },
+      "overlays": [
+        { "comp": "StatusBar", "abs": [0, 0] },
+        { "comp": "HomeIndicator", "abs": [0, 810] }
+      ],
+      "children": [
+        { "n": "Top", "layout": { "dir": "col", "gap": "page/padding-top" }, "size": "FILL/HUG", "children": [
+          { "n": "Back", "comp": "Button {variant=secondary, size=icon, disabled=false}", "props": { "icon": "chevron-left" } },
+          { "n": "Header", "layout": { "dir": "col", "gap": "card/gap" }, "size": "FILL/HUG", "children": [
+            { "n": "Step", "text": "Step 2 of 2", "style": "overline", "color": "highlight" },
+            { "n": "Title", "text": "What brings you here?", "style": "display/lg", "color": "foreground", "w": 350 },
+            { "n": "Subtitle", "text": "One tap. You can change this later in Settings.", "style": "body/lg", "color": "muted-foreground", "w": 330 }
+          ] }
+        ] },
+        { "n": "Options", "layout": { "dir": "col", "gap": "card/gap" }, "size": "FILL/HUG", "children": [
+          { "comp": "OptionCard {selected=true}", "props": { "title": "My first ‘Umrah", "description": "Guide me from the very start", "showLeadingIcon": true, "leadingIcon": "sparkles" } },
+          { "comp": "OptionCard {selected=false}", "props": { "title": "A quick refresher", "description": "I’ve been before", "showLeadingIcon": true, "leadingIcon": "rotate-ccw" } },
+          { "comp": "OptionCard {selected=false}", "props": { "title": "Helping family", "description": "I want to teach someone", "showLeadingIcon": true, "leadingIcon": "users" } },
+          { "comp": "OptionCard {selected=false}", "props": { "title": "Just learning", "description": "No trip booked yet", "showLeadingIcon": true, "leadingIcon": "book-open" } }
+        ] },
+        { "n": "Footer", "layout": { "dir": "col", "gap": "inline/gap", "cross": "CENTER" }, "size": "FILL/HUG", "children": [
+          { "n": "Continue", "comp": "Button {variant=default, size=lg, disabled=false}", "size": "FILL/FIXED", "props": { "label": "Continue", "showIcon": false } },
+          { "n": "Skip", "comp": "Button {variant=ghost, size=default, disabled=false}", "size": "HUG/FIXED", "props": { "label": "Skip for now", "showIcon": false } }
+        ] }
+      ]
+    },
+    "Confirmation": {
+      "figmaId": "12015:4053", "reference": "reference/confirmation.png",
+      "frame": { "w": 390, "h": 844, "fill": { "token": "background", "inferred": true, "figma": "#fcf9f2" }, "layout": { "dir": "col", "pad": [55, 20, 42, 20], "main": "SPACE_BETWEEN" } },
+      "overlays": [
+        { "comp": "StatusBar", "abs": [0, 0] },
+        { "comp": "HomeIndicator", "abs": [0, 810] }
+      ],
+      "children": [
+        { "n": "Content", "fill": null, "$note": "figma_get_screen_tree reports #ffffff; exact state is #ffffff at alpha 0 = transparent", "layout": { "dir": "col", "gap": 24, "cross": "CENTER" }, "size": "FILL/HUG", "children": [
+          { "n": "Badge", "w": 96, "h": 96, "radius": 9999, "fill": { "token": "highlight-muted", "inferred": true, "figma": "#fbebcf" }, "layout": { "main": "CENTER", "cross": "CENTER" }, "children": [
+            { "n": "Check", "icon": "check", "size": 40, "color": "foreground", "strokeWidthPx": 2, "$note": "stroke is 2px at 40px, i.e. NOT scaled with the icon (viewBox stroke-width 1.2)" }
+          ] },
+          { "n": "Headline", "text": "You're all set", "align": "CENTER", "style": { "token": "display/md", "inferred": true, "figma": "Newsreader Regular 36/44, -1%, no style applied" }, "color": { "token": "foreground", "inferred": true, "figma": "#002419" } },
+          { "n": "Subtext", "text": "Your first journey begins now. We will guide you every step of the way.", "align": "CENTER", "w": 320, "style": { "token": "body/lg", "inferred": true, "figma": "Plus Jakarta Sans Regular 16/24, no style applied" }, "color": { "token": "muted-foreground", "inferred": true, "figma": "#414844" } }
+        ] },
+        { "n": "Footer", "fill": null, "$note": "transparent, as Content", "layout": { "dir": "col", "cross": "CENTER" }, "size": "FILL/HUG", "children": [
+          { "n": "Get Started", "comp": "Button {variant=default, size=lg, disabled=false}", "size": "FILL/FIXED", "props": { "label": "Get Started", "showIcon": true, "icon": "arrow-right" } }
+        ] }
+      ]
+    }
+  }
+}

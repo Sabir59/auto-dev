@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Intent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600&display=block">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  .screen { background: var(--color-background); padding: 55px var(--page-padding-x) 42px; }
+  .top { display: flex; flex-direction: column; gap: var(--page-padding-top); align-items: flex-start; }
+  .header, .options { display: flex; flex-direction: column; gap: var(--card-gap); align-self: stretch; }
+  .step { color: var(--color-highlight); }
+  .screen-title { color: var(--color-foreground); width: 350px; }
+  .subtitle { color: var(--color-muted-foreground); width: 330px; }
+  .footer { display: flex; flex-direction: column; gap: var(--inline-gap); align-items: center; }
+</style>
+</head>
+<body>
+<div class="screen" id="screen">
+  <div class="top">
+    <button class="btn btn--icon" aria-label="Back"><span class="icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></span></button>
+    <div class="header">
+      <p class="step t-overline">Step 2 of 2</p>
+      <h1 class="screen-title t-display-lg">What brings you here?</h1>
+      <p class="subtitle t-body-lg">One tap. You can change this later in Settings.</p>
+    </div>
+  </div>
+  <div class="options" role="radiogroup">
+    <label class="option option--selected"><span class="leading"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M20 2V6M22 4H18M11.017 2.81395C11.0598 2.58456 11.1815 2.37737 11.3611 2.22827C11.5406 2.07917 11.7666 1.99756 12 1.99756C12.2333 1.99756 12.4593 2.07917 12.6389 2.22827C12.8184 2.37737 12.9401 2.58456 12.983 2.81395L14.034 8.37195C14.1086 8.7671 14.3006 9.13057 14.585 9.41492C14.8693 9.69928 15.2328 9.89131 15.628 9.96595L21.186 11.017C21.4153 11.0598 21.6225 11.1815 21.7716 11.3611C21.9207 11.5406 22.0023 11.7666 22.0023 12C22.0023 12.2333 21.9207 12.4593 21.7716 12.6389C21.6225 12.8184 21.4153 12.9401 21.186 12.983L15.628 14.034C15.2328 14.1086 14.8693 14.3006 14.585 14.585C14.3006 14.8693 14.1086 15.2328 14.034 15.628L12.983 21.186C12.9401 21.4153 12.8184 21.6225 12.6389 21.7716C12.4593 21.9207 12.2333 22.0023 12 22.0023C11.7666 22.0023 11.5406 21.9207 11.3611 21.7716C11.1815 21.6225 11.0598 21.4153 11.017 21.186L9.96595 15.628C9.89131 15.2328 9.69928 14.8693 9.41492 14.585C9.13057 14.3006 8.7671 14.1086 8.37195 14.034L2.81395 12.983C2.58456 12.9401 2.37737 12.8184 2.22827 12.6389C2.07917 12.4593 1.99756 12.2333 1.99756 12C1.99756 11.7666 2.07917 11.5406 2.22827 11.3611C2.37737 11.1815 2.58456 11.0598 2.81395 11.017L8.37195 9.96595C8.7671 9.89131 9.13057 9.69928 9.41492 9.41492C9.69928 9.13057 9.89131 8.7671 9.96595 8.37195L11.017 2.81395ZM6 20C6 21.1046 5.10457 22 4 22C2.89543 22 2 21.1046 2 20C2 18.8954 2.89543 18 4 18C5.10457 18 6 18.8954 6 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></span><span class="text"><span class="title t-label-lg">My first ‘Umrah</span><span class="desc t-body-sm">Guide me from the very start</span></span><span class="radio radio--checked"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></span></label>
+    <label class="option"><span class="leading"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3 12C3 13.78 3.52784 15.5201 4.51677 17.0001C5.50571 18.4802 6.91131 19.6337 8.55585 20.3149C10.2004 20.9961 12.01 21.1743 13.7558 20.8271C15.5016 20.4798 17.1053 19.6226 18.364 18.364C19.6226 17.1053 20.4798 15.5016 20.8271 13.7558C21.1743 12.01 20.9961 10.2004 20.3149 8.55585C19.6337 6.91131 18.4802 5.50571 17.0001 4.51677C15.5201 3.52784 13.78 3 12 3C9.48395 3.00947 7.06897 3.99122 5.26 5.74L3 8M8 8H3V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></span><span class="text"><span class="title t-label-lg">A quick refresher</span><span class="desc t-body-sm">I’ve been before</span></span><span class="radio"></span></label>
+    <label class="option"><span class="leading"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H6C4.93913 15 3.92172 15.4214 3.17157 16.1716C2.42143 16.9217 2 17.9391 2 19V21M16 3.12793C16.8578 3.3503 17.6174 3.85119 18.1597 4.55199C18.702 5.25279 18.9962 6.11382 18.9962 6.99993C18.9962 7.88604 18.702 8.74707 18.1597 9.44787C17.6174 10.1487 16.8578 10.6496 16 10.8719M22 20.9999V18.9999C21.9993 18.1136 21.7044 17.2527 21.1614 16.5522C20.6184 15.8517 19.8581 15.3515 19 15.1299M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></span><span class="text"><span class="title t-label-lg">Helping family</span><span class="desc t-body-sm">I want to teach someone</span></span><span class="radio"></span></label>
+    <label class="option"><span class="leading"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 5V21M12 21C11.5343 20.379 10.9303 19.875 10.2361 19.5279C9.54179 19.1807 8.77623 19 8 19H3.999C3.46874 18.9997 2.96029 18.7889 2.58543 18.4139C2.21058 18.0388 2 17.5303 2 17V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H8C8.77623 3 9.54179 3.18073 10.2361 3.52786C10.9303 3.875 11.5343 4.37902 12 5C12.4659 4.37939 13.07 3.87575 13.7642 3.52897C14.4585 3.18218 15.2239 3.00177 16 3.002L20.001 3C20.5313 3.00027 21.0397 3.2111 21.4146 3.58614C21.7894 3.96118 22 4.46974 22 5V17C22 17.5303 21.7894 18.0388 21.4146 18.4139C21.0397 18.7889 20.5313 18.9997 20.001 19H16C15.2238 19 14.4582 19.1807 13.7639 19.5279C13.0697 19.875 12.4657 20.379 12 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></span><span class="text"><span class="title t-label-lg">Just learning</span><span class="desc t-body-sm">No trip booked yet</span></span><span class="radio"></span></label>
+  </div>
+  <div class="footer">
+    <button class="btn btn--lg btn--primary btn--fill t-label-lg">Continue</button>
+    <button class="btn btn--default-size btn--ghost t-label-lg">Skip for now</button>
+  </div>
+  <div class="status-bar"><span class="t-label-lg">9:41</span><span class="system"><i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i><i style="height:11px"></i><i class="battery"></i></span></div>
+  <div class="home-indicator"><i></i></div>
+</div>
+</body>
+</html>

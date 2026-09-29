@@ -106,3 +106,46 @@ The render showed section headings sitting 16px under the subtitle, the same as 
 - The in-flight uncertain-write case (F1 step 1) wasn't produced; the reconciliation step was exercised, but against a write that had clearly completed.
 - The ambiguous-lookup recovery is supported in pieces (known-good check proven, reload proven, "reload clears the mode" observed once), not end-to-end.
 - The restarted bridge runs as a background process of this Claude Code session, not the original terminal.
+
+## B3 — First worker loop: goal → implementation package (2026-09-30)
+
+**Goal given:** "Produce an implementation package for the onboarding step Intent → Confirmation in Test Scripter, so a developer can build it without opening Figma. Prove it's usable."
+
+**Deliverable:** `deliverables/onboarding-intent-confirmation/` (see its README): tokens, components, screens, prototype, 7 icons, 2 reference renders, a reference HTML build made only from the package, and the verification artefacts.
+
+**Worker implementation:** none beyond this Claude Code session using the existing Figma and browser MCP tools, files and shell. Two small checks that aren't specific to any environment were added in `worker/`: `check-package.mjs` (every reference inside the package resolves) and `pixeldiff.mjs` (pixelmatch plus a per-band breakdown to locate differences). No orchestrator, no plan file, no second agent.
+
+### What the worker decided, and what drove each decision
+
+| Observation | Decision |
+|---|---|
+| The repo already has a known-good design package (`reference/umrah-app-starter/design/`) | Model the deliverable on that format instead of inventing one |
+| `intent-create-html/` already hand-converted Intent to HTML | Don't read or reuse it (that would copy an answer, not test the loop) |
+| Confirmation uses raw hex values and no text styles; each equals a token exactly | Map them to tokens, but mark them `inferred` and raise it as an open question instead of silently cleaning it up |
+| The compact tree says `Content`/`Footer` fill `#ffffff`; the render shows none | Check exact state: alpha 0, so record them as transparent |
+| Prototype: both Intent footer buttons navigate to `null` | Read `code.js` to learn what `null` means (no destination, not a failed lookup, since a failed lookup throws) → report "unwired" rather than invent the link |
+| The component trees omit hidden-by-default layers (LeadingIcon, button Icon) | Take their size and colour from the actual instances and record the source node ids |
+| Icon instances differ in size, colour and stroke scaling (the 40px check keeps a 2px stroke) | Record each use; normalise the SVGs to `currentColor` |
+| First pixel diff 1.97%, located by band; the render showed no radios | Implementation bug (a `.title` class collision), not a package bug → fixed the build |
+| The headline band was still the largest; crop comparison showed a narrower, lighter headline | Measured instead of guessing: Figma ink 286px; Chromium at opsz 18 gives 274px, at auto ~287px → **the package's own "opsz 18" instruction was wrong** (Figma reports opsz 18 but renders at auto) → fixed the package |
+| Remaining 1.22% / 0.60%: all element boxes identical; body text ±1px | Accept as renderer rounding and document it; don't overfit with 1px nudges |
+| Build and page load had been issued in parallel | Re-navigated before screenshotting, so a stale render couldn't be verified |
+
+### Failures during the run
+
+1. **Figma lookup failure mode (natural, at the very first calls).** `GET_PROTOTYPE`/`GET_SCREEN_TREE` failed. Diagnosis: `figma_ping` OK; a nested text node resolved; instances and anything on another page failed. Main page `12002:3691` failed a direct lookup although `figma_list_pages` had just listed it → **it exists; the lookup is temporarily unavailable**. The common factor was resolving remote-library components or unloaded pages. Recovery attempts: a plugin reload via `touch plugin/code.js` (reloaded in ~2s, **didn't clear it**, which disproves the single B1 observation); a page switch through the API (failed). Checking Figma's own network connections from the OS was inconclusive. While blocked, the worker built `pixeldiff.mjs` (it doesn't depend on Figma) and then asked the human to look at the Figma window. **After a human action in the Figma UI, everything resolved.** Autonomous: detection, diagnosis, the missing-vs-unavailable call, and the attempted recoveries. Human: the actual fix.
+2. **A real capability gap (`GET_COMPONENT_TREE` on a variant).** Every instance's `mainComponentId` is a variant, and the tool crashed on variants (Figma forbids `componentPropertyDefinitions` on them). No other tool exposed the parent set, and the only fallback (`get_document_state`) gives raw hex and remote variable ids, which forces ambiguous guessing of tokens from colours. The fix is 1 line in `plugin/code.js` (a variant resolves to its parent set). Released as `figma-adapter-v0.2.1`.
+3. **Error-text bug:** `getNode`'s message printed `(undefined)` because Figma's thrown value had no `.message`. Fixed.
+
+### What this proves
+- From a goal stated in outcome terms, the worker chose the environments (Figma for the source, files for the package, the browser for proof), the order, and the intermediate checks; it wasn't following a supplied call sequence.
+- It made several decisions based on observed state that changed the deliverable, and it caught and fixed **its own** wrong conclusion (opsz) by measuring the rendered output.
+- "Done" was decided by checks, not by assertion: the consistency check passed (and was shown to fail on a broken copy); the from-package build matched Figma with identical element geometry and 1.22% / 0.60% renderer-level pixel difference.
+- The worker kept implementation bugs separate from package bugs, and environment failures from task failures.
+
+### What it does not prove
+- **Generality:** one flow, two simple screens, in a design system already seen in B1/B2.
+- **That a real developer would find it usable:** the "developer" was the same session that wrote the package. The build *was* restricted to package values (no colour literals outside the generated `tokens.css`, checked by grep), but an independent consumer is the real test.
+- **Goal decomposition from nothing:** the goal and the idea of verifying through a build came from the brief.
+- **Autonomous recovery from the Figma lookup mode:** a human was still needed; the reload remedy has now failed once and worked once.
+- Anything about React Native, dark mode, or production code.

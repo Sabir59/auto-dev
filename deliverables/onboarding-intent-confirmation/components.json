@@ -1,0 +1,84 @@
+{
+  "$source": "figma_get_component_tree on each component the two screens instantiate (library components, read 2026-09-30). Only the variants these screens use are kept. Colour/space/radius strings are token names from tokens.json; numbers are literal px.",
+  "$hiddenLayers": "Figma's component tree omits layers hidden by default. Where a screen turns one on, it is listed under `hiddenByDefault`, with size/colour taken from that instance (source: instance node id).",
+  "components": {
+    "Button": {
+      "description": "shadcn <Button variant size disabled>. Label = children. Icon = lucide icon placed after the label.",
+      "props": {
+        "label": { "type": "text", "default": "Button" },
+        "showIcon": { "type": "boolean", "default": false },
+        "icon": { "type": "instance_swap", "default": "arrow-right" },
+        "variant": { "type": "variant", "options": ["default", "secondary", "outline", "ghost", "destructive"] },
+        "size": { "type": "variant", "options": ["sm", "default", "lg", "icon"] },
+        "disabled": { "type": "variant", "options": ["false", "true"] }
+      },
+      "variants": {
+        "variant=default, size=lg, disabled=false": {
+          "height": 56, "layout": { "dir": "row", "gap": "spacing/2", "pad": [0, "spacing/6", 0, "spacing/6"], "main": "CENTER", "cross": "CENTER" },
+          "radius": "radius/full", "fill": "primary",
+          "label": { "style": "label/lg", "color": "primary-foreground" },
+          "hiddenByDefault": { "Icon": { "shownWhen": "showIcon", "size": 20, "color": "primary-foreground", "position": "after label", "source": "I12015:4071;10080:10398" } }
+        },
+        "variant=ghost, size=default, disabled=false": {
+          "height": 48, "layout": { "dir": "row", "gap": "spacing/2", "pad": [0, "spacing/5", 0, "spacing/5"], "main": "CENTER", "cross": "CENTER" },
+          "radius": "radius/full", "fill": null,
+          "label": { "style": "label/lg", "color": "primary" }
+        },
+        "variant=secondary, size=icon, disabled=false": {
+          "width": 44, "height": 44, "layout": { "dir": "row", "gap": 0, "pad": [0, 0, 0, 0], "main": "CENTER", "cross": "CENTER" },
+          "radius": "radius/full", "fill": "secondary",
+          "icon": { "size": 20, "color": "secondary-foreground", "note": "Always shown in size=icon (showIcon doesn't apply). Colour from instance I12008:3972;10080:10454." }
+        }
+      }
+    },
+    "OptionCard": {
+      "description": "A selectable card (one choice from a list). Code: a shadcn <RadioGroupItem> wrapped in a <Label> styled as a card.",
+      "props": {
+        "title": { "type": "text", "default": "Option" },
+        "description": { "type": "text", "default": "Description" },
+        "showDescription": { "type": "boolean", "default": true },
+        "showLeadingIcon": { "type": "boolean", "default": false },
+        "leadingIcon": { "type": "instance_swap", "default": "book-open" },
+        "selected": { "type": "variant", "options": ["false", "true"] }
+      },
+      "base": {
+        "layout": { "dir": "row", "gap": 16, "pad": [18, "card/padding", 18, "card/padding"], "main": "MIN", "cross": "CENTER" },
+        "size": "FILL/HUG", "radius": "radius/2xl",
+        "children": [
+          { "n": "LeadingIcon", "hiddenByDefault": true, "shownWhen": "showLeadingIcon", "size": 24, "color": "highlight", "source": "I12008:3978;10070:7022" },
+          { "n": "Text", "layout": { "dir": "col", "gap": 2 }, "size": "FILL/HUG", "children": [
+            { "n": "Title", "bind": "title", "style": "label/lg", "color": "foreground" },
+            { "n": "Description", "bind": "description", "visibleWhen": "showDescription", "style": "body/sm", "color": "subtle-foreground" }
+          ] },
+          { "n": "Radio", "comp": "RadioIndicator {checked=<selected>}" }
+        ]
+      },
+      "variants": {
+        "selected=false": { "fill": "card", "stroke": { "color": "border", "weight": 1 } },
+        "selected=true": { "fill": "highlight-muted", "stroke": { "color": "gold/300", "weight": 1 } }
+      }
+    },
+    "RadioIndicator": {
+      "description": "shadcn <RadioGroupItem>. checked = selected state.",
+      "variants": {
+        "checked=false": { "width": 24, "height": 24, "radius": "radius/full", "fill": "card", "stroke": { "color": "gold/300", "weight": 1.5 } },
+        "checked=true": { "width": 24, "height": 24, "radius": "radius/full", "fill": "brand", "icon": { "name": "check", "size": 14, "color": "foreground" } }
+      }
+    },
+    "StatusBar": {
+      "description": "Device status bar placeholder. In code this is the safe-area-inset-top, not a component.",
+      "width": 390, "height": 47, "layout": { "dir": "row", "pad": [8, 28, 0, 32], "main": "SPACE_BETWEEN", "cross": "CENTER" },
+      "children": [
+        { "n": "Time", "text": "9:41", "style": "label/lg", "color": "foreground" },
+        { "n": "System", "layout": { "dir": "row", "gap": 6, "cross": "MAX" }, "fill": "foreground", "bars": [
+          { "w": 3, "h": 5, "radius": 1 }, { "w": 3, "h": 7, "radius": 1 }, { "w": 3, "h": 9, "radius": 1 }, { "w": 3, "h": 11, "radius": 1 }, { "w": 25, "h": 12, "radius": 3.5 }
+        ] }
+      ]
+    },
+    "HomeIndicator": {
+      "description": "Device home indicator placeholder. In code: safe-area-inset-bottom.",
+      "width": 390, "height": 34, "layout": { "dir": "row", "pad": [0, 0, 8, 0], "main": "CENTER", "cross": "MAX" },
+      "children": [ { "n": "Pill", "w": 134, "h": 5, "radius": 3, "fill": "foreground" } ]
+    }
+  }
+}

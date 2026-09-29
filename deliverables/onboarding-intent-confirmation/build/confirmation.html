@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Confirmation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600&display=block">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  .screen { background: var(--color-background); padding: 55px 20px 42px; }
+  .content { display: flex; flex-direction: column; gap: 24px; align-items: center; }
+  .badge { width: 96px; height: 96px; border-radius: 9999px; background: var(--color-highlight-muted); display: flex; align-items: center; justify-content: center; color: var(--color-foreground); }
+  .badge svg { width: 40px; height: 40px; }
+  .badge svg path { stroke-width: 1.2; } /* 2px rendered at 40px: Figma doesn't scale this stroke */
+  .headline { color: var(--color-foreground); text-align: center; }
+  .subtext { color: var(--color-muted-foreground); text-align: center; width: 320px; }
+  .footer { display: flex; flex-direction: column; align-items: center; }
+</style>
+</head>
+<body>
+<div class="screen" id="screen">
+  <div class="content">
+    <div class="badge"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></div>
+    <h1 class="headline t-display-md">You're all set</h1>
+    <p class="subtext t-body-lg">Your first journey begins now. We will guide you every step of the way.</p>
+  </div>
+  <div class="footer">
+    <button class="btn btn--lg btn--primary btn--fill t-label-lg">Get Started<span class="icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 5L19 12L12 19M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></span></button>
+  </div>
+  <div class="status-bar"><span class="t-label-lg">9:41</span><span class="system"><i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i><i style="height:11px"></i><i class="battery"></i></span></div>
+  <div class="home-indicator"><i></i></div>
+</div>
+</body>
+</html>
