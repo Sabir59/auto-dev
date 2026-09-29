@@ -146,7 +146,7 @@ server.registerTool(
       "Inspect the document. With no args: shallow list of the current page's top-level children. With pageId: shallow list of that page's children. With id: a full recursive dump of that one node (fills, strokes, layout, text styling, etc.) to the given depth.",
     inputSchema: {
       id: z.string().optional(),
-      depth: z.number().int().positive().optional().describe("Only used with id. Default 4."),
+      depth: z.number().int().nonnegative().optional().describe("Only used with id. Default 4. 0 is accepted but the underlying handler treats it the same as omitting it (falsy fallback), not as 'shallowest'."),
       pageId: z.string().optional(),
     },
   },
