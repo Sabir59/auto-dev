@@ -1,0 +1,13 @@
+{
+  "name": "browser-executor-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Second execution-layer adapter: the same MCP tool contract as figma-executor, but driving a real browser via Playwright directly (no bridge/WS relay needed — Playwright already has one process with both page-state and network access).",
+  "main": "server.mjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.31.0",
+    "playwright": "^1.63.0",
+    "zod": "^4.6.5"
+  }
+}
