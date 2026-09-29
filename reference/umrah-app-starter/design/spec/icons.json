@@ -1,0 +1,314 @@
+{
+ "section": "icons",
+ "file": "Umrah & Hajj Guide",
+ "exportedWith": "design-spec-export.js",
+ "library": "lucide-react-native (same icons as lucide-react / Figma)",
+ "icons": [
+  {
+   "figma": "icon/arrow-left",
+   "component": "ArrowLeft",
+   "custom": false
+  },
+  {
+   "figma": "icon/arrow-right",
+   "component": "ArrowRight",
+   "custom": false
+  },
+  {
+   "figma": "icon/audio-lines",
+   "component": "AudioLines",
+   "custom": false
+  },
+  {
+   "figma": "icon/award",
+   "component": "Award",
+   "custom": false
+  },
+  {
+   "figma": "icon/book",
+   "component": "Book",
+   "custom": false
+  },
+  {
+   "figma": "icon/book-open",
+   "component": "BookOpen",
+   "custom": false
+  },
+  {
+   "figma": "icon/bookmark",
+   "component": "Bookmark",
+   "custom": false
+  },
+  {
+   "figma": "icon/bookmark-check",
+   "component": "BookmarkCheck",
+   "custom": false
+  },
+  {
+   "figma": "icon/calendar",
+   "component": "Calendar",
+   "custom": false
+  },
+  {
+   "figma": "icon/check",
+   "component": "Check",
+   "custom": false
+  },
+  {
+   "figma": "icon/chevron-down",
+   "component": "ChevronDown",
+   "custom": false
+  },
+  {
+   "figma": "icon/chevron-left",
+   "component": "ChevronLeft",
+   "custom": false
+  },
+  {
+   "figma": "icon/chevron-right",
+   "component": "ChevronRight",
+   "custom": false
+  },
+  {
+   "figma": "icon/circle-alert",
+   "component": "CircleAlert",
+   "custom": false
+  },
+  {
+   "figma": "icon/circle-check",
+   "component": "CircleCheck",
+   "custom": false
+  },
+  {
+   "figma": "icon/circle-help",
+   "component": "CircleHelp",
+   "custom": false
+  },
+  {
+   "figma": "icon/circle-x",
+   "component": "CircleX",
+   "custom": false
+  },
+  {
+   "figma": "icon/clock",
+   "component": "Clock",
+   "custom": false
+  },
+  {
+   "figma": "icon/coins",
+   "component": "Coins",
+   "custom": false
+  },
+  {
+   "figma": "icon/compass",
+   "component": "Compass",
+   "custom": false
+  },
+  {
+   "figma": "icon/copy",
+   "component": "Copy",
+   "custom": false
+  },
+  {
+   "figma": "icon/droplet",
+   "component": "Droplet",
+   "custom": false
+  },
+  {
+   "figma": "icon/eye",
+   "component": "Eye",
+   "custom": false
+  },
+  {
+   "figma": "icon/eye-off",
+   "component": "EyeOff",
+   "custom": false
+  },
+  {
+   "figma": "icon/footprints",
+   "component": "Footprints",
+   "custom": false
+  },
+  {
+   "figma": "icon/hand-heart",
+   "component": "HandHeart",
+   "custom": false
+  },
+  {
+   "figma": "icon/heart",
+   "component": "Heart",
+   "custom": false
+  },
+  {
+   "figma": "icon/heart-pulse",
+   "component": "HeartPulse",
+   "custom": false
+  },
+  {
+   "figma": "icon/house",
+   "component": "House",
+   "custom": false
+  },
+  {
+   "figma": "icon/info",
+   "component": "Info",
+   "custom": false
+  },
+  {
+   "figma": "icon/landmark",
+   "component": "Landmark",
+   "custom": false
+  },
+  {
+   "figma": "icon/leaf",
+   "component": "Leaf",
+   "custom": false
+  },
+  {
+   "figma": "icon/lightbulb",
+   "component": "Lightbulb",
+   "custom": false
+  },
+  {
+   "figma": "icon/lock",
+   "component": "Lock",
+   "custom": false
+  },
+  {
+   "figma": "icon/map-pin",
+   "component": "MapPin",
+   "custom": false
+  },
+  {
+   "figma": "icon/menu",
+   "component": "Menu",
+   "custom": false
+  },
+  {
+   "figma": "icon/mosque",
+   "component": "Mosque",
+   "custom": false
+  },
+  {
+   "figma": "icon/mountain",
+   "component": "Mountain",
+   "custom": false
+  },
+  {
+   "figma": "icon/pause",
+   "component": "Pause",
+   "custom": false
+  },
+  {
+   "figma": "icon/pencil",
+   "component": "Pencil",
+   "custom": false
+  },
+  {
+   "figma": "icon/play",
+   "component": "Play",
+   "custom": false
+  },
+  {
+   "figma": "icon/plus",
+   "component": "Plus",
+   "custom": false
+  },
+  {
+   "figma": "icon/quote",
+   "component": "Quote",
+   "custom": false
+  },
+  {
+   "figma": "icon/rotate-ccw",
+   "component": "RotateCcw",
+   "custom": false
+  },
+  {
+   "figma": "icon/scissors",
+   "component": "Scissors",
+   "custom": false
+  },
+  {
+   "figma": "icon/search",
+   "component": "Search",
+   "custom": false
+  },
+  {
+   "figma": "icon/settings",
+   "component": "Settings",
+   "custom": false
+  },
+  {
+   "figma": "icon/share-2",
+   "component": "Share2",
+   "custom": false
+  },
+  {
+   "figma": "icon/shield",
+   "component": "Shield",
+   "custom": false
+  },
+  {
+   "figma": "icon/shield-check",
+   "component": "ShieldCheck",
+   "custom": false
+  },
+  {
+   "figma": "icon/shirt",
+   "component": "Shirt",
+   "custom": false
+  },
+  {
+   "figma": "icon/skip-forward",
+   "component": "SkipForward",
+   "custom": false
+  },
+  {
+   "figma": "icon/sliders-horizontal",
+   "component": "SlidersHorizontal",
+   "custom": false
+  },
+  {
+   "figma": "icon/sparkles",
+   "component": "Sparkles",
+   "custom": false
+  },
+  {
+   "figma": "icon/tag",
+   "component": "Tag",
+   "custom": false
+  },
+  {
+   "figma": "icon/trash-2",
+   "component": "Trash2",
+   "custom": false
+  },
+  {
+   "figma": "icon/user",
+   "component": "User",
+   "custom": false
+  },
+  {
+   "figma": "icon/users",
+   "component": "Users",
+   "custom": false
+  },
+  {
+   "figma": "icon/volume-2",
+   "component": "Volume2",
+   "custom": false
+  },
+  {
+   "figma": "icon/wifi-off",
+   "component": "WifiOff",
+   "custom": false
+  },
+  {
+   "figma": "icon/x",
+   "component": "X",
+   "custom": false
+  }
+ ],
+ "note": "custom: true means not in Lucide (e.g. mosque) — export it with the illustrations section and wrap it as an SVG component."
+}

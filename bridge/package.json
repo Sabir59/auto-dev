@@ -1,0 +1,13 @@
+{
+  "name": "figma-ai-executor-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tiny local bridge: HTTP in (from AI/backend) -> WebSocket out (to Figma plugin UI) -> back.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

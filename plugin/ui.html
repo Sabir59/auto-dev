@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { font: 12px -apple-system, sans-serif; margin: 8px; color: #333; }
+    #status { padding: 4px 8px; border-radius: 4px; display: inline-block; }
+    .connected { background: #d4f7d4; color: #1a7a1a; }
+    .disconnected { background: #f7d4d4; color: #a11; }
+    #log { margin-top: 8px; font-size: 10px; color: #666; white-space: pre-wrap; max-height: 90px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <div>AI Executor Bridge</div>
+  <div id="status" class="disconnected">connecting…</div>
+  <div id="log"></div>
+
+  <script>
+    // Plugin UI iframe: this is the ONLY context with network access.
+    // It owns the WebSocket to the local bridge server and relays messages
+    // to/from the plugin sandbox (code.js) via postMessage.
+
+    const BRIDGE_URL = "ws://localhost:8787/ws";
+    const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
+
+    function log(line) {
+      logEl.textContent = (new Date().toLocaleTimeString() + " " + line + "\n" + logEl.textContent).slice(0, 2000);
+    }
+
+    function setStatus(connected) {
+      statusEl.textContent = connected ? "connected" : "disconnected — retrying…";
+      statusEl.className = connected ? "connected" : "disconnected";
+    }
+
+    let ws;
+    let reconnectDelay = 1000;
+
+    function connect() {
+      ws = new WebSocket(BRIDGE_URL);
+
+      ws.onopen = () => {
+        setStatus(true);
+        reconnectDelay = 1000;
+        log("ws open");
+        ws.send(JSON.stringify({ type: "__hello__", role: "plugin" }));
+      };
+
+      ws.onclose = () => {
+        setStatus(false);
+        log("ws closed, reconnecting in " + reconnectDelay + "ms");
+        setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+      };
+
+      ws.onerror = () => {
+        log("ws error");
+      };
+
+      // Command arrives from the bridge server -> forward into the sandbox.
+      ws.onmessage = (event) => {
+        let msg;
+        try {
+          msg = JSON.parse(event.data);
+        } catch (e) {
+          log("bad json from server: " + event.data);
+          return;
+        }
+        log("-> sandbox: " + msg.type + " (" + msg.id + ")");
+        parent.postMessage({ pluginMessage: msg }, "*");
+      };
+    }
+
+    // Uint8Array -> base64, chunked to avoid call-stack blowups on apply().
+    function bytesToBase64(bytes) {
+      let binary = "";
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.slice(i, i + chunk));
+      }
+      return btoa(binary);
+    }
+
+    // Result arrives from the sandbox (figma.ui.postMessage) -> forward to server.
+    // This is the only context with browser APIs (btoa etc.), so binary
+    // export payloads are base64-encoded here before going over the socket.
+    window.onmessage = (event) => {
+      const msg = event.data && event.data.pluginMessage;
+      if (!msg) return;
+      log("<- sandbox: " + (msg.ok ? "ok" : "err") + " (" + msg.id + ")");
+
+      if (msg.ok && msg.result && msg.result.__binaryBytes) {
+        const bytes = new Uint8Array(msg.result.__binaryBytes);
+        msg.result = {
+          base64: bytesToBase64(bytes),
+          format: msg.result.format,
+          width: msg.result.width,
+          height: msg.result.height,
+        };
+      }
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(msg));
+      }
+    };
+
+    connect();
+  </script>
+</body>
+</html>

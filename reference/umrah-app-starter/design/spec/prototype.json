@@ -1,0 +1,1781 @@
+{
+ "section": "prototype",
+ "file": "Umrah & Hajj Guide",
+ "exportedWith": "design-spec-export.js",
+ "flows": [
+  {
+   "nodeId": "10071:7224",
+   "name": "Umrah Guide"
+  }
+ ],
+ "screens": {
+  "01 Welcome": [
+   {
+    "on": "Content › Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "02 Language",
+    "transition": "push 0.3s"
+   }
+  ],
+  "02 Language": [
+   {
+    "on": "Options › OptionCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "OptionCard {selected=false}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Options › OptionCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "OptionCard {selected=true}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Options › OptionCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "OptionCard {selected=true}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "03 Intent",
+    "transition": "push 0.3s"
+   }
+  ],
+  "03 Intent": [
+   {
+    "on": "Top › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Options › OptionCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "OptionCard {selected=false}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Options › OptionCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "OptionCard {selected=true}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Options › OptionCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "OptionCard {selected=true}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Options › OptionCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "OptionCard {selected=true}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "push 0.3s"
+   }
+  ],
+  "04 Learning Path": [
+   {
+    "on": "TopBar › Action",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "22 Settings",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › ProgressCard › Continue button · QA",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "08 Stage 3",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "05 Stage 1 Men",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "07 Stage 2",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "08 Stage 3",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "09 Stage 4",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "10 Stage 5",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "11 Stage 6",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "12 Stage 7",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "BottomNav › Duas",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › History",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "17 History",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Madinah",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › FAQs",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "21 FAQs",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Saved",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "15 Saved",
+    "transition": "instant"
+   }
+  ],
+  "05 Stage 1 Men": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Instructional guide › TabsList › TabsTrigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "TabsTrigger {active=false}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Instructional guide › TabsList › TabsTrigger",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "06 Stage 1 Women",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Duʿā for intention › AudioPlayer",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Duʿā for intention › AudioPlayer › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Tap to reveal › RevealCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "RevealCard {state=revealed}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=correct}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "07 Stage 2",
+    "transition": "push 0.3s"
+   }
+  ],
+  "06 Stage 1 Women": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Instructional guide › TabsList › TabsTrigger",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "05 Stage 1 Men",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Instructional guide › TabsList › TabsTrigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "TabsTrigger {active=false}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Duʿā for intention › AudioPlayer",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=default}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Duʿā for intention › AudioPlayer › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=default}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Tap to reveal › RevealCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "RevealCard {state=hidden}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "07 Stage 2",
+    "transition": "push 0.3s"
+   }
+  ],
+  "07 Stage 2": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Talbiyah & masjid entrance › AudioPlayer",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Talbiyah & masjid entrance › AudioPlayer › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Tap to reveal › RevealCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "RevealCard {state=revealed}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "08 Stage 3",
+    "transition": "push 0.3s"
+   }
+  ],
+  "08 Stage 3": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Supplication of Ṭawāf › AudioPlayer",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Supplication of Ṭawāf › AudioPlayer › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Tap to reveal › RevealCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "RevealCard {state=revealed}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=correct}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "09 Stage 4",
+    "transition": "push 0.3s"
+   }
+  ],
+  "09 Stage 4": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Qurʾānic verse at Maqām Ibrāhīm › AudioPlayer",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Qurʾānic verse at Maqām Ibrāhīm › AudioPlayer › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Tap to reveal › RevealCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "RevealCard {state=revealed}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "10 Stage 5",
+    "transition": "push 0.3s"
+   }
+  ],
+  "10 Stage 5": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Remembrance on As-Ṣafā › AudioPlayer",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Remembrance on As-Ṣafā › AudioPlayer › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Tap to reveal › RevealCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "RevealCard {state=revealed}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=correct}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "11 Stage 6",
+    "transition": "push 0.3s"
+   }
+  ],
+  "11 Stage 6": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Tap to reveal › RevealCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "RevealCard {state=revealed}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=correct}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "12 Stage 7",
+    "transition": "push 0.3s"
+   }
+  ],
+  "12 Stage 7": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Leaving the masjid › AudioPlayer",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Leaving the masjid › AudioPlayer › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Tap to reveal › RevealCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "RevealCard {state=revealed}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Knowledge check › Options › QuizOption",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "QuizOption {state=wrong}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Footer › Button",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "13 Learning Path Complete",
+    "transition": "push 0.3s"
+   }
+  ],
+  "14 Duas": [
+   {
+    "on": "Content › Categories › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Categories › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Categories › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Categories › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Categories › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Categories › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Categories › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › DuaCard › Audio",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › DuaCard › Audio › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › DuaCard › Audio",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › DuaCard › Audio › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › DuaCard › Audio",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › DuaCard › Audio › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › DuaCard › Audio",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › DuaCard › Audio › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "BottomNav › Guide",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › History",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "17 History",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Madinah",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › FAQs",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "21 FAQs",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Saved",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "15 Saved",
+    "transition": "instant"
+   }
+  ],
+  "15 Saved": [
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › SavedItemCard",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › SavedItemCard",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "08 Stage 3",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › SavedItemCard",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "21 FAQs",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › SavedItemCard",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "BottomNav › Guide",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Duas",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › History",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "17 History",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Madinah",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › FAQs",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "21 FAQs",
+    "transition": "instant"
+   }
+  ],
+  "16 Saved Empty": [
+   {
+    "on": "Content › EmptyState › Actions › Primary",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › EmptyState › Actions › Secondary",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "BottomNav › Guide",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Duas",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › History",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "17 History",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Madinah",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › FAQs",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "21 FAQs",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Saved",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "15 Saved",
+    "transition": "instant"
+   }
+  ],
+  "17 History": [
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › ArticleCard — The Battle of Uhud",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "18 History Mount Uhud",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "BottomNav › Guide",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Duas",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Madinah",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › FAQs",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "21 FAQs",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Saved",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "15 Saved",
+    "transition": "instant"
+   }
+  ],
+  "18 History Mount Uhud": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Card / Reflect › RevealCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "RevealCard {state=revealed}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Visiting the martyrs › AudioPlayer",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Card / Visiting the martyrs › AudioPlayer › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Related in Madinah › RelatedLink",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Card / Related in Madinah › RelatedLink",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "push 0.3s"
+   }
+  ],
+  "19 Madinah": [
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › ArticleCard — Al-Masjid an-Nabawi",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "20 Madinah Masjid an-Nabawi",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › ArticleCard — The Rawdah",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "20 Madinah Masjid an-Nabawi",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › ArticleCard — Mount Uhud & the martyrs",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "18 History Mount Uhud",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "BottomNav › Guide",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Duas",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › History",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "17 History",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › FAQs",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "21 FAQs",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Saved",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "15 Saved",
+    "transition": "instant"
+   }
+  ],
+  "20 Madinah Masjid an-Nabawi": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Card / The salām › AudioPlayer",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.25s"
+   },
+   {
+    "on": "Content › Card / The salām › AudioPlayer › PlayButton",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "AudioPlayer {state=playing}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Reflect › RevealCard",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "RevealCard {state=revealed}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Related in Madinah › RelatedLink",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Card / Related in Madinah › RelatedLink",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Card / Related in Madinah › RelatedLink",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "18 History Mount Uhud",
+    "transition": "push 0.3s"
+   }
+  ],
+  "21 FAQs": [
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Filters › FilterChip",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FilterChip {selected=true}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Iḥrām › FaqItem — Can I put on Ihrām at home or on the plane? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=collapsed}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Iḥrām › FaqItem — Can I use scented soap or deodorant? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=expanded}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Iḥrām › FaqItem — I broke an Ihrām rule by mistake. What now? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=expanded}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Ṭawāf & Saʿī › FaqItem — I lost count of my rounds. What do I do? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=expanded}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Ṭawāf & Saʿī › FaqItem — Do I need wudūʾ for Saʿī? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=expanded}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Ṭawāf & Saʿī › FaqItem — Can I stop to rest, drink or pray? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=expanded}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Ṭawāf & Saʿī › FaqItem — Can I do Ṭawāf and Saʿī in a wheelchair? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=expanded}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Women › FaqItem — My period started. Can I still do ʿUmrah? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=expanded}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Women › FaqItem — Do I need a mahram to travel for ʿUmrah? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=expanded}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / After ʿUmrah › FaqItem — Can I do more than one ʿUmrah on this trip? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=expanded}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / After ʿUmrah › FaqItem — Is there a farewell Ṭawāf after ʿUmrah? › Body › Trigger",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "FaqItem {state=expanded}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "BottomNav › Guide",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Duas",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › History",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "17 History",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Madinah",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Saved",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "15 Saved",
+    "transition": "instant"
+   }
+  ],
+  "13 Learning Path Complete": [
+   {
+    "on": "TopBar › Action",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "22 Settings",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "05 Stage 1 Men",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "07 Stage 2",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "08 Stage 3",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "09 Stage 4",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "10 Stage 5",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "11 Stage 6",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "Content › Roadmap › StageNode",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "12 Stage 7",
+    "transition": "push 0.3s"
+   },
+   {
+    "on": "BottomNav › Guide",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Duas",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › History",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "17 History",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Madinah",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › FAQs",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "21 FAQs",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Saved",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "15 Saved",
+    "transition": "instant"
+   }
+  ],
+  "22 Settings": [
+   {
+    "on": "TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Content › Card / Preferences › Row / Language",
+    "trigger": "on_click",
+    "action": "overlay",
+    "to": "23 Sheet Language",
+    "transition": "move_in 0.3s"
+   },
+   {
+    "on": "Content › Card / Preferences › Row / Theme",
+    "trigger": "on_click",
+    "action": "overlay",
+    "to": "24 Sheet Theme",
+    "transition": "move_in 0.3s"
+   },
+   {
+    "on": "Content › Card / Preferences › Row / Your journey",
+    "trigger": "on_click",
+    "action": "overlay",
+    "to": "25 Sheet Journey",
+    "transition": "move_in 0.3s"
+   },
+   {
+    "on": "Content › Card / Reading › Row / Arabic text size",
+    "trigger": "on_click",
+    "action": "overlay",
+    "to": "26 Sheet Text size",
+    "transition": "move_in 0.3s"
+   },
+   {
+    "on": "Content › Card / Reading › Row / Show transliteration › Body › Switch",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "Switch {checked=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Content › Card / Data › Row / Reset learning progress",
+    "trigger": "on_click",
+    "action": "overlay",
+    "to": "27 Sheet Reset progress",
+    "transition": "move_in 0.3s"
+   },
+   {
+    "on": "Content › Card / Data › Row / Clear saved items",
+    "trigger": "on_click",
+    "action": "overlay",
+    "to": "28 Sheet Clear saved",
+    "transition": "move_in 0.3s"
+   },
+   {
+    "on": "BottomNav › Guide",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "04 Learning Path",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Duas",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "14 Duas",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › History",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "17 History",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Madinah",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "19 Madinah",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › FAQs",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "21 FAQs",
+    "transition": "instant"
+   },
+   {
+    "on": "BottomNav › Saved",
+    "trigger": "on_click",
+    "action": "navigate",
+    "to": "15 Saved",
+    "transition": "instant"
+   }
+  ],
+  "23 Sheet Language": [
+   {
+    "on": "Main › Backdrop (copy of Settings) › TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Main › Backdrop (copy of Settings) › Content › Card / Reading › Row / Show transliteration › Body › Switch",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "Switch {checked=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Main › Scrim",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   }
+  ],
+  "24 Sheet Theme": [
+   {
+    "on": "Main › Backdrop (copy of Settings) › TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Main › Backdrop (copy of Settings) › Content › Card / Reading › Row / Show transliteration › Body › Switch",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "Switch {checked=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Main › Scrim",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   }
+  ],
+  "25 Sheet Journey": [
+   {
+    "on": "Main › Backdrop (copy of Settings) › TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Main › Backdrop (copy of Settings) › Content › Card / Reading › Row / Show transliteration › Body › Switch",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "Switch {checked=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Main › Scrim",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   }
+  ],
+  "26 Sheet Text size": [
+   {
+    "on": "Main › Backdrop (copy of Settings) › TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Main › Backdrop (copy of Settings) › Content › Card / Reading › Row / Show transliteration › Body › Switch",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "Switch {checked=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Main › Scrim",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Options › SheetOption",
+    "trigger": "on_click",
+    "action": "close overlay"
+   }
+  ],
+  "27 Sheet Reset progress": [
+   {
+    "on": "Main › Backdrop (copy of Settings) › TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Main › Backdrop (copy of Settings) › Content › Card / Reading › Row / Show transliteration › Body › Switch",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "Switch {checked=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Main › Scrim",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Actions › Button",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Actions › Button",
+    "trigger": "on_click",
+    "action": "close overlay"
+   }
+  ],
+  "28 Sheet Clear saved": [
+   {
+    "on": "Main › Backdrop (copy of Settings) › TopBar › Back",
+    "trigger": "on_click",
+    "action": "back"
+   },
+   {
+    "on": "Main › Backdrop (copy of Settings) › Content › Card / Reading › Row / Show transliteration › Body › Switch",
+    "trigger": "on_click",
+    "action": "change_to",
+    "to": "Switch {checked=false}",
+    "transition": "smart_animate 0.2s"
+   },
+   {
+    "on": "Main › Scrim",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Actions › Button",
+    "trigger": "on_click",
+    "action": "close overlay"
+   },
+   {
+    "on": "Main › Sheet › Actions › Button",
+    "trigger": "on_click",
+    "action": "close overlay"
+   }
+  ]
+ },
+ "componentInteractions": [
+  {
+   "component": "OptionCard {selected=false}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "OptionCard {selected=true}",
+   "transition": "smart_animate 0.25s"
+  },
+  {
+   "component": "OptionCard {selected=true}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "OptionCard {selected=false}",
+   "transition": "smart_animate 0.25s"
+  },
+  {
+   "component": "TabsTrigger {active=true}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "TabsTrigger {active=false}",
+   "transition": "smart_animate 0.25s"
+  },
+  {
+   "component": "TabsTrigger {active=false}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "TabsTrigger {active=true}",
+   "transition": "smart_animate 0.25s"
+  },
+  {
+   "component": "AudioPlayer {state=default}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "AudioPlayer {state=playing}",
+   "transition": "smart_animate 0.25s"
+  },
+  {
+   "component": "AudioPlayer {state=playing}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "AudioPlayer {state=default}",
+   "transition": "smart_animate 0.25s"
+  },
+  {
+   "component": "RevealCard {state=hidden}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "RevealCard {state=revealed}",
+   "transition": "smart_animate 0.2s"
+  },
+  {
+   "component": "RevealCard {state=revealed}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "RevealCard {state=hidden}",
+   "transition": "smart_animate 0.25s"
+  },
+  {
+   "component": "FilterChip {selected=true}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "FilterChip {selected=false}",
+   "transition": "smart_animate 0.2s"
+  },
+  {
+   "component": "FilterChip {selected=false}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "FilterChip {selected=true}",
+   "transition": "smart_animate 0.2s"
+  },
+  {
+   "component": "Switch {checked=true}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "Switch {checked=false}",
+   "transition": "smart_animate 0.2s"
+  },
+  {
+   "component": "Switch {checked=false}",
+   "trigger": "on_click",
+   "action": "change_to",
+   "to": "Switch {checked=true}",
+   "transition": "smart_animate 0.2s"
+  }
+ ]
+}

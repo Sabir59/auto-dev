@@ -1,0 +1,724 @@
+{
+ "section": "tokens",
+ "file": "Umrah & Hajj Guide",
+ "exportedWith": "design-spec-export.js",
+ "note": "Theme roles are the semantic tokens used in code. In the Dark copy, the same Theme roles hold the dark values. Contrast fix applied (brand-foreground → green/950, ring → gold/600) and illustration-bg added — mirror these in Figma with fix-theme-roles.js.",
+ "collections": {
+  "Primitives": {
+   "modes": [
+    "Default"
+   ],
+   "variables": {
+    "green/50": {
+     "type": "color",
+     "value": "#eefaf4",
+     "code": "var(--color-green-50)"
+    },
+    "green/100": {
+     "type": "color",
+     "value": "#dbf4e8",
+     "code": "var(--color-green-100)"
+    },
+    "green/200": {
+     "type": "color",
+     "value": "#c4ebd8",
+     "code": "var(--color-green-200)"
+    },
+    "green/300": {
+     "type": "color",
+     "value": "#a0d1bb",
+     "code": "var(--color-green-300)"
+    },
+    "green/400": {
+     "type": "color",
+     "value": "#7ab39b",
+     "code": "var(--color-green-400)"
+    },
+    "green/500": {
+     "type": "color",
+     "value": "#58957c",
+     "code": "var(--color-green-500)"
+    },
+    "green/600": {
+     "type": "color",
+     "value": "#417962",
+     "code": "var(--color-green-600)"
+    },
+    "green/700": {
+     "type": "color",
+     "value": "#2f604d",
+     "code": "var(--color-green-700)"
+    },
+    "green/800": {
+     "type": "color",
+     "value": "#214c3b",
+     "code": "var(--color-green-800)"
+    },
+    "green/900": {
+     "type": "color",
+     "value": "#163a2d",
+     "code": "var(--color-green-900)"
+    },
+    "green/950": {
+     "type": "color",
+     "value": "#002419",
+     "code": "var(--color-green-950)"
+    },
+    "gold/50": {
+     "type": "color",
+     "value": "#fef6e8",
+     "code": "var(--color-gold-50)"
+    },
+    "gold/100": {
+     "type": "color",
+     "value": "#fbebcf",
+     "code": "var(--color-gold-100)"
+    },
+    "gold/200": {
+     "type": "color",
+     "value": "#f5daae",
+     "code": "var(--color-gold-200)"
+    },
+    "gold/300": {
+     "type": "color",
+     "value": "#eac488",
+     "code": "var(--color-gold-300)"
+    },
+    "gold/400": {
+     "type": "color",
+     "value": "#d5a963",
+     "code": "var(--color-gold-400)"
+    },
+    "gold/500": {
+     "type": "color",
+     "value": "#ba8e48",
+     "code": "var(--color-gold-500)"
+    },
+    "gold/600": {
+     "type": "color",
+     "value": "#9b722f",
+     "code": "var(--color-gold-600)"
+    },
+    "gold/700": {
+     "type": "color",
+     "value": "#7c5716",
+     "code": "var(--color-gold-700)"
+    },
+    "gold/800": {
+     "type": "color",
+     "value": "#5f410b",
+     "code": "var(--color-gold-800)"
+    },
+    "gold/900": {
+     "type": "color",
+     "value": "#452e06",
+     "code": "var(--color-gold-900)"
+    },
+    "gold/950": {
+     "type": "color",
+     "value": "#2c1c04",
+     "code": "var(--color-gold-950)"
+    },
+    "sage/50": {
+     "type": "color",
+     "value": "#f2f9f4",
+     "code": "var(--color-sage-50)"
+    },
+    "sage/100": {
+     "type": "color",
+     "value": "#e7f2ea",
+     "code": "var(--color-sage-100)"
+    },
+    "sage/200": {
+     "type": "color",
+     "value": "#d6e4da",
+     "code": "var(--color-sage-200)"
+    },
+    "sage/300": {
+     "type": "color",
+     "value": "#c0d1c5",
+     "code": "var(--color-sage-300)"
+    },
+    "sage/400": {
+     "type": "color",
+     "value": "#a9bdaf",
+     "code": "var(--color-sage-400)"
+    },
+    "sage/500": {
+     "type": "color",
+     "value": "#93a899",
+     "code": "var(--color-sage-500)"
+    },
+    "sage/600": {
+     "type": "color",
+     "value": "#728678",
+     "code": "var(--color-sage-600)"
+    },
+    "sage/700": {
+     "type": "color",
+     "value": "#56695c",
+     "code": "var(--color-sage-700)"
+    },
+    "sage/800": {
+     "type": "color",
+     "value": "#3f4f44",
+     "code": "var(--color-sage-800)"
+    },
+    "sage/900": {
+     "type": "color",
+     "value": "#2c3930",
+     "code": "var(--color-sage-900)"
+    },
+    "sage/950": {
+     "type": "color",
+     "value": "#1b241e",
+     "code": "var(--color-sage-950)"
+    },
+    "neutral/50": {
+     "type": "color",
+     "value": "#fcf9f2",
+     "code": "var(--color-neutral-50)"
+    },
+    "neutral/100": {
+     "type": "color",
+     "value": "#f6f3ec",
+     "code": "var(--color-neutral-100)"
+    },
+    "neutral/200": {
+     "type": "color",
+     "value": "#ebe8e1",
+     "code": "var(--color-neutral-200)"
+    },
+    "neutral/300": {
+     "type": "color",
+     "value": "#d6d4cd",
+     "code": "var(--color-neutral-300)"
+    },
+    "neutral/400": {
+     "type": "color",
+     "value": "#a2a69f",
+     "code": "var(--color-neutral-400)"
+    },
+    "neutral/500": {
+     "type": "color",
+     "value": "#717974",
+     "code": "var(--color-neutral-500)"
+    },
+    "neutral/600": {
+     "type": "color",
+     "value": "#59605b",
+     "code": "var(--color-neutral-600)"
+    },
+    "neutral/700": {
+     "type": "color",
+     "value": "#414844",
+     "code": "var(--color-neutral-700)"
+    },
+    "neutral/800": {
+     "type": "color",
+     "value": "#2a2f2c",
+     "code": "var(--color-neutral-800)"
+    },
+    "neutral/900": {
+     "type": "color",
+     "value": "#181c19",
+     "code": "var(--color-neutral-900)"
+    },
+    "neutral/950": {
+     "type": "color",
+     "value": "#0b0e0c",
+     "code": "var(--color-neutral-950)"
+    },
+    "red/50": {
+     "type": "color",
+     "value": "#fef3f1",
+     "code": "var(--color-red-50)"
+    },
+    "red/100": {
+     "type": "color",
+     "value": "#fce3e0",
+     "code": "var(--color-red-100)"
+    },
+    "red/200": {
+     "type": "color",
+     "value": "#f9cdc8",
+     "code": "var(--color-red-200)"
+    },
+    "red/300": {
+     "type": "color",
+     "value": "#f5aaa1",
+     "code": "var(--color-red-300)"
+    },
+    "red/400": {
+     "type": "color",
+     "value": "#ea7a6f",
+     "code": "var(--color-red-400)"
+    },
+    "red/500": {
+     "type": "color",
+     "value": "#e05950",
+     "code": "var(--color-red-500)"
+    },
+    "red/600": {
+     "type": "color",
+     "value": "#c94039",
+     "code": "var(--color-red-600)"
+    },
+    "red/700": {
+     "type": "color",
+     "value": "#a8322d",
+     "code": "var(--color-red-700)"
+    },
+    "red/800": {
+     "type": "color",
+     "value": "#8a2b26",
+     "code": "var(--color-red-800)"
+    },
+    "red/900": {
+     "type": "color",
+     "value": "#722823",
+     "code": "var(--color-red-900)"
+    },
+    "red/950": {
+     "type": "color",
+     "value": "#3f1310",
+     "code": "var(--color-red-950)"
+    },
+    "white": {
+     "type": "color",
+     "value": "#ffffff",
+     "code": "var(--color-white)"
+    },
+    "black": {
+     "type": "color",
+     "value": "#000000",
+     "code": "var(--color-black)"
+    },
+    "night/700": {
+     "type": "color",
+     "value": "#294c41",
+     "code": "var(--color-night-700)",
+     "description": "Dark-theme surface tone (green-tinted near-black). HSL 162° · 30% · 23%"
+    },
+    "night/800": {
+     "type": "color",
+     "value": "#1d372f",
+     "code": "var(--color-night-800)",
+     "description": "Dark-theme surface tone (green-tinted near-black). HSL 162° · 30% · 17%"
+    },
+    "night/850": {
+     "type": "color",
+     "value": "#182d26",
+     "code": "var(--color-night-850)",
+     "description": "Dark-theme surface tone (green-tinted near-black). HSL 162° · 30% · 14%"
+    },
+    "night/900": {
+     "type": "color",
+     "value": "#13231e",
+     "code": "var(--color-night-900)",
+     "description": "Dark-theme surface tone (green-tinted near-black). HSL 162° · 30% · 11%"
+    },
+    "night/950": {
+     "type": "color",
+     "value": "#0d1915",
+     "code": "var(--color-night-950)",
+     "description": "Dark-theme surface tone (green-tinted near-black). HSL 162° · 30% · 8%"
+    }
+   }
+  },
+  "Theme": {
+   "modes": [
+    "Light"
+   ],
+   "variables": {
+    "background": {
+     "type": "color",
+     "alias": "neutral/50",
+     "value": "#fcf9f2",
+     "code": "var(--background)"
+    },
+    "foreground": {
+     "type": "color",
+     "alias": "green/950",
+     "value": "#002419",
+     "code": "var(--foreground)"
+    },
+    "card": {
+     "type": "color",
+     "alias": "white",
+     "value": "#ffffff",
+     "code": "var(--card)"
+    },
+    "card-foreground": {
+     "type": "color",
+     "alias": "green/950",
+     "value": "#002419",
+     "code": "var(--card-foreground)"
+    },
+    "popover": {
+     "type": "color",
+     "alias": "white",
+     "value": "#ffffff",
+     "code": "var(--popover)"
+    },
+    "popover-foreground": {
+     "type": "color",
+     "alias": "green/950",
+     "value": "#002419",
+     "code": "var(--popover-foreground)"
+    },
+    "primary": {
+     "type": "color",
+     "alias": "green/900",
+     "value": "#163a2d",
+     "code": "var(--primary)"
+    },
+    "primary-foreground": {
+     "type": "color",
+     "alias": "white",
+     "value": "#ffffff",
+     "code": "var(--primary-foreground)"
+    },
+    "secondary": {
+     "type": "color",
+     "alias": "neutral/100",
+     "value": "#f6f3ec",
+     "code": "var(--secondary)"
+    },
+    "secondary-foreground": {
+     "type": "color",
+     "alias": "green/900",
+     "value": "#163a2d",
+     "code": "var(--secondary-foreground)"
+    },
+    "muted": {
+     "type": "color",
+     "alias": "neutral/100",
+     "value": "#f6f3ec",
+     "code": "var(--muted)"
+    },
+    "muted-foreground": {
+     "type": "color",
+     "alias": "neutral/700",
+     "value": "#414844",
+     "code": "var(--muted-foreground)"
+    },
+    "accent": {
+     "type": "color",
+     "alias": "neutral/200",
+     "value": "#ebe8e1",
+     "code": "var(--accent)"
+    },
+    "accent-foreground": {
+     "type": "color",
+     "alias": "green/900",
+     "value": "#163a2d",
+     "code": "var(--accent-foreground)"
+    },
+    "destructive": {
+     "type": "color",
+     "alias": "red/600",
+     "value": "#c94039",
+     "code": "var(--destructive)"
+    },
+    "destructive-foreground": {
+     "type": "color",
+     "alias": "white",
+     "value": "#ffffff",
+     "code": "var(--destructive-foreground)"
+    },
+    "border": {
+     "type": "color",
+     "alias": "neutral/200",
+     "value": "#ebe8e1",
+     "code": "var(--border)"
+    },
+    "input": {
+     "type": "color",
+     "alias": "neutral/200",
+     "value": "#ebe8e1",
+     "code": "var(--input)"
+    },
+    "ring": {
+     "type": "color",
+     "alias": "gold/600",
+     "value": "#9b722f",
+     "code": "var(--ring)"
+    },
+    "brand": {
+     "type": "color",
+     "alias": "gold/500",
+     "value": "#ba8e48",
+     "code": "var(--brand)"
+    },
+    "brand-foreground": {
+     "type": "color",
+     "alias": "green/950",
+     "value": "#002419",
+     "code": "var(--brand-foreground)"
+    },
+    "highlight": {
+     "type": "color",
+     "alias": "gold/700",
+     "value": "#7c5716",
+     "code": "var(--highlight)"
+    },
+    "highlight-muted": {
+     "type": "color",
+     "alias": "gold/100",
+     "value": "#fbebcf",
+     "code": "var(--highlight-muted)"
+    },
+    "success": {
+     "type": "color",
+     "alias": "green/700",
+     "value": "#2f604d",
+     "code": "var(--success)"
+    },
+    "success-muted": {
+     "type": "color",
+     "alias": "green/100",
+     "value": "#dbf4e8",
+     "code": "var(--success-muted)"
+    },
+    "subtle-foreground": {
+     "type": "color",
+     "alias": "neutral/600",
+     "value": "#59605b",
+     "code": "var(--subtle-foreground)"
+    },
+    "destructive-muted": {
+     "type": "color",
+     "alias": "red/50",
+     "value": "#fef3f1",
+     "code": "var(--destructive-muted)"
+    },
+    "illustration-bg": {
+     "type": "color",
+     "alias": "neutral/100",
+     "value": "#f6f3ec",
+     "code": "var(--illustration-bg)",
+     "description": "Background circle behind illustrations."
+    }
+   }
+  },
+  "Spacing & Radius": {
+   "modes": [
+    "Default"
+   ],
+   "variables": {
+    "spacing/0": {
+     "type": "float",
+     "value": 0,
+     "code": "calc(var(--spacing) * 0)"
+    },
+    "spacing/1": {
+     "type": "float",
+     "value": 4,
+     "code": "calc(var(--spacing) * 1)"
+    },
+    "spacing/2": {
+     "type": "float",
+     "value": 8,
+     "code": "calc(var(--spacing) * 2)"
+    },
+    "spacing/3": {
+     "type": "float",
+     "value": 12,
+     "code": "calc(var(--spacing) * 3)"
+    },
+    "spacing/4": {
+     "type": "float",
+     "value": 16,
+     "code": "calc(var(--spacing) * 4)"
+    },
+    "spacing/5": {
+     "type": "float",
+     "value": 20,
+     "code": "calc(var(--spacing) * 5)"
+    },
+    "spacing/6": {
+     "type": "float",
+     "value": 24,
+     "code": "calc(var(--spacing) * 6)"
+    },
+    "spacing/8": {
+     "type": "float",
+     "value": 32,
+     "code": "calc(var(--spacing) * 8)"
+    },
+    "spacing/10": {
+     "type": "float",
+     "value": 40,
+     "code": "calc(var(--spacing) * 10)"
+    },
+    "spacing/12": {
+     "type": "float",
+     "value": 48,
+     "code": "calc(var(--spacing) * 12)"
+    },
+    "spacing/16": {
+     "type": "float",
+     "value": 64,
+     "code": "calc(var(--spacing) * 16)"
+    },
+    "radius/sm": {
+     "type": "float",
+     "value": 4,
+     "code": "var(--radius-sm)"
+    },
+    "radius/md": {
+     "type": "float",
+     "value": 6,
+     "code": "var(--radius-md)"
+    },
+    "radius/lg": {
+     "type": "float",
+     "value": 8,
+     "code": "var(--radius-lg)"
+    },
+    "radius/xl": {
+     "type": "float",
+     "value": 12,
+     "code": "var(--radius-xl)"
+    },
+    "radius/2xl": {
+     "type": "float",
+     "value": 16,
+     "code": "var(--radius-2xl)"
+    },
+    "radius/3xl": {
+     "type": "float",
+     "value": 24,
+     "code": "var(--radius-3xl)"
+    },
+    "radius/full": {
+     "type": "float",
+     "value": 9999,
+     "code": "var(--radius-full)"
+    }
+   }
+  },
+  "Typography": {
+   "modes": [
+    "Default"
+   ],
+   "variables": {
+    "font/heading": {
+     "type": "string",
+     "value": "Newsreader",
+     "code": "var(--font-serif)"
+    },
+    "font/body": {
+     "type": "string",
+     "value": "Plus Jakarta Sans",
+     "code": "var(--font-sans)"
+    },
+    "font/arabic": {
+     "type": "string",
+     "value": "Amiri",
+     "code": "var(--font-arabic)"
+    }
+   }
+  },
+  "Layout": {
+   "modes": [
+    "Default"
+   ],
+   "variables": {
+    "page/padding-x": {
+     "type": "float",
+     "alias": "spacing/5",
+     "value": 20,
+     "code": "calc(var(--spacing) * 5)",
+     "description": "Left/right padding of every screen. Tailwind: px-5"
+    },
+    "page/padding-top": {
+     "type": "float",
+     "alias": "spacing/6",
+     "value": 24,
+     "code": "calc(var(--spacing) * 6)",
+     "description": "Space between top bar and first content. Tailwind: pt-6"
+    },
+    "page/padding-bottom": {
+     "type": "float",
+     "alias": "spacing/8",
+     "value": 32,
+     "code": "calc(var(--spacing) * 8)",
+     "description": "Space after last content (above bottom nav). Tailwind: pb-8"
+    },
+    "section/gap": {
+     "type": "float",
+     "alias": "spacing/8",
+     "value": 32,
+     "code": "calc(var(--spacing) * 8)",
+     "description": "Between sections of a page. Tailwind: gap-8"
+    },
+    "stack/gap": {
+     "type": "float",
+     "alias": "spacing/4",
+     "value": 16,
+     "code": "calc(var(--spacing) * 4)",
+     "description": "Between cards in a list. Tailwind: gap-4"
+    },
+    "card/padding": {
+     "type": "float",
+     "alias": "spacing/5",
+     "value": 20,
+     "code": "calc(var(--spacing) * 5)",
+     "description": "Inside cards. Tailwind: p-5"
+    },
+    "card/gap": {
+     "type": "float",
+     "alias": "spacing/3",
+     "value": 12,
+     "code": "calc(var(--spacing) * 3)",
+     "description": "Between elements inside a card. Tailwind: gap-3"
+    },
+    "inline/gap": {
+     "type": "float",
+     "alias": "spacing/2",
+     "value": 8,
+     "code": "calc(var(--spacing) * 2)",
+     "description": "Between icon and label, chips in a row. Tailwind: gap-2"
+    },
+    "size/status-bar": {
+     "type": "float",
+     "value": 47,
+     "code": "var(--size-status-bar)",
+     "description": "Device status bar (safe area top). Tailwind: pt-[env(safe-area-inset-top)]"
+    },
+    "size/top-bar": {
+     "type": "float",
+     "value": 56,
+     "code": "var(--size-top-bar)",
+     "description": "Top app bar height. Tailwind: h-14"
+    },
+    "size/bottom-nav": {
+     "type": "float",
+     "value": 64,
+     "code": "var(--size-bottom-nav)",
+     "description": "Bottom navigation height (without home indicator). Tailwind: h-16"
+    },
+    "size/home-indicator": {
+     "type": "float",
+     "value": 34,
+     "code": "var(--size-home-indicator)",
+     "description": "Device home indicator (safe area bottom). Tailwind: pb-[env(safe-area-inset-bottom)]"
+    },
+    "size/touch-target": {
+     "type": "float",
+     "value": 44,
+     "code": "var(--size-touch-target)",
+     "description": "Minimum tappable size. Tailwind: min-h-11"
+    },
+    "container/max-width": {
+     "type": "float",
+     "value": 448,
+     "code": "var(--container-md)",
+     "description": "App column width on tablets/desktop. Tailwind: max-w-md mx-auto"
+    }
+   }
+  }
+ }
+}

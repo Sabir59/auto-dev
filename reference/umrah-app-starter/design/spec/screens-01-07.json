@@ -1,0 +1,5300 @@
+{
+ "section": "screens",
+ "file": "Umrah & Hajj Guide",
+ "exportedWith": "design-spec-export.js",
+ "range": [
+  1,
+  7
+ ],
+ "screens": [
+  {
+   "name": "01 Welcome",
+   "originalName": "Screens / Welcome",
+   "tree": {
+    "n": "01 Welcome",
+    "t": "frame",
+    "w": 390,
+    "h": 844,
+    "layout": {
+     "dir": "row",
+     "gap": 10,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/FIXED",
+    "kids": [
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 844,
+      "layout": {
+       "dir": "col",
+       "gap": 0,
+       "pad": [
+        64,
+        "spacing/5",
+        34,
+        "spacing/5"
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FIXED/FIXED",
+      "fill": "background",
+      "kids": [
+       {
+        "n": "Header",
+        "t": "frame",
+        "w": 350,
+        "h": 16,
+        "layout": {
+         "dir": "col",
+         "gap": 0,
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "BISMILLAH",
+          "t": "text",
+          "w": 75,
+          "h": 16,
+          "size": "HUG/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "BISMILLAH"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Hero",
+        "t": "frame",
+        "w": 350,
+        "h": 328,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/6",
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "Emblem",
+          "t": "instance",
+          "w": 176,
+          "h": 176,
+          "size": "FIXED/FIXED",
+          "comp": "Emblem",
+          "props": {}
+         },
+         {
+          "n": "Text",
+          "t": "frame",
+          "w": 350,
+          "h": 128,
+          "layout": {
+           "dir": "col",
+           "gap": "spacing/3",
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "kids": [
+           {
+            "n": "Title",
+            "t": "text",
+            "w": 350,
+            "h": 44,
+            "size": "FIXED/HUG",
+            "text": {
+             "style": "display/md",
+             "color": "foreground",
+             "align": "CENTER",
+             "value": "Umrah Companion"
+            }
+           },
+           {
+            "n": "Description",
+            "t": "text",
+            "w": 310,
+            "h": 72,
+            "size": "FIXED/HUG",
+            "text": {
+             "style": "body/lg",
+             "color": "muted-foreground",
+             "align": "CENTER",
+             "value": "A quiet, guided path through every step of ‘Umrah — learned slowly, remembered deeply."
+            }
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "n": "Footer",
+        "t": "frame",
+        "w": 350,
+        "h": 126,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "Button",
+          "t": "instance",
+          "w": 350,
+          "h": 56,
+          "layout": {
+           "dir": "row",
+           "gap": "spacing/2",
+           "pad": [
+            0,
+            "spacing/6",
+            0,
+            "spacing/6"
+           ],
+           "main": "CENTER",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "radius": "radius/full",
+          "fill": "primary",
+          "effect": "shadow/lg",
+          "comp": "Button {variant=default, size=lg, disabled=false}",
+          "props": {
+           "icon": "icon/arrow-right",
+           "showIcon": true,
+           "label": "Begin"
+          }
+         },
+         {
+          "n": "Disclaimer",
+          "t": "text",
+          "w": 280,
+          "h": 54,
+          "size": "FIXED/HUG",
+          "text": {
+           "style": "body/sm",
+           "color": "subtle-foreground",
+           "align": "CENTER",
+           "value": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar."
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "02 Language",
+   "originalName": "Screens / Language",
+   "tree": {
+    "n": "02 Language",
+    "t": "frame",
+    "w": 390,
+    "h": 844,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      71,
+      "page/padding-x",
+      50,
+      "page/padding-x"
+     ],
+     "main": "SPACE_BETWEEN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/FIXED",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "Header",
+      "t": "frame",
+      "w": 350,
+      "h": 192,
+      "layout": {
+       "dir": "col",
+       "gap": "card/gap",
+       "pad": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "Step 1 of 2",
+        "t": "text",
+        "w": 80,
+        "h": 16,
+        "size": "HUG/HUG",
+        "text": {
+         "style": "overline",
+         "color": "highlight",
+         "align": "LEFT",
+         "value": "Step 1 of 2"
+        }
+       },
+       {
+        "n": "Title",
+        "t": "text",
+        "w": 350,
+        "h": 104,
+        "size": "FIXED/HUG",
+        "text": {
+         "style": "display/lg",
+         "color": "foreground",
+         "align": "LEFT",
+         "value": "Which language feels like home?"
+        }
+       },
+       {
+        "n": "Arabic recitation stays in Arabic — this sets everything around it.",
+        "t": "text",
+        "w": 330,
+        "h": 48,
+        "size": "FIXED/HUG",
+        "text": {
+         "style": "body/lg",
+         "color": "muted-foreground",
+         "align": "LEFT",
+         "value": "Arabic recitation stays in Arabic — this sets everything around it."
+        }
+       }
+      ]
+     },
+     {
+      "n": "Options",
+      "t": "frame",
+      "w": 350,
+      "h": 286,
+      "layout": {
+       "dir": "col",
+       "gap": "card/gap",
+       "pad": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "OptionCard",
+        "t": "instance",
+        "w": 350,
+        "h": 78,
+        "layout": {
+         "dir": "row",
+         "gap": 16,
+         "pad": [
+          18,
+          "card/padding",
+          18,
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "highlight-muted",
+        "stroke": "gold/300 1",
+        "comp": "OptionCard {selected=true}",
+        "props": {
+         "showDescription": true,
+         "leadingIcon": "icon/book-open",
+         "description": "English",
+         "showLeadingIcon": false,
+         "title": "English"
+        }
+       },
+       {
+        "n": "OptionCard",
+        "t": "instance",
+        "w": 350,
+        "h": 92,
+        "layout": {
+         "dir": "row",
+         "gap": 16,
+         "pad": [
+          18,
+          "card/padding",
+          18,
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "comp": "OptionCard {selected=false}",
+        "props": {
+         "leadingIcon": "icon/book-open",
+         "showLeadingIcon": false,
+         "showDescription": true,
+         "description": "اردو",
+         "title": "Urdu"
+        }
+       },
+       {
+        "n": "OptionCard",
+        "t": "instance",
+        "w": 350,
+        "h": 92,
+        "layout": {
+         "dir": "row",
+         "gap": 16,
+         "pad": [
+          18,
+          "card/padding",
+          18,
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "comp": "OptionCard {selected=false}",
+        "props": {
+         "leadingIcon": "icon/book-open",
+         "showLeadingIcon": false,
+         "showDescription": true,
+         "description": "العربية",
+         "title": "Arabic"
+        }
+       }
+      ]
+     },
+     {
+      "n": "Footer",
+      "t": "frame",
+      "w": 350,
+      "h": 56,
+      "layout": {
+       "dir": "col",
+       "gap": 0,
+       "pad": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "Button",
+        "t": "instance",
+        "w": 350,
+        "h": 56,
+        "layout": {
+         "dir": "row",
+         "gap": "spacing/2",
+         "pad": [
+          0,
+          "spacing/6",
+          0,
+          "spacing/6"
+         ],
+         "main": "CENTER",
+         "cross": "CENTER"
+        },
+        "size": "FILL/FIXED",
+        "radius": "radius/full",
+        "fill": "primary",
+        "comp": "Button {variant=default, size=lg, disabled=false}",
+        "props": {
+         "icon": "icon/arrow-right",
+         "showIcon": false,
+         "label": "Continue"
+        }
+       }
+      ]
+     },
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FIXED/FIXED",
+      "abs": [
+       0,
+       0
+      ],
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "HomeIndicator",
+      "t": "instance",
+      "w": 390,
+      "h": 34,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        0,
+        0,
+        8,
+        0
+       ],
+       "main": "CENTER",
+       "cross": "MAX"
+      },
+      "size": "FIXED/FIXED",
+      "abs": [
+       0,
+       810
+      ],
+      "comp": "HomeIndicator",
+      "props": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "03 Intent",
+   "originalName": "Screens / Intent",
+   "tree": {
+    "n": "03 Intent",
+    "t": "frame",
+    "w": 390,
+    "h": 844,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      55,
+      "page/padding-x",
+      42,
+      "page/padding-x"
+     ],
+     "main": "SPACE_BETWEEN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/FIXED",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "Top",
+      "t": "frame",
+      "w": 350,
+      "h": 260,
+      "layout": {
+       "dir": "col",
+       "gap": "page/padding-top",
+       "pad": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "Back",
+        "t": "instance",
+        "w": 44,
+        "h": 44,
+        "layout": {
+         "dir": "row",
+         "gap": 0,
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "CENTER",
+         "cross": "CENTER"
+        },
+        "size": "FIXED/FIXED",
+        "radius": "radius/full",
+        "fill": "secondary",
+        "comp": "Button {variant=secondary, size=icon, disabled=false}",
+        "props": {
+         "showIcon": false,
+         "label": "Button",
+         "icon": "icon/chevron-left"
+        }
+       },
+       {
+        "n": "Header",
+        "t": "frame",
+        "w": 350,
+        "h": 192,
+        "layout": {
+         "dir": "col",
+         "gap": "card/gap",
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "Step 2 of 2",
+          "t": "text",
+          "w": 82,
+          "h": 16,
+          "size": "HUG/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Step 2 of 2"
+          }
+         },
+         {
+          "n": "What brings you here?",
+          "t": "text",
+          "w": 350,
+          "h": 104,
+          "size": "FIXED/HUG",
+          "text": {
+           "style": "display/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "What brings you here?"
+          }
+         },
+         {
+          "n": "One tap. You can change this later in Settings.",
+          "t": "text",
+          "w": 330,
+          "h": 48,
+          "size": "FIXED/HUG",
+          "text": {
+           "style": "body/lg",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "One tap. You can change this later in Settings."
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "n": "Options",
+      "t": "frame",
+      "w": 350,
+      "h": 348,
+      "layout": {
+       "dir": "col",
+       "gap": "card/gap",
+       "pad": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "OptionCard",
+        "t": "instance",
+        "w": 350,
+        "h": 78,
+        "layout": {
+         "dir": "row",
+         "gap": 16,
+         "pad": [
+          18,
+          "card/padding",
+          18,
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "highlight-muted",
+        "stroke": "gold/300 1",
+        "comp": "OptionCard {selected=true}",
+        "props": {
+         "showDescription": true,
+         "leadingIcon": "icon/sparkles",
+         "description": "Guide me from the very start",
+         "showLeadingIcon": true,
+         "title": "My first ‘Umrah"
+        }
+       },
+       {
+        "n": "OptionCard",
+        "t": "instance",
+        "w": 350,
+        "h": 78,
+        "layout": {
+         "dir": "row",
+         "gap": 16,
+         "pad": [
+          18,
+          "card/padding",
+          18,
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "comp": "OptionCard {selected=false}",
+        "props": {
+         "leadingIcon": "icon/rotate-ccw",
+         "showLeadingIcon": true,
+         "showDescription": true,
+         "description": "I’ve been before",
+         "title": "A quick refresher"
+        }
+       },
+       {
+        "n": "OptionCard",
+        "t": "instance",
+        "w": 350,
+        "h": 78,
+        "layout": {
+         "dir": "row",
+         "gap": 16,
+         "pad": [
+          18,
+          "card/padding",
+          18,
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "comp": "OptionCard {selected=false}",
+        "props": {
+         "leadingIcon": "icon/users",
+         "showLeadingIcon": true,
+         "showDescription": true,
+         "description": "I want to teach someone",
+         "title": "Helping family"
+        }
+       },
+       {
+        "n": "OptionCard",
+        "t": "instance",
+        "w": 350,
+        "h": 78,
+        "layout": {
+         "dir": "row",
+         "gap": 16,
+         "pad": [
+          18,
+          "card/padding",
+          18,
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "comp": "OptionCard {selected=false}",
+        "props": {
+         "leadingIcon": "icon/book-open",
+         "showLeadingIcon": true,
+         "showDescription": true,
+         "description": "No trip booked yet",
+         "title": "Just learning"
+        }
+       }
+      ]
+     },
+     {
+      "n": "Footer",
+      "t": "frame",
+      "w": 350,
+      "h": 112,
+      "layout": {
+       "dir": "col",
+       "gap": "inline/gap",
+       "pad": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "Button",
+        "t": "instance",
+        "w": 350,
+        "h": 56,
+        "layout": {
+         "dir": "row",
+         "gap": "spacing/2",
+         "pad": [
+          0,
+          "spacing/6",
+          0,
+          "spacing/6"
+         ],
+         "main": "CENTER",
+         "cross": "CENTER"
+        },
+        "size": "FILL/FIXED",
+        "radius": "radius/full",
+        "fill": "primary",
+        "comp": "Button {variant=default, size=lg, disabled=false}",
+        "props": {
+         "icon": "icon/arrow-right",
+         "showIcon": false,
+         "label": "Continue"
+        }
+       },
+       {
+        "n": "Button",
+        "t": "instance",
+        "w": 135,
+        "h": 48,
+        "layout": {
+         "dir": "row",
+         "gap": "spacing/2",
+         "pad": [
+          0,
+          "spacing/5",
+          0,
+          "spacing/5"
+         ],
+         "main": "CENTER",
+         "cross": "CENTER"
+        },
+        "size": "HUG/FIXED",
+        "radius": "radius/full",
+        "comp": "Button {variant=ghost, size=default, disabled=false}",
+        "props": {
+         "showIcon": false,
+         "icon": "icon/arrow-right",
+         "label": "Skip for now"
+        }
+       }
+      ]
+     },
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FIXED/FIXED",
+      "abs": [
+       0,
+       0
+      ],
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "HomeIndicator",
+      "t": "instance",
+      "w": 390,
+      "h": 34,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        0,
+        0,
+        8,
+        0
+       ],
+       "main": "CENTER",
+       "cross": "MAX"
+      },
+      "size": "FIXED/FIXED",
+      "abs": [
+       0,
+       810
+      ],
+      "comp": "HomeIndicator",
+      "props": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "04 Learning Path",
+   "originalName": "Screens / Learning Path",
+   "tree": {
+    "n": "04 Learning Path",
+    "t": "frame",
+    "w": 390,
+    "h": 1693,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=root}",
+      "props": {
+       "showAction": true,
+       "leadingIcon": "icon/book-open",
+       "showOverline": true,
+       "title": "Learning Path",
+       "overline": "‘Umrah guide"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 1483,
+      "layout": {
+       "dir": "col",
+       "gap": "spacing/6",
+       "pad": [
+        8,
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "ProgressCard",
+        "t": "frame",
+        "w": 350,
+        "h": 226,
+        "layout": {
+         "dir": "col",
+         "gap": "card/gap",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/md",
+        "kids": [
+         {
+          "n": "Stage progress · 2 of 7 complete",
+          "t": "text",
+          "w": 264,
+          "h": 16,
+          "size": "HUG/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Stage progress · 2 of 7 complete"
+          }
+         },
+         {
+          "n": "Up next: Ṭawāf",
+          "t": "text",
+          "w": 126,
+          "h": 28,
+          "size": "HUG/HUG",
+          "text": {
+           "style": "title/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Up next: Ṭawāf"
+          }
+         },
+         {
+          "n": "Progress",
+          "t": "instance",
+          "w": 308,
+          "h": 8,
+          "size": "FILL/FIXED",
+          "radius": "radius/full",
+          "fill": "accent",
+          "comp": "Progress {completed=2}",
+          "props": {}
+         },
+         {
+          "n": "Each stage has 2 insights — its tap-to-reveal answer and its knowledge check.",
+          "t": "text",
+          "w": 308,
+          "h": 36,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/sm",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "Each stage has 2 insights — its tap-to-reveal answer and its knowledge check."
+          }
+         },
+         {
+          "n": "Continue button · QA",
+          "t": "instance",
+          "w": 308,
+          "h": 48,
+          "layout": {
+           "dir": "row",
+           "gap": "spacing/2",
+           "pad": [
+            0,
+            "spacing/5",
+            0,
+            "spacing/5"
+           ],
+           "main": "CENTER",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "radius": "radius/full",
+          "fill": "primary",
+          "comp": "Button {variant=default, size=default, disabled=false}",
+          "props": {
+           "icon": "icon/arrow-right",
+           "showIcon": false,
+           "label": "Continue Ṭawāf"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Roadmap",
+        "t": "frame",
+        "w": 350,
+        "h": 1193,
+        "size": "FIXED/FIXED",
+        "kids": [
+         {
+          "n": "Roadmap path · Batch 13",
+          "t": "vector",
+          "w": 185,
+          "h": 1035,
+          "size": "FIXED/FIXED",
+          "stroke": "gold/300 2 dashed"
+         },
+         {
+          "n": "StageNode",
+          "t": "instance",
+          "w": 200,
+          "h": 140,
+          "layout": {
+           "dir": "col",
+           "gap": 6,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FIXED/HUG",
+          "comp": "StageNode {state=completed}",
+          "props": {
+           "icon": "icon/shirt",
+           "subtitle": "Completed · 2/2 insights",
+           "title": "1. Ihrām & Intention"
+          }
+         },
+         {
+          "n": "StageNode",
+          "t": "instance",
+          "w": 200,
+          "h": 140,
+          "layout": {
+           "dir": "col",
+           "gap": 6,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FIXED/HUG",
+          "comp": "StageNode {state=completed}",
+          "props": {
+           "icon": "icon/audio-lines",
+           "subtitle": "Completed · 2/2 insights",
+           "title": "2. Talbiyah & the Masjid"
+          }
+         },
+         {
+          "n": "StageNode",
+          "t": "instance",
+          "w": 200,
+          "h": 140,
+          "layout": {
+           "dir": "col",
+           "gap": 6,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FIXED/HUG",
+          "comp": "StageNode {state=current}",
+          "props": {
+           "icon": "icon/rotate-ccw",
+           "subtitle": "Current stage",
+           "title": "3. Ṭawāf"
+          }
+         },
+         {
+          "n": "StageNode",
+          "t": "instance",
+          "w": 200,
+          "h": 164,
+          "layout": {
+           "dir": "col",
+           "gap": 6,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FIXED/HUG",
+          "comp": "StageNode {state=upcoming}",
+          "props": {
+           "icon": "icon/droplet",
+           "subtitle": "Prayer & Zamzam",
+           "title": "4. Maqām Ibrāhīm & Zamzam"
+          }
+         },
+         {
+          "n": "StageNode",
+          "t": "instance",
+          "w": 200,
+          "h": 140,
+          "layout": {
+           "dir": "col",
+           "gap": 6,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FIXED/HUG",
+          "comp": "StageNode {state=upcoming}",
+          "props": {
+           "icon": "icon/mountain",
+           "subtitle": "Begin Sa‘ī",
+           "title": "5. As-Ṣafā"
+          }
+         },
+         {
+          "n": "StageNode",
+          "t": "instance",
+          "w": 200,
+          "h": 140,
+          "layout": {
+           "dir": "col",
+           "gap": 6,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FIXED/HUG",
+          "comp": "StageNode {state=upcoming}",
+          "props": {
+           "icon": "icon/footprints",
+           "subtitle": "7 laps",
+           "title": "6. Saʿī Circuits"
+          }
+         },
+         {
+          "n": "StageNode",
+          "t": "instance",
+          "w": 200,
+          "h": 140,
+          "layout": {
+           "dir": "col",
+           "gap": 6,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FIXED/HUG",
+          "comp": "StageNode {state=upcoming}",
+          "props": {
+           "icon": "icon/scissors",
+           "subtitle": "Shave or trim",
+           "title": "7. Tahallul"
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "n": "BottomNav",
+      "t": "instance",
+      "w": 390,
+      "h": 101,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        8,
+        34,
+        8
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "fill": "card",
+      "stroke": "border ",
+      "comp": "BottomNav {active=guide}",
+      "props": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "05 Stage 1 Men",
+   "originalName": "Screens / Stage 1 — Men",
+   "tree": {
+    "n": "05 Stage 1 Men",
+    "t": "frame",
+    "w": 390,
+    "h": 3016,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=detail}",
+      "props": {
+       "leadingIcon": "icon/book-open",
+       "showAction": true,
+       "showOverline": true,
+       "title": "Ihrām & Intention",
+       "overline": "Stage 1 of 7"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 2907,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        8,
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "Intro",
+        "t": "frame",
+        "w": 350,
+        "h": 210,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Entering Ihrām & Intention for ʿUmrah",
+          "t": "text",
+          "w": 308,
+          "h": 56,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "headline/sm",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Entering Ihrām & Intention for ʿUmrah"
+          }
+         },
+         {
+          "n": "Ihrām must be entered before passing the Mīqāt boundary. The intention is made in the heart just before the boundary.",
+          "t": "text",
+          "w": 308,
+          "h": 96,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/lg",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "Ihrām must be entered before passing the Mīqāt boundary. The intention is made in the heart just before the boundary."
+          }
+         }
+        ]
+       },
+       {
+        "n": "Instructional guide",
+        "t": "frame",
+        "w": 350,
+        "h": 787,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 16,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Instructional guide",
+            "t": "text",
+            "w": 308,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Instructional guide"
+            }
+           }
+          ]
+         },
+         {
+          "n": "TabsList",
+          "t": "frame",
+          "w": 308,
+          "h": 44,
+          "layout": {
+           "dir": "row",
+           "gap": 4,
+           "pad": [
+            4,
+            4,
+            4,
+            4
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/full",
+          "fill": "muted",
+          "kids": [
+           {
+            "n": "TabsTrigger",
+            "t": "instance",
+            "w": 148,
+            "h": 36,
+            "layout": {
+             "dir": "row",
+             "gap": 6,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FILL/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "comp": "TabsTrigger {active=true}",
+            "props": {
+             "icon": "icon/user",
+             "showIcon": false,
+             "label": "Men’s Iḥrām"
+            }
+           },
+           {
+            "n": "TabsTrigger",
+            "t": "instance",
+            "w": 148,
+            "h": 36,
+            "layout": {
+             "dir": "row",
+             "gap": 6,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FILL/FIXED",
+            "radius": "radius/full",
+            "comp": "TabsTrigger {active=false}",
+            "props": {
+             "icon": "icon/user",
+             "showIcon": false,
+             "label": "Women’s Iḥrām"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Illustration",
+          "t": "frame",
+          "w": 308,
+          "h": 300,
+          "size": "FILL/FIXED",
+          "radius": "radius/2xl",
+          "fill": "muted",
+          "kids": [
+           {
+            "n": "illustration/ihram-men",
+            "t": "instance",
+            "w": 263,
+            "h": 300,
+            "size": "FIXED/FIXED",
+            "comp": "illustration/ihram-men",
+            "props": {}
+           },
+           {
+            "n": "Marker",
+            "t": "instance",
+            "w": 24,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "stroke": "card 2",
+            "effect": "shadow/sm",
+            "comp": "Marker",
+            "props": {
+             "number": "1"
+            }
+           },
+           {
+            "n": "Marker",
+            "t": "instance",
+            "w": 24,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "stroke": "card 2",
+            "effect": "shadow/sm",
+            "comp": "Marker",
+            "props": {
+             "number": "2"
+            }
+           },
+           {
+            "n": "Marker",
+            "t": "instance",
+            "w": 24,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "stroke": "card 2",
+            "effect": "shadow/sm",
+            "comp": "Marker",
+            "props": {
+             "number": "3"
+            }
+           },
+           {
+            "n": "Marker",
+            "t": "instance",
+            "w": 24,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "stroke": "card 2",
+            "effect": "shadow/sm",
+            "comp": "Marker",
+            "props": {
+             "number": "4"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Legend",
+          "t": "frame",
+          "w": 308,
+          "h": 166,
+          "layout": {
+           "dir": "col",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Head uncovered — no cap, turban or hood",
+             "number": "1"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Ridā’ — upper sheet over the shoulders",
+             "number": "2"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Izār — lower wrap, from the navel to below the knees",
+             "number": "3"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Sandals that leave the ankles uncovered",
+             "number": "4"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Avoid",
+          "t": "frame",
+          "w": 308,
+          "h": 155,
+          "layout": {
+           "dir": "col",
+           "gap": 10,
+           "pad": [
+            16,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "stroke": "border ",
+          "kids": [
+           {
+            "n": "Avoid in Ihrām",
+            "t": "text",
+            "w": 92,
+            "h": 20,
+            "size": "HUG/HUG",
+            "text": {
+             "style": "label/md",
+             "color": "foreground",
+             "align": "LEFT",
+             "value": "Avoid in Ihrām"
+            }
+           },
+           {
+            "n": "ChecklistItem",
+            "t": "instance",
+            "w": 308,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 10,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "ChecklistItem {type=avoid}",
+            "props": {
+             "text": "Stitched or fitted clothing — shirts, trousers, underwear"
+            }
+           },
+           {
+            "n": "ChecklistItem",
+            "t": "instance",
+            "w": 308,
+            "h": 22,
+            "layout": {
+             "dir": "row",
+             "gap": 10,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "ChecklistItem {type=avoid}",
+            "props": {
+             "text": "Anything covering the head"
+            }
+           },
+           {
+            "n": "ChecklistItem",
+            "t": "instance",
+            "w": 308,
+            "h": 22,
+            "layout": {
+             "dir": "row",
+             "gap": 10,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "ChecklistItem {type=avoid}",
+            "props": {
+             "text": "Socks or shoes that cover the ankles"
+            }
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "n": "What to know",
+        "t": "frame",
+        "w": 350,
+        "h": 540,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 16,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "What to know",
+            "t": "text",
+            "w": 308,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "What to know"
+            }
+           }
+          ]
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 110,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Remove stitched and fitted clothing and wear two white sheets — the izār and ridā’. Keep the head uncovered and wear sandals that leave the ankles uncovered.",
+           "title": "For men"
+          }
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 110,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Wear normal modest clothing. Avoid a tied niqāb and gloves; you may lower the khimār over the face in front of non-mahram men.",
+           "title": "For women"
+          }
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 88,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Perfume and scented products, cutting hair or nails, marital relations, hunting, and contracting a marriage.",
+           "title": "Forbidden in Ihrām"
+          }
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 110,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Out of forgetfulness or ignorance, many scholars hold there is no sin or penalty — stop and continue. Done deliberately, it is sinful and a fidyah (expiation) is due.",
+           "title": "If a prohibition is broken"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Duʿā for intention",
+        "t": "frame",
+        "w": 350,
+        "h": 519,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 44,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Du‘ā for intention",
+            "t": "text",
+            "w": 256,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Du‘ā for intention"
+            }
+           },
+           {
+            "n": "Button",
+            "t": "instance",
+            "w": 44,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "comp": "Button {variant=ghost, size=icon, disabled=false}",
+            "props": {
+             "showIcon": false,
+             "label": "Button",
+             "icon": "icon/bookmark"
+            }
+           }
+          ]
+         },
+         {
+          "n": "DuaBlock",
+          "t": "instance",
+          "w": 308,
+          "h": 104,
+          "layout": {
+           "dir": "col",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "comp": "DuaBlock",
+          "props": {
+           "showSource": false,
+           "translation": "Here I am, O Allāh, for ‘Umrah.",
+           "transliteration": "Labbayka Allāhumma ʿUmrah",
+           "source": "Source",
+           "arabic": "لَبَّيْكَ اللَّهُمَّ عُمْرَةً"
+          }
+         },
+         {
+          "n": "Divider",
+          "t": "rectangle",
+          "w": 308,
+          "h": 1,
+          "size": "FILL/FIXED",
+          "fill": "border"
+         },
+         {
+          "n": "Conditional du‘ā · if you fear illness or delay",
+          "t": "text",
+          "w": 308,
+          "h": 32,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Conditional du‘ā · if you fear illness or delay"
+          }
+         },
+         {
+          "n": "DuaBlock",
+          "t": "instance",
+          "w": 308,
+          "h": 152,
+          "layout": {
+           "dir": "col",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "comp": "DuaBlock",
+          "props": {
+           "showSource": true,
+           "translation": "And if anything prevents me, my place of leaving Ihrām is wherever You prevent me.",
+           "transliteration": "Fa-in habasanī hābisun fa-mahillī haythu habastanī",
+           "source": "Sunan an-Nasā’ī",
+           "arabic": "فَإِنْ حَبَسَنِي حَابِسٌ فَمَحِلِّي حَيْثُ حَبَسْتَنِي"
+          }
+         },
+         {
+          "n": "AudioPlayer",
+          "t": "instance",
+          "w": 308,
+          "h": 64,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            12,
+            16,
+            12,
+            12
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "muted",
+          "comp": "AudioPlayer {state=default}",
+          "props": {
+           "label": "Pronunciation"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Tap to reveal",
+        "t": "frame",
+        "w": 350,
+        "h": 227,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 24,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Tap to reveal",
+            "t": "text",
+            "w": 210,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Tap to reveal"
+            }
+           },
+           {
+            "n": "Badge",
+            "t": "instance",
+            "w": 90,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 4,
+             "pad": [
+              4,
+              10,
+              4,
+              10
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "HUG/HUG",
+            "radius": "radius/full",
+            "fill": "highlight-muted",
+            "comp": "Badge {variant=highlight}",
+            "props": {
+             "showIcon": true,
+             "icon": "icon/sparkles",
+             "label": "+1 insight"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Your flight passes the Mīqāt and you haven’t entered Ihrām. What should you do?",
+          "t": "text",
+          "w": 308,
+          "h": 72,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Your flight passes the Mīqāt and you haven’t entered Ihrām. What should you do?"
+          }
+         },
+         {
+          "n": "RevealCard",
+          "t": "instance",
+          "w": 308,
+          "h": 57,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            16,
+            16,
+            16,
+            16
+           ],
+           "main": "CENTER",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "background",
+          "stroke": "gold/300 1.5 dashed",
+          "comp": "RevealCard {state=hidden}",
+          "props": {
+           "answer": "Answer"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Knowledge check",
+        "t": "frame",
+        "w": 350,
+        "h": 396,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 24,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Knowledge check",
+            "t": "text",
+            "w": 210,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Knowledge check"
+            }
+           },
+           {
+            "n": "Badge",
+            "t": "instance",
+            "w": 90,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 4,
+             "pad": [
+              4,
+              10,
+              4,
+              10
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "HUG/HUG",
+            "radius": "radius/full",
+            "fill": "highlight-muted",
+            "comp": "Badge {variant=highlight}",
+            "props": {
+             "showIcon": true,
+             "icon": "icon/sparkles",
+             "label": "+1 insight"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Which of these is allowed for a woman in Ihrām?",
+          "t": "text",
+          "w": 308,
+          "h": 48,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Which of these is allowed for a woman in Ihrām?"
+          }
+         },
+         {
+          "n": "Options",
+          "t": "frame",
+          "w": 308,
+          "h": 198,
+          "layout": {
+           "dir": "col",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "QuizOption",
+            "t": "instance",
+            "w": 308,
+            "h": 52,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              14,
+              14,
+              14,
+              16
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/2xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "comp": "QuizOption {state=default}",
+            "props": {
+             "text": "Wearing gloves"
+            }
+           },
+           {
+            "n": "QuizOption",
+            "t": "instance",
+            "w": 308,
+            "h": 52,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              14,
+              14,
+              14,
+              16
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/2xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "comp": "QuizOption {state=default}",
+            "props": {
+             "text": "A niqāb tied over the face"
+            }
+           },
+           {
+            "n": "QuizOption",
+            "t": "instance",
+            "w": 308,
+            "h": 74,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              14,
+              14,
+              14,
+              16
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/2xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "comp": "QuizOption {state=default}",
+            "props": {
+             "text": "Socks and her normal stitched clothing"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Skip",
+          "t": "frame",
+          "w": 308,
+          "h": 36,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "CENTER",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Button",
+            "t": "instance",
+            "w": 140,
+            "h": 36,
+            "layout": {
+             "dir": "row",
+             "gap": "spacing/2",
+             "pad": [
+              0,
+              "spacing/3",
+              0,
+              "spacing/3"
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "HUG/FIXED",
+            "radius": "radius/full",
+            "comp": "Button {variant=ghost, size=sm, disabled=false}",
+            "props": {
+             "icon": "icon/skip-forward",
+             "showIcon": true,
+             "label": "Skip question"
+            }
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "n": "Footer",
+        "t": "frame",
+        "w": 350,
+        "h": 92,
+        "layout": {
+         "dir": "col",
+         "gap": 10,
+         "pad": [
+          8,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "Button",
+          "t": "instance",
+          "w": 350,
+          "h": 56,
+          "layout": {
+           "dir": "row",
+           "gap": "spacing/2",
+           "pad": [
+            0,
+            "spacing/6",
+            0,
+            "spacing/6"
+           ],
+           "main": "CENTER",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "radius": "radius/full",
+          "fill": "primary",
+          "comp": "Button {variant=default, size=lg, disabled=false}",
+          "props": {
+           "icon": "icon/arrow-right",
+           "showIcon": true,
+           "label": "Complete Stage 1"
+          }
+         },
+         {
+          "n": "Answers never block you — you can revisit any stage.",
+          "t": "text",
+          "w": 294,
+          "h": 18,
+          "size": "HUG/HUG",
+          "text": {
+           "style": "body/sm",
+           "color": "subtle-foreground",
+           "align": "LEFT",
+           "value": "Answers never block you — you can revisit any stage."
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "06 Stage 1 Women",
+   "originalName": "Screens / Stage 1 — Women",
+   "tree": {
+    "n": "06 Stage 1 Women",
+    "t": "frame",
+    "w": 390,
+    "h": 3188,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=detail}",
+      "props": {
+       "leadingIcon": "icon/book-open",
+       "showAction": true,
+       "showOverline": true,
+       "title": "Ihrām & Intention",
+       "overline": "Stage 1 of 7"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 3079,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        8,
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "Intro",
+        "t": "frame",
+        "w": 350,
+        "h": 210,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Entering Ihrām & Intention for ʿUmrah",
+          "t": "text",
+          "w": 308,
+          "h": 56,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "headline/sm",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Entering Ihrām & Intention for ʿUmrah"
+          }
+         },
+         {
+          "n": "Ihrām must be entered before passing the Mīqāt boundary. The intention is made in the heart just before the boundary.",
+          "t": "text",
+          "w": 308,
+          "h": 96,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/lg",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "Ihrām must be entered before passing the Mīqāt boundary. The intention is made in the heart just before the boundary."
+          }
+         }
+        ]
+       },
+       {
+        "n": "Instructional guide",
+        "t": "frame",
+        "w": 350,
+        "h": 765,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 16,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Instructional guide",
+            "t": "text",
+            "w": 308,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Instructional guide"
+            }
+           }
+          ]
+         },
+         {
+          "n": "TabsList",
+          "t": "frame",
+          "w": 308,
+          "h": 44,
+          "layout": {
+           "dir": "row",
+           "gap": 4,
+           "pad": [
+            4,
+            4,
+            4,
+            4
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/full",
+          "fill": "muted",
+          "kids": [
+           {
+            "n": "TabsTrigger",
+            "t": "instance",
+            "w": 148,
+            "h": 36,
+            "layout": {
+             "dir": "row",
+             "gap": 6,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FILL/FIXED",
+            "radius": "radius/full",
+            "comp": "TabsTrigger {active=false}",
+            "props": {
+             "icon": "icon/user",
+             "showIcon": false,
+             "label": "Men’s Iḥrām"
+            }
+           },
+           {
+            "n": "TabsTrigger",
+            "t": "instance",
+            "w": 148,
+            "h": 36,
+            "layout": {
+             "dir": "row",
+             "gap": 6,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FILL/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "comp": "TabsTrigger {active=true}",
+            "props": {
+             "icon": "icon/user",
+             "showIcon": false,
+             "label": "Women’s Iḥrām"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Illustration",
+          "t": "frame",
+          "w": 308,
+          "h": 300,
+          "size": "FILL/FIXED",
+          "radius": "radius/2xl",
+          "fill": "muted",
+          "kids": [
+           {
+            "n": "illustration/ihram-women",
+            "t": "instance",
+            "w": 263,
+            "h": 300,
+            "size": "FIXED/FIXED",
+            "comp": "illustration/ihram-women",
+            "props": {}
+           },
+           {
+            "n": "Marker",
+            "t": "instance",
+            "w": 24,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "stroke": "card 2",
+            "effect": "shadow/sm",
+            "comp": "Marker",
+            "props": {
+             "number": "1"
+            }
+           },
+           {
+            "n": "Marker",
+            "t": "instance",
+            "w": 24,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "stroke": "card 2",
+            "effect": "shadow/sm",
+            "comp": "Marker",
+            "props": {
+             "number": "2"
+            }
+           },
+           {
+            "n": "Marker",
+            "t": "instance",
+            "w": 24,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "stroke": "card 2",
+            "effect": "shadow/sm",
+            "comp": "Marker",
+            "props": {
+             "number": "3"
+            }
+           },
+           {
+            "n": "Marker",
+            "t": "instance",
+            "w": 24,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "stroke": "card 2",
+            "effect": "shadow/sm",
+            "comp": "Marker",
+            "props": {
+             "number": "4"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Legend",
+          "t": "frame",
+          "w": 308,
+          "h": 166,
+          "layout": {
+           "dir": "col",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Khimār covers the hair; the face stays uncovered",
+             "number": "1"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Loose, non-transparent clothing in any colour",
+             "number": "2"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Hands stay uncovered — no gloves",
+             "number": "3"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Socks and closed shoes are allowed",
+             "number": "4"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Avoid",
+          "t": "frame",
+          "w": 308,
+          "h": 133,
+          "layout": {
+           "dir": "col",
+           "gap": 10,
+           "pad": [
+            16,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "stroke": "border ",
+          "kids": [
+           {
+            "n": "Avoid in Ihrām",
+            "t": "text",
+            "w": 92,
+            "h": 20,
+            "size": "HUG/HUG",
+            "text": {
+             "style": "label/md",
+             "color": "foreground",
+             "align": "LEFT",
+             "value": "Avoid in Ihrām"
+            }
+           },
+           {
+            "n": "ChecklistItem",
+            "t": "instance",
+            "w": 308,
+            "h": 22,
+            "layout": {
+             "dir": "row",
+             "gap": 10,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "ChecklistItem {type=avoid}",
+            "props": {
+             "text": "A niqāb tied over the face"
+            }
+           },
+           {
+            "n": "ChecklistItem",
+            "t": "instance",
+            "w": 308,
+            "h": 22,
+            "layout": {
+             "dir": "row",
+             "gap": 10,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "ChecklistItem {type=avoid}",
+            "props": {
+             "text": "Gloves"
+            }
+           },
+           {
+            "n": "ChecklistItem",
+            "t": "instance",
+            "w": 308,
+            "h": 22,
+            "layout": {
+             "dir": "row",
+             "gap": 10,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "ChecklistItem {type=avoid}",
+            "props": {
+             "text": "Tight or see-through clothing"
+            }
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "n": "What to know",
+        "t": "frame",
+        "w": 350,
+        "h": 540,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 16,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "What to know",
+            "t": "text",
+            "w": 308,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "What to know"
+            }
+           }
+          ]
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 110,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Remove stitched and fitted clothing and wear two white sheets — the izār and ridā’. Keep the head uncovered and wear sandals that leave the ankles uncovered.",
+           "title": "For men"
+          }
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 110,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Wear normal modest clothing. Avoid a tied niqāb and gloves; you may lower the khimār over the face in front of non-mahram men.",
+           "title": "For women"
+          }
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 88,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Perfume and scented products, cutting hair or nails, marital relations, hunting, and contracting a marriage.",
+           "title": "Forbidden in Ihrām"
+          }
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 110,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Out of forgetfulness or ignorance, many scholars hold there is no sin or penalty — stop and continue. Done deliberately, it is sinful and a fidyah (expiation) is due.",
+           "title": "If a prohibition is broken"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Duʿā for intention",
+        "t": "frame",
+        "w": 350,
+        "h": 519,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 44,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Du‘ā for intention",
+            "t": "text",
+            "w": 256,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Du‘ā for intention"
+            }
+           },
+           {
+            "n": "Button",
+            "t": "instance",
+            "w": 44,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "comp": "Button {variant=ghost, size=icon, disabled=false}",
+            "props": {
+             "showIcon": false,
+             "label": "Button",
+             "icon": "icon/bookmark"
+            }
+           }
+          ]
+         },
+         {
+          "n": "DuaBlock",
+          "t": "instance",
+          "w": 308,
+          "h": 104,
+          "layout": {
+           "dir": "col",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "comp": "DuaBlock",
+          "props": {
+           "showSource": false,
+           "translation": "Here I am, O Allāh, for ‘Umrah.",
+           "transliteration": "Labbayka Allāhumma ʿUmrah",
+           "source": "Source",
+           "arabic": "لَبَّيْكَ اللَّهُمَّ عُمْرَةً"
+          }
+         },
+         {
+          "n": "Divider",
+          "t": "rectangle",
+          "w": 308,
+          "h": 1,
+          "size": "FILL/FIXED",
+          "fill": "border"
+         },
+         {
+          "n": "Conditional du‘ā · if you fear illness or delay",
+          "t": "text",
+          "w": 308,
+          "h": 32,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Conditional du‘ā · if you fear illness or delay"
+          }
+         },
+         {
+          "n": "DuaBlock",
+          "t": "instance",
+          "w": 308,
+          "h": 152,
+          "layout": {
+           "dir": "col",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "comp": "DuaBlock",
+          "props": {
+           "showSource": true,
+           "translation": "And if anything prevents me, my place of leaving Ihrām is wherever You prevent me.",
+           "transliteration": "Fa-in habasanī hābisun fa-mahillī haythu habastanī",
+           "source": "Sunan an-Nasā’ī",
+           "arabic": "فَإِنْ حَبَسَنِي حَابِسٌ فَمَحِلِّي حَيْثُ حَبَسْتَنِي"
+          }
+         },
+         {
+          "n": "AudioPlayer",
+          "t": "instance",
+          "w": 308,
+          "h": 64,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            12,
+            16,
+            12,
+            12
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "muted",
+          "comp": "AudioPlayer {state=playing}",
+          "props": {
+           "label": "Pronunciation"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Tap to reveal",
+        "t": "frame",
+        "w": 350,
+        "h": 315,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 24,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Tap to reveal",
+            "t": "text",
+            "w": 210,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Tap to reveal"
+            }
+           },
+           {
+            "n": "Badge",
+            "t": "instance",
+            "w": 90,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 4,
+             "pad": [
+              4,
+              10,
+              4,
+              10
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "HUG/HUG",
+            "radius": "radius/full",
+            "fill": "highlight-muted",
+            "comp": "Badge {variant=highlight}",
+            "props": {
+             "showIcon": true,
+             "icon": "icon/sparkles",
+             "label": "+1 insight"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Your flight passes the Mīqāt and you haven’t entered Ihrām. What should you do?",
+          "t": "text",
+          "w": 308,
+          "h": 72,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Your flight passes the Mīqāt and you haven’t entered Ihrām. What should you do?"
+          }
+         },
+         {
+          "n": "RevealCard",
+          "t": "instance",
+          "w": 308,
+          "h": 145,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            16,
+            16,
+            16,
+            16
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "highlight-muted",
+          "stroke": "gold/300 1.5",
+          "comp": "RevealCard {state=revealed}",
+          "props": {
+           "answer": "Go back to the Mīqāt and enter Ihrām there if you can. If that isn’t possible, enter Ihrām where you are — most scholars hold that a sacrifice (dam) is then due in Makkah."
+          }
+         }
+        ]
+       },
+       {
+        "n": "Knowledge check",
+        "t": "frame",
+        "w": 350,
+        "h": 502,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 24,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Knowledge check",
+            "t": "text",
+            "w": 210,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Knowledge check"
+            }
+           },
+           {
+            "n": "Badge",
+            "t": "instance",
+            "w": 90,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 4,
+             "pad": [
+              4,
+              10,
+              4,
+              10
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "HUG/HUG",
+            "radius": "radius/full",
+            "fill": "highlight-muted",
+            "comp": "Badge {variant=highlight}",
+            "props": {
+             "showIcon": true,
+             "icon": "icon/sparkles",
+             "label": "+1 insight"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Which of these is allowed for a woman in Ihrām?",
+          "t": "text",
+          "w": 308,
+          "h": 48,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Which of these is allowed for a woman in Ihrām?"
+          }
+         },
+         {
+          "n": "Options",
+          "t": "frame",
+          "w": 308,
+          "h": 200,
+          "layout": {
+           "dir": "col",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "QuizOption",
+            "t": "instance",
+            "w": 308,
+            "h": 53,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              14,
+              14,
+              14,
+              16
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/2xl",
+            "fill": "destructive-muted",
+            "stroke": "red/300 1.5",
+            "comp": "QuizOption {state=wrong}",
+            "props": {
+             "text": "Wearing gloves"
+            }
+           },
+           {
+            "n": "QuizOption",
+            "t": "instance",
+            "w": 308,
+            "h": 52,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              14,
+              14,
+              14,
+              16
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/2xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "comp": "QuizOption {state=default}",
+            "props": {
+             "text": "A niqāb tied over the face"
+            }
+           },
+           {
+            "n": "QuizOption",
+            "t": "instance",
+            "w": 308,
+            "h": 75,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              14,
+              14,
+              14,
+              16
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/2xl",
+            "fill": "card",
+            "stroke": "success 1.5",
+            "comp": "QuizOption {state=answer}",
+            "props": {
+             "text": "Socks and her normal stitched clothing"
+            }
+           }
+          ]
+         },
+         {
+          "n": "QuizFeedback",
+          "t": "instance",
+          "w": 308,
+          "h": 140,
+          "layout": {
+           "dir": "col",
+           "gap": 4,
+           "pad": [
+            14,
+            16,
+            14,
+            16
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "highlight-muted",
+          "comp": "QuizFeedback {result=wrong}",
+          "props": {
+           "explanation": "Women keep their normal modest clothing, including socks and shoes. In Ihrām they only avoid a tied niqāb and gloves.",
+           "title": "Not quite — keep going"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Footer",
+        "t": "frame",
+        "w": 350,
+        "h": 92,
+        "layout": {
+         "dir": "col",
+         "gap": 10,
+         "pad": [
+          8,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "Button",
+          "t": "instance",
+          "w": 350,
+          "h": 56,
+          "layout": {
+           "dir": "row",
+           "gap": "spacing/2",
+           "pad": [
+            0,
+            "spacing/6",
+            0,
+            "spacing/6"
+           ],
+           "main": "CENTER",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "radius": "radius/full",
+          "fill": "primary",
+          "comp": "Button {variant=default, size=lg, disabled=false}",
+          "props": {
+           "icon": "icon/arrow-right",
+           "showIcon": true,
+           "label": "Complete Stage 1"
+          }
+         },
+         {
+          "n": "Answers never block you — you can revisit any stage.",
+          "t": "text",
+          "w": 294,
+          "h": 18,
+          "size": "HUG/HUG",
+          "text": {
+           "style": "body/sm",
+           "color": "subtle-foreground",
+           "align": "LEFT",
+           "value": "Answers never block you — you can revisit any stage."
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "07 Stage 2",
+   "originalName": "Screens / Stage 2",
+   "tree": {
+    "n": "07 Stage 2",
+    "t": "frame",
+    "w": 390,
+    "h": 3082,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=detail}",
+      "props": {
+       "leadingIcon": "icon/book-open",
+       "showAction": true,
+       "showOverline": true,
+       "title": "Talbiyah & the Masjid",
+       "overline": "Stage 2 of 7"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 2973,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        8,
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "Intro",
+        "t": "frame",
+        "w": 350,
+        "h": 182,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Entering Al-Masjid Al-Ḥarām",
+          "t": "text",
+          "w": 308,
+          "h": 28,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "headline/sm",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Entering Al-Masjid Al-Ḥarām"
+          }
+         },
+         {
+          "n": "After entering Ihrām, keep reciting the Talbiyah until you begin Ṭawāf. Enter the sacred Masjid with reverence, wuḍū’ and du‘ā.",
+          "t": "text",
+          "w": 308,
+          "h": 96,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/lg",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "After entering Ihrām, keep reciting the Talbiyah until you begin Ṭawāf. Enter the sacred Masjid with reverence, wuḍū’ and du‘ā."
+          }
+         }
+        ]
+       },
+       {
+        "n": "Physical manner & movement",
+        "t": "frame",
+        "w": 350,
+        "h": 638,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 16,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Physical manner & movement",
+            "t": "text",
+            "w": 308,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Physical manner & movement"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Illustration",
+          "t": "frame",
+          "w": 308,
+          "h": 300,
+          "size": "FILL/FIXED",
+          "radius": "radius/2xl",
+          "fill": "muted",
+          "kids": [
+           {
+            "n": "illustration/masjid-entry",
+            "t": "instance",
+            "w": 263,
+            "h": 300,
+            "size": "FIXED/FIXED",
+            "comp": "illustration/masjid-entry",
+            "props": {}
+           },
+           {
+            "n": "Marker",
+            "t": "instance",
+            "w": 24,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "stroke": "card 2",
+            "effect": "shadow/sm",
+            "comp": "Marker",
+            "props": {
+             "number": "2"
+            }
+           },
+           {
+            "n": "Marker",
+            "t": "instance",
+            "w": 24,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "primary",
+            "stroke": "card 2",
+            "effect": "shadow/sm",
+            "comp": "Marker",
+            "props": {
+             "number": "3"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Steps",
+          "t": "frame",
+          "w": 308,
+          "h": 248,
+          "layout": {
+           "dir": "col",
+           "gap": 14,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "StepItem",
+            "t": "instance",
+            "w": 308,
+            "h": 68,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "StepItem {tone=primary}",
+            "props": {
+             "showDescription": true,
+             "description": "From the Mīqāt onward — individually and often.",
+             "title": "Recite the Talbiyah",
+             "number": "1"
+            }
+           },
+           {
+            "n": "StepItem",
+            "t": "instance",
+            "w": 308,
+            "h": 46,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "StepItem {tone=primary}",
+            "props": {
+             "showDescription": true,
+             "description": "After settling in and making wuḍū’.",
+             "title": "Approach Al-Masjid Al-Ḥarām",
+             "number": "2"
+            }
+           },
+           {
+            "n": "StepItem",
+            "t": "instance",
+            "w": 308,
+            "h": 46,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "StepItem {tone=primary}",
+            "props": {
+             "showDescription": true,
+             "description": "Walk calmly and with humility.",
+             "title": "Enter with the right foot",
+             "number": "3"
+            }
+           },
+           {
+            "n": "StepItem",
+            "t": "instance",
+            "w": 308,
+            "h": 46,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "StepItem {tone=primary}",
+            "props": {
+             "showDescription": true,
+             "description": "You will find it in the card below.",
+             "title": "Say the du‘ā for entering",
+             "number": "4"
+            }
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "n": "What to know",
+        "t": "frame",
+        "w": 350,
+        "h": 474,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 16,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "What to know",
+            "t": "text",
+            "w": 308,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "What to know"
+            }
+           }
+          ]
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 88,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Say it individually without straining yourself; chanting it in unison as a group is not from the Sunnah.",
+           "title": "Talbiyah manner"
+          }
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 88,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Men raise their voices without disturbing others; women recite quietly, so only those near them hear.",
+           "title": "Tone"
+          }
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 88,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Settle into your accommodation, freshen up and make wuḍū’ before heading to the Ḥaram.",
+           "title": "Reaching Makkah"
+          }
+         },
+         {
+          "n": "InfoItem",
+          "t": "instance",
+          "w": 308,
+          "h": 88,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "InfoItem",
+          "props": {
+           "icon": "icon/sparkles",
+           "showTitle": true,
+           "description": "Stop reciting the Talbiyah when you begin Ṭawāf at the Black Stone — the view of most scholars.",
+           "title": "When to stop"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Talbiyah & masjid entrance",
+        "t": "frame",
+        "w": 350,
+        "h": 815,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 44,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Talbiyah & masjid entrance",
+            "t": "text",
+            "w": 256,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Talbiyah & masjid entrance"
+            }
+           },
+           {
+            "n": "Button",
+            "t": "instance",
+            "w": 44,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "comp": "Button {variant=ghost, size=icon, disabled=false}",
+            "props": {
+             "showIcon": false,
+             "label": "Button",
+             "icon": "icon/bookmark"
+            }
+           }
+          ]
+         },
+         {
+          "n": "DuaBlock",
+          "t": "instance",
+          "w": 308,
+          "h": 328,
+          "layout": {
+           "dir": "col",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "comp": "DuaBlock",
+          "props": {
+           "showSource": true,
+           "translation": "“Here I am, O Allāh, here I am. Here I am, You have no partner, here I am. All praise and blessings are Yours, and all dominion. You have no partner.”",
+           "transliteration": "Labbayk Allāhumma labbayk, labbayka lā sharīka laka labbayk. Innal-hamda wan-niʿmata laka wal-mulk, lā sharīka lak.",
+           "source": "Ṣaḥīḥ al-Bukhārī & Ṣaḥīḥ Muslim",
+           "arabic": "لَبَّيْكَ اللَّهُمَّ لَبَّيْكَ، لَبَّيْكَ لَا شَرِيكَ لَكَ لَبَّيْكَ، إِنَّ الْحَمْدَ وَالنِّعْمَةَ لَكَ وَالْمُلْكَ، لَا شَرِيكَ لَكَ"
+          }
+         },
+         {
+          "n": "Divider",
+          "t": "rectangle",
+          "w": 308,
+          "h": 1,
+          "size": "FILL/FIXED",
+          "fill": "border"
+         },
+         {
+          "n": "Upon entering · right foot first",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Upon entering · right foot first"
+          }
+         },
+         {
+          "n": "DuaBlock",
+          "t": "instance",
+          "w": 308,
+          "h": 240,
+          "layout": {
+           "dir": "col",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "comp": "DuaBlock",
+          "props": {
+           "showSource": true,
+           "translation": "“In the name of Allāh, and prayers and peace be upon the Messenger of Allāh. O Allāh, open for me the doors of Your mercy.”",
+           "transliteration": "Bismillāh, was-salātu was-salāmu ʿalā Rasūlillāh. Allāhumma-ftah lī abwāba rahmatik.",
+           "source": "Ṣaḥīḥ Muslim · Sunan Ibn Mājah",
+           "arabic": "بِسْمِ اللَّهِ، وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللَّهِ، اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ"
+          }
+         },
+         {
+          "n": "AudioPlayer",
+          "t": "instance",
+          "w": 308,
+          "h": 64,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            12,
+            16,
+            12,
+            12
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "muted",
+          "comp": "AudioPlayer {state=default}",
+          "props": {
+           "label": "Pronunciation"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Tap to reveal",
+        "t": "frame",
+        "w": 350,
+        "h": 203,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 24,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Tap to reveal",
+            "t": "text",
+            "w": 210,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Tap to reveal"
+            }
+           },
+           {
+            "n": "Badge",
+            "t": "instance",
+            "w": 90,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 4,
+             "pad": [
+              4,
+              10,
+              4,
+              10
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "HUG/HUG",
+            "radius": "radius/full",
+            "fill": "highlight-muted",
+            "comp": "Badge {variant=highlight}",
+            "props": {
+             "showIcon": true,
+             "icon": "icon/sparkles",
+             "label": "+1 insight"
+            }
+           }
+          ]
+         },
+         {
+          "n": "When exactly do you stop reciting the Talbiyah?",
+          "t": "text",
+          "w": 308,
+          "h": 48,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "When exactly do you stop reciting the Talbiyah?"
+          }
+         },
+         {
+          "n": "RevealCard",
+          "t": "instance",
+          "w": 308,
+          "h": 57,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            16,
+            16,
+            16,
+            16
+           ],
+           "main": "CENTER",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "background",
+          "stroke": "gold/300 1.5 dashed",
+          "comp": "RevealCard {state=hidden}",
+          "props": {
+           "answer": "Answer"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Knowledge check",
+        "t": "frame",
+        "w": 350,
+        "h": 433,
+        "layout": {
+         "dir": "col",
+         "gap": 16,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Header",
+          "t": "frame",
+          "w": 308,
+          "h": 24,
+          "layout": {
+           "dir": "row",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Knowledge check",
+            "t": "text",
+            "w": 210,
+            "h": 16,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "overline",
+             "color": "highlight",
+             "align": "LEFT",
+             "value": "Knowledge check"
+            }
+           },
+           {
+            "n": "Badge",
+            "t": "instance",
+            "w": 90,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 4,
+             "pad": [
+              4,
+              10,
+              4,
+              10
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "HUG/HUG",
+            "radius": "radius/full",
+            "fill": "highlight-muted",
+            "comp": "Badge {variant=highlight}",
+            "props": {
+             "showIcon": true,
+             "icon": "icon/sparkles",
+             "label": "+1 insight"
+            }
+           }
+          ]
+         },
+         {
+          "n": "How should women recite the Talbiyah?",
+          "t": "text",
+          "w": 308,
+          "h": 24,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "How should women recite the Talbiyah?"
+          }
+         },
+         {
+          "n": "Options",
+          "t": "frame",
+          "w": 308,
+          "h": 177,
+          "layout": {
+           "dir": "col",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "QuizOption",
+            "t": "instance",
+            "w": 308,
+            "h": 52,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              14,
+              14,
+              14,
+              16
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/2xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "comp": "QuizOption {state=default}",
+            "props": {
+             "text": "Aloud, in unison with the men"
+            }
+           },
+           {
+            "n": "QuizOption",
+            "t": "instance",
+            "w": 308,
+            "h": 53,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              14,
+              14,
+              14,
+              16
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/2xl",
+            "fill": "success-muted",
+            "stroke": "success 1.5",
+            "comp": "QuizOption {state=correct}",
+            "props": {
+             "text": "Quietly, so only those near her hear"
+            }
+           },
+           {
+            "n": "QuizOption",
+            "t": "instance",
+            "w": 308,
+            "h": 52,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              14,
+              14,
+              14,
+              16
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/2xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "comp": "QuizOption {state=default}",
+            "props": {
+             "text": "Only once, when boarding the coach"
+            }
+           }
+          ]
+         },
+         {
+          "n": "QuizFeedback",
+          "t": "instance",
+          "w": 308,
+          "h": 118,
+          "layout": {
+           "dir": "col",
+           "gap": 4,
+           "pad": [
+            14,
+            16,
+            14,
+            16
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "success-muted",
+          "comp": "QuizFeedback {result=correct}",
+          "props": {
+           "explanation": "Women recite the Talbiyah quietly; men raise their voices without disturbing others.",
+           "title": "Correct — +1 insight"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Footer",
+        "t": "frame",
+        "w": 350,
+        "h": 92,
+        "layout": {
+         "dir": "col",
+         "gap": 10,
+         "pad": [
+          8,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "Button",
+          "t": "instance",
+          "w": 350,
+          "h": 56,
+          "layout": {
+           "dir": "row",
+           "gap": "spacing/2",
+           "pad": [
+            0,
+            "spacing/6",
+            0,
+            "spacing/6"
+           ],
+           "main": "CENTER",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "radius": "radius/full",
+          "fill": "primary",
+          "comp": "Button {variant=default, size=lg, disabled=false}",
+          "props": {
+           "icon": "icon/arrow-right",
+           "showIcon": true,
+           "label": "Complete Stage 2"
+          }
+         },
+         {
+          "n": "Answers never block you — you can revisit any stage.",
+          "t": "text",
+          "w": 294,
+          "h": 18,
+          "size": "HUG/HUG",
+          "text": {
+           "style": "body/sm",
+           "color": "subtle-foreground",
+           "align": "LEFT",
+           "value": "Answers never block you — you can revisit any stage."
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

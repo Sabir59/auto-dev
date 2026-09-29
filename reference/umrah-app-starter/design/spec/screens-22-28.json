@@ -1,0 +1,4354 @@
+{
+ "section": "screens",
+ "file": "Umrah & Hajj Guide",
+ "exportedWith": "design-spec-export.js",
+ "range": [
+  22,
+  28
+ ],
+ "screens": [
+  {
+   "name": "22 Settings",
+   "originalName": "Screens / Screens / Settings",
+   "tree": {
+    "n": "22 Settings",
+    "t": "frame",
+    "w": 390,
+    "h": 862,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=detail}",
+      "props": {
+       "leadingIcon": "icon/book-open",
+       "showAction": false,
+       "showOverline": true,
+       "title": "Settings",
+       "overline": "‘Umrah guide"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 652,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        "spacing/2",
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "Card / Preferences",
+        "t": "frame",
+        "w": 350,
+        "h": 200,
+        "layout": {
+         "dir": "col",
+         "gap": 4,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          4,
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Preferences",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Preferences"
+          }
+         },
+         {
+          "n": "Row / Language",
+          "t": "instance",
+          "w": 308,
+          "h": 49,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "SettingsRow {type=value}",
+          "props": {
+           "showDescription": false,
+           "showDivider": true,
+           "value": "English",
+           "description": "Short explanation",
+           "label": "Language"
+          }
+         },
+         {
+          "n": "Row / Theme",
+          "t": "instance",
+          "w": 308,
+          "h": 49,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "SettingsRow {type=value}",
+          "props": {
+           "showDescription": false,
+           "showDivider": true,
+           "value": "System",
+           "description": "Short explanation",
+           "label": "Theme"
+          }
+         },
+         {
+          "n": "Row / Your journey",
+          "t": "instance",
+          "w": 308,
+          "h": 48,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "SettingsRow {type=value}",
+          "props": {
+           "showDescription": false,
+           "showDivider": false,
+           "value": "First ‘Umrah",
+           "description": "Short explanation",
+           "label": "Your journey"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Reading",
+        "t": "frame",
+        "w": 350,
+        "h": 185,
+        "layout": {
+         "dir": "col",
+         "gap": 4,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          4,
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Reading",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Reading"
+          }
+         },
+         {
+          "n": "Row / Arabic text size",
+          "t": "instance",
+          "w": 308,
+          "h": 49,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "SettingsRow {type=value}",
+          "props": {
+           "showDescription": false,
+           "showDivider": true,
+           "value": "Standard",
+           "description": "Short explanation",
+           "label": "Arabic text size"
+          }
+         },
+         {
+          "n": "Row / Show transliteration",
+          "t": "instance",
+          "w": 308,
+          "h": 86,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "SettingsRow {type=toggle}",
+          "props": {
+           "showDivider": false,
+           "showDescription": true,
+           "value": "English",
+           "description": "Latin letters under the Arabic, for reading along.",
+           "label": "Show transliteration"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Data",
+        "t": "frame",
+        "w": 350,
+        "h": 143,
+        "layout": {
+         "dir": "col",
+         "gap": 4,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          4,
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Data",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Data"
+          }
+         },
+         {
+          "n": "Row / Reset learning progress",
+          "t": "instance",
+          "w": 308,
+          "h": 47,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "SettingsRow {type=action}",
+          "props": {
+           "value": "English",
+           "showDivider": true,
+           "showDescription": false,
+           "description": "Short explanation",
+           "label": "Reset learning progress"
+          }
+         },
+         {
+          "n": "Row / Clear saved items",
+          "t": "instance",
+          "w": 308,
+          "h": 46,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "SettingsRow {type=action}",
+          "props": {
+           "value": "English",
+           "showDivider": false,
+           "showDescription": false,
+           "description": "Short explanation",
+           "label": "Clear saved items"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar.",
+        "t": "text",
+        "w": 350,
+        "h": 36,
+        "size": "FILL/HUG",
+        "text": {
+         "style": "body/sm",
+         "color": "subtle-foreground",
+         "align": "CENTER",
+         "value": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar."
+        }
+       }
+      ]
+     },
+     {
+      "n": "BottomNav",
+      "t": "instance",
+      "w": 390,
+      "h": 101,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        8,
+        34,
+        8
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "fill": "card",
+      "stroke": "border ",
+      "comp": "BottomNav {active=guide}",
+      "props": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "23 Sheet Language",
+   "originalName": "Screens / Sheets / Language",
+   "tree": {
+    "n": "23 Sheet Language",
+    "t": "frame",
+    "w": 390,
+    "h": 844,
+    "layout": {
+     "dir": "row",
+     "gap": 10,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/FIXED",
+    "kids": [
+     {
+      "n": "Main",
+      "t": "frame",
+      "w": 390,
+      "h": 862,
+      "size": "FIXED/FIXED",
+      "kids": [
+       {
+        "n": "Backdrop (copy of Settings)",
+        "t": "frame",
+        "w": 390,
+        "h": 862,
+        "layout": {
+         "dir": "col",
+         "gap": 0,
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "fill": "background",
+        "kids": [
+         {
+          "n": "StatusBar",
+          "t": "instance",
+          "w": 390,
+          "h": 47,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            28,
+            0,
+            32
+           ],
+           "main": "SPACE_BETWEEN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "comp": "StatusBar",
+          "props": {}
+         },
+         {
+          "n": "TopBar",
+          "t": "instance",
+          "w": 390,
+          "h": 62,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            8,
+            "page/padding-x",
+            8,
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "fill": "background",
+          "comp": "TopBar {type=detail}",
+          "props": {
+           "leadingIcon": "icon/book-open",
+           "showAction": false,
+           "showOverline": true,
+           "title": "Settings",
+           "overline": "‘Umrah guide"
+          }
+         },
+         {
+          "n": "Content",
+          "t": "frame",
+          "w": 390,
+          "h": 652,
+          "layout": {
+           "dir": "col",
+           "gap": "stack/gap",
+           "pad": [
+            "spacing/2",
+            "page/padding-x",
+            "page/padding-bottom",
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Card / Preferences",
+            "t": "frame",
+            "w": 350,
+            "h": 200,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Preferences",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Preferences"
+              }
+             },
+             {
+              "n": "Row / Language",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "English",
+               "description": "Short explanation",
+               "label": "Language"
+              }
+             },
+             {
+              "n": "Row / Theme",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "System",
+               "description": "Short explanation",
+               "label": "Theme"
+              }
+             },
+             {
+              "n": "Row / Your journey",
+              "t": "instance",
+              "w": 308,
+              "h": 48,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": false,
+               "value": "First ‘Umrah",
+               "description": "Short explanation",
+               "label": "Your journey"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Reading",
+            "t": "frame",
+            "w": 350,
+            "h": 185,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Reading",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Reading"
+              }
+             },
+             {
+              "n": "Row / Arabic text size",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "Standard",
+               "description": "Short explanation",
+               "label": "Arabic text size"
+              }
+             },
+             {
+              "n": "Row / Show transliteration",
+              "t": "instance",
+              "w": 308,
+              "h": 86,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=toggle}",
+              "props": {
+               "showDivider": false,
+               "showDescription": true,
+               "value": "English",
+               "description": "Latin letters under the Arabic, for reading along.",
+               "label": "Show transliteration"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Data",
+            "t": "frame",
+            "w": 350,
+            "h": 143,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Data",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Data"
+              }
+             },
+             {
+              "n": "Row / Reset learning progress",
+              "t": "instance",
+              "w": 308,
+              "h": 47,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": true,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Reset learning progress"
+              }
+             },
+             {
+              "n": "Row / Clear saved items",
+              "t": "instance",
+              "w": 308,
+              "h": 46,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": false,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Clear saved items"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar.",
+            "t": "text",
+            "w": 350,
+            "h": 36,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "body/sm",
+             "color": "subtle-foreground",
+             "align": "CENTER",
+             "value": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar."
+            }
+           }
+          ]
+         },
+         {
+          "n": "BottomNav",
+          "t": "instance",
+          "w": 390,
+          "h": 101,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            8,
+            34,
+            8
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "fill": "card",
+          "stroke": "border ",
+          "comp": "BottomNav {active=guide}",
+          "props": {}
+         }
+        ]
+       },
+       {
+        "n": "Scrim",
+        "t": "rectangle",
+        "w": 390,
+        "h": 844,
+        "size": "FIXED/FIXED",
+        "fill": "foreground",
+        "opacity": 0.25
+       },
+       {
+        "n": "Sheet",
+        "t": "frame",
+        "w": 390,
+        "h": 324,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          12,
+          "page/padding-x",
+          "size/home-indicator",
+          "page/padding-x"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "effect": "shadow/lg",
+        "kids": [
+         {
+          "n": "Handle",
+          "t": "frame",
+          "w": 350,
+          "h": 4,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "CENTER",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Grabber",
+            "t": "rectangle",
+            "w": 36,
+            "h": 4,
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "border"
+           }
+          ]
+         },
+         {
+          "n": "Language",
+          "t": "text",
+          "w": 350,
+          "h": 24,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Language"
+          }
+         },
+         {
+          "n": "Arabic recitation always stays in Arabic.",
+          "t": "text",
+          "w": 350,
+          "h": 18,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/sm",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "Arabic recitation always stays in Arabic."
+          }
+         },
+         {
+          "n": "Options",
+          "t": "frame",
+          "w": 350,
+          "h": 184,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 47,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=true}",
+            "props": {
+             "showDescription": false,
+             "showDivider": true,
+             "description": "Short explanation",
+             "label": "English"
+            }
+           },
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 69,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=false}",
+            "props": {
+             "showDivider": true,
+             "description": "Urdu",
+             "showDescription": true,
+             "label": "اردو"
+            }
+           },
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 68,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=false}",
+            "props": {
+             "showDivider": false,
+             "description": "Arabic",
+             "showDescription": true,
+             "label": "العربية"
+            }
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "24 Sheet Theme",
+   "originalName": "Screens / Sheets / Theme",
+   "tree": {
+    "n": "24 Sheet Theme",
+    "t": "frame",
+    "w": 390,
+    "h": 844,
+    "layout": {
+     "dir": "row",
+     "gap": 10,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/FIXED",
+    "kids": [
+     {
+      "n": "Main",
+      "t": "frame",
+      "w": 390,
+      "h": 862,
+      "size": "FIXED/FIXED",
+      "kids": [
+       {
+        "n": "Backdrop (copy of Settings)",
+        "t": "frame",
+        "w": 390,
+        "h": 862,
+        "layout": {
+         "dir": "col",
+         "gap": 0,
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "fill": "background",
+        "kids": [
+         {
+          "n": "StatusBar",
+          "t": "instance",
+          "w": 390,
+          "h": 47,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            28,
+            0,
+            32
+           ],
+           "main": "SPACE_BETWEEN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "comp": "StatusBar",
+          "props": {}
+         },
+         {
+          "n": "TopBar",
+          "t": "instance",
+          "w": 390,
+          "h": 62,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            8,
+            "page/padding-x",
+            8,
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "fill": "background",
+          "comp": "TopBar {type=detail}",
+          "props": {
+           "leadingIcon": "icon/book-open",
+           "showAction": false,
+           "showOverline": true,
+           "title": "Settings",
+           "overline": "‘Umrah guide"
+          }
+         },
+         {
+          "n": "Content",
+          "t": "frame",
+          "w": 390,
+          "h": 652,
+          "layout": {
+           "dir": "col",
+           "gap": "stack/gap",
+           "pad": [
+            "spacing/2",
+            "page/padding-x",
+            "page/padding-bottom",
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Card / Preferences",
+            "t": "frame",
+            "w": 350,
+            "h": 200,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Preferences",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Preferences"
+              }
+             },
+             {
+              "n": "Row / Language",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "English",
+               "description": "Short explanation",
+               "label": "Language"
+              }
+             },
+             {
+              "n": "Row / Theme",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "System",
+               "description": "Short explanation",
+               "label": "Theme"
+              }
+             },
+             {
+              "n": "Row / Your journey",
+              "t": "instance",
+              "w": 308,
+              "h": 48,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": false,
+               "value": "First ‘Umrah",
+               "description": "Short explanation",
+               "label": "Your journey"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Reading",
+            "t": "frame",
+            "w": 350,
+            "h": 185,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Reading",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Reading"
+              }
+             },
+             {
+              "n": "Row / Arabic text size",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "Standard",
+               "description": "Short explanation",
+               "label": "Arabic text size"
+              }
+             },
+             {
+              "n": "Row / Show transliteration",
+              "t": "instance",
+              "w": 308,
+              "h": 86,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=toggle}",
+              "props": {
+               "showDivider": false,
+               "showDescription": true,
+               "value": "English",
+               "description": "Latin letters under the Arabic, for reading along.",
+               "label": "Show transliteration"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Data",
+            "t": "frame",
+            "w": 350,
+            "h": 143,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Data",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Data"
+              }
+             },
+             {
+              "n": "Row / Reset learning progress",
+              "t": "instance",
+              "w": 308,
+              "h": 47,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": true,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Reset learning progress"
+              }
+             },
+             {
+              "n": "Row / Clear saved items",
+              "t": "instance",
+              "w": 308,
+              "h": 46,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": false,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Clear saved items"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar.",
+            "t": "text",
+            "w": 350,
+            "h": 36,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "body/sm",
+             "color": "subtle-foreground",
+             "align": "CENTER",
+             "value": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar."
+            }
+           }
+          ]
+         },
+         {
+          "n": "BottomNav",
+          "t": "instance",
+          "w": 390,
+          "h": 101,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            8,
+            34,
+            8
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "fill": "card",
+          "stroke": "border ",
+          "comp": "BottomNav {active=guide}",
+          "props": {}
+         }
+        ]
+       },
+       {
+        "n": "Scrim",
+        "t": "rectangle",
+        "w": 390,
+        "h": 844,
+        "size": "FIXED/FIXED",
+        "fill": "foreground",
+        "opacity": 0.25
+       },
+       {
+        "n": "Sheet",
+        "t": "frame",
+        "w": 390,
+        "h": 268,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          12,
+          "page/padding-x",
+          "size/home-indicator",
+          "page/padding-x"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "effect": "shadow/lg",
+        "kids": [
+         {
+          "n": "Handle",
+          "t": "frame",
+          "w": 350,
+          "h": 4,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "CENTER",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Grabber",
+            "t": "rectangle",
+            "w": 36,
+            "h": 4,
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "border"
+           }
+          ]
+         },
+         {
+          "n": "Theme",
+          "t": "text",
+          "w": 350,
+          "h": 24,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Theme"
+          }
+         },
+         {
+          "n": "Options",
+          "t": "frame",
+          "w": 350,
+          "h": 162,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 69,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=true}",
+            "props": {
+             "showDescription": true,
+             "showDivider": true,
+             "description": "Match your phone’s setting",
+             "label": "System"
+            }
+           },
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 47,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=false}",
+            "props": {
+             "showDivider": true,
+             "description": "Short explanation",
+             "showDescription": false,
+             "label": "Light"
+            }
+           },
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 46,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=false}",
+            "props": {
+             "showDivider": false,
+             "description": "Short explanation",
+             "showDescription": false,
+             "label": "Dark"
+            }
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "25 Sheet Journey",
+   "originalName": "Screens /  Sheets / Journey",
+   "tree": {
+    "n": "25 Sheet Journey",
+    "t": "frame",
+    "w": 390,
+    "h": 844,
+    "size": "FIXED/FIXED",
+    "kids": [
+     {
+      "n": "Main",
+      "t": "frame",
+      "w": 390,
+      "h": 862,
+      "size": "FIXED/FIXED",
+      "kids": [
+       {
+        "n": "Backdrop (copy of Settings)",
+        "t": "frame",
+        "w": 390,
+        "h": 862,
+        "layout": {
+         "dir": "col",
+         "gap": 0,
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "fill": "background",
+        "kids": [
+         {
+          "n": "StatusBar",
+          "t": "instance",
+          "w": 390,
+          "h": 47,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            28,
+            0,
+            32
+           ],
+           "main": "SPACE_BETWEEN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "comp": "StatusBar",
+          "props": {}
+         },
+         {
+          "n": "TopBar",
+          "t": "instance",
+          "w": 390,
+          "h": 62,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            8,
+            "page/padding-x",
+            8,
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "fill": "background",
+          "comp": "TopBar {type=detail}",
+          "props": {
+           "leadingIcon": "icon/book-open",
+           "showAction": false,
+           "showOverline": true,
+           "title": "Settings",
+           "overline": "‘Umrah guide"
+          }
+         },
+         {
+          "n": "Content",
+          "t": "frame",
+          "w": 390,
+          "h": 652,
+          "layout": {
+           "dir": "col",
+           "gap": "stack/gap",
+           "pad": [
+            "spacing/2",
+            "page/padding-x",
+            "page/padding-bottom",
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Card / Preferences",
+            "t": "frame",
+            "w": 350,
+            "h": 200,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Preferences",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Preferences"
+              }
+             },
+             {
+              "n": "Row / Language",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "English",
+               "description": "Short explanation",
+               "label": "Language"
+              }
+             },
+             {
+              "n": "Row / Theme",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "System",
+               "description": "Short explanation",
+               "label": "Theme"
+              }
+             },
+             {
+              "n": "Row / Your journey",
+              "t": "instance",
+              "w": 308,
+              "h": 48,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": false,
+               "value": "First ‘Umrah",
+               "description": "Short explanation",
+               "label": "Your journey"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Reading",
+            "t": "frame",
+            "w": 350,
+            "h": 185,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Reading",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Reading"
+              }
+             },
+             {
+              "n": "Row / Arabic text size",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "Standard",
+               "description": "Short explanation",
+               "label": "Arabic text size"
+              }
+             },
+             {
+              "n": "Row / Show transliteration",
+              "t": "instance",
+              "w": 308,
+              "h": 86,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=toggle}",
+              "props": {
+               "showDivider": false,
+               "showDescription": true,
+               "value": "English",
+               "description": "Latin letters under the Arabic, for reading along.",
+               "label": "Show transliteration"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Data",
+            "t": "frame",
+            "w": 350,
+            "h": 143,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Data",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Data"
+              }
+             },
+             {
+              "n": "Row / Reset learning progress",
+              "t": "instance",
+              "w": 308,
+              "h": 47,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": true,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Reset learning progress"
+              }
+             },
+             {
+              "n": "Row / Clear saved items",
+              "t": "instance",
+              "w": 308,
+              "h": 46,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": false,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Clear saved items"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar.",
+            "t": "text",
+            "w": 350,
+            "h": 36,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "body/sm",
+             "color": "subtle-foreground",
+             "align": "CENTER",
+             "value": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar."
+            }
+           }
+          ]
+         },
+         {
+          "n": "BottomNav",
+          "t": "instance",
+          "w": 390,
+          "h": 101,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            8,
+            34,
+            8
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "fill": "card",
+          "stroke": "border ",
+          "comp": "BottomNav {active=guide}",
+          "props": {}
+         }
+        ]
+       },
+       {
+        "n": "Scrim",
+        "t": "rectangle",
+        "w": 390,
+        "h": 844,
+        "size": "FIXED/FIXED",
+        "fill": "foreground",
+        "opacity": 0.25
+       },
+       {
+        "n": "Sheet",
+        "t": "frame",
+        "w": 390,
+        "h": 415,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          12,
+          "page/padding-x",
+          "size/home-indicator",
+          "page/padding-x"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "effect": "shadow/lg",
+        "kids": [
+         {
+          "n": "Handle",
+          "t": "frame",
+          "w": 350,
+          "h": 4,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "CENTER",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Grabber",
+            "t": "rectangle",
+            "w": 36,
+            "h": 4,
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "border"
+           }
+          ]
+         },
+         {
+          "n": "Your journey",
+          "t": "text",
+          "w": 350,
+          "h": 24,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Your journey"
+          }
+         },
+         {
+          "n": "Chosen when you started. It shapes where the guide begins.",
+          "t": "text",
+          "w": 350,
+          "h": 18,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/sm",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "Chosen when you started. It shapes where the guide begins."
+          }
+         },
+         {
+          "n": "Options",
+          "t": "frame",
+          "w": 350,
+          "h": 275,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 69,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=true}",
+            "props": {
+             "showDescription": true,
+             "showDivider": true,
+             "description": "Guide me from the very start",
+             "label": "My first ‘Umrah"
+            }
+           },
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 69,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=false}",
+            "props": {
+             "showDivider": true,
+             "description": "I’ve been before",
+             "showDescription": true,
+             "label": "A quick refresher"
+            }
+           },
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 69,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=false}",
+            "props": {
+             "showDivider": true,
+             "description": "I want to teach someone",
+             "showDescription": true,
+             "label": "Helping family"
+            }
+           },
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 68,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=false}",
+            "props": {
+             "showDivider": false,
+             "description": "No trip booked yet",
+             "showDescription": true,
+             "label": "Just learning"
+            }
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "26 Sheet Text size",
+   "originalName": "Screens /  Sheets / Text size",
+   "tree": {
+    "n": "26 Sheet Text size",
+    "t": "frame",
+    "w": 390,
+    "h": 844,
+    "layout": {
+     "dir": "row",
+     "gap": 10,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/FIXED",
+    "kids": [
+     {
+      "n": "Main",
+      "t": "frame",
+      "w": 390,
+      "h": 862,
+      "size": "FIXED/FIXED",
+      "kids": [
+       {
+        "n": "Backdrop (copy of Settings)",
+        "t": "frame",
+        "w": 390,
+        "h": 862,
+        "layout": {
+         "dir": "col",
+         "gap": 0,
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "fill": "background",
+        "kids": [
+         {
+          "n": "StatusBar",
+          "t": "instance",
+          "w": 390,
+          "h": 47,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            28,
+            0,
+            32
+           ],
+           "main": "SPACE_BETWEEN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "comp": "StatusBar",
+          "props": {}
+         },
+         {
+          "n": "TopBar",
+          "t": "instance",
+          "w": 390,
+          "h": 62,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            8,
+            "page/padding-x",
+            8,
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "fill": "background",
+          "comp": "TopBar {type=detail}",
+          "props": {
+           "leadingIcon": "icon/book-open",
+           "showAction": false,
+           "showOverline": true,
+           "title": "Settings",
+           "overline": "‘Umrah guide"
+          }
+         },
+         {
+          "n": "Content",
+          "t": "frame",
+          "w": 390,
+          "h": 652,
+          "layout": {
+           "dir": "col",
+           "gap": "stack/gap",
+           "pad": [
+            "spacing/2",
+            "page/padding-x",
+            "page/padding-bottom",
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Card / Preferences",
+            "t": "frame",
+            "w": 350,
+            "h": 200,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Preferences",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Preferences"
+              }
+             },
+             {
+              "n": "Row / Language",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "English",
+               "description": "Short explanation",
+               "label": "Language"
+              }
+             },
+             {
+              "n": "Row / Theme",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "System",
+               "description": "Short explanation",
+               "label": "Theme"
+              }
+             },
+             {
+              "n": "Row / Your journey",
+              "t": "instance",
+              "w": 308,
+              "h": 48,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": false,
+               "value": "First ‘Umrah",
+               "description": "Short explanation",
+               "label": "Your journey"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Reading",
+            "t": "frame",
+            "w": 350,
+            "h": 185,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Reading",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Reading"
+              }
+             },
+             {
+              "n": "Row / Arabic text size",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "Standard",
+               "description": "Short explanation",
+               "label": "Arabic text size"
+              }
+             },
+             {
+              "n": "Row / Show transliteration",
+              "t": "instance",
+              "w": 308,
+              "h": 86,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=toggle}",
+              "props": {
+               "showDivider": false,
+               "showDescription": true,
+               "value": "English",
+               "description": "Latin letters under the Arabic, for reading along.",
+               "label": "Show transliteration"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Data",
+            "t": "frame",
+            "w": 350,
+            "h": 143,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Data",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Data"
+              }
+             },
+             {
+              "n": "Row / Reset learning progress",
+              "t": "instance",
+              "w": 308,
+              "h": 47,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": true,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Reset learning progress"
+              }
+             },
+             {
+              "n": "Row / Clear saved items",
+              "t": "instance",
+              "w": 308,
+              "h": 46,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": false,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Clear saved items"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar.",
+            "t": "text",
+            "w": 350,
+            "h": 36,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "body/sm",
+             "color": "subtle-foreground",
+             "align": "CENTER",
+             "value": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar."
+            }
+           }
+          ]
+         },
+         {
+          "n": "BottomNav",
+          "t": "instance",
+          "w": 390,
+          "h": 101,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            8,
+            34,
+            8
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "fill": "card",
+          "stroke": "border ",
+          "comp": "BottomNav {active=guide}",
+          "props": {}
+         }
+        ]
+       },
+       {
+        "n": "Scrim",
+        "t": "rectangle",
+        "w": 390,
+        "h": 844,
+        "size": "FIXED/FIXED",
+        "fill": "foreground",
+        "opacity": 0.25
+       },
+       {
+        "n": "Sheet",
+        "t": "frame",
+        "w": 390,
+        "h": 398,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          12,
+          "page/padding-x",
+          "size/home-indicator",
+          "page/padding-x"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "effect": "shadow/lg",
+        "kids": [
+         {
+          "n": "Handle",
+          "t": "frame",
+          "w": 350,
+          "h": 4,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "CENTER",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Grabber",
+            "t": "rectangle",
+            "w": 36,
+            "h": 4,
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "border"
+           }
+          ]
+         },
+         {
+          "n": "Arabic text size",
+          "t": "text",
+          "w": 350,
+          "h": 24,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Arabic text size"
+          }
+         },
+         {
+          "n": "Preview",
+          "t": "frame",
+          "w": 350,
+          "h": 136,
+          "layout": {
+           "dir": "col",
+           "gap": "spacing/2",
+           "pad": [
+            "spacing/4",
+            "spacing/4",
+            "spacing/4",
+            "spacing/4"
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "muted",
+          "kids": [
+           {
+            "n": "DuaBlock",
+            "t": "instance",
+            "w": 318,
+            "h": 104,
+            "layout": {
+             "dir": "col",
+             "gap": 8,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "CENTER"
+            },
+            "size": "FILL/HUG",
+            "comp": "DuaBlock",
+            "props": {
+             "showSource": false,
+             "translation": "Here I am, O Allāh, for ‘Umrah.",
+             "transliteration": "Labbayka Allāhumma ʿUmrah",
+             "source": "Source",
+             "arabic": "لَبَّيْكَ اللَّهُمَّ عُمْرَةً"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Options",
+          "t": "frame",
+          "w": 350,
+          "h": 140,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 47,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=true}",
+            "props": {
+             "showDescription": false,
+             "showDivider": true,
+             "description": "Short explanation",
+             "label": "Standard"
+            }
+           },
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 47,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=false}",
+            "props": {
+             "showDivider": true,
+             "description": "Short explanation",
+             "showDescription": false,
+             "label": "Large"
+            }
+           },
+           {
+            "n": "SheetOption",
+            "t": "instance",
+            "w": 350,
+            "h": 46,
+            "layout": {
+             "dir": "col",
+             "gap": 0,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "SheetOption {selected=false}",
+            "props": {
+             "showDivider": false,
+             "description": "Short explanation",
+             "showDescription": false,
+             "label": "Largest"
+            }
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "27 Sheet Reset progress",
+   "originalName": "Screens /  Sheets / Reset progress",
+   "tree": {
+    "n": "27 Sheet Reset progress",
+    "t": "frame",
+    "w": 390,
+    "h": 844,
+    "layout": {
+     "dir": "row",
+     "gap": 10,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/FIXED",
+    "kids": [
+     {
+      "n": "Main",
+      "t": "frame",
+      "w": 390,
+      "h": 862,
+      "size": "FIXED/FIXED",
+      "kids": [
+       {
+        "n": "Backdrop (copy of Settings)",
+        "t": "frame",
+        "w": 390,
+        "h": 862,
+        "layout": {
+         "dir": "col",
+         "gap": 0,
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "fill": "background",
+        "kids": [
+         {
+          "n": "StatusBar",
+          "t": "instance",
+          "w": 390,
+          "h": 47,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            28,
+            0,
+            32
+           ],
+           "main": "SPACE_BETWEEN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "comp": "StatusBar",
+          "props": {}
+         },
+         {
+          "n": "TopBar",
+          "t": "instance",
+          "w": 390,
+          "h": 62,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            8,
+            "page/padding-x",
+            8,
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "fill": "background",
+          "comp": "TopBar {type=detail}",
+          "props": {
+           "leadingIcon": "icon/book-open",
+           "showAction": false,
+           "showOverline": true,
+           "title": "Settings",
+           "overline": "‘Umrah guide"
+          }
+         },
+         {
+          "n": "Content",
+          "t": "frame",
+          "w": 390,
+          "h": 652,
+          "layout": {
+           "dir": "col",
+           "gap": "stack/gap",
+           "pad": [
+            "spacing/2",
+            "page/padding-x",
+            "page/padding-bottom",
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Card / Preferences",
+            "t": "frame",
+            "w": 350,
+            "h": 200,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Preferences",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Preferences"
+              }
+             },
+             {
+              "n": "Row / Language",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "English",
+               "description": "Short explanation",
+               "label": "Language"
+              }
+             },
+             {
+              "n": "Row / Theme",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "System",
+               "description": "Short explanation",
+               "label": "Theme"
+              }
+             },
+             {
+              "n": "Row / Your journey",
+              "t": "instance",
+              "w": 308,
+              "h": 48,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": false,
+               "value": "First ‘Umrah",
+               "description": "Short explanation",
+               "label": "Your journey"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Reading",
+            "t": "frame",
+            "w": 350,
+            "h": 185,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Reading",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Reading"
+              }
+             },
+             {
+              "n": "Row / Arabic text size",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "Standard",
+               "description": "Short explanation",
+               "label": "Arabic text size"
+              }
+             },
+             {
+              "n": "Row / Show transliteration",
+              "t": "instance",
+              "w": 308,
+              "h": 86,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=toggle}",
+              "props": {
+               "showDivider": false,
+               "showDescription": true,
+               "value": "English",
+               "description": "Latin letters under the Arabic, for reading along.",
+               "label": "Show transliteration"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Data",
+            "t": "frame",
+            "w": 350,
+            "h": 143,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Data",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Data"
+              }
+             },
+             {
+              "n": "Row / Reset learning progress",
+              "t": "instance",
+              "w": 308,
+              "h": 47,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": true,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Reset learning progress"
+              }
+             },
+             {
+              "n": "Row / Clear saved items",
+              "t": "instance",
+              "w": 308,
+              "h": 46,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": false,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Clear saved items"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar.",
+            "t": "text",
+            "w": 350,
+            "h": 36,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "body/sm",
+             "color": "subtle-foreground",
+             "align": "CENTER",
+             "value": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar."
+            }
+           }
+          ]
+         },
+         {
+          "n": "BottomNav",
+          "t": "instance",
+          "w": 390,
+          "h": 101,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            8,
+            34,
+            8
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "fill": "card",
+          "stroke": "border ",
+          "comp": "BottomNav {active=guide}",
+          "props": {}
+         }
+        ]
+       },
+       {
+        "n": "Scrim",
+        "t": "rectangle",
+        "w": 390,
+        "h": 844,
+        "size": "FIXED/FIXED",
+        "fill": "foreground",
+        "opacity": 0.25
+       },
+       {
+        "n": "Sheet",
+        "t": "frame",
+        "w": 390,
+        "h": 296,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          12,
+          "page/padding-x",
+          "size/home-indicator",
+          "page/padding-x"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "effect": "shadow/lg",
+        "kids": [
+         {
+          "n": "Handle",
+          "t": "frame",
+          "w": 350,
+          "h": 4,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "CENTER",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Grabber",
+            "t": "rectangle",
+            "w": 36,
+            "h": 4,
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "border"
+           }
+          ]
+         },
+         {
+          "n": "Reset learning progress?",
+          "t": "text",
+          "w": 350,
+          "h": 24,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Reset learning progress?"
+          }
+         },
+         {
+          "n": "Your completed stages and insights will be cleared, and the guide starts again from Stage 1. Saved items stay.",
+          "t": "text",
+          "w": 350,
+          "h": 66,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/md",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "Your completed stages and insights will be cleared, and the guide starts again from Stage 1. Saved items stay."
+          }
+         },
+         {
+          "n": "Actions",
+          "t": "frame",
+          "w": 350,
+          "h": 108,
+          "layout": {
+           "dir": "col",
+           "gap": "spacing/3",
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Button",
+            "t": "instance",
+            "w": 350,
+            "h": 48,
+            "layout": {
+             "dir": "row",
+             "gap": "spacing/2",
+             "pad": [
+              0,
+              "spacing/5",
+              0,
+              "spacing/5"
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FILL/FIXED",
+            "radius": "radius/full",
+            "fill": "destructive",
+            "comp": "Button {variant=destructive, size=default, disabled=false}",
+            "props": {
+             "icon": "icon/arrow-right",
+             "showIcon": false,
+             "label": "Reset progress"
+            }
+           },
+           {
+            "n": "Button",
+            "t": "instance",
+            "w": 350,
+            "h": 48,
+            "layout": {
+             "dir": "row",
+             "gap": "spacing/2",
+             "pad": [
+              0,
+              "spacing/5",
+              0,
+              "spacing/5"
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FILL/FIXED",
+            "radius": "radius/full",
+            "stroke": "primary 1.5",
+            "comp": "Button {variant=outline, size=default, disabled=false}",
+            "props": {
+             "icon": "icon/arrow-right",
+             "showIcon": false,
+             "label": "Cancel"
+            }
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "28 Sheet Clear saved",
+   "originalName": "Screens / Sheets / Clear saved",
+   "tree": {
+    "n": "28 Sheet Clear saved",
+    "t": "frame",
+    "w": 390,
+    "h": 844,
+    "layout": {
+     "dir": "row",
+     "gap": 10,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/FIXED",
+    "kids": [
+     {
+      "n": "Main",
+      "t": "frame",
+      "w": 390,
+      "h": 862,
+      "size": "FIXED/FIXED",
+      "kids": [
+       {
+        "n": "Backdrop (copy of Settings)",
+        "t": "frame",
+        "w": 390,
+        "h": 862,
+        "layout": {
+         "dir": "col",
+         "gap": 0,
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "fill": "background",
+        "kids": [
+         {
+          "n": "StatusBar",
+          "t": "instance",
+          "w": 390,
+          "h": 47,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            28,
+            0,
+            32
+           ],
+           "main": "SPACE_BETWEEN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/FIXED",
+          "comp": "StatusBar",
+          "props": {}
+         },
+         {
+          "n": "TopBar",
+          "t": "instance",
+          "w": 390,
+          "h": 62,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            8,
+            "page/padding-x",
+            8,
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "fill": "background",
+          "comp": "TopBar {type=detail}",
+          "props": {
+           "leadingIcon": "icon/book-open",
+           "showAction": false,
+           "showOverline": true,
+           "title": "Settings",
+           "overline": "‘Umrah guide"
+          }
+         },
+         {
+          "n": "Content",
+          "t": "frame",
+          "w": 390,
+          "h": 652,
+          "layout": {
+           "dir": "col",
+           "gap": "stack/gap",
+           "pad": [
+            "spacing/2",
+            "page/padding-x",
+            "page/padding-bottom",
+            "page/padding-x"
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Card / Preferences",
+            "t": "frame",
+            "w": 350,
+            "h": 200,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Preferences",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Preferences"
+              }
+             },
+             {
+              "n": "Row / Language",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "English",
+               "description": "Short explanation",
+               "label": "Language"
+              }
+             },
+             {
+              "n": "Row / Theme",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "System",
+               "description": "Short explanation",
+               "label": "Theme"
+              }
+             },
+             {
+              "n": "Row / Your journey",
+              "t": "instance",
+              "w": 308,
+              "h": 48,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": false,
+               "value": "First ‘Umrah",
+               "description": "Short explanation",
+               "label": "Your journey"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Reading",
+            "t": "frame",
+            "w": 350,
+            "h": 185,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Reading",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Reading"
+              }
+             },
+             {
+              "n": "Row / Arabic text size",
+              "t": "instance",
+              "w": 308,
+              "h": 49,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=value}",
+              "props": {
+               "showDescription": false,
+               "showDivider": true,
+               "value": "Standard",
+               "description": "Short explanation",
+               "label": "Arabic text size"
+              }
+             },
+             {
+              "n": "Row / Show transliteration",
+              "t": "instance",
+              "w": 308,
+              "h": 86,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=toggle}",
+              "props": {
+               "showDivider": false,
+               "showDescription": true,
+               "value": "English",
+               "description": "Latin letters under the Arabic, for reading along.",
+               "label": "Show transliteration"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Card / Data",
+            "t": "frame",
+            "w": 350,
+            "h": 143,
+            "layout": {
+             "dir": "col",
+             "gap": 4,
+             "pad": [
+              "card/padding",
+              "card/padding",
+              4,
+              "card/padding"
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "radius": "radius/3xl",
+            "fill": "card",
+            "stroke": "border 1",
+            "effect": "shadow/sm",
+            "kids": [
+             {
+              "n": "Data",
+              "t": "text",
+              "w": 308,
+              "h": 16,
+              "size": "FILL/HUG",
+              "text": {
+               "style": "overline",
+               "color": "highlight",
+               "align": "LEFT",
+               "value": "Data"
+              }
+             },
+             {
+              "n": "Row / Reset learning progress",
+              "t": "instance",
+              "w": 308,
+              "h": 47,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": true,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Reset learning progress"
+              }
+             },
+             {
+              "n": "Row / Clear saved items",
+              "t": "instance",
+              "w": 308,
+              "h": 46,
+              "layout": {
+               "dir": "col",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "comp": "SettingsRow {type=action}",
+              "props": {
+               "value": "English",
+               "showDivider": false,
+               "showDescription": false,
+               "description": "Short explanation",
+               "label": "Clear saved items"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar.",
+            "t": "text",
+            "w": 350,
+            "h": 36,
+            "size": "FILL/HUG",
+            "text": {
+             "style": "body/sm",
+             "color": "subtle-foreground",
+             "align": "CENTER",
+             "value": "Based on the Qur’ān and authentic Sunnah. For rulings specific to your situation, consult a qualified scholar."
+            }
+           }
+          ]
+         },
+         {
+          "n": "BottomNav",
+          "t": "instance",
+          "w": 390,
+          "h": 101,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            8,
+            34,
+            8
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "fill": "card",
+          "stroke": "border ",
+          "comp": "BottomNav {active=guide}",
+          "props": {}
+         }
+        ]
+       },
+       {
+        "n": "Scrim",
+        "t": "rectangle",
+        "w": 390,
+        "h": 844,
+        "size": "FIXED/FIXED",
+        "fill": "foreground",
+        "opacity": 0.25
+       },
+       {
+        "n": "Sheet",
+        "t": "frame",
+        "w": 390,
+        "h": 274,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          12,
+          "page/padding-x",
+          "size/home-indicator",
+          "page/padding-x"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FIXED/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "effect": "shadow/lg",
+        "kids": [
+         {
+          "n": "Handle",
+          "t": "frame",
+          "w": 350,
+          "h": 4,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "CENTER",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Grabber",
+            "t": "rectangle",
+            "w": 36,
+            "h": 4,
+            "size": "FIXED/FIXED",
+            "radius": "radius/full",
+            "fill": "border"
+           }
+          ]
+         },
+         {
+          "n": "Clear all saved items?",
+          "t": "text",
+          "w": 350,
+          "h": 24,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Clear all saved items?"
+          }
+         },
+         {
+          "n": "Every saved du‘ā, stage and answer will be removed from this device. This can’t be undone.",
+          "t": "text",
+          "w": 350,
+          "h": 44,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/md",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "Every saved du‘ā, stage and answer will be removed from this device. This can’t be undone."
+          }
+         },
+         {
+          "n": "Actions",
+          "t": "frame",
+          "w": 350,
+          "h": 108,
+          "layout": {
+           "dir": "col",
+           "gap": "spacing/3",
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Button",
+            "t": "instance",
+            "w": 350,
+            "h": 48,
+            "layout": {
+             "dir": "row",
+             "gap": "spacing/2",
+             "pad": [
+              0,
+              "spacing/5",
+              0,
+              "spacing/5"
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FILL/FIXED",
+            "radius": "radius/full",
+            "fill": "destructive",
+            "comp": "Button {variant=destructive, size=default, disabled=false}",
+            "props": {
+             "icon": "icon/arrow-right",
+             "showIcon": false,
+             "label": "Clear saved items"
+            }
+           },
+           {
+            "n": "Button",
+            "t": "instance",
+            "w": 350,
+            "h": 48,
+            "layout": {
+             "dir": "row",
+             "gap": "spacing/2",
+             "pad": [
+              0,
+              "spacing/5",
+              0,
+              "spacing/5"
+             ],
+             "main": "CENTER",
+             "cross": "CENTER"
+            },
+            "size": "FILL/FIXED",
+            "radius": "radius/full",
+            "stroke": "primary 1.5",
+            "comp": "Button {variant=outline, size=default, disabled=false}",
+            "props": {
+             "icon": "icon/arrow-right",
+             "showIcon": false,
+             "label": "Cancel"
+            }
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

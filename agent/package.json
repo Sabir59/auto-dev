@@ -1,0 +1,15 @@
+{
+  "name": "figma-ai-executor-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude decides Figma commands via tool use, inspects its own result, and self-corrects.",
+  "main": "agent.mjs",
+  "scripts": {
+    "start": "node agent.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "zod": "^4.6.5"
+  }
+}

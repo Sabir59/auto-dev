@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Intent — Create</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@18,400&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Design tokens, sampled directly from the Figma "Intent" frame's node
+     properties (fills/strokes/typography), not eyeballed from a picture. */
+  :root {
+    --bg: #fcf9f2;
+    --ink: #002419;
+    --ink-soft: #163a2d;
+    --text-muted: #414844;
+    --text-muted-2: #59605b;
+    --amber-dark: #7c5716;
+    --amber-mid: #ba8e48;
+    --amber-line: #eac488;
+    --amber-bg: #fbebcf;
+    --neutral-btn-bg: #f6f3ec;
+    --card-border: #ebe8e1;
+    --white: #ffffff;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --font-serif: 'Newsreader', serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #ddd; }
+  body { display: flex; justify-content: center; padding: 24px; font-family: var(--font-sans); }
+
+  .screen {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    background: var(--bg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* matches Figma primaryAxisAlignItems: SPACE_BETWEEN */
+    padding: 55px 20px 42px 20px;
+  }
+
+  /* --- Status bar (absolute overlay, out of the flex flow) ------------- */
+  .status-bar {
+    position: absolute;
+    top: 0; left: 0;
+    width: 390px;
+    height: 47px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 28px 0 32px;
+  }
+  .status-bar .time {
+    font: 500 16px/20px var(--font-sans);
+    color: var(--ink);
+  }
+  .status-bar .system {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    width: 61px;
+    height: 12px;
+  }
+  .status-bar .bar { width: 3px; background: var(--ink); border-radius: 1px; }
+  .status-bar .bar:nth-child(1) { height: 5px; }
+  .status-bar .bar:nth-child(2) { height: 7px; }
+  .status-bar .bar:nth-child(3) { height: 9px; }
+  .status-bar .bar:nth-child(4) { height: 11px; }
+  .status-bar .battery { width: 25px; height: 12px; background: var(--ink); border-radius: 3.5px; }
+
+  /* --- Home indicator (absolute overlay) -------------------------------- */
+  .home-indicator {
+    position: absolute;
+    left: 0; bottom: 0;
+    width: 390px;
+    height: 34px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 8px;
+  }
+  .home-indicator .pill {
+    width: 134px; height: 5px;
+    background: var(--ink);
+    border-radius: 3px;
+  }
+
+  /* --- Top: back button + header ---------------------------------------- */
+  .top {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 350px;
+  }
+  .back-button {
+    width: 44px; height: 44px;
+    border-radius: 9999px;
+    background: var(--neutral-btn-bg);
+    display: flex; align-items: center; justify-content: center;
+    border: none;
+    padding: 0;
+  }
+  .back-button svg { width: 20px; height: 20px; color: var(--ink-soft); }
+
+  .header { display: flex; flex-direction: column; gap: 12px; width: 350px; }
+  .step-label {
+    font: 600 12px/16px var(--font-sans);
+    letter-spacing: 0.12em; /* Figma: 12% of 12px */
+    text-transform: uppercase;
+    color: var(--amber-dark);
+    margin: 0;
+  }
+  .headline {
+    font: 400 42px/52px var(--font-serif);
+    font-variation-settings: 'opsz' 18;
+    letter-spacing: -0.01em; /* Figma: -1% of 42px */
+    color: var(--ink);
+    margin: 0;
+    width: 350px;
+  }
+  .subtext {
+    font: 400 16px/24px var(--font-sans);
+    color: var(--text-muted);
+    margin: 0;
+    width: 330px;
+  }
+
+  /* --- Options -------------------------------------------------------- */
+  .options { display: flex; flex-direction: column; gap: 12px; width: 350px; }
+
+  .option-card {
+    width: 350px;
+    height: 78px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+    border-radius: 16px;
+    background: var(--white);
+    border: 1px solid var(--card-border);
+  }
+  .option-card.selected {
+    background: var(--amber-bg);
+    border-color: var(--amber-line);
+  }
+  .option-card .leading-icon { width: 24px; height: 24px; flex-shrink: 0; color: var(--amber-dark); }
+  .option-card .option-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .option-card .option-title { font: 500 16px/20px var(--font-sans); color: var(--ink); }
+  .option-card .option-desc { font: 400 12px/18px var(--font-sans); color: var(--text-muted-2); }
+
+  .radio {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--white);
+    border: 1.5px solid var(--amber-line);
+  }
+  .radio.checked {
+    background: var(--amber-mid);
+    border: none;
+  }
+  .radio.checked svg { width: 14px; height: 14px; color: var(--ink); }
+
+  /* --- Footer ----------------------------------------------------------- */
+  .footer { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 350px; }
+
+  .btn-primary {
+    width: 350px; height: 56px;
+    background: var(--ink-soft);
+    border-radius: 9999px;
+    border: none;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font: 500 16px/20px var(--font-sans);
+    color: var(--white);
+  }
+  .btn-primary svg { width: 20px; height: 20px; color: var(--white); }
+
+  .btn-ghost {
+    height: 48px;
+    padding: 0 20px;
+    background: transparent;
+    border: none;
+    border-radius: 9999px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font: 500 16px/20px var(--font-sans);
+    color: var(--ink-soft);
+  }
+  .btn-ghost svg { width: 20px; height: 20px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <div class="status-bar">
+    <div class="time">9:41</div>
+    <div class="system">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="battery"></div>
+    </div>
+  </div>
+
+  <div class="top">
+    <button class="back-button" aria-label="Back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.667" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+    <div class="header">
+      <p class="step-label">Step 2 of 2</p>
+      <h1 class="headline">What brings you here?</h1>
+      <p class="subtext">One tap. You can change this later in Settings.</p>
+    </div>
+  </div>
+
+  <div class="options">
+    <div class="option-card selected">
+      <svg class="leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3l1.6 4.9L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.1z"></path>
+        <path d="M19 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"></path>
+      </svg>
+      <div class="option-text">
+        <span class="option-title">My first &#8216;Umrah</span>
+        <span class="option-desc">Guide me from the very start</span>
+      </div>
+      <div class="radio checked">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.167" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+    </div>
+
+    <div class="option-card">
+      <svg class="leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 2.6-6.4"></path>
+        <polyline points="3 3 3 8 8 8"></polyline>
+      </svg>
+      <div class="option-text">
+        <span class="option-title">A quick refresher</span>
+        <span class="option-desc">I&#8217;ve been before</span>
+      </div>
+      <div class="radio"></div>
+    </div>
+
+    <div class="option-card">
+      <svg class="leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+      <div class="option-text">
+        <span class="option-title">Helping family</span>
+        <span class="option-desc">I want to teach someone</span>
+      </div>
+      <div class="radio"></div>
+    </div>
+
+    <div class="option-card">
+      <svg class="leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 4h7a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2z"></path>
+        <path d="M22 4h-7a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h8z"></path>
+      </svg>
+      <div class="option-text">
+        <span class="option-title">Just learning</span>
+        <span class="option-desc">No trip booked yet</span>
+      </div>
+      <div class="radio"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn-primary">
+      Continue
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.667" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    </button>
+    <button class="btn-ghost">
+      Skip for now
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.667" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    </button>
+  </div>
+
+  <div class="home-indicator"><div class="pill"></div></div>
+
+</div>
+</body>
+</html>

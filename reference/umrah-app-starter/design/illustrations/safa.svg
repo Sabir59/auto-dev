@@ -1,0 +1,27 @@
+<svg width="280" height="320" viewBox="0 0 280 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M140 278C205.17 278 258 225.17 258 160C258 94.8304 205.17 42 140 42C74.8304 42 22 94.8304 22 160C22 225.17 74.8304 278 140 278Z" fill="#F6F3EC"/>
+<path d="M58 150V120C58 110 76 110 76 120V150H58Z" fill="#EBE8E1" stroke="#D6D4CD" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M82 150V120C82 110 100 110 100 120V150H82Z" fill="#EBE8E1" stroke="#D6D4CD" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M106 150V120C106 110 124 110 124 120V150H106Z" fill="#EBE8E1" stroke="#D6D4CD" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M130 150V120C130 110 148 110 148 120V150H130Z" fill="#EBE8E1" stroke="#D6D4CD" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M154 150V120C154 110 172 110 172 120V150H154Z" fill="#EBE8E1" stroke="#D6D4CD" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M178 150V120C178 110 196 110 196 120V150H178Z" fill="#EBE8E1" stroke="#D6D4CD" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M202 150V120C202 110 220 110 220 120V150H202Z" fill="#EBE8E1" stroke="#D6D4CD" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M50 150H230" stroke="#D6D4CD" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M172 104H204V146H172V104Z" fill="#1B241E" stroke="#2A2F2C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M172 114H204" stroke="#BA8E48" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M24 290C40 236 70 206 112 206C160 206 212 240 244 290H24Z" fill="#D6D4CD" stroke="#2A2F2C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M70 258C84 248 98 246 112 250" stroke="#A2A69F" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M160 246C176 242 192 248 204 260" stroke="#A2A69F" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M112 276C128 268 146 268 160 274" stroke="#A2A69F" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M99 190H106V208H99V190Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M110 190H117V208H110V190Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M94 148H122L121 190H95L94 148Z" fill="white" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M94 126L82 136L78 112L84 110L87 128L96 122L94 126Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M81 111.5C83.2091 111.5 85 109.038 85 106C85 102.962 83.2091 100.5 81 100.5C78.7909 100.5 77 102.962 77 106C77 109.038 78.7909 111.5 81 111.5Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M122 126L134 136L138 112L132 110L129 128L120 122L122 126Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M135 111.5C137.209 111.5 139 109.038 139 106C139 102.962 137.209 100.5 135 100.5C132.791 100.5 131 102.962 131 106C131 109.038 132.791 111.5 135 111.5Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M92 122C98 116 118 116 124 122L123 150C113 154 103 154 93 150L92 122Z" fill="white" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M104 112H112V120H104V112Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M108 115C113.523 115 118 110.075 118 104C118 97.9249 113.523 93 108 93C102.477 93 98 97.9249 98 104C98 110.075 102.477 115 108 115Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

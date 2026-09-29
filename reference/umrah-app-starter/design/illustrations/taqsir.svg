@@ -1,0 +1,13 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M80 152C119.765 152 152 119.765 152 80C152 40.2355 119.765 8 80 8C40.2355 8 8 40.2355 8 80C8 119.765 40.2355 152 80 152Z" fill="#F6F3EC"/>
+<path d="M34 144C36 118 54 108 80 108C106 108 124 118 126 144H34Z" fill="white" stroke="#2A2F2C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M72 92H88V110H72V92Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M55 78C57.7614 78 60 74.4183 60 70C60 65.5817 57.7614 62 55 62C52.2386 62 50 65.5817 50 70C50 74.4183 52.2386 78 55 78Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M105 78C107.761 78 110 74.4183 110 70C110 65.5817 107.761 62 105 62C102.239 62 100 65.5817 100 70C100 74.4183 102.239 78 105 78Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 100C93.8071 100 105 86.5685 105 70C105 53.4315 93.8071 40 80 40C66.1929 40 55 53.4315 55 70C55 86.5685 66.1929 100 80 100Z" fill="#E2B98F" stroke="#2A2F2C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M55 68C54 46 66 39 80 39C94 39 106 46 105 68C98 58 62 58 55 68Z" fill="#414844" stroke="#2A2F2C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M124 53C126.761 53 129 50.7614 129 48C129 45.2386 126.761 43 124 43C121.239 43 119 45.2386 119 48C119 50.7614 121.239 53 124 53Z" stroke="#2A2F2C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M136 53C138.761 53 141 50.7614 141 48C141 45.2386 138.761 43 136 43C133.239 43 131 45.2386 131 48C131 50.7614 133.239 53 136 53Z" stroke="#2A2F2C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M126 44L142 22" stroke="#2A2F2C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M134 44L120 22" stroke="#2A2F2C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

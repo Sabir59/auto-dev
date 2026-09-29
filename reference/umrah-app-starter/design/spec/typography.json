@@ -1,0 +1,321 @@
+{
+ "section": "typography",
+ "file": "Umrah & Hajj Guide",
+ "exportedWith": "design-spec-export.js",
+ "textStyles": [
+  {
+   "name": "overline",
+   "family": "Plus Jakarta Sans",
+   "weight": "SemiBold",
+   "size": 12,
+   "lineHeight": 16,
+   "letterSpacing": "12%",
+   "textCase": "UPPER",
+   "fontVariable": "font/body",
+   "description": "Section tags, step counters. Code: font-sans text-overline"
+  },
+  {
+   "name": "transliteration",
+   "family": "Newsreader",
+   "weight": "Italic",
+   "size": 14,
+   "lineHeight": 22,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "Transliteration under Arabic text. Code: font-serif text-transliteration"
+  },
+  {
+   "name": "quote",
+   "family": "Newsreader",
+   "weight": "Italic",
+   "size": 20,
+   "lineHeight": 28,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "Qurʾān & hadith pull-quotes. Code: font-serif text-quote"
+  },
+  {
+   "name": "display/lg",
+   "family": "Newsreader",
+   "weight": "Regular",
+   "size": 42,
+   "lineHeight": 52,
+   "letterSpacing": "-1%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "Onboarding questions. Code: font-serif text-display-lg"
+  },
+  {
+   "name": "display/md",
+   "family": "Newsreader",
+   "weight": "Regular",
+   "size": 36,
+   "lineHeight": 44,
+   "letterSpacing": "-1%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "App name on the welcome screen. Code: font-serif text-display-md"
+  },
+  {
+   "name": "display/sm",
+   "family": "Newsreader",
+   "weight": "Regular",
+   "size": 32,
+   "lineHeight": 40,
+   "letterSpacing": "-0.5%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "Empty states. Code: font-serif text-display-sm"
+  },
+  {
+   "name": "headline/lg",
+   "family": "Newsreader",
+   "weight": "Regular",
+   "size": 28,
+   "lineHeight": 36,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "Page titles. Code: font-serif text-headline-lg"
+  },
+  {
+   "name": "headline/md",
+   "family": "Newsreader",
+   "weight": "Regular",
+   "size": 24,
+   "lineHeight": 32,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "Stage titles in the guide. Code: font-serif text-headline-md"
+  },
+  {
+   "name": "headline/sm",
+   "family": "Newsreader",
+   "weight": "Regular",
+   "size": 22,
+   "lineHeight": 28,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "Section headings inside a page. Code: font-serif text-headline-sm"
+  },
+  {
+   "name": "title/lg",
+   "family": "Newsreader",
+   "weight": "Medium",
+   "size": 20,
+   "lineHeight": 28,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "Card titles — duas, places, saved items. Code: font-serif text-title-lg"
+  },
+  {
+   "name": "title/md",
+   "family": "Newsreader",
+   "weight": "Medium",
+   "size": 18,
+   "lineHeight": 24,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "FAQ questions, top bar titles. Code: font-serif text-title-md"
+  },
+  {
+   "name": "title/sm",
+   "family": "Newsreader",
+   "weight": "Medium",
+   "size": 16,
+   "lineHeight": 24,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/heading",
+   "description": "Quiz questions, small card titles. Code: font-serif text-title-sm"
+  },
+  {
+   "name": "body/lg",
+   "family": "Plus Jakarta Sans",
+   "weight": "Regular",
+   "size": 16,
+   "lineHeight": 24,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/body",
+   "description": "Long reading text — history, guide explanations. Code: font-sans text-body-lg"
+  },
+  {
+   "name": "body/md",
+   "family": "Plus Jakarta Sans",
+   "weight": "Regular",
+   "size": 14,
+   "lineHeight": 22,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/body",
+   "description": "Descriptions, translations, card text. Code: font-sans text-body-md"
+  },
+  {
+   "name": "body/sm",
+   "family": "Plus Jakarta Sans",
+   "weight": "Regular",
+   "size": 12,
+   "lineHeight": 18,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/body",
+   "description": "Sources, meta info, hints. Code: font-sans text-body-sm"
+  },
+  {
+   "name": "label/lg",
+   "family": "Plus Jakarta Sans",
+   "weight": "Medium",
+   "size": 16,
+   "lineHeight": 20,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/body",
+   "description": "Buttons, option titles. Code: font-sans text-label-lg"
+  },
+  {
+   "name": "label/md",
+   "family": "Plus Jakarta Sans",
+   "weight": "Medium",
+   "size": 14,
+   "lineHeight": 20,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/body",
+   "description": "Tabs, links, list item titles. Code: font-sans text-label-md"
+  },
+  {
+   "name": "label/sm",
+   "family": "Plus Jakarta Sans",
+   "weight": "Medium",
+   "size": 12,
+   "lineHeight": 16,
+   "letterSpacing": "1%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/body",
+   "description": "Chips, badges, bottom navigation. Code: font-sans text-label-sm"
+  },
+  {
+   "name": "arabic/lg",
+   "family": "Amiri",
+   "weight": "Regular",
+   "size": 30,
+   "lineHeight": 56,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/arabic",
+   "description": "Main recitation on dua cards. Code: font-arabic text-arabic-lg"
+  },
+  {
+   "name": "arabic/md",
+   "family": "Amiri",
+   "weight": "Regular",
+   "size": 24,
+   "lineHeight": 44,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/arabic",
+   "description": "Duas inside guide stages. Code: font-arabic text-arabic-md"
+  },
+  {
+   "name": "arabic/sm",
+   "family": "Amiri",
+   "weight": "Regular",
+   "size": 18,
+   "lineHeight": 32,
+   "letterSpacing": "0%",
+   "textCase": "ORIGINAL",
+   "fontVariable": "font/arabic",
+   "description": "Compact cards, saved items. Code: font-arabic text-arabic-sm"
+  }
+ ],
+ "effectStyles": [
+  {
+   "name": "shadow/sm",
+   "description": "Subtle lift — chips, inputs, small cards. Code: shadow-sm  →  --shadow-sm: 0px 1px 2px 0px rgb(0 36 25 / 6%)",
+   "effects": [
+    {
+     "type": "DROP_SHADOW",
+     "x": 0,
+     "y": 1,
+     "blur": 2,
+     "spread": 0,
+     "color": "#0024190f"
+    }
+   ]
+  },
+  {
+   "name": "shadow/md",
+   "description": "Cards and list items. Code: shadow-md  →  --shadow-md: 0px 1px 3px 0px rgb(0 36 25 / 5%), 0px 4px 12px -2px rgb(0 36 25 / 7%)",
+   "effects": [
+    {
+     "type": "DROP_SHADOW",
+     "x": 0,
+     "y": 1,
+     "blur": 3,
+     "spread": 0,
+     "color": "#0024190d"
+    },
+    {
+     "type": "DROP_SHADOW",
+     "x": 0,
+     "y": 4,
+     "blur": 12,
+     "spread": -2,
+     "color": "#00241912"
+    }
+   ]
+  },
+  {
+   "name": "shadow/lg",
+   "description": "Floating elements — bottom nav, sheets, primary CTA. Code: shadow-lg  →  --shadow-lg: 0px 2px 6px -1px rgb(0 36 25 / 6%), 0px 12px 32px -8px rgb(0 36 25 / 12%)",
+   "effects": [
+    {
+     "type": "DROP_SHADOW",
+     "x": 0,
+     "y": 2,
+     "blur": 6,
+     "spread": -1,
+     "color": "#0024190f"
+    },
+    {
+     "type": "DROP_SHADOW",
+     "x": 0,
+     "y": 12,
+     "blur": 32,
+     "spread": -8,
+     "color": "#0024191f"
+    }
+   ]
+  }
+ ],
+ "gridStyles": [
+  {
+   "name": "layout/mobile",
+   "description": "Mobile screens (390 wide): 4 columns, 20px side margins (px-5), 16px gutter (gap-4).",
+   "grids": [
+    {
+     "pattern": "COLUMNS",
+     "visible": true,
+     "color": {
+      "r": 0.8600000143051147,
+      "g": 0.3499999940395355,
+      "b": 0.3100000023841858,
+      "a": 0.07999999821186066
+     },
+     "gutterSize": 16,
+     "alignment": "STRETCH",
+     "count": 4,
+     "offset": 20,
+     "boundVariables": {}
+    }
+   ]
+  }
+ ]
+}

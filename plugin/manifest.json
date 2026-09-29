@@ -1,0 +1,15 @@
+{
+  "name": "AI Executor (POC)",
+  "id": "ai-executor-poc",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "enablePrivatePluginApi": true,
+  "networkAccess": {
+    "allowedDomains": ["*"],
+    "reasoning": "POC: bridges commands from a local AI/backend process to the Figma Plugin API over a local WebSocket during development. Will be scoped to a specific localhost origin once the proof-of-concept is validated.",
+    "devAllowedDomains": ["http://localhost:8787", "ws://localhost:8787"]
+  }
+}

@@ -1,0 +1,4955 @@
+{
+ "section": "screens",
+ "file": "Umrah & Hajj Guide",
+ "exportedWith": "design-spec-export.js",
+ "range": [
+  15,
+  21
+ ],
+ "screens": [
+  {
+   "name": "15 Saved",
+   "originalName": "Screens / Favourites",
+   "tree": {
+    "n": "15 Saved",
+    "t": "frame",
+    "w": 390,
+    "h": 1656,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=root}",
+      "props": {
+       "showAction": false,
+       "leadingIcon": "icon/bookmark",
+       "showOverline": true,
+       "title": "Saved",
+       "overline": "Your collection"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 1446,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        8,
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "4 items saved",
+        "t": "text",
+        "w": 78,
+        "h": 18,
+        "size": "HUG/HUG",
+        "text": {
+         "style": "body/sm",
+         "color": "subtle-foreground",
+         "align": "LEFT",
+         "value": "4 items saved"
+        }
+       },
+       {
+        "n": "Filters",
+        "t": "frame",
+        "w": 350,
+        "h": 38,
+        "layout": {
+         "dir": "row",
+         "gap": 8,
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 67,
+          "h": 36,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "primary",
+          "comp": "FilterChip {selected=true}",
+          "props": {
+           "label": "All · 4"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 90,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "Du‘ās · 2"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 90,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "Guide · 1"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 119,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "Questions · 1"
+          }
+         }
+        ]
+       },
+       {
+        "n": "SavedItemCard",
+        "t": "instance",
+        "w": 350,
+        "h": 277,
+        "layout": {
+         "dir": "col",
+         "gap": 14,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "SavedItemCard {kind=dua}",
+        "props": {
+         "action": "Open du‘ā",
+         "excerpt": "“O Allāh, open for me the doors of Your mercy.”",
+         "meta": "Stage 2 · Ṣaḥīḥ Muslim",
+         "arabic": "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+         "title": "Upon Entering the Masjid"
+        }
+       },
+       {
+        "n": "SavedItemCard",
+        "t": "instance",
+        "w": 350,
+        "h": 275,
+        "layout": {
+         "dir": "col",
+         "gap": 14,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "SavedItemCard {kind=guide}",
+        "props": {
+         "arabic": "اللَّهُمَّ",
+         "action": "Open stage",
+         "meta": "Stage 3 of 7",
+         "excerpt": "Seven circuits starting at the Black Stone, keeping the Ka‘bah on your left. Men walk briskly in the first three.",
+         "title": "Ṭawāf Around the Kaʿbah"
+        }
+       },
+       {
+        "n": "SavedItemCard",
+        "t": "instance",
+        "w": 350,
+        "h": 253,
+        "layout": {
+         "dir": "col",
+         "gap": 14,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "SavedItemCard {kind=faq}",
+        "props": {
+         "arabic": "اللَّهُمَّ",
+         "action": "Read answer",
+         "meta": "FAQs · Ṭawāf & Sa‘ī",
+         "excerpt": "Build on the lower number you are sure of, then complete seven circuits.",
+         "title": "What if I lose count of my Ṭawāf circuits?"
+        }
+       },
+       {
+        "n": "SavedItemCard",
+        "t": "instance",
+        "w": 350,
+        "h": 377,
+        "layout": {
+         "dir": "col",
+         "gap": 14,
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "SavedItemCard {kind=dua}",
+        "props": {
+         "action": "Open du‘ā",
+         "excerpt": "“Our Lord, give us good in this world and good in the Hereafter, and protect us from the punishment of the Fire.”",
+         "meta": "Al-Baqarah 2:201",
+         "arabic": "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
+         "title": "Between the Yemeni Corner & Black Stone"
+        }
+       },
+       {
+        "n": "Callout",
+        "t": "instance",
+        "w": 350,
+        "h": 72,
+        "layout": {
+         "dir": "row",
+         "gap": 10,
+         "pad": [
+          14,
+          16,
+          14,
+          16
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "success-muted",
+        "comp": "Callout {tone=success}",
+        "props": {
+         "icon": "icon/info",
+         "text": "Ready for the Ḥaramain: everything you save stays available offline."
+        }
+       }
+      ]
+     },
+     {
+      "n": "BottomNav",
+      "t": "instance",
+      "w": 390,
+      "h": 101,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        8,
+        34,
+        8
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "fill": "card",
+      "stroke": "border ",
+      "comp": "BottomNav {active=saved}",
+      "props": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "16 Saved Empty",
+   "originalName": "Screens / Favourites — Empty",
+   "tree": {
+    "n": "16 Saved Empty",
+    "t": "frame",
+    "w": 390,
+    "h": 844,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=root}",
+      "props": {
+       "showAction": false,
+       "leadingIcon": "icon/bookmark",
+       "showOverline": true,
+       "title": "Saved",
+       "overline": "Your collection"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 634,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        8,
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/FILL",
+      "kids": [
+       {
+        "n": "EmptyState",
+        "t": "instance",
+        "w": 350,
+        "h": 354,
+        "layout": {
+         "dir": "col",
+         "gap": 12,
+         "pad": [
+          32,
+          0,
+          24,
+          0
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/HUG",
+        "comp": "EmptyState",
+        "props": {
+         "showSecondary": true,
+         "description": "Save du‘ās, guide stages and answers to find them here — even offline.",
+         "title": "Nothing saved yet"
+        }
+       },
+       {
+        "n": "Callout",
+        "t": "instance",
+        "w": 350,
+        "h": 72,
+        "layout": {
+         "dir": "row",
+         "gap": 10,
+         "pad": [
+          14,
+          16,
+          14,
+          16
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "muted",
+        "comp": "Callout {tone=info}",
+        "props": {
+         "icon": "icon/info",
+         "text": "Tip: tap the bookmark on any du‘ā, stage or answer to save it here."
+        }
+       }
+      ]
+     },
+     {
+      "n": "BottomNav",
+      "t": "instance",
+      "w": 390,
+      "h": 101,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        8,
+        34,
+        8
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "fill": "card",
+      "stroke": "border ",
+      "comp": "BottomNav {active=saved}",
+      "props": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "17 History",
+   "originalName": "Screens / History",
+   "tree": {
+    "n": "17 History",
+    "t": "frame",
+    "w": 390,
+    "h": 1722,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=root}",
+      "props": {
+       "showAction": false,
+       "leadingIcon": "icon/compass",
+       "showOverline": true,
+       "title": "History",
+       "overline": "Makkah & Madinah"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 1512,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        "spacing/2",
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "SearchField",
+        "t": "instance",
+        "w": 350,
+        "h": 48,
+        "layout": {
+         "dir": "row",
+         "gap": 10,
+         "pad": [
+          0,
+          16,
+          0,
+          16
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/FIXED",
+        "radius": "radius/full",
+        "fill": "card",
+        "stroke": "border 1",
+        "comp": "SearchField",
+        "props": {
+         "placeholder": "Search events and people"
+        }
+       },
+       {
+        "n": "Filters",
+        "t": "frame",
+        "w": 350,
+        "h": 38,
+        "layout": {
+         "dir": "row",
+         "gap": "inline/gap",
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 49,
+          "h": 36,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "primary",
+          "comp": "FilterChip {selected=true}",
+          "props": {
+           "label": "All"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 86,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "Makkah"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 92,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "Madinah"
+          }
+         }
+        ]
+       },
+       {
+        "n": "ArticleCard — The Kaʿbah, the first House",
+        "t": "instance",
+        "w": 350,
+        "h": 224,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": true,
+         "showImage": false,
+         "meta": "Time of Ibrāhīm",
+         "excerpt": "The first House set up for people to worship Allah (Qur’ān 3:96). Ibrāhīm and Ismā‘īl raised its foundations, praying: “Our Lord, accept this from us” (2:127).",
+         "title": "The Kaʿbah, the first House",
+         "showAction": false,
+         "overline": "Makkah"
+        }
+       },
+       {
+        "n": "ArticleCard — Hājar, Zamzam and the Saʿī",
+        "t": "instance",
+        "w": 350,
+        "h": 224,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": true,
+         "showImage": false,
+         "meta": "Time of Ibrāhīm",
+         "excerpt": "Alone in the valley with baby Ismā‘īl, Hājar ran seven times between Ṣafā and Marwah until Zamzam burst from the ground. Every pilgrim retraces her steps.",
+         "title": "Hājar, Zamzam and the Saʿī",
+         "showAction": false,
+         "overline": "Makkah"
+        }
+       },
+       {
+        "n": "ArticleCard — The Hijrah to Madinah",
+        "t": "instance",
+        "w": 350,
+        "h": 202,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": true,
+         "showImage": false,
+         "meta": "1 AH · 622 CE",
+         "excerpt": "The Prophet migrated from Makkah to Yathrib, which became Madinah. The Islamic calendar counts its years from this journey.",
+         "title": "The Hijrah to Madinah",
+         "showAction": false,
+         "overline": "Madinah"
+        }
+       },
+       {
+        "n": "ArticleCard — The change of the Qiblah",
+        "t": "instance",
+        "w": 350,
+        "h": 202,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": true,
+         "showImage": false,
+         "meta": "2 AH · 624 CE",
+         "excerpt": "Sixteen or seventeen months after the Hijrah, the direction of prayer turned from Jerusalem to the Ka‘bah (Qur’ān 2:144).",
+         "title": "The change of the Qiblah",
+         "showAction": false,
+         "overline": "Madinah"
+        }
+       },
+       {
+        "n": "ArticleCard — The Battle of Uhud",
+        "t": "instance",
+        "w": 350,
+        "h": 220,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": true,
+         "showImage": false,
+         "meta": "3 AH · 625 CE",
+         "excerpt": "About 700 Muslims faced 3,000 fighters of Quraysh below the mountain the Prophet loved. Allah speaks of it in Sūrah Āl ‘Imrān.",
+         "title": "The Battle of Uhud",
+         "showAction": true,
+         "overline": "Madinah"
+        }
+       },
+       {
+        "n": "ArticleCard — The Farewell Pilgrimage",
+        "t": "instance",
+        "w": 350,
+        "h": 202,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": true,
+         "showImage": false,
+         "meta": "10 AH · 632 CE",
+         "excerpt": "The only Ḥajj the Prophet made after the Hijrah. His rites and his sermon at ‘Arafah became the model every pilgrim follows.",
+         "title": "The Farewell Pilgrimage",
+         "showAction": false,
+         "overline": "Makkah"
+        }
+       }
+      ]
+     },
+     {
+      "n": "BottomNav",
+      "t": "instance",
+      "w": 390,
+      "h": 101,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        8,
+        34,
+        8
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "fill": "card",
+      "stroke": "border ",
+      "comp": "BottomNav {active=history}",
+      "props": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "18 History Mount Uhud",
+   "originalName": "Screens / History — Mount Uhud",
+   "tree": {
+    "n": "18 History Mount Uhud",
+    "t": "frame",
+    "w": 390,
+    "h": 3896,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=detail}",
+      "props": {
+       "leadingIcon": "icon/book-open",
+       "showAction": false,
+       "showOverline": true,
+       "title": "Mount Uhud",
+       "overline": "History"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 3787,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        "spacing/2",
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "Card / Madinah · 3 AH",
+        "t": "frame",
+        "w": 350,
+        "h": 674,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Madinah · 3 AH",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Madinah · 3 AH"
+          }
+         },
+         {
+          "n": "The Battle of Uhud",
+          "t": "text",
+          "w": 308,
+          "h": 32,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "headline/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "The Battle of Uhud"
+          }
+         },
+         {
+          "n": "Mount Uḥud rises about 5 km north of the Prophet’s Mosque. In Shawwāl 3 AH, an army of Quraysh marched on Madinah to avenge their defeat at Badr, and the two sides met on the plain below the mountain.",
+          "t": "text",
+          "w": 308,
+          "h": 144,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Mount Uḥud rises about 5 km north of the Prophet’s Mosque. In Shawwāl 3 AH, an army of Quraysh marched on Madinah to avenge their defeat at Badr, and the two sides met on the plain below the mountain."
+          }
+         },
+         {
+          "n": "About 70 Companions were martyred, among them the Prophet’s uncle Ḥamzah ibn ‘Abd al-Muṭṭalib, Muṣ‘ab ibn ‘Umayr and ‘Abdullāh ibn Jaḥsh. The Prophet himself was wounded.",
+          "t": "text",
+          "w": 308,
+          "h": 120,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "About 70 Companions were martyred, among them the Prophet’s uncle Ḥamzah ibn ‘Abd al-Muṭṭalib, Muṣ‘ab ibn ‘Umayr and ‘Abdullāh ibn Jaḥsh. The Prophet himself was wounded."
+          }
+         },
+         {
+          "n": "Facts",
+          "t": "frame",
+          "w": 308,
+          "h": 256,
+          "layout": {
+           "dir": "col",
+           "gap": "spacing/3",
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Row",
+            "t": "frame",
+            "w": 308,
+            "h": 122,
+            "layout": {
+             "dir": "row",
+             "gap": "spacing/3",
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "kids": [
+             {
+              "n": "FactTile",
+              "t": "instance",
+              "w": 148,
+              "h": 122,
+              "layout": {
+               "dir": "col",
+               "gap": "spacing/1",
+               "pad": [
+                "spacing/4",
+                "spacing/4",
+                "spacing/4",
+                "spacing/4"
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "radius": "radius/2xl",
+              "fill": "muted",
+              "comp": "FactTile",
+              "props": {
+               "caption": "north of the Prophet’s Mosque",
+               "value": "5 km",
+               "label": "Distance"
+              }
+             },
+             {
+              "n": "FactTile",
+              "t": "instance",
+              "w": 148,
+              "h": 122,
+              "layout": {
+               "dir": "col",
+               "gap": "spacing/1",
+               "pad": [
+                "spacing/4",
+                "spacing/4",
+                "spacing/4",
+                "spacing/4"
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "radius": "radius/2xl",
+              "fill": "muted",
+              "comp": "FactTile",
+              "props": {
+               "caption": "Shawwāl · March 625 CE",
+               "value": "3 AH",
+               "label": "Date"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Row",
+            "t": "frame",
+            "w": 308,
+            "h": 122,
+            "layout": {
+             "dir": "row",
+             "gap": "spacing/3",
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "kids": [
+             {
+              "n": "FactTile",
+              "t": "instance",
+              "w": 148,
+              "h": 122,
+              "layout": {
+               "dir": "col",
+               "gap": "spacing/1",
+               "pad": [
+                "spacing/4",
+                "spacing/4",
+                "spacing/4",
+                "spacing/4"
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "radius": "radius/2xl",
+              "fill": "muted",
+              "comp": "FactTile",
+              "props": {
+               "caption": "Quraysh, against about 700 Muslims",
+               "value": "3,000",
+               "label": "Armies"
+              }
+             },
+             {
+              "n": "FactTile",
+              "t": "instance",
+              "w": 148,
+              "h": 122,
+              "layout": {
+               "dir": "col",
+               "gap": "spacing/1",
+               "pad": [
+                "spacing/4",
+                "spacing/4",
+                "spacing/4",
+                "spacing/4"
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "radius": "radius/2xl",
+              "fill": "muted",
+              "comp": "FactTile",
+              "props": {
+               "caption": "Companions, by most accounts",
+               "value": "70",
+               "label": "Martyrs"
+              }
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "n": "QuoteCard",
+        "t": "instance",
+        "w": 350,
+        "h": 162,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/3",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "highlight-muted",
+        "comp": "QuoteCard",
+        "props": {
+         "source": "Ṣaḥīḥ al-Bukhārī · Ṣaḥīḥ Muslim",
+         "quote": "“Uhud is a mountain that loves us, and we love it.”"
+        }
+       },
+       {
+        "n": "Card / The site",
+        "t": "frame",
+        "w": 350,
+        "h": 546,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "The site",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "The site"
+          }
+         },
+         {
+          "n": "Illustration",
+          "t": "frame",
+          "w": 308,
+          "h": 320,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "CENTER",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Scene",
+            "t": "frame",
+            "w": 280,
+            "h": 320,
+            "size": "FIXED/FIXED",
+            "kids": [
+             {
+              "n": "illustration/uhud",
+              "t": "instance",
+              "w": 280,
+              "h": 320,
+              "size": "FIXED/FIXED",
+              "comp": "illustration/uhud",
+              "props": {}
+             },
+             {
+              "n": "Marker",
+              "t": "instance",
+              "w": 24,
+              "h": 24,
+              "layout": {
+               "dir": "row",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "CENTER",
+               "cross": "CENTER"
+              },
+              "size": "FIXED/FIXED",
+              "radius": "radius/full",
+              "fill": "primary",
+              "stroke": "card 2",
+              "effect": "shadow/sm",
+              "comp": "Marker",
+              "props": {
+               "number": "1"
+              }
+             },
+             {
+              "n": "Marker",
+              "t": "instance",
+              "w": 24,
+              "h": 24,
+              "layout": {
+               "dir": "row",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "CENTER",
+               "cross": "CENTER"
+              },
+              "size": "FIXED/FIXED",
+              "radius": "radius/full",
+              "fill": "primary",
+              "stroke": "card 2",
+              "effect": "shadow/sm",
+              "comp": "Marker",
+              "props": {
+               "number": "2"
+              }
+             },
+             {
+              "n": "Marker",
+              "t": "instance",
+              "w": 24,
+              "h": 24,
+              "layout": {
+               "dir": "row",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "CENTER",
+               "cross": "CENTER"
+              },
+              "size": "FIXED/FIXED",
+              "radius": "radius/full",
+              "fill": "primary",
+              "stroke": "card 2",
+              "effect": "shadow/sm",
+              "comp": "Marker",
+              "props": {
+               "number": "3"
+              }
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "n": "Legend",
+          "t": "frame",
+          "w": 308,
+          "h": 136,
+          "layout": {
+           "dir": "col",
+           "gap": "spacing/3",
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Mount Uḥud — the mountain the Prophet loved",
+             "number": "1"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Jabal ar-Rumāh — the archers’ hill",
+             "number": "2"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "The martyrs’ cemetery, at the foot of Uḥud",
+             "number": "3"
+            }
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "n": "Card / What happened",
+        "t": "frame",
+        "w": 350,
+        "h": 896,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "What happened",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "What happened"
+          }
+         },
+         {
+          "n": "StepItem",
+          "t": "instance",
+          "w": 308,
+          "h": 112,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "StepItem {tone=primary}",
+          "props": {
+           "showDescription": true,
+           "description": "The Prophet placed them on Jabal ar-Rumāh under ‘Abdullāh ibn Jubayr and told them not to leave, whatever happened.",
+           "title": "Fifty archers on the hill",
+           "number": "1"
+          }
+         },
+         {
+          "n": "StepItem",
+          "t": "instance",
+          "w": 308,
+          "h": 68,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "StepItem {tone=primary}",
+          "props": {
+           "showDescription": true,
+           "description": "The Muslims drove Quraysh back, and their camp lay open.",
+           "title": "An early victory",
+           "number": "2"
+          }
+         },
+         {
+          "n": "StepItem",
+          "t": "instance",
+          "w": 308,
+          "h": 90,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "StepItem {tone=primary}",
+          "props": {
+           "showDescription": true,
+           "description": "Seeing the spoils, most of the archers came down. ‘Abdullāh ibn Jubayr stayed with a few.",
+           "title": "The archers leave",
+           "number": "3"
+          }
+         },
+         {
+          "n": "StepItem",
+          "t": "instance",
+          "w": 308,
+          "h": 90,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "StepItem {tone=primary}",
+          "props": {
+           "showDescription": true,
+           "description": "Khālid ibn al-Walīd, then still with Quraysh, led the horsemen around the hill and attacked from behind.",
+           "title": "The cavalry turns",
+           "number": "4"
+          }
+         },
+         {
+          "n": "StepItem",
+          "t": "instance",
+          "w": 308,
+          "h": 90,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "StepItem {tone=primary}",
+          "props": {
+           "showDescription": true,
+           "description": "The Prophet was wounded, and a small group of Companions shielded him until Quraysh withdrew.",
+           "title": "Holding firm",
+           "number": "5"
+          }
+         },
+         {
+          "n": "QuoteCard",
+          "t": "instance",
+          "w": 308,
+          "h": 292,
+          "layout": {
+           "dir": "col",
+           "gap": "spacing/3",
+           "pad": [
+            "card/padding",
+            "card/padding",
+            "card/padding",
+            "card/padding"
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "highlight-muted",
+          "comp": "QuoteCard",
+          "props": {
+           "source": "The Prophet’s order to the archers · Ṣaḥīḥ al-Bukhārī 3039",
+           "quote": "“If you see birds snatching us, do not leave this place of yours until I send for you. And if you see that we have defeated them and overrun them, do not leave until I send for you.”"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Reflect",
+        "t": "frame",
+        "w": 350,
+        "h": 171,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Reflect",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Reflect"
+          }
+         },
+         {
+          "n": "Why did the tide turn at Uhud?",
+          "t": "text",
+          "w": 308,
+          "h": 24,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/sm",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Why did the tide turn at Uhud?"
+          }
+         },
+         {
+          "n": "RevealCard",
+          "t": "instance",
+          "w": 308,
+          "h": 57,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            16,
+            16,
+            16,
+            16
+           ],
+           "main": "CENTER",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "background",
+          "stroke": "gold/300 1.5 dashed",
+          "comp": "RevealCard {state=hidden}",
+          "props": {
+           "answer": "Most of the archers left their post when victory looked certain. Allah speaks of it in Āl ʿImrān 3:152: “…you lost courage, disputed about the order and disobeyed, after He had shown you what you love.”"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Visiting the martyrs",
+        "t": "frame",
+        "w": 350,
+        "h": 608,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Visiting the martyrs",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Visiting the martyrs"
+          }
+         },
+         {
+          "n": "Greeting when visiting graves",
+          "t": "text",
+          "w": 308,
+          "h": 28,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Greeting when visiting graves"
+          }
+         },
+         {
+          "n": "The Prophet taught this greeting for any Muslim graveyard. Say it at the martyrs’ cemetery too, then make du‘ā for them.",
+          "t": "text",
+          "w": 308,
+          "h": 66,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/md",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "The Prophet taught this greeting for any Muslim graveyard. Say it at the martyrs’ cemetery too, then make du‘ā for them."
+          }
+         },
+         {
+          "n": "DuaBlock",
+          "t": "instance",
+          "w": 308,
+          "h": 328,
+          "layout": {
+           "dir": "col",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "comp": "DuaBlock",
+          "props": {
+           "showSource": true,
+           "translation": "Peace be upon you, O people of these dwellings, the believers and the Muslims. We will, if Allah wills, join you. I ask Allah for well-being for us and for you.",
+           "transliteration": "As-salāmu ʿalaykum ahlad-diyāri minal-muʾminīna wal-muslimīn, wa innā in shāʾa-llāhu la-lāḥiqūn, asʾalu-llāha lanā wa lakumul-ʿāfiyah.",
+           "source": "Ṣaḥīḥ Muslim 975",
+           "arabic": "السَّلَامُ عَلَيْكُمْ أَهْلَ الدِّيَارِ مِنَ الْمُؤْمِنِينَ وَالْمُسْلِمِينَ، وَإِنَّا إِنْ شَاءَ اللَّهُ لَلَاحِقُونَ، أَسْأَلُ اللَّهَ لَنَا وَلَكُمُ الْعَافِيَةَ"
+          }
+         },
+         {
+          "n": "AudioPlayer",
+          "t": "instance",
+          "w": 308,
+          "h": 64,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            12,
+            16,
+            12,
+            12
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "muted",
+          "comp": "AudioPlayer {state=default}",
+          "props": {
+           "label": "Pronunciation"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Etiquette at the graves",
+        "t": "frame",
+        "w": 350,
+        "h": 254,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Etiquette at the graves",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Etiquette at the graves"
+          }
+         },
+         {
+          "n": "ChecklistItem",
+          "t": "instance",
+          "w": 308,
+          "h": 44,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "ChecklistItem {type=do}",
+          "props": {
+           "text": "Greet them and make du‘ā for their forgiveness"
+          }
+         },
+         {
+          "n": "ChecklistItem",
+          "t": "instance",
+          "w": 308,
+          "h": 22,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "ChecklistItem {type=do}",
+          "props": {
+           "text": "Let the visit remind you of the Hereafter"
+          }
+         },
+         {
+          "n": "ChecklistItem",
+          "t": "instance",
+          "w": 308,
+          "h": 44,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "ChecklistItem {type=avoid}",
+          "props": {
+           "text": "Asking the dead for anything — ask Allah alone"
+          }
+         },
+         {
+          "n": "ChecklistItem",
+          "t": "instance",
+          "w": 308,
+          "h": 22,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "ChecklistItem {type=avoid}",
+          "props": {
+           "text": "Sitting or walking on the graves"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Related in Madinah",
+        "t": "frame",
+        "w": 350,
+        "h": 272,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Related in Madinah",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Related in Madinah"
+          }
+         },
+         {
+          "n": "RelatedLink",
+          "t": "instance",
+          "w": 308,
+          "h": 82,
+          "layout": {
+           "dir": "row",
+           "gap": "spacing/3",
+           "pad": [
+            "spacing/3",
+            "spacing/4",
+            "spacing/3",
+            "spacing/4"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "secondary",
+          "comp": "RelatedLink",
+          "props": {
+           "description": "The first mosque the Prophet built, on his arrival from Makkah",
+           "title": "Masjid Qubā’"
+          }
+         },
+         {
+          "n": "RelatedLink",
+          "t": "instance",
+          "w": 308,
+          "h": 100,
+          "layout": {
+           "dir": "row",
+           "gap": "spacing/3",
+           "pad": [
+            "spacing/3",
+            "spacing/4",
+            "spacing/3",
+            "spacing/4"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "secondary",
+          "comp": "RelatedLink",
+          "props": {
+           "description": "Madinah’s main cemetery, where many Companions and members of the Prophet’s family are buried",
+           "title": "Jannat al-Baqī‘"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Sources: Qur’ān, Āl ‘Imrān 3:152 · Ṣaḥīḥ al-Bukhārī 3039 · Ṣaḥīḥ Muslim 972, 975, 976 · Ibn Hishām, as-Sīrah an-Nabawiyyah",
+        "t": "text",
+        "w": 350,
+        "h": 36,
+        "size": "FILL/HUG",
+        "text": {
+         "style": "body/sm",
+         "color": "subtle-foreground",
+         "align": "CENTER",
+         "value": "Sources: Qur’ān, Āl ‘Imrān 3:152 · Ṣaḥīḥ al-Bukhārī 3039 · Ṣaḥīḥ Muslim 972, 975, 976 · Ibn Hishām, as-Sīrah an-Nabawiyyah"
+        }
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "19 Madinah",
+   "originalName": "Screens / Madinah",
+   "tree": {
+    "n": "19 Madinah",
+    "t": "frame",
+    "w": 390,
+    "h": 1908,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=root}",
+      "props": {
+       "showAction": false,
+       "leadingIcon": "icon/mosque",
+       "showOverline": true,
+       "title": "Madinah",
+       "overline": "Visiting"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 1698,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        "spacing/2",
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "SearchField",
+        "t": "instance",
+        "w": 350,
+        "h": 48,
+        "layout": {
+         "dir": "row",
+         "gap": 10,
+         "pad": [
+          0,
+          16,
+          0,
+          16
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/FIXED",
+        "radius": "radius/full",
+        "fill": "card",
+        "stroke": "border 1",
+        "comp": "SearchField",
+        "props": {
+         "placeholder": "Search places in Madinah"
+        }
+       },
+       {
+        "n": "Filters",
+        "t": "frame",
+        "w": 350,
+        "h": 38,
+        "layout": {
+         "dir": "row",
+         "gap": "inline/gap",
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 49,
+          "h": 36,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "primary",
+          "comp": "FilterChip {selected=true}",
+          "props": {
+           "label": "All"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 96,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "Mosques"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 68,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "Sites"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Callout",
+        "t": "instance",
+        "w": 350,
+        "h": 94,
+        "layout": {
+         "dir": "row",
+         "gap": 10,
+         "pad": [
+          14,
+          16,
+          14,
+          16
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "muted",
+        "comp": "Callout {tone=info}",
+        "props": {
+         "icon": "icon/info",
+         "text": "Visiting Madinah isn’t a rite of Ḥajj or ‘Umrah, but travelling to pray in the Prophet’s Mosque is Sunnah (Ṣaḥīḥ al-Bukhārī 1189)."
+        }
+       },
+       {
+        "n": "ArticleCard — Al-Masjid an-Nabawi",
+        "t": "instance",
+        "w": 350,
+        "h": 242,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": true,
+         "showImage": false,
+         "meta": "1 AH · 622 CE",
+         "excerpt": "The Prophet’s Mosque, built in the first year after the Hijrah. A prayer here is better than a thousand elsewhere, except al-Masjid al-Ḥarām.",
+         "title": "Al-Masjid an-Nabawi",
+         "showAction": true,
+         "overline": "Mosque"
+        }
+       },
+       {
+        "n": "ArticleCard — The Rawdah",
+        "t": "instance",
+        "w": 350,
+        "h": 242,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": false,
+         "showImage": false,
+         "meta": "Madinah",
+         "excerpt": "The area between the Prophet’s house and his minbar, which he called a garden from the gardens of Paradise. Visits currently need a booking in the Nusuk app.",
+         "title": "The Rawdah",
+         "showAction": true,
+         "overline": "Mosque"
+        }
+       },
+       {
+        "n": "ArticleCard — Masjid Qubāʾ",
+        "t": "instance",
+        "w": 350,
+        "h": 202,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": true,
+         "showImage": false,
+         "meta": "1 AH · 622 CE",
+         "excerpt": "The first mosque the Prophet built. Whoever purifies himself at home, then prays there, has the reward of an ‘Umrah (Sunan Ibn Mājah 1412).",
+         "title": "Masjid Qubāʾ",
+         "showAction": false,
+         "overline": "Mosque"
+        }
+       },
+       {
+        "n": "ArticleCard — Masjid al-Qiblatayn",
+        "t": "instance",
+        "w": 350,
+        "h": 202,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": true,
+         "showImage": false,
+         "meta": "2 AH · 624 CE",
+         "excerpt": "Named after the two Qiblahs. Historians link it to the day the direction of prayer turned from Jerusalem to the Ka‘bah.",
+         "title": "Masjid al-Qiblatayn",
+         "showAction": false,
+         "overline": "Mosque"
+        }
+       },
+       {
+        "n": "ArticleCard — Mount Uhud & the martyrs",
+        "t": "instance",
+        "w": 350,
+        "h": 220,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": true,
+         "showImage": false,
+         "meta": "3 AH · 625 CE",
+         "excerpt": "The mountain the Prophet loved, and the resting place of Ḥamzah and the martyrs of Uḥud.",
+         "title": "Mount Uhud & the martyrs",
+         "showAction": true,
+         "overline": "Site"
+        }
+       },
+       {
+        "n": "ArticleCard — Jannat al-Baqīʿ",
+        "t": "instance",
+        "w": 350,
+        "h": 242,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "comp": "ArticleCard",
+        "props": {
+         "showMeta": false,
+         "showImage": false,
+         "meta": "Madinah",
+         "excerpt": "Madinah’s main cemetery, where many Companions and members of the Prophet’s family are buried. He used to visit and greet its people.",
+         "title": "Jannat al-Baqīʿ",
+         "showAction": false,
+         "overline": "Site"
+        }
+       }
+      ]
+     },
+     {
+      "n": "BottomNav",
+      "t": "instance",
+      "w": 390,
+      "h": 101,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        8,
+        34,
+        8
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "fill": "card",
+      "stroke": "border ",
+      "comp": "BottomNav {active=madinah}",
+      "props": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "20 Madinah Masjid an-Nabawi",
+   "originalName": "Screens / Madinah — Masjid an-Nabawi",
+   "tree": {
+    "n": "20 Madinah Masjid an-Nabawi",
+    "t": "frame",
+    "w": 390,
+    "h": 4460,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=detail}",
+      "props": {
+       "leadingIcon": "icon/book-open",
+       "showAction": false,
+       "showOverline": true,
+       "title": "Masjid an-Nabawi",
+       "overline": "Madinah"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 4351,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        "spacing/2",
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "Card / Madinah · 1 AH",
+        "t": "frame",
+        "w": 350,
+        "h": 710,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Madinah · 1 AH",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Madinah · 1 AH"
+          }
+         },
+         {
+          "n": "Al-Masjid an-Nabawi",
+          "t": "text",
+          "w": 308,
+          "h": 32,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "headline/md",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Al-Masjid an-Nabawi"
+          }
+         },
+         {
+          "n": "The Prophet’s Mosque was built in the first year after the Hijrah, on a date-drying yard he bought from two orphans of Banū an-Najjār, Sahl and Suhayl. He carried the mud bricks himself alongside his Companions.",
+          "t": "text",
+          "w": 308,
+          "h": 144,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "The Prophet’s Mosque was built in the first year after the Hijrah, on a date-drying yard he bought from two orphans of Banū an-Najjār, Sahl and Suhayl. He carried the mud bricks himself alongside his Companions."
+          }
+         },
+         {
+          "n": "When he arrived, every family hoped to host him. His she-camel, al-Qaṣwā’, knelt at this spot; the sīrah reports him saying, “Leave her, for she is commanded.”",
+          "t": "text",
+          "w": 308,
+          "h": 120,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "When he arrived, every family hoped to host him. His she-camel, al-Qaṣwā’, knelt at this spot; the sīrah reports him saying, “Leave her, for she is commanded.”"
+          }
+         },
+         {
+          "n": "Facts",
+          "t": "frame",
+          "w": 308,
+          "h": 292,
+          "layout": {
+           "dir": "col",
+           "gap": "spacing/3",
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Row",
+            "t": "frame",
+            "w": 308,
+            "h": 140,
+            "layout": {
+             "dir": "row",
+             "gap": "spacing/3",
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "kids": [
+             {
+              "n": "FactTile",
+              "t": "instance",
+              "w": 148,
+              "h": 140,
+              "layout": {
+               "dir": "col",
+               "gap": "spacing/1",
+               "pad": [
+                "spacing/4",
+                "spacing/4",
+                "spacing/4",
+                "spacing/4"
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "radius": "radius/2xl",
+              "fill": "muted",
+              "comp": "FactTile",
+              "props": {
+               "caption": "622 CE, by the Prophet and his Companions",
+               "value": "1 AH",
+               "label": "Founded"
+              }
+             },
+             {
+              "n": "FactTile",
+              "t": "instance",
+              "w": 148,
+              "h": 140,
+              "layout": {
+               "dir": "col",
+               "gap": "spacing/1",
+               "pad": [
+                "spacing/4",
+                "spacing/4",
+                "spacing/4",
+                "spacing/4"
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "radius": "radius/2xl",
+              "fill": "muted",
+              "comp": "FactTile",
+              "props": {
+               "caption": "better than elsewhere, except al-Masjid al-Ḥarām",
+               "value": "×1,000",
+               "label": "A prayer here"
+              }
+             }
+            ]
+           },
+           {
+            "n": "Row",
+            "t": "frame",
+            "w": 308,
+            "h": 140,
+            "layout": {
+             "dir": "row",
+             "gap": "spacing/3",
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "kids": [
+             {
+              "n": "FactTile",
+              "t": "instance",
+              "w": 148,
+              "h": 140,
+              "layout": {
+               "dir": "col",
+               "gap": "spacing/1",
+               "pad": [
+                "spacing/4",
+                "spacing/4",
+                "spacing/4",
+                "spacing/4"
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "radius": "radius/2xl",
+              "fill": "muted",
+              "comp": "FactTile",
+              "props": {
+               "caption": "a booking is currently needed to visit",
+               "value": "Nusuk",
+               "label": "Ar-Rawḍah"
+              }
+             },
+             {
+              "n": "FactTile",
+              "t": "instance",
+              "w": 148,
+              "h": 122,
+              "layout": {
+               "dir": "col",
+               "gap": "spacing/1",
+               "pad": [
+                "spacing/4",
+                "spacing/4",
+                "spacing/4",
+                "spacing/4"
+               ],
+               "main": "MIN",
+               "cross": "MIN"
+              },
+              "size": "FILL/HUG",
+              "radius": "radius/2xl",
+              "fill": "muted",
+              "comp": "FactTile",
+              "props": {
+               "caption": "the Prophet, Abū Bakr and ‘Umar",
+               "value": "3",
+               "label": "Salām"
+              }
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "n": "QuoteCard",
+        "t": "instance",
+        "w": 350,
+        "h": 190,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/3",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "highlight-muted",
+        "comp": "QuoteCard",
+        "props": {
+         "source": "Ṣaḥīḥ al-Bukhārī 1190 · Ṣaḥīḥ Muslim 1394",
+         "quote": "“A prayer in this mosque of mine is better than a thousand prayers elsewhere, except al-Masjid al-Ḥarām.”"
+        }
+       },
+       {
+        "n": "Card / How it was built",
+        "t": "frame",
+        "w": 350,
+        "h": 346,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "How it was built",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "How it was built"
+          }
+         },
+         {
+          "n": "Its walls were sun-dried mud brick, its pillars palm trunks and its roof palm fronds (Ṣaḥīḥ al-Bukhārī 446).",
+          "t": "text",
+          "w": 308,
+          "h": 72,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Its walls were sun-dried mud brick, its pillars palm trunks and its roof palm fronds (Ṣaḥīḥ al-Bukhārī 446)."
+          }
+         },
+         {
+          "n": "The palm trunk that wept",
+          "t": "text",
+          "w": 308,
+          "h": 24,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/sm",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "The palm trunk that wept"
+          }
+         },
+         {
+          "n": "The Prophet used to lean on a palm trunk while giving the sermon. When a minbar was made and he moved to it, the trunk cried out like a child until he came down and held it, and it grew quiet (Ṣaḥīḥ al-Bukhārī 3584).",
+          "t": "text",
+          "w": 308,
+          "h": 144,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "The Prophet used to lean on a palm trunk while giving the sermon. When a minbar was made and he moved to it, the trunk cried out like a child until he came down and held it, and it grew quiet (Ṣaḥīḥ al-Bukhārī 3584)."
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / The site",
+        "t": "frame",
+        "w": 350,
+        "h": 708,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "The site",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "The site"
+          }
+         },
+         {
+          "n": "Illustration",
+          "t": "frame",
+          "w": 308,
+          "h": 320,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "CENTER",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "Scene",
+            "t": "frame",
+            "w": 280,
+            "h": 320,
+            "size": "FIXED/FIXED",
+            "kids": [
+             {
+              "n": "illustration/masjid-nabawi",
+              "t": "instance",
+              "w": 280,
+              "h": 320,
+              "size": "FIXED/FIXED",
+              "comp": "illustration/masjid-nabawi",
+              "props": {}
+             },
+             {
+              "n": "Marker",
+              "t": "instance",
+              "w": 24,
+              "h": 24,
+              "layout": {
+               "dir": "row",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "CENTER",
+               "cross": "CENTER"
+              },
+              "size": "FIXED/FIXED",
+              "radius": "radius/full",
+              "fill": "primary",
+              "stroke": "card 2",
+              "effect": "shadow/sm",
+              "comp": "Marker",
+              "props": {
+               "number": "1"
+              }
+             },
+             {
+              "n": "Marker",
+              "t": "instance",
+              "w": 24,
+              "h": 24,
+              "layout": {
+               "dir": "row",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "CENTER",
+               "cross": "CENTER"
+              },
+              "size": "FIXED/FIXED",
+              "radius": "radius/full",
+              "fill": "primary",
+              "stroke": "card 2",
+              "effect": "shadow/sm",
+              "comp": "Marker",
+              "props": {
+               "number": "2"
+              }
+             },
+             {
+              "n": "Marker",
+              "t": "instance",
+              "w": 24,
+              "h": 24,
+              "layout": {
+               "dir": "row",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "CENTER",
+               "cross": "CENTER"
+              },
+              "size": "FIXED/FIXED",
+              "radius": "radius/full",
+              "fill": "primary",
+              "stroke": "card 2",
+              "effect": "shadow/sm",
+              "comp": "Marker",
+              "props": {
+               "number": "3"
+              }
+             },
+             {
+              "n": "Marker",
+              "t": "instance",
+              "w": 24,
+              "h": 24,
+              "layout": {
+               "dir": "row",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "CENTER",
+               "cross": "CENTER"
+              },
+              "size": "FIXED/FIXED",
+              "radius": "radius/full",
+              "fill": "primary",
+              "stroke": "card 2",
+              "effect": "shadow/sm",
+              "comp": "Marker",
+              "props": {
+               "number": "4"
+              }
+             },
+             {
+              "n": "Marker",
+              "t": "instance",
+              "w": 24,
+              "h": 24,
+              "layout": {
+               "dir": "row",
+               "gap": 0,
+               "pad": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "main": "CENTER",
+               "cross": "CENTER"
+              },
+              "size": "FIXED/FIXED",
+              "radius": "radius/full",
+              "fill": "primary",
+              "stroke": "card 2",
+              "effect": "shadow/sm",
+              "comp": "Marker",
+              "props": {
+               "number": "5"
+              }
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "n": "Legend",
+          "t": "frame",
+          "w": 308,
+          "h": 228,
+          "layout": {
+           "dir": "col",
+           "gap": "spacing/3",
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "kids": [
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "The Prophet’s chamber, under the green dome",
+             "number": "1"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Ar-Rawḍah, between his house and his minbar",
+             "number": "2"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "The minbar",
+             "number": "3"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 44,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Bāb as-Salām — where many visitors enter for the salām",
+             "number": "4"
+            }
+           },
+           {
+            "n": "LegendItem",
+            "t": "instance",
+            "w": 308,
+            "h": 24,
+            "layout": {
+             "dir": "row",
+             "gap": 12,
+             "pad": [
+              0,
+              0,
+              0,
+              0
+             ],
+             "main": "MIN",
+             "cross": "MIN"
+            },
+            "size": "FILL/HUG",
+            "comp": "LegendItem",
+            "props": {
+             "text": "Bāb al-Baqī‘ — the usual way out",
+             "number": "5"
+            }
+           }
+          ]
+         },
+         {
+          "n": "Schematic of the old mosque area, north at the top. Follow the staff’s directions — the doors and routes in use change.",
+          "t": "text",
+          "w": 308,
+          "h": 54,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/sm",
+           "color": "subtle-foreground",
+           "align": "LEFT",
+           "value": "Schematic of the old mosque area, north at the top. Follow the staff’s directions — the doors and routes in use change."
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Ar-Rawḍah",
+        "t": "frame",
+        "w": 350,
+        "h": 658,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Ar-Rawḍah",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Ar-Rawḍah"
+          }
+         },
+         {
+          "n": "A garden of Paradise",
+          "t": "text",
+          "w": 308,
+          "h": 28,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "A garden of Paradise"
+          }
+         },
+         {
+          "n": "QuoteCard",
+          "t": "instance",
+          "w": 308,
+          "h": 218,
+          "layout": {
+           "dir": "col",
+           "gap": "spacing/3",
+           "pad": [
+            "card/padding",
+            "card/padding",
+            "card/padding",
+            "card/padding"
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "highlight-muted",
+          "comp": "QuoteCard",
+          "props": {
+           "source": "Ṣaḥīḥ al-Bukhārī 1196 · Ṣaḥīḥ Muslim 1391",
+           "quote": "“Between my house and my minbar is a garden from the gardens of Paradise, and my minbar is over my Pool.”"
+          }
+         },
+         {
+          "n": "Scholars explain it in different ways: that worship there leads to Paradise, or that the place itself will be part of Paradise. Today it is marked by a green carpet.",
+          "t": "text",
+          "w": 308,
+          "h": 88,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/md",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "Scholars explain it in different ways: that worship there leads to Paradise, or that the place itself will be part of Paradise. Today it is marked by a green carpet."
+          }
+         },
+         {
+          "n": "ChecklistItem",
+          "t": "instance",
+          "w": 308,
+          "h": 44,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "ChecklistItem {type=do}",
+          "props": {
+           "text": "Book your visit in the Nusuk app — a permit is currently needed"
+          }
+         },
+         {
+          "n": "ChecklistItem",
+          "t": "instance",
+          "w": 308,
+          "h": 44,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "ChecklistItem {type=do}",
+          "props": {
+           "text": "Pray two rak‘ahs calmly, then make room for others"
+          }
+         },
+         {
+          "n": "ChecklistItem",
+          "t": "instance",
+          "w": 308,
+          "h": 22,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "ChecklistItem {type=avoid}",
+          "props": {
+           "text": "Pushing or crowding to get in"
+          }
+         },
+         {
+          "n": "ChecklistItem",
+          "t": "instance",
+          "w": 308,
+          "h": 44,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "ChecklistItem {type=avoid}",
+          "props": {
+           "text": "Raising your voice in the Prophet’s Mosque"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / The salām",
+        "t": "frame",
+        "w": 350,
+        "h": 970,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "The salām",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "The salām"
+          }
+         },
+         {
+          "n": "Greeting the Prophet and his Companions",
+          "t": "text",
+          "w": 308,
+          "h": 56,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/lg",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Greeting the Prophet and his Companions"
+          }
+         },
+         {
+          "n": "Walk calmly along the qiblah side of the chamber. Speak softly, and don’t touch or cling to the grille.",
+          "t": "text",
+          "w": 308,
+          "h": 66,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "body/md",
+           "color": "muted-foreground",
+           "align": "LEFT",
+           "value": "Walk calmly along the qiblah side of the chamber. Speak softly, and don’t touch or cling to the grille."
+          }
+         },
+         {
+          "n": "StepItem",
+          "t": "instance",
+          "w": 308,
+          "h": 46,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "StepItem {tone=primary}",
+          "props": {
+           "showDescription": true,
+           "description": "Stand facing the chamber and say:",
+           "title": "Greet the Prophet",
+           "number": "1"
+          }
+         },
+         {
+          "n": "DuaBlock",
+          "t": "instance",
+          "w": 308,
+          "h": 192,
+          "layout": {
+           "dir": "col",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "comp": "DuaBlock",
+          "props": {
+           "showSource": false,
+           "translation": "Peace be upon you, O Messenger of Allah, and the mercy of Allah and His blessings.",
+           "transliteration": "As-salāmu ʿalayka yā Rasūla-llāhi wa raḥmatu-llāhi wa barakātuh.",
+           "source": "",
+           "arabic": "السَّلَامُ عَلَيْكَ يَا رَسُولَ اللَّهِ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ"
+          }
+         },
+         {
+          "n": "StepItem",
+          "t": "instance",
+          "w": 308,
+          "h": 46,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "StepItem {tone=primary}",
+          "props": {
+           "showDescription": true,
+           "description": "Step a little to the right and say:",
+           "title": "Greet Abū Bakr aṣ-Ṣiddīq",
+           "number": "2"
+          }
+         },
+         {
+          "n": "DuaBlock",
+          "t": "instance",
+          "w": 308,
+          "h": 104,
+          "layout": {
+           "dir": "col",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "comp": "DuaBlock",
+          "props": {
+           "showSource": false,
+           "translation": "Peace be upon you, O Abū Bakr.",
+           "transliteration": "As-salāmu ʿalayka yā Abā Bakr.",
+           "source": "",
+           "arabic": "السَّلَامُ عَلَيْكَ يَا أَبَا بَكْرٍ"
+          }
+         },
+         {
+          "n": "StepItem",
+          "t": "instance",
+          "w": 308,
+          "h": 46,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "StepItem {tone=primary}",
+          "props": {
+           "showDescription": true,
+           "description": "Step a little further to the right and say:",
+           "title": "Greet ‘Umar ibn al-Khaṭṭāb",
+           "number": "3"
+          }
+         },
+         {
+          "n": "DuaBlock",
+          "t": "instance",
+          "w": 308,
+          "h": 148,
+          "layout": {
+           "dir": "col",
+           "gap": 8,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "comp": "DuaBlock",
+          "props": {
+           "showSource": true,
+           "translation": "Peace be upon you, O ‘Umar.",
+           "transliteration": "As-salāmu ʿalayka yā ʿUmar.",
+           "source": "Based on Ibn ‘Umar’s greeting · al-Muwaṭṭa’ of Imām Mālik",
+           "arabic": "السَّلَامُ عَلَيْكَ يَا عُمَرُ"
+          }
+         },
+         {
+          "n": "AudioPlayer",
+          "t": "instance",
+          "w": 308,
+          "h": 64,
+          "layout": {
+           "dir": "row",
+           "gap": 12,
+           "pad": [
+            12,
+            16,
+            12,
+            12
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "muted",
+          "comp": "AudioPlayer {state=default}",
+          "props": {
+           "label": "Pronunciation"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Reflect",
+        "t": "frame",
+        "w": 350,
+        "h": 195,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Reflect",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Reflect"
+          }
+         },
+         {
+          "n": "Where do you face for your own duʿā after the salām?",
+          "t": "text",
+          "w": 308,
+          "h": 48,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "title/sm",
+           "color": "foreground",
+           "align": "LEFT",
+           "value": "Where do you face for your own duʿā after the salām?"
+          }
+         },
+         {
+          "n": "RevealCard",
+          "t": "instance",
+          "w": 308,
+          "h": 57,
+          "layout": {
+           "dir": "row",
+           "gap": 10,
+           "pad": [
+            16,
+            16,
+            16,
+            16
+           ],
+           "main": "CENTER",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "background",
+          "stroke": "gold/300 1.5 dashed",
+          "comp": "RevealCard {state=hidden}",
+          "props": {
+           "answer": "Towards the qiblah, asking Allah alone. The salām is for the Prophet ﷺ; duʿā is to Allah only. Many scholars advise stepping aside first so others can pass."
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Related in Madinah",
+        "t": "frame",
+        "w": 350,
+        "h": 352,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/4",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Related in Madinah",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Related in Madinah"
+          }
+         },
+         {
+          "n": "RelatedLink",
+          "t": "instance",
+          "w": 308,
+          "h": 82,
+          "layout": {
+           "dir": "row",
+           "gap": "spacing/3",
+           "pad": [
+            "spacing/3",
+            "spacing/4",
+            "spacing/3",
+            "spacing/4"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "secondary",
+          "comp": "RelatedLink",
+          "props": {
+           "description": "The first mosque the Prophet built, on his arrival from Makkah",
+           "title": "Masjid Qubā’"
+          }
+         },
+         {
+          "n": "RelatedLink",
+          "t": "instance",
+          "w": 308,
+          "h": 82,
+          "layout": {
+           "dir": "row",
+           "gap": "spacing/3",
+           "pad": [
+            "spacing/3",
+            "spacing/4",
+            "spacing/3",
+            "spacing/4"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "secondary",
+          "comp": "RelatedLink",
+          "props": {
+           "description": "Madinah’s main cemetery, beside the Prophet’s Mosque",
+           "title": "Jannat al-Baqī‘"
+          }
+         },
+         {
+          "n": "RelatedLink",
+          "t": "instance",
+          "w": 308,
+          "h": 82,
+          "layout": {
+           "dir": "row",
+           "gap": "spacing/3",
+           "pad": [
+            "spacing/3",
+            "spacing/4",
+            "spacing/3",
+            "spacing/4"
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "FILL/HUG",
+          "radius": "radius/2xl",
+          "fill": "secondary",
+          "comp": "RelatedLink",
+          "props": {
+           "description": "The mountain the Prophet loved, 5 km to the north",
+           "title": "Mount Uhud"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Sources: Ṣaḥīḥ al-Bukhārī 446, 1189, 1190, 1196, 3584, 3906 · Ṣaḥīḥ Muslim 1391, 1394 · al-Muwaṭṭa’ · Ibn Hishām, as-Sīrah an-Nabawiyyah",
+        "t": "text",
+        "w": 350,
+        "h": 54,
+        "size": "FILL/HUG",
+        "text": {
+         "style": "body/sm",
+         "color": "subtle-foreground",
+         "align": "CENTER",
+         "value": "Sources: Ṣaḥīḥ al-Bukhārī 446, 1189, 1190, 1196, 3584, 3906 · Ṣaḥīḥ Muslim 1391, 1394 · al-Muwaṭṭa’ · Ibn Hishām, as-Sīrah an-Nabawiyyah"
+        }
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "21 FAQs",
+   "originalName": "Screens / FAQs",
+   "tree": {
+    "n": "21 FAQs",
+    "t": "frame",
+    "w": 390,
+    "h": 1827,
+    "layout": {
+     "dir": "col",
+     "gap": 0,
+     "pad": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "main": "MIN",
+     "cross": "MIN"
+    },
+    "size": "FIXED/HUG",
+    "fill": "background",
+    "kids": [
+     {
+      "n": "StatusBar",
+      "t": "instance",
+      "w": 390,
+      "h": 47,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        28,
+        0,
+        32
+       ],
+       "main": "SPACE_BETWEEN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/FIXED",
+      "comp": "StatusBar",
+      "props": {}
+     },
+     {
+      "n": "TopBar",
+      "t": "instance",
+      "w": 390,
+      "h": 62,
+      "layout": {
+       "dir": "row",
+       "gap": 12,
+       "pad": [
+        8,
+        "page/padding-x",
+        8,
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "CENTER"
+      },
+      "size": "FILL/HUG",
+      "fill": "background",
+      "comp": "TopBar {type=root}",
+      "props": {
+       "showAction": false,
+       "leadingIcon": "icon/circle-help",
+       "showOverline": true,
+       "title": "FAQs",
+       "overline": "Questions"
+      }
+     },
+     {
+      "n": "Content",
+      "t": "frame",
+      "w": 390,
+      "h": 1617,
+      "layout": {
+       "dir": "col",
+       "gap": "stack/gap",
+       "pad": [
+        "spacing/2",
+        "page/padding-x",
+        "page/padding-bottom",
+        "page/padding-x"
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "kids": [
+       {
+        "n": "SearchField",
+        "t": "instance",
+        "w": 350,
+        "h": 48,
+        "layout": {
+         "dir": "row",
+         "gap": 10,
+         "pad": [
+          0,
+          16,
+          0,
+          16
+         ],
+         "main": "MIN",
+         "cross": "CENTER"
+        },
+        "size": "FILL/FIXED",
+        "radius": "radius/full",
+        "fill": "card",
+        "stroke": "border 1",
+        "comp": "SearchField",
+        "props": {
+         "placeholder": "Search questions"
+        }
+       },
+       {
+        "n": "Filters",
+        "t": "frame",
+        "w": 350,
+        "h": 38,
+        "layout": {
+         "dir": "row",
+         "gap": "inline/gap",
+         "pad": [
+          0,
+          0,
+          0,
+          0
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "kids": [
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 49,
+          "h": 36,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "primary",
+          "comp": "FilterChip {selected=true}",
+          "props": {
+           "label": "All"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 72,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "Iḥrām"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 113,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "Ṭawāf & Sa‘ī"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 87,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "Women"
+          }
+         },
+         {
+          "n": "FilterChip",
+          "t": "instance",
+          "w": 119,
+          "h": 38,
+          "layout": {
+           "dir": "row",
+           "gap": 0,
+           "pad": [
+            8,
+            16,
+            8,
+            16
+           ],
+           "main": "MIN",
+           "cross": "CENTER"
+          },
+          "size": "HUG/HUG",
+          "radius": "radius/full",
+          "fill": "card",
+          "stroke": "border 1",
+          "comp": "FilterChip {selected=false}",
+          "props": {
+           "label": "After ‘Umrah"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Iḥrām",
+        "t": "frame",
+        "w": 350,
+        "h": 530,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/0",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Iḥrām",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Iḥrām"
+          }
+         },
+         {
+          "n": "FaqItem — Can I put on Ihrām at home or on the plane?",
+          "t": "instance",
+          "w": 308,
+          "h": 335,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=expanded}",
+          "props": {
+           "showSource": true,
+           "showDivider": true,
+           "source": "Ṣaḥīḥ al-Bukhārī 1524",
+           "answer": "Yes, you can wear the Iḥrām clothes before you travel. What matters is the intention: make it, with the Talbiyah, at the mīqāt or before it. On a plane, make it when the crew announces you are passing the mīqāt. Crossing the mīqāt without Iḥrām means going back to it; if you can’t, most scholars say a sacrifice (dam) is due.",
+           "question": "Can I put on Ihrām at home or on the plane?"
+          }
+         },
+         {
+          "n": "FaqItem — Can I use scented soap or deodorant?",
+          "t": "instance",
+          "w": 308,
+          "h": 57,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=collapsed}",
+          "props": {
+           "showDivider": true,
+           "showSource": true,
+           "source": "Ṣaḥīḥ al-Bukhārī 1539",
+           "answer": "Not once you are in Iḥrām — switch to unscented products. Perfume on your body before entering Iḥrām is Sunnah, even if the scent lingers afterwards.",
+           "question": "Can I use scented soap or deodorant?"
+          }
+         },
+         {
+          "n": "FaqItem — I broke an Ihrām rule by mistake. What now?",
+          "t": "instance",
+          "w": 308,
+          "h": 80,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=collapsed}",
+          "props": {
+           "showDivider": false,
+           "showSource": true,
+           "source": "Ṣaḥīḥ al-Bukhārī 1536",
+           "answer": "Stop as soon as you realise — take off the item or wash off the scent. Many scholars say there is no penalty if you forgot or didn’t know; others require a fidyah. If it happens, ask a scholar about your case.",
+           "question": "I broke an Ihrām rule by mistake. What now?"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Ṭawāf & Saʿī",
+        "t": "frame",
+        "w": 350,
+        "h": 333,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/0",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Ṭawāf & Sa‘ī",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Ṭawāf & Sa‘ī"
+          }
+         },
+         {
+          "n": "FaqItem — I lost count of my rounds. What do I do?",
+          "t": "instance",
+          "w": 308,
+          "h": 81,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=collapsed}",
+          "props": {
+           "showDivider": true,
+           "showSource": true,
+           "source": "Based on Ṣaḥīḥ Muslim 571",
+           "answer": "Go with the number you are sure of — the lower one — and carry on from there. Doubts that come after you have finished don’t count.",
+           "question": "What if I lose count of my Ṭawāf circuits?"
+          }
+         },
+         {
+          "n": "FaqItem — Do I need wudūʾ for Saʿī?",
+          "t": "instance",
+          "w": 308,
+          "h": 57,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=collapsed}",
+          "props": {
+           "showDivider": true,
+           "showSource": true,
+           "source": "Jāmi‘ at-Tirmidhī 960 (Ṭawāf is like prayer)",
+           "answer": "Most scholars say wuḍū’ is required for Ṭawāf but only recommended for Sa‘ī. If you lose it during Sa‘ī, you can carry on.",
+           "question": "Do I need wudūʾ for Saʿī?"
+          }
+         },
+         {
+          "n": "FaqItem — Can I stop to rest, drink or pray?",
+          "t": "instance",
+          "w": 308,
+          "h": 57,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=collapsed}",
+          "props": {
+           "showDivider": true,
+           "showSource": false,
+           "source": "Ṣaḥīḥ al-Bukhārī 1524",
+           "answer": "Yes. A short rest or a drink of water is fine. If the congregational prayer starts, join it, then continue from where you stopped.",
+           "question": "Can I stop to rest, drink or pray?"
+          }
+         },
+         {
+          "n": "FaqItem — Can I do Ṭawāf and Saʿī in a wheelchair?",
+          "t": "instance",
+          "w": 308,
+          "h": 80,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=collapsed}",
+          "props": {
+           "showDivider": false,
+           "showSource": true,
+           "source": "Ṣaḥīḥ al-Bukhārī 1619",
+           "answer": "Yes. Someone can push you, and wheelchairs are available at the Ḥaram. The Prophet told Umm Salamah, who was unwell, to do Ṭawāf riding behind the people.",
+           "question": "Can I do Ṭawāf and Saʿī in a wheelchair?"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / Women",
+        "t": "frame",
+        "w": 350,
+        "h": 219,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/0",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "Women",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "Women"
+          }
+         },
+         {
+          "n": "FaqItem — My period started. Can I still do ʿUmrah?",
+          "t": "instance",
+          "w": 308,
+          "h": 81,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=collapsed}",
+          "props": {
+           "showDivider": true,
+           "showSource": true,
+           "source": "Ṣaḥīḥ al-Bukhārī 305 · Ṣaḥīḥ Muslim 1211",
+           "answer": "Yes. Enter Iḥrām at the mīqāt as normal and do everything except Ṭawāf. Wait until you are pure, take a bath (ghusl), then do Ṭawāf and Sa‘ī.",
+           "question": "My period started. Can I still do ʿUmrah?"
+          }
+         },
+         {
+          "n": "FaqItem — Do I need a mahram to travel for ʿUmrah?",
+          "t": "instance",
+          "w": 308,
+          "h": 80,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=collapsed}",
+          "props": {
+           "showDivider": false,
+           "showSource": true,
+           "source": "Ṣaḥīḥ al-Bukhārī 1862",
+           "answer": "Scholars differ. Many hold that a woman needs a maḥram to travel; others allow travel in a safe, trusted group. Saudi Arabia currently lets women perform ‘Umrah without one. Follow the view of scholars you trust.",
+           "question": "Do I need a mahram to travel for ʿUmrah?"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Card / After ʿUmrah",
+        "t": "frame",
+        "w": 350,
+        "h": 219,
+        "layout": {
+         "dir": "col",
+         "gap": "spacing/0",
+         "pad": [
+          "card/padding",
+          "card/padding",
+          "card/padding",
+          "card/padding"
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/3xl",
+        "fill": "card",
+        "stroke": "border 1",
+        "effect": "shadow/sm",
+        "kids": [
+         {
+          "n": "After ‘Umrah",
+          "t": "text",
+          "w": 308,
+          "h": 16,
+          "size": "FILL/HUG",
+          "text": {
+           "style": "overline",
+           "color": "highlight",
+           "align": "LEFT",
+           "value": "After ‘Umrah"
+          }
+         },
+         {
+          "n": "FaqItem — Can I do more than one ʿUmrah on this trip?",
+          "t": "instance",
+          "w": 308,
+          "h": 81,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=collapsed}",
+          "props": {
+           "showDivider": true,
+           "showSource": true,
+           "source": "Ṣaḥīḥ al-Bukhārī 1784",
+           "answer": "Scholars differ. Those who allow it say to leave the Ḥaram boundary and enter Iḥrām again, for example at Masjid ‘Ā’ishah in at-Tan‘īm. Others say extra Ṭawāf is better, since the Prophet didn’t repeat ‘Umrah on one trip.",
+           "question": "Can I do more than one ʿUmrah on this trip?"
+          }
+         },
+         {
+          "n": "FaqItem — Is there a farewell Ṭawāf after ʿUmrah?",
+          "t": "instance",
+          "w": 308,
+          "h": 80,
+          "layout": {
+           "dir": "col",
+           "gap": 0,
+           "pad": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "main": "MIN",
+           "cross": "MIN"
+          },
+          "size": "FILL/HUG",
+          "comp": "FaqItem {state=collapsed}",
+          "props": {
+           "showDivider": false,
+           "showSource": true,
+           "source": "Ṣaḥīḥ al-Bukhārī 1755",
+           "answer": "Most scholars say the farewell Ṭawāf is only obligatory for Ḥajj. After ‘Umrah it is recommended, not required.",
+           "question": "Is there a farewell Ṭawāf after ʿUmrah?"
+          }
+         }
+        ]
+       },
+       {
+        "n": "Callout",
+        "t": "instance",
+        "w": 350,
+        "h": 94,
+        "layout": {
+         "dir": "row",
+         "gap": 10,
+         "pad": [
+          14,
+          16,
+          14,
+          16
+         ],
+         "main": "MIN",
+         "cross": "MIN"
+        },
+        "size": "FILL/HUG",
+        "radius": "radius/2xl",
+        "fill": "highlight-muted",
+        "comp": "Callout {tone=highlight}",
+        "props": {
+         "icon": "icon/info",
+         "text": "Where scholars differ, these answers follow the majority view. For your own situation, ask a scholar you trust."
+        }
+       }
+      ]
+     },
+     {
+      "n": "BottomNav",
+      "t": "instance",
+      "w": 390,
+      "h": 101,
+      "layout": {
+       "dir": "row",
+       "gap": 0,
+       "pad": [
+        8,
+        8,
+        34,
+        8
+       ],
+       "main": "MIN",
+       "cross": "MIN"
+      },
+      "size": "FILL/HUG",
+      "fill": "card",
+      "stroke": "border ",
+      "comp": "BottomNav {active=faqs}",
+      "props": {}
+     }
+    ]
+   }
+  }
+ ]
+}
