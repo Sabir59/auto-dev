@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "figma-executor": {
-      "command": "node",
-      "args": ["mcp/server.mjs"]
-    }
-  }
-}
