@@ -6,9 +6,30 @@ figma.showUI(__html__, { visible: true, width: 260, height: 160 });
 
 // --- Helpers -------------------------------------------------------------
 
+// Every node lookup goes through here. figma.getNodeByIdAsync can fail with
+// Figma's own "Unable to establish connection" error for ids that DO exist —
+// observed reproducibly for instance-sublayer ids ("I<instance>;<layer>") of
+// remote-library instances, while the instance itself still resolved and its
+// subtree was still readable. So for those ids, fall back to resolving the
+// outermost instance and walking its (already-loaded) subtree.
+async function getNode(id) {
+  try {
+    return await figma.getNodeByIdAsync(id);
+  } catch (e) {
+    if (typeof id === "string" && id.startsWith("I") && id.includes(";")) {
+      const root = await figma.getNodeByIdAsync(id.slice(1, id.indexOf(";")));
+      const found = root && "findOne" in root ? root.findOne((n) => n.id === id) : null;
+      if (found) return found;
+    }
+    throw new Error(
+      `Figma failed to look up ${id} (${e.message}). This does NOT reliably mean the node is missing — check via its parent with figma_get_document_state.`
+    );
+  }
+}
+
 async function resolveParent(parentId) {
   if (!parentId) return figma.currentPage;
-  const p = await figma.getNodeByIdAsync(parentId);
+  const p = await getNode(parentId);
   if (!p || !("appendChild" in p)) throw new Error(`parentId ${parentId} is not a valid container node`);
   return p;
 }
@@ -360,7 +381,7 @@ async function describeInstance(node, out) {
     for (const [key, def] of Object.entries(node.componentProperties)) {
       if (def.type === "VARIANT") continue;
       if (def.type === "INSTANCE_SWAP" && def.value) {
-        const swapped = await figma.getNodeByIdAsync(def.value);
+        const swapped = await getNode(def.value);
         props[stripSuffix(key)] = swapped ? swapped.name : def.value;
       } else {
         props[stripSuffix(key)] = def.value;
@@ -421,7 +442,7 @@ async function buildPropsOut(defs) {
     if (def.type === "VARIANT") {
       props[clean] = { type: "variant", default: def.defaultValue, options: def.variantOptions };
     } else if (def.type === "INSTANCE_SWAP" && def.defaultValue) {
-      const swapped = await figma.getNodeByIdAsync(def.defaultValue);
+      const swapped = await getNode(def.defaultValue);
       props[clean] = { type: "instance_swap", default: swapped ? swapped.name : def.defaultValue };
     } else {
       props[clean] = { type: def.type.toLowerCase(), default: def.defaultValue };
@@ -455,7 +476,7 @@ const handlers = {
   // NEW paint can actually bind to it (not just read it).
   BIND_VARIABLE_TO_FILL: async (params) => {
     const { id, variableId, fillIndex } = params;
-    const node = await figma.getNodeByIdAsync(id);
+    const node = await getNode(id);
     if (!node || !("fills" in node)) throw new Error(`${id} has no fills`);
     const variable = await figma.variables.getVariableByIdAsync(variableId);
     if (!variable) throw new Error(`Variable ${variableId} not found or not accessible from this file`);
@@ -480,7 +501,7 @@ const handlers = {
   // `bind` (componentPropertyReferences — which prop drives a layer).
   // Recurses into every child. General — no app-specific assumptions.
   GET_COMPONENT_TREE: async (params) => {
-    const node = await figma.getNodeByIdAsync(params.id);
+    const node = await getNode(params.id);
     if (!node) throw new Error(`Node not found: ${params.id}`);
 
     if (node.type === "COMPONENT_SET") {
@@ -509,11 +530,11 @@ const handlers = {
   // swap (a component's own name + its parent set's name, since the
   // destination of a SWAP is a bare variant, not an instance).
   GET_PROTOTYPE: async (params) => {
-    const page = await figma.getNodeByIdAsync(params.pageId);
+    const page = await getNode(params.pageId);
     if (!page || page.type !== "PAGE") throw new Error(`${params.pageId} is not a page`);
 
     async function destinationLabel(destId) {
-      const dest = await figma.getNodeByIdAsync(destId);
+      const dest = await getNode(destId);
       if (!dest) return null;
       if (dest.type === "COMPONENT" && dest.parent && dest.parent.type === "COMPONENT_SET") {
         return `${dest.parent.name} {${dest.name}}`;
@@ -578,7 +599,7 @@ const handlers = {
   // same compact tree describeNode/GET_COMPONENT_TREE uses, just wrapped
   // as {name, originalName, tree} instead of {name, props, variants}.
   GET_SCREEN_TREE: async (params) => {
-    const node = await figma.getNodeByIdAsync(params.id);
+    const node = await getNode(params.id);
     if (!node) throw new Error(`Node not found: ${params.id}`);
     if (node.type !== "FRAME" && node.type !== "COMPONENT") throw new Error(`${params.id} is not a FRAME (got ${node.type})`);
     return { name: node.name, originalName: node.name, tree: await describeNode(node) };
@@ -595,7 +616,7 @@ const handlers = {
     const pfx = prefix || "icon/";
     let root;
     if (pageId) {
-      root = await figma.getNodeByIdAsync(pageId);
+      root = await getNode(pageId);
       if (!root || root.type !== "PAGE") throw new Error(`${pageId} is not a page`);
       await root.loadAsync();
     } else {
@@ -743,7 +764,7 @@ const handlers = {
     const { query, type, pageId, limit } = params || {};
     let root;
     if (pageId) {
-      root = await figma.getNodeByIdAsync(pageId);
+      root = await getNode(pageId);
       if (!root || root.type !== "PAGE") throw new Error(`${pageId} is not a page`);
       await root.loadAsync();
     } else {
@@ -782,7 +803,7 @@ const handlers = {
   },
 
   DELETE_NODE: async (params) => {
-    const node = await figma.getNodeByIdAsync(params.id);
+    const node = await getNode(params.id);
     if (!node) return { deleted: false, summary: `Node ${params.id} already gone` };
     const name = node.name;
     node.remove();
@@ -896,10 +917,40 @@ const handlers = {
   // becomes a plain, freely-editable frame, at the cost of no longer
   // tracking the master component.
   DETACH_INSTANCE: async (params) => {
-    const node = await figma.getNodeByIdAsync(params.id);
+    const node = await getNode(params.id);
     if (!node || node.type !== "INSTANCE") throw new Error(`${params.id} is not an instance`);
     const detached = node.detachInstance();
     return { id: detached.id, name: detached.name, summary: `SUCCESS: Detached "${detached.name}" from its component` };
+  },
+
+  // The design system's own override path: an instance's TEXT, BOOLEAN,
+  // INSTANCE_SWAP (value = a COMPONENT id) and VARIANT properties — instead
+  // of reaching into nested layers (e.g. toggling a layer's visibility that a
+  // boolean property already controls). Names may omit Figma's "#id" suffix.
+  SET_INSTANCE_PROPERTIES: async (params) => {
+    const node = await getNode(params.id);
+    if (!node || node.type !== "INSTANCE") throw new Error(`${params.id} is not an instance`);
+    const current = node.componentProperties;
+    const update = {};
+    for (const [name, value] of Object.entries(params.properties || {})) {
+      const key = Object.keys(current).find((k) => k === name || stripSuffix(k) === name);
+      if (!key) {
+        throw new Error(`"${node.name}" has no component property "${name}". Available: ${Object.keys(current).map(stripSuffix).join(", ")}`);
+      }
+      update[key] = value;
+    }
+    node.setProperties(update);
+
+    const properties = {};
+    for (const [key, def] of Object.entries(node.componentProperties)) {
+      if (def.type === "INSTANCE_SWAP" && def.value) {
+        const swapped = await getNode(def.value);
+        properties[stripSuffix(key)] = swapped ? swapped.name : def.value;
+      } else {
+        properties[stripSuffix(key)] = def.value;
+      }
+    }
+    return { id: node.id, name: node.name, properties, summary: `SUCCESS: Set ${Object.keys(update).join(", ")} on "${node.name}"` };
   },
 
   CREATE_ELLIPSE: async (params) => {
@@ -922,7 +973,7 @@ const handlers = {
   },
 
   CREATE_INSTANCE: async (params) => {
-    const comp = await figma.getNodeByIdAsync(params.componentId);
+    const comp = await getNode(params.componentId);
     if (!comp || comp.type !== "COMPONENT") throw new Error(`componentId ${params.componentId} is not a component`);
     const parent = await resolveParent(params.parentId);
     const instance = comp.createInstance();
@@ -951,7 +1002,7 @@ const handlers = {
   COMBINE_AS_VARIANTS: async (params) => {
     const nodes = [];
     for (const id of params.componentIds) {
-      const n = await figma.getNodeByIdAsync(id);
+      const n = await getNode(id);
       if (!n || n.type !== "COMPONENT") throw new Error(`componentIds must all be COMPONENT nodes; ${id} is not`);
       nodes.push(n);
     }
@@ -962,7 +1013,7 @@ const handlers = {
   },
 
   SET_AUTO_LAYOUT: async (params) => {
-    const node = await figma.getNodeByIdAsync(params.id);
+    const node = await getNode(params.id);
     if (!node || !("layoutMode" in node)) throw new Error(`Node ${params.id} does not support auto layout`);
 
     node.layoutMode = params.layoutMode || "VERTICAL";
@@ -990,13 +1041,13 @@ const handlers = {
 
     // getNodeById() throws under documentAccess: "dynamic-page" — must use
     // the async lookup instead.
-    const node = await figma.getNodeByIdAsync(id);
+    const node = await getNode(id);
     if (!node) throw new Error(`Node not found: ${id}`);
 
     const applied = {};
 
     if (props.parentId !== undefined) {
-      const newParent = await figma.getNodeByIdAsync(props.parentId);
+      const newParent = await getNode(props.parentId);
       if (!newParent || !("appendChild" in newParent)) {
         throw new Error(`parentId ${props.parentId} is not a valid container node`);
       }
@@ -1089,7 +1140,7 @@ const handlers = {
   // scripts that need a specific page loaded should switch to it first
   // instead of relying on a human to click it.
   SWITCH_PAGE: async (params) => {
-    const page = await figma.getNodeByIdAsync(params.pageId);
+    const page = await getNode(params.pageId);
     if (!page || page.type !== "PAGE") throw new Error(`${params.pageId} is not a page`);
     await figma.setCurrentPageAsync(page);
     return { id: page.id, name: page.name, summary: `SUCCESS: switched to page "${page.name}"` };
@@ -1102,7 +1153,7 @@ const handlers = {
   },
 
   RENAME_PAGE: async (params) => {
-    const page = await figma.getNodeByIdAsync(params.id);
+    const page = await getNode(params.id);
     if (!page || page.type !== "PAGE") throw new Error(`${params.id} is not a page`);
     page.name = params.name;
     return { id: page.id, name: page.name, summary: `SUCCESS: Renamed page to "${page.name}"` };
@@ -1110,7 +1161,7 @@ const handlers = {
 
   GET_DOCUMENT_STATE: async (params) => {
     if (params && params.id) {
-      const node = await figma.getNodeByIdAsync(params.id);
+      const node = await getNode(params.id);
       if (!node) throw new Error(`Node not found: ${params.id}`);
       return { node: await serializeDeep(node, params.depth || 4) };
     }
@@ -1118,7 +1169,7 @@ const handlers = {
       // Inspect a page other than the one currently open, without
       // switching the user's view — pages must be explicitly loaded
       // before their .children is readable.
-      const page = await figma.getNodeByIdAsync(params.pageId);
+      const page = await getNode(params.pageId);
       if (!page || page.type !== "PAGE") throw new Error(`${params.pageId} is not a page`);
       await page.loadAsync();
       const nodes = page.children.map(serializeShallow);
@@ -1132,7 +1183,7 @@ const handlers = {
   // context with the browser APIs needed to base64-encode and ship it over
   // the WebSocket) — see the `__binaryBytes` handling in ui.html.
   EXPORT_NODE: async (params) => {
-    const node = await figma.getNodeByIdAsync(params.id);
+    const node = await getNode(params.id);
     if (!node) throw new Error(`Node not found: ${params.id}`);
     const format = (params.format || "PNG").toUpperCase();
     // Only raster formats take a scale constraint — SVG/PDF are vector,

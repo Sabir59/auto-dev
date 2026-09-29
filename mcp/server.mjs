@@ -374,6 +374,19 @@ server.registerTool(
   tool("DETACH_INSTANCE")
 );
 
+server.registerTool(
+  "figma_set_instance_properties",
+  {
+    description:
+      "Set an INSTANCE's component properties: text (string), boolean show/hide toggles (true/false), instance-swap (value = a COMPONENT id, e.g. to change an icon) and variant (value = option name, e.g. \"false\"). Names may omit Figma's \"#123:4\" suffix; an unknown name fails with the list of available ones. Returns every property's value after the change.",
+    inputSchema: {
+      id: z.string(),
+      properties: z.record(z.string(), z.union([z.string(), z.boolean()])),
+    },
+  },
+  tool("SET_INSTANCE_PROPERTIES")
+);
+
 server.registerTool("figma_delete_node", { description: "Delete a node.", inputSchema: { id: z.string() } }, tool("DELETE_NODE"));
 
 server.registerTool(
