@@ -22,7 +22,7 @@ async function getNode(id) {
       if (found) return found;
     }
     throw new Error(
-      `Figma failed to look up ${id} (${e.message}). This does NOT reliably mean the node is missing — check via its parent with figma_get_document_state.`
+      `Figma failed to look up ${id} (${(e && e.message) || String(e)}). This does NOT reliably mean the node is missing — check via its parent with figma_get_document_state.`
     );
   }
 }
@@ -501,8 +501,12 @@ const handlers = {
   // `bind` (componentPropertyReferences — which prop drives a layer).
   // Recurses into every child. General — no app-specific assumptions.
   GET_COMPONENT_TREE: async (params) => {
-    const node = await getNode(params.id);
+    let node = await getNode(params.id);
     if (!node) throw new Error(`Node not found: ${params.id}`);
+    // A variant can't be described on its own — Figma forbids reading
+    // componentPropertyDefinitions on it — and an instance's mainComponentId
+    // is usually a variant. Describe its whole set instead.
+    if (node.type === "COMPONENT" && node.parent && node.parent.type === "COMPONENT_SET") node = node.parent;
 
     if (node.type === "COMPONENT_SET") {
       const props = await buildPropsOut(node.componentPropertyDefinitions);
