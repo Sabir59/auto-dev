@@ -1,0 +1,11 @@
+{
+  "name": "figma-executor-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Thin MCP adapter exposing the Figma Executor's existing bridge commands as MCP tools.",
+  "main": "server.mjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.31.0"
+  }
+}

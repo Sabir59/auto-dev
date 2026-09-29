@@ -60,10 +60,13 @@ const server = http.createServer((req, res) => {
       try {
         const result = await resultPromise;
 
-        // EXPORT_NODE returns a base64-encoded file — write it to disk and
-        // hand back a file path instead of dumping a huge base64 blob over
+        // Any command whose result carries a base64 payload (currently
+        // just EXPORT_NODE, but the bridge doesn't need to know that by
+        // name) gets written to disk instead of dumped as a huge blob over
         // HTTP. Extension follows the requested format (PNG/JPG/SVG/PDF).
-        if (command.type === "EXPORT_NODE" && result.ok && result.result && result.result.base64) {
+        // This is transport concern (large binary handling), not a Figma
+        // capability, so it stays keyed off shape, not command type.
+        if (result.ok && result.result && typeof result.result.base64 === "string") {
           const ext = (result.result.format || "png").toLowerCase();
           const fileName = `${(payload.params && payload.params.id) || command.id}.${ext}`.replace(/[:]/g, "_");
           const filePath = path.join(EXPORTS_DIR, fileName);
