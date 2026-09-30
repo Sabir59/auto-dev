@@ -1,0 +1,29 @@
+2026-09-29T20:16:06.188Z GET /claims.json no-session
+2026-09-29T20:16:22.442Z GET / no-session
+2026-09-29T20:16:36.023Z POST /login no-session
+2026-09-29T20:16:36.026Z   login ok session=9b1711b7
+2026-09-29T20:16:36.033Z GET /claims session=9b1711b7
+2026-09-29T20:16:47.779Z GET /claims/new session=9b1711b7
+2026-09-29T20:17:28.666Z POST /claims session=9b1711b7
+2026-09-29T20:17:28.668Z   stored EXP-1041 (now 1 claims); responding in 3000ms
+2026-09-29T20:17:41.519Z GET /claims/new session=9b1711b7
+2026-09-29T20:18:13.646Z POST /claims session=9b1711b7
+2026-09-29T20:18:13.648Z   stored EXP-1042 (now 2 claims); responding in 3000ms
+2026-09-29T20:18:26.184Z GET /claims/new session=9b1711b7
+2026-09-29T20:18:56.913Z POST /claims session=9b1711b7
+2026-09-29T20:18:56.923Z   stored EXP-1043 (now 3 claims); responding in 3000ms
+2026-09-29T20:19:47.802Z GET /claims/new session=9b1711b7
+2026-09-29T20:20:23.361Z POST /claims session=9b1711b7
+2026-09-29T20:20:23.363Z   stored EXP-1044 (now 4 claims); responding in 3000ms
+2026-09-29T20:20:50.172Z GET /login no-session
+2026-09-30T06:42:28.674Z GET /claims no-session
+2026-09-30T06:42:28.694Z GET /login no-session
+2026-09-30T06:42:48.978Z POST /login no-session
+2026-09-30T06:42:48.983Z   login ok session=f2cd087b
+2026-09-30T06:42:48.992Z GET /claims session=f2cd087b
+2026-09-30T06:43:07.325Z GET /claims/new session=f2cd087b
+2026-09-30T06:43:34.912Z POST /claims session=f2cd087b
+2026-09-30T06:43:34.919Z   stored EXP-1045 (now 5 claims); responding in 3000ms
+2026-09-30T06:43:46.800Z GET /claims/new session=f2cd087b
+2026-09-30T06:44:22.821Z POST /claims session=f2cd087b
+2026-09-30T06:44:22.824Z   stored EXP-1046 (now 6 claims); responding in 3000ms
