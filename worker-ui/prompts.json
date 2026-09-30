@@ -1,0 +1,9 @@
+[
+ {
+  "id": "ed40c56b-ba68-4141-b676-542dd8c5d8a7",
+  "title": "Check the expense portal at http://localhost:8790 (login emp",
+  "text": "Check the expense portal at http://localhost:8790 (login employee / demo-pass) and write a short report of the claims it holds, with the total amount, to deliverables/console-proof/claims-report.md. Verify the total independently.",
+  "favourite": false,
+  "createdAt": "2026-09-30T09:57:32.595Z"
+ }
+]

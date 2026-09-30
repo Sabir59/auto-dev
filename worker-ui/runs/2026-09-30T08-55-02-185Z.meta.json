@@ -1,0 +1,21 @@
+{
+ "id": "2026-09-30T08-55-02-185Z",
+ "prompt": "Using the demo store at saucedemo.com, place the cheapest order that equips a new team member with three things: something to carry their gear, a light, and a top they can wear. Keep it under $60 before tax. Deliver a report of what was ordered and why, and prove the amount charged is correct. Put your deliverable in deliverables/b4-ui-run/. This is a fresh attempt: do not read docs/benchmarks.md or deliverables/b4-saucedemo-order/ (a previous run's answer).",
+ "createdAt": "2026-09-30T08:55:02.187Z",
+ "updatedAt": "2026-09-30T08:57:40.795Z",
+ "status": "finished",
+ "sessionId": null,
+ "messages": 1,
+ "envs": {
+  "Browser": 24,
+  "Files": 3,
+  "Shell": 3
+ },
+ "artifacts": [
+  "deliverables/b4-ui-run/REPORT.md"
+ ],
+ "failures": 4,
+ "done": "Order placed and confirmed on saucedemo.com: Backpack, Bike Light and Bolt T-Shirt, $55.97 before tax, $60.45 charged.",
+ "costUsd": 0.7677554,
+ "note": "migrated from the first Worker UI (no session id recorded, so it cannot be resumed)"
+}

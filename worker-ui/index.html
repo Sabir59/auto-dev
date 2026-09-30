@@ -3,159 +3,284 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Worker</title>
+<title>Worker Console</title>
 <style>
-  :root { --bg: #f7f7f5; --panel: #fff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
-    --figma: #7b61ff; --browser: #0a7ea4; --files: #5f6b3a; --shell: #444; --web: #b5651d; --internal: #999;
-    --fail: #c0392b; --ok: #2e7d32; --warn: #b26a00; --accent: #1f4e79; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #151514; --panel: #1f1f1d; --text: #ecebe6; --muted: #a09f98; --line: #34332f; --shell: #bbb; --accent: #8ab4f8; } }
+  :root { --bg: #f6f6f4; --panel: #fff; --text: #1c1c1a; --muted: #6d6d67; --line: #e4e3de; --soft: #f0efeb;
+    --accent: #1f4e79; --user: #1f4e79; --figma: #7b61ff; --browser: #0a7ea4; --files: #5f6b3a; --shell: #4a4a48; --web: #b5651d;
+    --fail: #c0392b; --ok: #2e7d32; --warn: #b26a00; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #141413; --panel: #1d1d1b; --text: #ecebe6; --muted: #a3a29b; --line: #33322e; --soft: #262623; --accent: #8ab4f8; --user: #2d5d8f; --shell: #bbb; } }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, sans-serif; }
-  header { position: sticky; top: 0; z-index: 1; padding: 16px 20px; border-bottom: 1px solid var(--line); background: var(--panel); display: grid; gap: 10px; }
-  h1 { margin: 0; font-size: 17px; }
-  .goal { display: flex; gap: 8px; align-items: stretch; }
-  textarea { flex: 1; min-height: 56px; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); resize: vertical; }
-  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
-  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  select { font: inherit; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--text); max-width: 360px; }
-  .status { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; color: var(--muted); }
-  .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; white-space: nowrap; }
-  .now { color: var(--text); font-weight: 600; }
-  main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; padding: 16px 20px; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
-  .panel h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-  aside { display: grid; gap: 12px; align-content: start; position: sticky; top: 190px; max-height: calc(100vh - 205px); overflow: auto; }
-  #timeline { display: grid; gap: 2px; }
-  .ev { display: grid; grid-template-columns: 70px 96px minmax(0, 1fr); gap: 8px; padding: 4px 6px; border-radius: 6px; align-items: baseline; }
-  .ev .t { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
-  .ev .s { overflow-wrap: anywhere; }
-  .ev.result .s, .ev.note .s { color: var(--muted); font-size: 13px; }
-  .ev.result, .ev.note { padding-left: 24px; }
-  .ev.failure { background: color-mix(in srgb, var(--fail) 10%, transparent); }
-  .ev.recovery { background: color-mix(in srgb, var(--ok) 10%, transparent); }
-  .ev.done, .ev.completed { background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 600; }
-  .ev.goal { font-weight: 600; }
-  .ev.observation .s, .ev.decision .s, .ev.plan .s, .ev.verification .s { font-weight: 500; }
-  .type-plan { color: var(--accent); } .type-observation { color: var(--browser); } .type-decision { color: var(--figma); }
-  .type-failure { color: var(--fail); } .type-recovery { color: var(--ok); } .type-verification { color: var(--ok); }
-  .type-artifact { color: var(--files); } .type-done, .type-completed { color: var(--accent); } .type-tool, .type-result, .type-note, .type-start, .type-goal { color: var(--muted); }
-  .env-Figma { color: var(--figma); } .env-Browser { color: var(--browser); } .env-Files { color: var(--files); } .env-Shell { color: var(--shell); } .env-Web { color: var(--web); } .env-Internal { color: var(--internal); }
-  ul { margin: 0; padding-left: 18px; } li { margin: 3px 0; overflow-wrap: anywhere; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, sans-serif; display: grid; grid-template-columns: 250px minmax(0, 1fr) 300px; }
+  @media (max-width: 1100px) { body { grid-template-columns: 220px minmax(0, 1fr); } #activity { display: none; } }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.link { border: 0; background: none; padding: 2px 4px; color: var(--muted); }
+  button.link:hover { color: var(--text); }
+  h3 { margin: 14px 0 6px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .side { border-right: 1px solid var(--line); background: var(--panel); padding: 12px; overflow: auto; }
+  #activity { border-left: 1px solid var(--line); background: var(--panel); padding: 12px; overflow: auto; min-width: 0; overflow-wrap: anywhere; }
+  .chip { display: inline-block; padding: 0 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; border: 1px solid currentColor; white-space: nowrap; line-height: 18px; }
+  .env-Figma { color: var(--figma); } .env-Browser { color: var(--browser); } .env-Files { color: var(--files); } .env-Shell { color: var(--shell); } .env-Web { color: var(--web); } .env-Internal { color: var(--muted); }
+  .st-idle { color: var(--muted); } .st-starting, .st-running { color: var(--warn); } .st-waiting { color: var(--accent); } .st-finished { color: var(--ok); } .st-stopped, .st-interrupted { color: var(--muted); } .st-failed { color: var(--fail); }
+  .prompt, .runitem { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; margin: 5px 0; cursor: pointer; }
+  .prompt:hover, .runitem:hover { background: var(--soft); }
+  .runitem.sel { border-color: var(--accent); }
+  .prompt .t { font-weight: 600; display: flex; gap: 4px; align-items: center; }
+  .prompt .t span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .star { color: var(--warn); }
+  .runitem .p { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .runitem .m { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 2px; }
+  main { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; height: 100vh; grid-template-columns: minmax(0, 1fr); }
+  body { overflow: hidden; }
+  .bar { display: flex; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  .bar .title { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #chat { min-width: 0; overflow: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .msg { max-width: min(760px, 92%); padding: 9px 13px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.user { align-self: flex-end; background: var(--user); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.worker { align-self: flex-start; background: var(--panel); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg .tag { font-weight: 700; font-size: 11.5px; letter-spacing: .03em; }
+  .tag-PLAN { color: var(--accent); } .tag-OBSERVATION { color: var(--browser); } .tag-DECISION { color: var(--figma); } .tag-FAILURE { color: var(--fail); }
+  .tag-RECOVERY, .tag-VERIFICATION { color: var(--ok); } .tag-ARTIFACT { color: var(--files); } .tag-DONE { color: var(--accent); }
+  .op { align-self: flex-start; font: 12.5px/1.45 ui-monospace, Consolas, monospace; color: var(--muted); padding: 1px 4px 1px 10px; border-left: 2px solid var(--line); max-width: 100%; overflow-wrap: anywhere; }
+  .op.failure { color: var(--fail); border-left-color: var(--fail); }
+  .op.sys { font-family: system-ui, sans-serif; font-style: italic; }
+  .op .res { display: block; opacity: .75; }
   .empty { color: var(--muted); font-style: italic; }
-  .envs { display: flex; flex-wrap: wrap; gap: 6px; }
-  label.toggle { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13px; }
+  .composer { border-top: 1px solid var(--line); background: var(--panel); padding: 10px 16px; display: grid; gap: 6px; }
+  .composer .row { display: flex; gap: 8px; align-items: flex-end; }
+  textarea { flex: 1; font: inherit; min-height: 44px; max-height: 200px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); resize: vertical; }
+  .hint { color: var(--muted); font-size: 12px; }
+  #now { font-weight: 600; min-height: 21px; }
+  ul { margin: 0; padding-left: 16px; } li { margin: 3px 0; overflow-wrap: anywhere; font-size: 13px; }
   a { color: var(--accent); }
+  label.toggle { font-size: 12px; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; }
 </style>
 </head>
 <body>
-<header>
-  <h1>AI Worker <span style="font-weight:400;color:var(--muted)">— local research view</span></h1>
-  <div class="goal">
-    <textarea id="goal" placeholder="Describe a goal, e.g. “Produce an implementation package for the Home Screen frame in Test Scripter.”"></textarea>
-    <div style="display:grid;gap:6px"><button class="primary" id="start">Start worker</button><button id="stop">Stop</button></div>
-  </div>
-  <div class="status">
-    <span id="state" class="chip">Idle</span>
-    <span>Now: <span id="now" class="now">—</span></span>
-    <span id="clock"></span>
-    <span id="counts"></span>
-    <span style="margin-left:auto">Run: <select id="runs"></select></span>
-    <label class="toggle"><input type="checkbox" id="showTools" checked> show tool calls</label>
-  </div>
-</header>
+<aside class="side">
+  <button class="primary" id="newRun" style="width:100%">+ New run</button>
+  <h3>Saved prompts</h3>
+  <div id="prompts"><div class="empty">none saved</div></div>
+  <h3>Runs</h3>
+  <div id="runs"><div class="empty">no runs yet</div></div>
+</aside>
+
 <main>
-  <section class="panel"><h2>Timeline</h2><div id="timeline"><div class="empty">Start a worker or pick a past run.</div></div></section>
-  <aside>
-    <div class="panel"><h2>Environments</h2><div id="envs" class="envs"><span class="empty">none yet</span></div></div>
-    <div class="panel"><h2>Findings &amp; decisions</h2><ul id="findings"><li class="empty">none yet</li></ul></div>
-    <div class="panel"><h2>Failures &amp; recovery</h2><ul id="failures"><li class="empty">none</li></ul></div>
-    <div class="panel"><h2>Artifacts</h2><ul id="artifacts"><li class="empty">none yet</li></ul></div>
-    <div class="panel"><h2>Result</h2><div id="result" class="empty">not finished</div></div>
-  </aside>
+  <div class="bar">
+    <span id="status" class="chip st-idle">idle</span>
+    <span class="title" id="runTitle">New run</span>
+    <label class="toggle"><input type="checkbox" id="showOps" checked> activity in chat</label>
+    <button id="stopBtn" title="Kill the worker process">Stop</button>
+    <button id="endBtn" title="Close the conversation cleanly">End run</button>
+    <button id="restartBtn" title="New run with this run's first message">Restart</button>
+  </div>
+  <div id="chat"><div class="empty" id="chatEmpty">Describe a goal and press Enter. The worker runs only when you send.</div></div>
+  <div class="composer">
+    <div class="row">
+      <textarea id="input" placeholder="Message the worker…"></textarea>
+      <div style="display:grid;gap:6px">
+        <button class="primary" id="send">Start worker</button>
+        <button id="save" title="Save this text to your prompts">☆ Save prompt</button>
+      </div>
+    </div>
+    <div class="hint" id="hint">Enter to send · Shift+Enter for a new line</div>
+  </div>
 </main>
+
+<aside id="activity">
+  <h3 style="margin-top:0">Now</h3>
+  <div id="now" class="empty">—</div>
+  <h3>Environments</h3>
+  <div id="envs"><span class="empty">none yet</span></div>
+  <h3>Findings &amp; decisions</h3>
+  <ul id="findings"><li class="empty">none yet</li></ul>
+  <h3>Failures &amp; recovery</h3>
+  <ul id="failures"><li class="empty">none</li></ul>
+  <h3>Artifacts</h3>
+  <ul id="artifacts"><li class="empty">none yet</li></ul>
+  <h3>Result</h3>
+  <div id="result" class="empty">—</div>
+</aside>
+
 <script>
 const $ = (id) => document.getElementById(id);
-let es, state, t0, clockTimer;
-const reset = () => {
-  state = { envs: {}, tools: 0, failures: 0, recoveries: 0, artifacts: new Set(), done: null, completed: null, first: true };
-  for (const id of ["timeline", "findings", "failures", "artifacts", "envs"]) $(id).innerHTML = "";
-  $("result").textContent = "not finished"; $("result").className = "empty"; $("now").textContent = "—";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const api = async (method, path, data) => {
+  const r = await fetch(path, { method, headers: { "content-type": "application/json" }, body: data ? JSON.stringify(data) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
 };
-const time = (ts) => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
-const LABEL = { goal: "Goal", start: "Start", tool: "Action", result: "↳ result", failure: "Failure", artifact: "Artifact", completed: "Finished",
-  plan: "Plan", observation: "Observed", decision: "Decision", recovery: "Recovery", verification: "Verified", done: "Done", note: "Note" };
-function item(listId, html) { const ul = $(listId); if (ul.querySelector(".empty")) ul.innerHTML = ""; const li = document.createElement("li"); li.innerHTML = html; ul.appendChild(li); }
-function setState(text, color) { $("state").textContent = text; $("state").style.color = color || ""; }
-function counts() { $("counts").textContent = `${state.tools} actions · ${state.failures} failures · ${state.recoveries} recoveries`; }
+let selected = null;   // run id being viewed (null = composing a new run)
+let meta = null;
+let es = null;
+let S = {};
+const RESUMABLE = ["finished", "stopped", "failed", "interrupted"];
+
+// ---------------- status + controls ----------------
+function setStatus(st) {
+  $("status").textContent = st; $("status").className = `chip st-${st}`;
+  const alive = ["starting", "running", "waiting"].includes(st);
+  $("stopBtn").disabled = !alive;
+  $("endBtn").disabled = st !== "waiting";
+  $("restartBtn").disabled = !selected || alive;
+  const send = $("send");
+  if (!selected) { send.textContent = "Start worker"; send.disabled = false; $("hint").textContent = "Enter to send · Shift+Enter for a new line · starts a new worker"; }
+  else if (st === "waiting") { send.textContent = "Send"; send.disabled = false; $("hint").textContent = "Follow-up goes to the same worker process (same context, same browser/MCP session)."; }
+  else if (st === "starting" || st === "running") { send.textContent = "Working…"; send.disabled = true; $("hint").textContent = "The worker is busy with this message. Wait for it, or Stop it."; }
+  else if (RESUMABLE.includes(st) && meta?.sessionId) { send.textContent = "Resume & send"; send.disabled = false; $("hint").textContent = "Resumes this conversation in a NEW worker process: context is kept; browser pages and logins are not (Figma and files are unaffected)."; }
+  else { send.textContent = "Send"; send.disabled = true; $("hint").textContent = "This run can't take messages (no saved session). Start a new run."; }
+}
+
+// ---------------- chat rendering ----------------
+function add(el) { $("chatEmpty")?.remove(); const c = $("chat"); const atEnd = c.scrollHeight - c.scrollTop - c.clientHeight < 80; c.appendChild(el); if (atEnd) c.scrollTop = c.scrollHeight; }
+function node(cls, html) { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; return d; }
+function renderReply(text) {
+  return esc(text).split("\n").map((l) => {
+    const m = /^(\s*[-*•]?\s*\**)(PLAN|OBSERVATION|DECISION|FAILURE|RECOVERY|VERIFICATION|ARTIFACT|DONE):\**/i.exec(l);
+    return m ? `${m[1].replace(/\*/g, "")}<span class="tag tag-${m[2].toUpperCase()}">${m[2].toUpperCase()}</span>${l.slice(m[0].length)}` : l;
+  }).join("\n");
+}
+function listItem(id, html) { const ul = $(id); if (ul.querySelector(".empty")) ul.innerHTML = ""; const li = document.createElement("li"); li.innerHTML = html; ul.appendChild(li); }
+const isLegacyText = (ev) => ev.type === "note" && !/^(worker (process exited|stderr)|unparsed|Resuming|Stopped by)/.test(ev.summary);
 
 function onEvent(ev) {
-  if (state.first) { state.first = false; $("timeline").innerHTML = ""; }
-  if (ev.type === "goal") { t0 = new Date(ev.ts); $("goal").value = ev.summary; }
-  const row = document.createElement("div");
-  row.className = `ev ${ev.type}`;
-  row.dataset.kind = ev.type === "tool" || ev.type === "result" ? "tool" : "key";
-  const env = ev.env ? ` <span class="chip env-${ev.env}">${ev.env}</span>` : "";
-  row.innerHTML = `<span class="t">${time(ev.ts)}</span><span class="type-${ev.type}"><b>${LABEL[ev.type] || ev.type}</b></span><span class="s">${esc(ev.summary)}${ev.type === "tool" ? env : ""}${ev.detail && ev.type !== "completed" ? ` <span style="color:var(--muted)">(${esc(ev.detail)})</span>` : ""}</span>`;
-  if (!$("showTools").checked && row.dataset.kind === "tool") row.style.display = "none";
-  $("timeline").appendChild(row);
-  row.scrollIntoView({ block: "nearest" });
-
-  if (ev.type === "tool") {
-    state.tools++; state.envs[ev.env] = (state.envs[ev.env] || 0) + 1;
-    $("now").innerHTML = `<span class="chip env-${ev.env}">${ev.env}</span> ${esc(ev.summary)}`;
-    $("envs").innerHTML = Object.entries(state.envs).map(([e, n]) => `<span class="chip env-${e}">${e} · ${n}</span>`).join("");
-  }
-  if (["plan", "observation", "decision", "verification"].includes(ev.type)) {
-    item("findings", `<b class="type-${ev.type}">${LABEL[ev.type]}:</b> ${esc(ev.summary)}`);
-    if (ev.type !== "verification") $("now").textContent = ev.summary;
-  }
-  if (ev.type === "failure") { state.failures++; item("failures", `<b class="type-failure">${ev.tool ? esc(ev.tool) + " failed" : "Failure"}:</b> ${esc(ev.summary)}`); }
-  if (ev.type === "recovery") { state.recoveries++; item("failures", `<b class="type-recovery">Recovery:</b> ${esc(ev.summary)}`); }
-  if (ev.type === "artifact") {
-    const path = ev.summary.trim();
-    if (!state.artifacts.has(path)) { state.artifacts.add(path); item("artifacts", `<a href="/file?path=${encodeURIComponent(path)}" target="_blank">${esc(path)}</a>`); }
-  }
-  if (ev.type === "done") { state.done = ev.summary; setState("Done (worker's claim)", "var(--accent)"); }
-  if (ev.type === "completed") {
+  const t = ev.type;
+  if (t === "user" || t === "goal") add(node("msg user", esc(ev.summary)));
+  else if (t === "reply" || isLegacyText(ev)) add(node("msg worker", renderReply(ev.summary))); // legacy runs stored worker text as per-line notes
+  else if (t === "tool") {
+    const d = node("op tool", `<span class="chip env-${ev.env}">${ev.env}</span> ${esc(ev.summary)}`);
+    d.dataset.op = 1; if (!$("showOps").checked) d.style.display = "none"; add(d); S.lastTool = d;
+    S.envs[ev.env] = (S.envs[ev.env] || 0) + 1;
+    $("envs").innerHTML = Object.entries(S.envs).map(([e, n]) => `<span class="chip env-${e}">${e} · ${n}</span>`).join(" ");
+    $("now").className = ""; $("now").innerHTML = `<span class="chip env-${ev.env}">${ev.env}</span> ${esc(ev.summary)}`;
+  } else if (t === "result" && S.lastTool) {
+    S.lastTool.insertAdjacentHTML("beforeend", `<span class="res">↳ ${esc(ev.summary)}</span>`);
+  } else if (t === "failure") {
+    add(node("op failure", `✕ ${ev.tool ? esc(ev.tool) + " failed: " : ""}${esc(ev.summary)}`));
+    listItem("failures", `<b style="color:var(--fail)">${ev.tool ? esc(ev.tool) + " failed" : "Failure"}:</b> ${esc(ev.summary)}`);
+  } else if (t === "recovery") listItem("failures", `<b style="color:var(--ok)">Recovery:</b> ${esc(ev.summary)}`);
+  else if (["plan", "observation", "decision", "verification"].includes(t)) {
+    listItem("findings", `<b>${t[0].toUpperCase() + t.slice(1)}:</b> ${esc(ev.summary)}`);
+    if (t !== "verification") { $("now").className = ""; $("now").textContent = ev.summary; }
+  } else if (t === "artifact") {
+    if (!S.arts.has(ev.summary)) { S.arts.add(ev.summary); listItem("artifacts", `<a href="/file?path=${encodeURIComponent(ev.summary)}" target="_blank">${esc(ev.summary)}</a>`); }
+  } else if (t === "done") S.done = ev.summary;
+  else if (t === "completed") {
     const d = JSON.parse(ev.detail || "{}");
-    state.completed = d;
-    $("now").textContent = "— (finished)";
-    setState(ev.summary.includes("error") ? "Stopped with error" : state.done ? "Done — process finished" : "Process finished (no DONE claim)", ev.summary.includes("error") ? "var(--fail)" : "var(--ok)");
-    $("result").className = "";
-    $("result").innerHTML = `${state.done ? `<p><b>Worker's summary:</b> ${esc(state.done)}</p>` : `<p class="empty">The worker never claimed DONE.</p>`}
-      <p style="color:var(--muted)">${d.turns} turns · ${d.seconds}s${d.costUsd != null ? ` · $${d.costUsd.toFixed(2)}` : ""}</p>`;
-    clearInterval(clockTimer);
-  }
-  if (ev.type === "start") setState("Running", "var(--warn)");
-  counts();
+    add(node("op sys", `${esc(ev.summary)} · ${d.turns ?? "?"} steps · ${d.seconds ?? "?"}s${d.costUsd != null ? ` · $${Number(d.costUsd).toFixed(2)}` : ""}`));
+    $("result").className = ""; $("result").innerHTML = S.done ? `<b>Worker's claim:</b> ${esc(S.done)}` : `<span class="empty">no DONE claim yet</span>`;
+  } else if (t === "status") {
+    setStatus(ev.summary);
+    // The session id arrives after the run opens; refresh meta so Resume sees it.
+    if (selected && RESUMABLE.includes(ev.summary)) { const id = selected; api("GET", `/runs/${id}`).then((m) => { if (selected === id) { meta = m; setStatus(m.status); } }); }
+    if (["finished", "stopped", "failed"].includes(ev.summary)) { $("now").className = "empty"; $("now").textContent = `— (${ev.summary})`; add(node("op sys", `Worker ${ev.summary}${ev.detail ? ": " + esc(ev.detail) : ""}`)); refreshRuns(); }
+    if (ev.summary === "waiting") { $("now").className = "empty"; $("now").textContent = "— waiting for your next message"; refreshRuns(); }
+  } else if (t === "start") add(node("op sys", `${esc(ev.summary)}${ev.detail ? " · " + esc(ev.detail) : ""}`));
+  else if (t === "note" && ev.summary.startsWith("Resuming")) add(node("op sys", esc(ev.summary)));
 }
 
-function watchRun(id) {
+function resetView() {
+  S = { envs: {}, arts: new Set(), done: null, lastTool: null };
+  $("chat").innerHTML = ""; $("envs").innerHTML = '<span class="empty">none yet</span>';
+  for (const [id, e] of [["findings", "none yet"], ["failures", "none"], ["artifacts", "none yet"]]) $(id).innerHTML = `<li class="empty">${e}</li>`;
+  $("now").className = "empty"; $("now").textContent = "—"; $("result").className = "empty"; $("result").textContent = "—";
+}
+async function openRun(id) {
   if (es) es.close();
-  clearInterval(clockTimer);
-  reset(); counts();
+  selected = id; resetView();
+  meta = await api("GET", `/runs/${id}`);
+  $("runTitle").textContent = meta.prompt;
+  setStatus(meta.status);
   es = new EventSource(`/events?run=${id}`);
   es.onmessage = (m) => onEvent(JSON.parse(m.data));
-  clockTimer = setInterval(() => { if (t0 && !state.completed) $("clock").textContent = `${Math.round((Date.now() - t0) / 1000)}s`; }, 1000);
+  highlightRun();
 }
-async function loadRuns(select) {
-  const { runs, active } = await (await fetch("/runs")).json();
-  $("runs").innerHTML = runs.map((r) => `<option value="${r.id}">${r.id.slice(0, 19).replace("T", " ")} — ${esc(r.goal.slice(0, 50))}</option>`).join("");
-  const pick = select || active || runs[0]?.id;
-  if (pick) { $("runs").value = pick; watchRun(pick); }
+function newRunView() {
+  if (es) es.close();
+  selected = null; meta = null; resetView();
+  $("chat").innerHTML = '<div class="empty" id="chatEmpty">Describe a goal and press Enter. The worker runs only when you send.</div>';
+  $("runTitle").textContent = "New run"; setStatus("idle"); highlightRun(); $("input").focus();
 }
-$("runs").onchange = () => watchRun($("runs").value);
-$("showTools").onchange = () => document.querySelectorAll('[data-kind="tool"]').forEach((r) => (r.style.display = $("showTools").checked ? "" : "none"));
-$("start").onclick = async () => {
-  const r = await fetch("/run", { method: "POST", body: JSON.stringify({ goal: $("goal").value }) });
-  const j = await r.json();
-  if (j.error) return alert(j.error);
-  loadRuns(j.id);
+
+// ---------------- sending (the only way anything executes) ----------------
+async function send() {
+  const text = $("input").value.trim();
+  if (!text || $("send").disabled) return;
+  try {
+    if (!selected) { const m = await api("POST", "/runs", { prompt: text }); $("input").value = ""; await refreshRuns(); await openRun(m.id); }
+    else { await api("POST", `/runs/${selected}/message`, { text }); $("input").value = ""; meta = await api("GET", `/runs/${selected}`); }
+  } catch (e) { $("hint").textContent = "⚠ " + e.message; }
+}
+$("send").onclick = send;
+$("input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+$("stopBtn").onclick = () => selected && api("POST", `/runs/${selected}/stop`);
+$("endBtn").onclick = () => selected && api("POST", `/runs/${selected}/end`);
+$("restartBtn").onclick = async () => { if (!selected) return; try { const m = await api("POST", `/runs/${selected}/restart`); await refreshRuns(); openRun(m.id); } catch (e) { $("hint").textContent = e.message; } };
+$("newRun").onclick = newRunView;
+$("showOps").onchange = () => document.querySelectorAll("[data-op]").forEach((d) => (d.style.display = $("showOps").checked ? "" : "none"));
+
+// ---------------- saved prompts ----------------
+// No native dialogs: explicit inline controls. A plain click only fills the input; only ▶ or Send executes.
+let editing = null, confirmDel = null;
+async function refreshPrompts() {
+  const ps = (await api("GET", "/prompts")).sort((a, b) => (b.favourite - a.favourite) || a.title.localeCompare(b.title));
+  $("prompts").innerHTML = ps.length ? "" : '<div class="empty">none saved</div>';
+  for (const p of ps) {
+    const d = document.createElement("div");
+    d.className = "prompt"; d.dataset.id = p.id;
+    if (editing === p.id) {
+      d.innerHTML = `<input class="ptitle" value="${esc(p.title)}" style="width:100%;font:inherit;font-weight:600;margin-bottom:4px">
+        <textarea class="ptext" style="width:100%;min-height:90px">${esc(p.text)}</textarea>
+        <div style="display:flex;gap:6px;margin-top:4px"><button class="primary" data-a="saveEdit">Save</button><button data-a="cancel">Cancel</button></div>`;
+    } else {
+      d.innerHTML = `<div class="t"><button class="link star" data-a="fav" title="Favourite">${p.favourite ? "★" : "☆"}</button><span title="${esc(p.text)}">${esc(p.title)}</span>
+        <button class="link" data-a="run" title="Start a new run with this prompt">▶</button><button class="link" data-a="edit" title="Edit">✎</button>
+        <button class="link" data-a="del" title="Delete" ${confirmDel === p.id ? 'style="color:var(--fail)"' : ""}>${confirmDel === p.id ? "delete?" : "✕"}</button></div>`;
+    }
+    d.onclick = async (e) => {
+      const a = e.target.dataset.a;
+      if (editing === p.id) {
+        if (a === "saveEdit") { await api("PUT", `/prompts/${p.id}`, { title: d.querySelector(".ptitle").value.trim() || p.title, text: d.querySelector(".ptext").value.trim() || p.text }); editing = null; return refreshPrompts(); }
+        if (a === "cancel") { editing = null; return refreshPrompts(); }
+        return;
+      }
+      if (a === "fav") return api("PUT", `/prompts/${p.id}`, { favourite: !p.favourite }).then(refreshPrompts);
+      if (a === "edit") { editing = p.id; confirmDel = null; return refreshPrompts(); }
+      if (a === "del") { if (confirmDel === p.id) { confirmDel = null; await api("DELETE", `/prompts/${p.id}`); } else confirmDel = p.id; return refreshPrompts(); }
+      if (a === "run") { newRunView(); $("input").value = p.text; return send(); }
+      confirmDel = null; $("input").value = p.text; $("input").focus();
+    };
+    $("prompts").appendChild(d);
+  }
+}
+$("save").onclick = async () => {
+  const text = $("input").value.trim();
+  if (!text) { $("hint").textContent = "Type or paste a prompt first, then save it."; return; }
+  const p = await api("POST", "/prompts", { title: text.slice(0, 60), text });
+  $("hint").textContent = `Saved as "${p.title}". Rename it with ✎. Saving never starts a run.`;
+  refreshPrompts();
 };
-$("stop").onclick = () => fetch("/stop", { method: "POST" });
-reset(); loadRuns();
+
+// ---------------- run history ----------------
+async function refreshRuns() {
+  const { runs } = await api("GET", "/runs");
+  $("runs").innerHTML = runs.length ? "" : '<div class="empty">no runs yet</div>';
+  for (const r of runs) {
+    const envs = Object.keys(r.envs || {}).filter((e) => e !== "Internal").map((e) => `<span class="chip env-${e}">${e}</span>`).join("");
+    const d = node("runitem", `<div class="p">${esc(r.prompt)}</div><div class="m"><span class="chip st-${r.status}">${r.status}</span>
+      ${new Date(r.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
+      ${envs} ${r.artifacts?.length ? `· ${r.artifacts.length} file${r.artifacts.length > 1 ? "s" : ""}` : ""} ${r.failures ? `· <span style="color:var(--fail)">${r.failures} failures</span>` : ""}</div>`);
+    d.dataset.id = r.id; d.onclick = () => openRun(r.id);
+    $("runs").appendChild(d);
+  }
+  highlightRun();
+}
+function highlightRun() { document.querySelectorAll(".runitem").forEach((d) => d.classList.toggle("sel", d.dataset.id === selected)); }
+
+(async () => { await refreshPrompts(); const { active } = await api("GET", "/runs"); await refreshRuns(); active ? openRun(active) : newRunView(); })();
 </script>
 </body>
 </html>

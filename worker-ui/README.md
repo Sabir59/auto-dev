@@ -1,37 +1,49 @@
-# Worker UI — minimal local view of the AI worker
+# Worker Console — local chat front-end for the AI worker
 
 ```
-User → Worker UI (this folder) → AI worker (headless Claude Code) → MCP / built-in tools → Figma, Browser, Files, Web
+User → Worker Console (this folder) → existing Claude Code worker (headless) → existing MCP + built-in tools → Figma / Browser / Files / Web
 ```
 
-Run `node worker-ui/server.mjs`, open http://localhost:8799, enter a goal, and click **Start worker**.
+Run `node worker-ui/server.mjs`, then open http://localhost:8799. The terminal is only needed to start the server.
 
 ## What it is, and isn't
-- **The worker is unchanged.** It's the same Claude Code agent loop that ran B1–B6, started headless in this repo (`claude -p --output-format stream-json`) with this repo's `.mcp.json`. The UI does no reasoning, runs no tools and does no orchestration. It starts the process with the goal (on stdin), reads the worker's own event stream, and shows it.
-- **Nothing else changed:** `plugin/`, `bridge/`, `mcp/`, `browser-adapter/`, `.mcp.json` and `worker/` are untouched.
+The console is a **control surface and observer**. It never plans, never calls Figma or the browser, and duplicates no MCP logic. Every action on screen is the worker's own, taken from the worker's own output stream. Nothing under `plugin/`, `bridge/`, `mcp/`, `browser-adapter/`, `.mcp.json` or `worker/` changed.
 
-## Where the events come from
-| Event | Source |
-|---|---|
-| `start` | the stream's `system/init` (includes MCP server status) |
-| `tool` (+ `env`) | each `tool_use` block; `env` comes from the tool name: `figma-executor` → Figma, `browser-executor` → Browser, file tools → Files, shell → Shell, web tools → Web. `ToolSearch` (schema loading) is hidden as plumbing. |
-| `result` / `failure` | each `tool_result`; `is_error` → `failure` |
-| `artifact` | a `Write`/`Edit` tool call, or a tagged `ARTIFACT:` line |
-| `plan` `observation` `decision` `recovery` `verification` `done` | the worker's visible narration, one line per tag. `worker-instructions.md` (appended to its system prompt) asks it to prefix report lines with these tags. Untagged narration becomes `note`. Hidden reasoning isn't exposed. |
-| `completed` | the stream's final `result` (turns, seconds, cost, final text) |
+## How it works
+- **Start:** `claude -p --input-format stream-json --output-format stream-json` in this repo, with `--mcp-config .mcp.json --strict-mcp-config`, the reporting convention in `worker-instructions.md`, and a fixed tool scope (`ALLOWED` in `server.mjs`). The real `claude.exe` is launched directly (no shell), so Stop kills the worker itself.
+- **Messages:** each chat message is written to the worker's stdin as a stream-json `user` line.
+- **Follow-ups** (status `waiting`) go to the **same process**: same context, same MCP servers, same browser page and logins.
+- **Resume** (status `stopped` / `finished` / `failed` / `interrupted`) starts a **new process** with `--resume <session_id>`. The conversation context is kept. Tool processes are new, so browser pages and logins are gone; Figma and files are unaffected. The UI says this before you send.
+- **Stop** kills the process. **End run** closes stdin, and the worker exits cleanly. **Restart** starts a new run with the same first message.
+- **Events:** the worker's stream becomes `{ts, type, env?, tool?, summary, detail?}` lines in `runs/<id>.jsonl` (raw stream in `.raw.jsonl`), streamed to the page over SSE. `user`/`reply` are the conversation; `tool`/`result`/`failure`/`status` are operational; tagged lines (`PLAN:` … `DONE:`) become findings.
+- **History:** `runs/<id>.meta.json` holds the prompt, status, session id, environments used, artifacts, failures, the DONE claim and cost.
+- **Prompts:** `prompts.json` (save, favourite, edit, delete). A click only fills the input; nothing runs until you press Send or ▶.
 
-Contract: one JSON object per line, `{ ts, type, env?, tool?, summary, detail? }`, stored in `runs/<id>.jsonl` (the raw stream is in `runs/<id>.raw.jsonl`). The page subscribes over Server-Sent Events (`/events?run=<id>`), which replays the file and then streams live, so any past run can be reopened from the **Run** menu.
+Statuses: `idle`, `starting`, `running`, `waiting` (turn done, awaiting a follow-up), `finished`, `stopped`, `failed`, `interrupted` (the server restarted under a live run; resumable).
 
-## First proof run (`runs/2026-09-30T08-55-02-185Z.jsonl`)
-The B4 goal, started from the UI by typing into it, run by a fresh worker session with no memory of B4, and watched live:
-- **Plan** → browser login → **Decision** (`standard_user`; the other accounts exist to show bugs) → catalogue → cart → **Verification** (the cart holds exactly the 3 planned items) → checkout → finish.
-- **Real failures, not staged:** the UI's permission scope allows only `node`/`curl` in the shell, so the worker's `mkdir`/`cp` were blocked 4 times. The worker named the layer ("a permission layer blocked…"), recovered by writing the report with the file tool, and **reported the one thing it couldn't do** (copying the screenshots into the deliverable).
-- **Result:** the same order as B4 (Backpack + Bike Light + Bolt T-Shirt, $55.97 + $4.48 = $60.45, Onesie excluded as an infant garment), with its own arithmetic check. Deliverable: `deliverables/b4-ui-run/REPORT.md`. 30 actions, about 2.5 min.
-- **Integrity visible in the UI:** the goal told it not to read the previous answer, and the timeline shows no read of `docs/benchmarks.md` or `deliverables/b4-saucedemo-order/`.
+## First proof (2026-09-30), done entirely in the console through the browser
+1. **Saved the prompt before sending.** It was stored, and no run started (`active: null`).
+2. **Run `09-57-47`:** the expense-portal report task.
+   - The worker used Browser, Shell and Files, and hit 3 real shell-permission blocks (redirection, variable expansion, a PowerShell expression).
+   - It tagged them itself as "tool layer, not the portal", recovered, and cross-checked the total two ways (£185.24).
+   - It wrote `deliverables/console-proof/claims-report.md`, and said it couldn't prove the list was complete (an unopened `?page=2`).
+3. **Follow-up in the same run:** "open that ?page=2 result…".
+   - It stayed in the same process (1 process start, 0 resumes), and the browser was still logged in (no re-login), so the MCP session carried over.
+   - The worker showed `page` is ignored (byte-identical responses) and updated the report.
+   - **End run** → `finished` (exit 0).
+4. **Run `10-02-27` started from the saved prompt (▶).** Then **Stop** mid-run: the worker PID was gone, with no leftover worker, MCP or browser processes.
+5. **Resume & send on the stopped run:** a second process on the same session. Asked without tools, the worker accurately stated the task and exactly how far it had got ("opened the sign-in page… haven't logged in… or changed that file"), which matches the event log.
 
-## Known limitations
-- **Semantic events depend on the tagging convention, and the worker only partly followed it.** It tagged the plan, one decision, one verification and DONE, but wrote its main decision (excluding the Onesie) and its arithmetic proof as untagged text at the end. Those show in the timeline as notes, not in "Findings & decisions". So "why did the next action happen?" is only as good as the worker's tagging.
-- **Permission scope is fixed** in `server.mjs` (`ALLOWED`): no `mkdir`/`cp` in the shell (it caused this run's failures), and no approval prompts in headless mode. Blocked calls fail visibly, but nobody can approve them live.
-- **One run at a time**, local only, no auth. By design, it's a research view.
-- The UI trusts the worker's `DONE:` claim only as a claim. The status reads "Done (worker's claim)" until the process actually exits.
-- The B5 limitation still applies: a silent browser relaunch shows up as a plausible-looking result.
+Found and fixed by using it:
+- the layout overflowed (long unbroken lines widened the grid column);
+- native dialogs are dismissed by automated browsers (replaced with inline controls);
+- stale client metadata disabled Resume;
+- worker scratch files were counted as artifacts (only repo files count now).
+
+## Limitations
+- **Semantic events rely on the tagging convention.** It was followed well in these runs, less so in the first B4 run. Untagged reasoning shows as chat text, not as findings.
+- **Fixed tool scope, and no live approval.** A blocked shell command fails visibly (it happened in every run here), but you can't approve it from the console.
+- **Enter-to-send** is implemented but wasn't exercised by the automated proof: the browser tools have no key press. It was clicked instead.
+- **A follow-up can't interrupt a busy turn.** Wait for `waiting`, or Stop.
+- **Resume can't restore a browser session.** Only the conversation is restored; the worker has to log in again.
+- One run at a time, local only, no auth. That's by design for now.
