@@ -1,0 +1,92 @@
+{
+  "$source": "Figma \"Test Scripter\" (RKIFhesaX0XrNL37ULYLcP), page Main, frame \"Home Screen\" (12007:3717), read 2026-09-30 via figma_get_screen_tree + figma_get_document_state (depth 6). Numbers are px. `pad` = [top, right, bottom, left].",
+  "$colorMapping": "Every colour is listed with its raw value. `token` = it equals this file's Theme/Primitive variable exactly. `bound` = Figma actually binds it to that variable (only the Send button). `ambiguous` = more than one token has this value. `raw` = no token has this value (off-palette).",
+
+  "colors": {
+    "screen-bg":        { "value": "#f7f6f3", "raw": true, "note": "close to neutral/50 #fcf9f2 but not equal" },
+    "text-strong":      { "value": "#18181a", "raw": true, "note": "headline and card title; this file's foreground is #002419" },
+    "text-muted":       { "value": "#78776f", "raw": true, "note": "subtitle and overline" },
+    "placeholder":      { "value": "#59605b", "token": "subtle-foreground" },
+    "border":           { "value": "#ebe8e1", "token": "border" },
+    "surface":          { "value": "#ffffff", "token": "card" },
+    "on-primary":       { "value": "#ffffff", "token": "primary-foreground" },
+    "primary":          { "value": "#163a2d", "token": "primary", "bound": true, "note": "Send button fill" },
+    "secondary":        { "value": "#f6f3ec", "token": "secondary" },
+    "on-secondary":     { "value": "#163a2d", "token": "secondary-foreground", "note": "Speak label/icon. Same value as primary." },
+    "nav-active":       { "value": "#163a2d", "ambiguous": ["primary", "secondary-foreground"] },
+    "nav-active-bg":    { "value": "#dbf4e8", "ambiguous": ["success-muted", "green/100"] },
+    "nav-inactive":     { "value": "#414844", "token": "muted-foreground" },
+    "status-warning":   { "value": "#d9790e", "raw": true, "note": "no orange exists in this palette" },
+    "legacy-button-bg": { "value": "#3d4ee8", "raw": true, "note": "blue; from the older `Button {Style=Primary}` component, not this design system" }
+  },
+
+  "shadows": {
+    "input-card":  { "css": "0 1px 2px 0 rgb(0 36 25 / 0.06)", "token": "shadow/sm" },
+    "active-card": { "css": "0 8px 24px 0 rgb(0 0 0 / 0.06)", "raw": true }
+  },
+
+  "fonts": {
+    "Georgia": { "source": "Google Fonts (also a system font on Windows/macOS)", "load": "family=Georgia:ital,wght@0,700;1,700", "fallback": "serif", "styles": ["Bold", "Bold Italic"], "note": "Load the web font so it renders where Georgia isn't installed (Linux/Android). Measured in Chromium: Google's Georgia 700 gives the same advance width as system Georgia (298.11px for \"What do you\" at 46px; generic serif: 253.08px)." },
+    "Inter": { "source": "Google Fonts", "weights": [400, 700] },
+    "Plus Jakarta Sans": { "source": "Google Fonts", "weights": [400, 500] }
+  },
+
+  "$lineHeight": "Figma uses AUTO line height (the font's own) for most text. Browsers compute 'normal' differently, so use the explicit px below, measured from Figma's text-box heights.",
+  "text": {
+    "headline":        { "font": "Georgia", "weight": 700, "size": 46, "lineHeight": 52, "color": "text-strong", "note": "two lines as two nodes: line 1 upright, line 2 italic (Bold Italic)" },
+    "subtitle":        { "font": "Inter", "weight": 400, "size": 14, "lineHeight": 17, "color": "text-muted" },
+    "input-placeholder": { "font": "Plus Jakarta Sans", "weight": 400, "size": 16, "lineHeight": 20, "color": "placeholder" },
+    "button-label":    { "font": "Plus Jakarta Sans", "weight": 500, "size": 16, "lineHeight": 20 },
+    "overline":        { "font": "Inter", "weight": 700, "size": 11, "lineHeight": 13, "letterSpacing": "1.2px", "color": "text-muted", "note": "text is typed in capitals; no text-transform" },
+    "card-title":      { "font": "Inter", "weight": 700, "size": 19, "lineHeight": 23, "color": "text-strong" },
+    "status":          { "font": "Inter", "weight": 400, "size": 14, "lineHeight": 17, "color": "status-warning" },
+    "legacy-button-label": { "font": "Inter", "weight": 700, "size": 14, "lineHeight": 17, "color": "on-primary" },
+    "nav-label":       { "font": "Plus Jakarta Sans", "weight": 500, "size": 12, "lineHeight": 16, "letterSpacing": "1%" }
+  },
+
+  "icons": {
+    "$note": "Exported from Figma; NOT Lucide (compared side by side with lucide-static in the browser: different shapes). Each SVG includes 1px stroke bleed per side: a 16px icon ships as 18x18, a 22px icon as 24x24. Place it at the icon box minus 1px on each side, e.g. a 16px icon at (x-1, y-1), size 18. Colour via CSS `color` (currentColor). Stroke 2px.",
+    "mic":   { "file": "icons/mic.svg",   "box": 16, "resembles": "lucide mic" },
+    "send":  { "file": "icons/send.svg",  "box": 16, "resembles": "lucide send" },
+    "house": { "file": "icons/house.svg", "box": 22, "resembles": "lucide house" },
+    "book":  { "file": "icons/book.svg",  "box": 22, "resembles": "lucide book-open" },
+    "user":  { "file": "icons/user.svg",  "box": 22, "resembles": "lucide user" }
+  },
+
+  "screen": {
+    "frame": { "w": 422, "h": 672, "fill": "screen-bg", "clipsContent": true, "layout": { "dir": "col", "gap": 24, "pad": [40, 24, 24, 24] } },
+    "children": [
+      { "n": "Header", "layout": { "dir": "col", "gap": 14 }, "w": 374, "children": [
+        { "n": "Headline", "children": [
+          { "text": "What do you", "style": "headline" },
+          { "text": "need help with?", "style": "headline", "italic": true }
+        ] },
+        { "text": "Tell me in plain language — I'll handle the rest.", "style": "subtitle" }
+      ] },
+      { "n": "Input Card", "w": 374, "fill": "surface", "radius": 24, "border": "1px border", "shadow": "input-card", "layout": { "dir": "col", "gap": 16, "pad": [20, 20, 20, 20] }, "children": [
+        { "text": "I need to apply for a Brazilian tourist visa…", "style": "input-placeholder", "note": "placeholder copy; in code this is a text input/textarea" },
+        { "n": "Input Actions Row", "layout": { "dir": "row", "main": "SPACE_BETWEEN", "cross": "CENTER" }, "children": [
+          { "n": "Speak", "comp": "DS/Button/Secondary", "h": 40, "pad": [10, 16, 10, 16], "gap": 8, "radius": 9999, "fill": "secondary", "label": { "text": "Speak", "style": "button-label", "color": "on-secondary" }, "icon": { "name": "mic", "after": "label", "color": "on-secondary" } },
+          { "n": "Send", "comp": "DS/Button/Primary", "h": 40, "pad": [10, 16, 10, 16], "gap": 8, "radius": 9999, "fill": "primary", "label": { "text": "Send", "style": "button-label", "color": "on-primary" }, "icon": { "name": "send", "after": "label", "color": "on-primary" } }
+        ] }
+      ] },
+      { "n": "Active Application Card", "w": 374, "fill": "surface", "radius": 24, "shadow": "active-card", "layout": { "dir": "col", "gap": 6, "pad": [20, 20, 20, 20] }, "children": [
+        { "text": "ACTIVE APPLICATION", "style": "overline" },
+        { "text": "Brazilian Tourist Visa", "style": "card-title" },
+        { "n": "Status Row", "layout": { "dir": "row", "main": "SPACE_BETWEEN", "cross": "CENTER" }, "children": [
+          { "text": "Waiting for 1 document", "style": "status" },
+          { "n": "Continue", "comp": "Button {Style=Primary} (legacy)", "h": 37, "pad": [10, 16, 10, 16], "radius": 999, "fill": "legacy-button-bg", "label": { "text": "Continue", "style": "legacy-button-label" }, "iconHidden": true }
+        ] }
+      ] },
+      { "n": "Bottom Nav", "abs": [0, 606], "w": 422, "h": 76, "fill": "surface", "border": "1px border", "layout": { "dir": "row", "pad": [8, 8, 8, 8] },
+        "$defect": "Ends at y=682, 10px past the 672px frame, so Figma clips its bottom padding and border.",
+        "children": [
+        { "n": "Home", "comp": "Nav Tab {State=Active}", "grow": 1, "layout": { "dir": "col", "gap": 4, "pad": [4, 0, 4, 0], "cross": "CENTER" }, "indicator": { "w": 56, "h": 30, "radius": 9999, "fill": "nav-active-bg" }, "icon": { "name": "house", "color": "nav-active" }, "label": { "text": "Home", "style": "nav-label", "color": "nav-active" } },
+        { "n": "Applications", "comp": "Nav Tab {State=Inactive}", "grow": 1, "layout": { "dir": "col", "gap": 4, "pad": [4, 0, 4, 0], "cross": "CENTER" }, "indicator": { "w": 56, "h": 30, "radius": 9999, "fill": null }, "icon": { "name": "book", "color": "nav-inactive" }, "label": { "text": "Applications", "style": "nav-label", "color": "nav-inactive" } },
+        { "n": "Profile", "comp": null, "$defect": "A plain frame copying Nav Tab {State=Inactive}, not an instance; use the component in code.", "grow": 1, "layout": { "dir": "col", "gap": 4, "pad": [4, 0, 4, 0], "cross": "CENTER" }, "indicator": { "w": 56, "h": 30, "radius": 9999, "fill": null }, "icon": { "name": "user", "color": "nav-inactive" }, "label": { "text": "Profile", "style": "nav-label", "color": "nav-inactive" } }
+      ] }
+    ]
+  },
+
+  "interactions": { "$source": "figma_get_prototype on page Main: no reactions are defined on Home Screen.", "items": [] }
+}

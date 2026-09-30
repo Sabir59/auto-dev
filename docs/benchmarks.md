@@ -133,7 +133,7 @@ The render showed section headings sitting 16px under the subtitle, the same as 
 
 ### Failures during the run
 
-1. **Figma lookup failure mode (natural, at the very first calls).** `GET_PROTOTYPE`/`GET_SCREEN_TREE` failed. Diagnosis: `figma_ping` OK; a nested text node resolved; instances and anything on another page failed. Main page `12002:3691` failed a direct lookup although `figma_list_pages` had just listed it → **it exists; the lookup is temporarily unavailable**. The common factor was resolving remote-library components or unloaded pages. Recovery attempts: a plugin reload via `touch plugin/code.js` (reloaded in ~2s, **didn't clear it**, which disproves the single B1 observation); a page switch through the API (failed). Checking Figma's own network connections from the OS was inconclusive. While blocked, the worker built `pixeldiff.mjs` (it doesn't depend on Figma) and then asked the human to look at the Figma window. **After a human action in the Figma UI, everything resolved.** Autonomous: detection, diagnosis, the missing-vs-unavailable call, and the attempted recoveries. Human: the actual fix.
+1. **Figma lookup failure mode (natural, at the very first calls).** `GET_PROTOTYPE`/`GET_SCREEN_TREE` failed. Diagnosis: `figma_ping` OK; a nested text node resolved; instances and anything on another page failed. Main page `12002:3691` failed a direct lookup although `figma_list_pages` had just listed it → **it exists; the lookup is temporarily unavailable**. The common factor was resolving remote-library components or unloaded pages. Recovery attempts: a plugin reload via `touch plugin/code.js` (reloaded in ~2s, **didn't clear it**, which disproves the single B1 observation); a page switch through the API (failed). Checking Figma's own network connections from the OS was inconclusive. While blocked, the worker built `pixeldiff.mjs` (it doesn't depend on Figma) and then asked the human to look at the Figma window. **After a human action in the Figma UI, everything resolved.** (The exact action wasn't reported. In B6 the same symptom was cleared by clicking the Main page tab.) Autonomous: detection, diagnosis, the missing-vs-unavailable call, and the attempted recoveries. Human: the actual fix.
 2. **A real capability gap (`GET_COMPONENT_TREE` on a variant).** Every instance's `mainComponentId` is a variant, and the tool crashed on variants (Figma forbids `componentPropertyDefinitions` on them). No other tool exposed the parent set, and the only fallback (`get_document_state`) gives raw hex and remote variable ids, which forces ambiguous guessing of tokens from colours. The fix is 1 line in `plugin/code.js` (a variant resolves to its parent set). Released as `figma-adapter-v0.2.1`.
 3. **Error-text bug:** `getNode`'s message printed `(undefined)` because Figma's thrown value had no `.message`. Fixed.
 
@@ -240,3 +240,47 @@ Inspected the login page → found the accepted accounts and password on the pag
 | Tool/adapter | The adapter process alive and returning structured errors (vs. MCP "unreachable") | No (healthy) |
 | Network/environment | Portal health check over a separate channel | No (healthy) |
 | Task/application | Would have been a 422 or error text in the page | Not triggered; the date was normalised in advance |
+
+## B6 — Multi-environment goal completion (2026-09-30)
+
+**Goal (fixed before the frame was inspected):** "Produce an implementation-ready frontend package for the **Home Screen** frame in Test Scripter, so a developer can recreate it without opening Figma."
+
+**Why this frame:** never inspected before in this project; its content, quality and origin were unknown. That kept B6 from being a replay of B3 (Intent/Confirmation). Worker scripts (`pixeldiff.mjs`) were reused as tools; no B3 content was used, and the package shape was decided by this source. It ended up as one `spec.json` centred on value-mapping evidence, not B3's five-file token/component split.
+
+**Deliverable:** `deliverables/home-screen/`: `spec.json`, `icons/` (5), `reference/home.png`, `build/` (hand-written from the spec plus an icon-inlining step), `verify/` (`verify.mjs`, screenshot, diff), and `README.md` with 7 open questions for the designer.
+
+### Cross-environment trace (each move and what caused it)
+1. **Figma** → the lookup/load failure on page Main at the first call.
+2. **Figma** (`list_pages`, `ping`) → the page *exists* and the plugin is healthy → unavailable, not missing.
+3. **Files** (`touch plugin/code.js`) → reload → **Figma**: still failing. This is the **2nd time the reload remedy has failed** (works 1 / fails 2).
+4. **Files**: hypothesis. Pages are reachable through `figma.root.children` without a lookup, so a page fallback was added to `getNode` → **Figma**: the error moved from the *lookup* to **`setCurrentPageAsync`**. **New diagnosis: the failure is Figma loading page or library data, not resolving ids.**
+5. **Human:** clicked the **Main** page tab in Figma's UI (reported "nothing unusual") → **Figma**: everything loads. This is the concrete human remedy (for B3 too).
+6. **Figma** (tree, exact state, render) → the screen mixes two design systems; the Bottom Nav overflows by 10px; AUTO line heights; icons are raw vectors.
+7. **Figma** (SVG exports) → **Files** (comparison page) → **Browser + web** (`lucide-static` from unpkg) → **the icons are not Lucide** → decision: ship Figma's icons and flag the question. Also found: the white `send` stroke was written as the keyword `white`, and exports include 1px stroke bleed.
+8. **Files** (spec, build) → **Browser** (render) → **Files** (`pixeldiff`: 1.27%; per-line ink measurement) → an apparent 7px placeholder offset → re-measured with looser thresholds → **it was the worker's own threshold artefact, not a build error.**
+9. **Browser** (DOM boxes) ↔ **Figma** node geometry → exact / < 1px.
+10. **Verification: Files → Figma bridge** (live variables and styles) **+ web** (Google Fonts) → 61/62: **the package's claim "Georgia isn't on Google Fonts" was false** → **web** (curl: the Bold and Bold Italic CSS exist) → **Browser** (a variant loading Google's Georgia: same widths, inconclusive → a unique-alias test: web font 298.11px = system 298.11px, vs serif 253.08px) → **Files** (spec and build corrected to load Georgia from Google Fonts) → verify 62/62 → **Browser** re-render → 1.27%. The mutated spec failed exactly the 2 planted claims.
+
+**Moves back to an earlier environment because of a later observation:** 3→4 (a code change driven by a Figma failure), 7 (web evidence changed the package's icon decision), 10 (web and browser evidence reversed a package claim and changed the build). That's the difference from a single dump → write → render pass.
+
+### Against the success criteria
+- **Understood the goal / what information is needed:** the worker decided the real work was value provenance (token, ambiguous, raw) for a mixed screen, plus measured line heights, not a token transcription.
+- **Chose between environments:**
+  - curl for raw web files (full, deterministic text) vs. the browser for rendering;
+  - the browser only where rendering or geometry mattered;
+  - the bridge directly for verification (a separate channel from the MCP calls that built the package).
+- **State across environments:** node ids → exported SVG paths → icon names → spec entries → build classes → DOM boxes compared with Figma boxes; font claims → Google Fonts URLs → an alias test → spec.
+- **Decisions from observations:** don't normalise the mixed palette; ship non-Lucide icons plus a question; explicit line heights; icon bleed offsets; load Georgia from the web.
+- **Corrected its own mistakes:** the Georgia claim (reversed by evidence); the 7px "offset" (a measurement artefact).
+  - **Honest note:** the `<img>` + `currentColor` bug was fixed *before* rendering, from prior knowledge, not observed.
+- **Verified independently:** a live re-read of the source (62 claims), a browser render and geometry comparison, and a mutation test.
+
+### Human dependencies and changes
+- **Human:** one Figma page-tab click (step 5). Without it the task could not proceed; nothing the worker could do (reload, API page switch, page fallback) made Figma load the page.
+- **Adapter change (freeze exception, recorded):** the `getNode` page fallback in `plugin/code.js`. It didn't fix the failure, but it moved the error to the step that actually fails, which is what produced the diagnosis in step 4. The browser relaunch-reporting limitation from B5 wasn't needed here.
+
+### What B6 does not prove
+- **Independence from B3:** several judgements (explicit line heights, the `currentColor`/`<img>` rule, checking for hidden layers, mutation-testing checkers) are prior learning, not fresh discovery.
+- **Usability by another developer:** the build was written by the same session that wrote the spec.
+- **Generality:** one screen, and a design-to-code workflow the brief itself suggested.
+- **Autonomous recovery from Figma page-load failures:** it still needs a human click.
