@@ -16,6 +16,9 @@ async function getNode(id) {
   try {
     return await figma.getNodeByIdAsync(id);
   } catch (e) {
+    // Pages are reachable without a lookup — figma.root.children is local.
+    const pageMatch = figma.root.children.find((p) => p.id === id);
+    if (pageMatch) return pageMatch;
     if (typeof id === "string" && id.startsWith("I") && id.includes(";")) {
       const root = await figma.getNodeByIdAsync(id.slice(1, id.indexOf(";")));
       const found = root && "findOne" in root ? root.findOne((n) => n.id === id) : null;
