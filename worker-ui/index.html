@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Worker</title>
+<style>
+  :root { --bg: #f7f7f5; --panel: #fff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
+    --figma: #7b61ff; --browser: #0a7ea4; --files: #5f6b3a; --shell: #444; --web: #b5651d; --internal: #999;
+    --fail: #c0392b; --ok: #2e7d32; --warn: #b26a00; --accent: #1f4e79; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #151514; --panel: #1f1f1d; --text: #ecebe6; --muted: #a09f98; --line: #34332f; --shell: #bbb; --accent: #8ab4f8; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 1; padding: 16px 20px; border-bottom: 1px solid var(--line); background: var(--panel); display: grid; gap: 10px; }
+  h1 { margin: 0; font-size: 17px; }
+  .goal { display: flex; gap: 8px; align-items: stretch; }
+  textarea { flex: 1; min-height: 56px; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); resize: vertical; }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  select { font: inherit; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--text); max-width: 360px; }
+  .status { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; color: var(--muted); }
+  .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; white-space: nowrap; }
+  .now { color: var(--text); font-weight: 600; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; padding: 16px 20px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .panel h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  aside { display: grid; gap: 12px; align-content: start; position: sticky; top: 190px; max-height: calc(100vh - 205px); overflow: auto; }
+  #timeline { display: grid; gap: 2px; }
+  .ev { display: grid; grid-template-columns: 70px 96px minmax(0, 1fr); gap: 8px; padding: 4px 6px; border-radius: 6px; align-items: baseline; }
+  .ev .t { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+  .ev .s { overflow-wrap: anywhere; }
+  .ev.result .s, .ev.note .s { color: var(--muted); font-size: 13px; }
+  .ev.result, .ev.note { padding-left: 24px; }
+  .ev.failure { background: color-mix(in srgb, var(--fail) 10%, transparent); }
+  .ev.recovery { background: color-mix(in srgb, var(--ok) 10%, transparent); }
+  .ev.done, .ev.completed { background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 600; }
+  .ev.goal { font-weight: 600; }
+  .ev.observation .s, .ev.decision .s, .ev.plan .s, .ev.verification .s { font-weight: 500; }
+  .type-plan { color: var(--accent); } .type-observation { color: var(--browser); } .type-decision { color: var(--figma); }
+  .type-failure { color: var(--fail); } .type-recovery { color: var(--ok); } .type-verification { color: var(--ok); }
+  .type-artifact { color: var(--files); } .type-done, .type-completed { color: var(--accent); } .type-tool, .type-result, .type-note, .type-start, .type-goal { color: var(--muted); }
+  .env-Figma { color: var(--figma); } .env-Browser { color: var(--browser); } .env-Files { color: var(--files); } .env-Shell { color: var(--shell); } .env-Web { color: var(--web); } .env-Internal { color: var(--internal); }
+  ul { margin: 0; padding-left: 18px; } li { margin: 3px 0; overflow-wrap: anywhere; }
+  .empty { color: var(--muted); font-style: italic; }
+  .envs { display: flex; flex-wrap: wrap; gap: 6px; }
+  label.toggle { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI Worker <span style="font-weight:400;color:var(--muted)">— local research view</span></h1>
+  <div class="goal">
+    <textarea id="goal" placeholder="Describe a goal, e.g. “Produce an implementation package for the Home Screen frame in Test Scripter.”"></textarea>
+    <div style="display:grid;gap:6px"><button class="primary" id="start">Start worker</button><button id="stop">Stop</button></div>
+  </div>
+  <div class="status">
+    <span id="state" class="chip">Idle</span>
+    <span>Now: <span id="now" class="now">—</span></span>
+    <span id="clock"></span>
+    <span id="counts"></span>
+    <span style="margin-left:auto">Run: <select id="runs"></select></span>
+    <label class="toggle"><input type="checkbox" id="showTools" checked> show tool calls</label>
+  </div>
+</header>
+<main>
+  <section class="panel"><h2>Timeline</h2><div id="timeline"><div class="empty">Start a worker or pick a past run.</div></div></section>
+  <aside>
+    <div class="panel"><h2>Environments</h2><div id="envs" class="envs"><span class="empty">none yet</span></div></div>
+    <div class="panel"><h2>Findings &amp; decisions</h2><ul id="findings"><li class="empty">none yet</li></ul></div>
+    <div class="panel"><h2>Failures &amp; recovery</h2><ul id="failures"><li class="empty">none</li></ul></div>
+    <div class="panel"><h2>Artifacts</h2><ul id="artifacts"><li class="empty">none yet</li></ul></div>
+    <div class="panel"><h2>Result</h2><div id="result" class="empty">not finished</div></div>
+  </aside>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let es, state, t0, clockTimer;
+const reset = () => {
+  state = { envs: {}, tools: 0, failures: 0, recoveries: 0, artifacts: new Set(), done: null, completed: null, first: true };
+  for (const id of ["timeline", "findings", "failures", "artifacts", "envs"]) $(id).innerHTML = "";
+  $("result").textContent = "not finished"; $("result").className = "empty"; $("now").textContent = "—";
+};
+const time = (ts) => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+const LABEL = { goal: "Goal", start: "Start", tool: "Action", result: "↳ result", failure: "Failure", artifact: "Artifact", completed: "Finished",
+  plan: "Plan", observation: "Observed", decision: "Decision", recovery: "Recovery", verification: "Verified", done: "Done", note: "Note" };
+function item(listId, html) { const ul = $(listId); if (ul.querySelector(".empty")) ul.innerHTML = ""; const li = document.createElement("li"); li.innerHTML = html; ul.appendChild(li); }
+function setState(text, color) { $("state").textContent = text; $("state").style.color = color || ""; }
+function counts() { $("counts").textContent = `${state.tools} actions · ${state.failures} failures · ${state.recoveries} recoveries`; }
+
+function onEvent(ev) {
+  if (state.first) { state.first = false; $("timeline").innerHTML = ""; }
+  if (ev.type === "goal") { t0 = new Date(ev.ts); $("goal").value = ev.summary; }
+  const row = document.createElement("div");
+  row.className = `ev ${ev.type}`;
+  row.dataset.kind = ev.type === "tool" || ev.type === "result" ? "tool" : "key";
+  const env = ev.env ? ` <span class="chip env-${ev.env}">${ev.env}</span>` : "";
+  row.innerHTML = `<span class="t">${time(ev.ts)}</span><span class="type-${ev.type}"><b>${LABEL[ev.type] || ev.type}</b></span><span class="s">${esc(ev.summary)}${ev.type === "tool" ? env : ""}${ev.detail && ev.type !== "completed" ? ` <span style="color:var(--muted)">(${esc(ev.detail)})</span>` : ""}</span>`;
+  if (!$("showTools").checked && row.dataset.kind === "tool") row.style.display = "none";
+  $("timeline").appendChild(row);
+  row.scrollIntoView({ block: "nearest" });
+
+  if (ev.type === "tool") {
+    state.tools++; state.envs[ev.env] = (state.envs[ev.env] || 0) + 1;
+    $("now").innerHTML = `<span class="chip env-${ev.env}">${ev.env}</span> ${esc(ev.summary)}`;
+    $("envs").innerHTML = Object.entries(state.envs).map(([e, n]) => `<span class="chip env-${e}">${e} · ${n}</span>`).join("");
+  }
+  if (["plan", "observation", "decision", "verification"].includes(ev.type)) {
+    item("findings", `<b class="type-${ev.type}">${LABEL[ev.type]}:</b> ${esc(ev.summary)}`);
+    if (ev.type !== "verification") $("now").textContent = ev.summary;
+  }
+  if (ev.type === "failure") { state.failures++; item("failures", `<b class="type-failure">${ev.tool ? esc(ev.tool) + " failed" : "Failure"}:</b> ${esc(ev.summary)}`); }
+  if (ev.type === "recovery") { state.recoveries++; item("failures", `<b class="type-recovery">Recovery:</b> ${esc(ev.summary)}`); }
+  if (ev.type === "artifact") {
+    const path = ev.summary.trim();
+    if (!state.artifacts.has(path)) { state.artifacts.add(path); item("artifacts", `<a href="/file?path=${encodeURIComponent(path)}" target="_blank">${esc(path)}</a>`); }
+  }
+  if (ev.type === "done") { state.done = ev.summary; setState("Done (worker's claim)", "var(--accent)"); }
+  if (ev.type === "completed") {
+    const d = JSON.parse(ev.detail || "{}");
+    state.completed = d;
+    $("now").textContent = "— (finished)";
+    setState(ev.summary.includes("error") ? "Stopped with error" : state.done ? "Done — process finished" : "Process finished (no DONE claim)", ev.summary.includes("error") ? "var(--fail)" : "var(--ok)");
+    $("result").className = "";
+    $("result").innerHTML = `${state.done ? `<p><b>Worker's summary:</b> ${esc(state.done)}</p>` : `<p class="empty">The worker never claimed DONE.</p>`}
+      <p style="color:var(--muted)">${d.turns} turns · ${d.seconds}s${d.costUsd != null ? ` · $${d.costUsd.toFixed(2)}` : ""}</p>`;
+    clearInterval(clockTimer);
+  }
+  if (ev.type === "start") setState("Running", "var(--warn)");
+  counts();
+}
+
+function watchRun(id) {
+  if (es) es.close();
+  clearInterval(clockTimer);
+  reset(); counts();
+  es = new EventSource(`/events?run=${id}`);
+  es.onmessage = (m) => onEvent(JSON.parse(m.data));
+  clockTimer = setInterval(() => { if (t0 && !state.completed) $("clock").textContent = `${Math.round((Date.now() - t0) / 1000)}s`; }, 1000);
+}
+async function loadRuns(select) {
+  const { runs, active } = await (await fetch("/runs")).json();
+  $("runs").innerHTML = runs.map((r) => `<option value="${r.id}">${r.id.slice(0, 19).replace("T", " ")} — ${esc(r.goal.slice(0, 50))}</option>`).join("");
+  const pick = select || active || runs[0]?.id;
+  if (pick) { $("runs").value = pick; watchRun(pick); }
+}
+$("runs").onchange = () => watchRun($("runs").value);
+$("showTools").onchange = () => document.querySelectorAll('[data-kind="tool"]').forEach((r) => (r.style.display = $("showTools").checked ? "" : "none"));
+$("start").onclick = async () => {
+  const r = await fetch("/run", { method: "POST", body: JSON.stringify({ goal: $("goal").value }) });
+  const j = await r.json();
+  if (j.error) return alert(j.error);
+  loadRuns(j.id);
+};
+$("stop").onclick = () => fetch("/stop", { method: "POST" });
+reset(); loadRuns();
+</script>
+</body>
+</html>
