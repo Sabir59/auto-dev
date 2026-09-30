@@ -117,7 +117,10 @@ if (location.protocol === "file:") {
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const api = async (method, path, data) => {
-  const r = await fetch(path, { method, headers: { "content-type": "application/json" }, body: data ? JSON.stringify(data) : undefined });
+  // x-worker-console: the server only accepts state-changing requests carrying this header
+  // from its own origin (a cross-site page can't add it without an approved CORS preflight).
+  const r = await fetch(path, { method, headers: { "content-type": "application/json", "x-worker-console": "1" },
+    body: method === "GET" ? undefined : JSON.stringify(data || {}) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || r.statusText);
   return j;

@@ -244,7 +244,33 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".json": "application/json"
 const body = (req) => new Promise((ok) => { let b = ""; req.on("data", (d) => (b += d)); req.on("end", () => ok(b ? JSON.parse(b) : {})); });
 const json = (res, status, obj) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(obj)); };
 
+// ---- request guard ------------------------------------------------------------
+// Local-only, same-origin-only. The server listens on 127.0.0.1 (not the LAN), every request
+// must name this console as its Host (blocks DNS rebinding), and every state-changing request
+// must come from the console's own page: exact Origin, same-origin fetch metadata, a custom
+// header (a cross-site page can't send one without a CORS preflight, which is never approved)
+// and a JSON content type. CORS headers are never sent.
+const HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`]);
+const ORIGINS = new Set([`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`]);
+function rejectReason(req) {
+  if (!HOSTS.has(String(req.headers.host || "").toLowerCase())) return "Host header is not this console";
+  if (req.method === "GET" || req.method === "HEAD") return null;
+  if (req.method === "OPTIONS") return "CORS preflight is never approved";
+  if (!ORIGINS.has(req.headers.origin)) return `Origin ${req.headers.origin ? `"${req.headers.origin}"` : "missing"} is not this console`;
+  const site = req.headers["sec-fetch-site"];
+  if (site && site !== "same-origin") return `Sec-Fetch-Site is "${site}"`;
+  if (req.headers["x-worker-console"] !== "1") return "missing X-Worker-Console header";
+  if (!String(req.headers["content-type"] || "").toLowerCase().startsWith("application/json")) return "Content-Type is not application/json";
+  return null;
+}
+
 http.createServer(async (req, res) => {
+  const why = rejectReason(req);
+  if (why) {
+    console.log(`${new Date().toISOString()} REJECTED ${req.method} ${req.url} — ${why} (origin=${req.headers.origin || "-"}, host=${req.headers.host || "-"})`);
+    res.writeHead(403, { "content-type": "application/json" });
+    return res.end(JSON.stringify({ error: `Rejected: ${why}` }));
+  }
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const parts = url.pathname.split("/").filter(Boolean);
   try {
@@ -262,6 +288,8 @@ http.createServer(async (req, res) => {
       if (!run) return json(res, 404, { error: "no such run" });
       const action = parts[2];
       if (!action && req.method === "GET") return json(res, 200, run.meta);
+      // Actions change state, so they're POST-only (a GET would skip the request guard).
+      if (action && req.method !== "POST") return json(res, 405, { error: "Use POST" });
       if (action === "message") { const { text } = await body(req); if (!text?.trim()) throw new Error("Empty message"); followUp(run, text.trim()); return json(res, 200, run.meta); }
       if (action === "stop") { if (alive(run)) { run.stopRequested = true; run.child.kill(); } return json(res, 200, run.meta); }
       if (action === "end") { if (alive(run)) { run.endRequested = true; run.child.stdin.end(); } return json(res, 200, run.meta); }
@@ -307,4 +335,4 @@ http.createServer(async (req, res) => {
   } catch (e) {
     json(res, 400, { error: e.message });
   }
-}).listen(PORT, () => console.log(`Worker Console on http://localhost:${PORT} (worker binary: ${CLAUDE.cmd}${CLAUDE.shell ? " via shell" : ""})`));
+}).listen(PORT, "127.0.0.1", () => console.log(`Worker Console on http://localhost:${PORT} (worker binary: ${CLAUDE.cmd}${CLAUDE.shell ? " via shell" : ""})`));
