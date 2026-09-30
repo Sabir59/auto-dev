@@ -105,6 +105,15 @@
 </aside>
 
 <script>
+// Opened straight from disk: the page needs the console server for its data.
+if (location.protocol === "file:") {
+  document.body.innerHTML = `<div style="grid-column:1/-1;padding:40px;font:16px system-ui">
+    <h2>Open the console through its server</h2>
+    <p>This page was opened as a file, so it can't reach the worker. Start the server and open it over http:</p>
+    <pre style="background:#eee;padding:10px;border-radius:6px">node worker-ui/server.mjs</pre>
+    <p>then go to <a href="http://localhost:8799">http://localhost:8799</a></p></div>`;
+  throw new Error("Worker Console must be opened via http://localhost:8799, not as a file.");
+}
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const api = async (method, path, data) => {
