@@ -192,3 +192,51 @@ Inspected the login page → found the accepted accounts and password on the pag
 - **Choosing between environments:** only one was realistically usable.
 - **Robustness on real, messy sites:** saucedemo is built for automation (stable `data-test` attributes, no captcha, no latency tricks). The faulty accounts it offers (`problem_user`, etc.) were deliberately not used; a later benchmark could.
 - **Real consequences:** no real money, no real personal data.
+
+## B5 — Browser failure and recovery (2026-09-30)
+
+**Goal:** "Submit the expense claims in `bench/b5-expense-portal/receipts.csv` to the expense portal at http://localhost:8790 (login `employee` / `demo-pass`). Every receipt must end up in the portal exactly once. Report what was submitted."
+
+**Test environment** (`bench/b5-expense-portal/server.mjs`, not part of the worker): its state lives on the server, so it survives the browser dying. A claim is stored as soon as it's received and the response comes 3s later; duplicates are *not* rejected; dates must be YYYY-MM-DD; every request is logged. saucedemo (B4) keeps everything in browser storage, so after a browser death nothing survives and there's nothing to reconcile. That's why a local fixture was needed. **Confound:** the worker wrote the fixture, so it knew the rules in advance; it still took them from the UI (the form labels).
+
+**Interruption (the same in both runs):** after claims 1–3 were confirmed, Submit was clicked on claim 4 (EXP-1044) and the adapter's `chrome-headless-shell` processes were killed. The worker had not yet read the confirmation.
+
+**Verification:** `bench/b5-expense-portal/verify.mjs` reads only the server's `data/` files, never the browser. It checks that every receipt is stored exactly once with the correct fields (DD/MM dates normalised); that the old session's last request was a stored write; and that the recovery session read `/claims` before its first POST and re-posted nothing already stored. Evidence for both runs is in `bench/b5-expense-portal/runs/`. A mutated log simulating a blind replay of EXP-1044 fails 3 checks.
+
+### Run 1: recovered, but it needed a human
+1. **Observed:** `locator.count: Target page, context or browser has been closed`.
+2. **Diagnosed by layer:**
+   - Network/environment: the portal returned `HTTP 200` → healthy.
+   - Tool: the adapter process was alive and returning structured Playwright errors → healthy.
+   - **Browser/session: 0 browser processes → dead.**
+   - Application: no app error.
+   - The cause of death (crash vs. kill) **can't be determined from the evidence**; it's known only from the experimenter's side.
+3. **Survived:** the server-side claims. **Lost:** the browser session (cookie). **Unknown:** EXP-1044.
+4. **Recovery failed through the tools:** `browser_navigate` failed the same way. **Missing capability:** `getPage()` only launched a browser when none had ever existed; a dead browser stayed cached for good. Smallest fix: relaunch when `!browser.isConnected()` or `page.isClosed()` (`browser-adapter/server.mjs`).
+5. **Human intervention:** `/mcp` → reconnect browser-executor, to *deploy* the fix. The first attempt didn't take effect: process creation times showed no new adapter, so the worker asked again.
+6. **Integrity breach (the worker's mistake):** while checking which processes had survived the restart, the worker read the portal's `claims.json` from disk and saw EXP-1044 was stored, before reconciling through the UI. **So run 1's reconciliation isn't independent evidence.** Run 2 was designed as the clean test.
+7. Reconciled through the UI (the list showed 1041–1044), submitted only 1045 and 1046, and the verifier passed.
+
+### Run 2: autonomous recovery (fresh portal, same task, same interruption)
+1. **Observed:** `No element matches selector: [data-test=flash]`. **This looks like an application result** ("no confirmation, so the submit failed"). Acting on that would have re-submitted EXP-1044 and created a duplicate.
+2. **The worker didn't take it at face value:** it read the whole page state and got `url: about:blank`. The fixed adapter had **silently** relaunched a dead browser on its next call.
+3. **Diagnosed by layer:**
+   - Portal: HTTP 200.
+   - Adapter: same process, alive.
+   - The 4 old browser PIDs were gone, and 4 new browser processes were running under the same adapter → browser died and was relaunched; cause undetermined.
+4. **No human step.** Logged in → **read the claims list first** → EXP-1041–1044 present, each once, fields correct → **the unconfirmed write had landed, learned from the environment** → submitted only EXP-1045 and EXP-1046.
+5. **Verifier: all checks pass.** The log shows login `d3bf04bd` → `GET /claims` → `GET /claims/new` → POST 1045 → POST 1046.
+
+### Honest gaps
+- **The in-flight write was unconfirmed only from the worker's side.** In both runs the kill landed after the 3s response (run 2: POST at 06:50:21.259, kill at 06:50:25.350), so the browser *had* received the confirmation. The worker never saw it and had exactly the evidence it would have had otherwise. The harness doesn't overlap "parallel" tool calls tightly, so a true network-level in-flight case would need a longer server delay.
+- **The fix introduced a new weakness:** a silent relaunch turns a browser failure into a plausible-looking application result (a blank page, "no element"). The worker caught it by checking the page URL, but the tool should say so itself (e.g. `"relaunched": true, "sessionLost": true` in the next result). **Proposed, not implemented.**
+- Only one kind of interruption (browser process death) was tested. Not tested: an adapter process crash, a portal crash, a network drop, or a mid-form failure.
+- One fixture, written by the worker. There are two runs, but they're the same scenario.
+
+### Failure types distinguished
+| Type | Evidence used | Seen? |
+|---|---|---|
+| Browser/session | Playwright "closed" errors, `about:blank`, the OS process list | Yes, both runs |
+| Tool/adapter | The adapter process alive and returning structured errors (vs. MCP "unreachable") | No (healthy) |
+| Network/environment | Portal health check over a separate channel | No (healthy) |
+| Task/application | Would have been a 422 or error text in the page | Not triggered; the date was normalised in advance |

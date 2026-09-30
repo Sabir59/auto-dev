@@ -1,0 +1,50 @@
+[
+ {
+  "reference": "EXP-1041",
+  "date": "2026-09-14",
+  "merchant": "Heathrow Express",
+  "amount": "25.00",
+  "category": "Travel",
+  "receivedAt": "2026-09-29T20:17:28.667Z"
+ },
+ {
+  "reference": "EXP-1042",
+  "date": "2026-09-14",
+  "merchant": "Pret A Manger",
+  "amount": "8.45",
+  "category": "Meals",
+  "receivedAt": "2026-09-29T20:18:13.647Z"
+ },
+ {
+  "reference": "EXP-1043",
+  "date": "2026-09-15",
+  "merchant": "Premier Inn London",
+  "amount": "112.00",
+  "category": "Accommodation",
+  "receivedAt": "2026-09-29T20:18:56.922Z"
+ },
+ {
+  "reference": "EXP-1044",
+  "date": "2026-09-16",
+  "merchant": "Uber",
+  "amount": "18.60",
+  "category": "Travel",
+  "receivedAt": "2026-09-29T20:20:23.362Z"
+ },
+ {
+  "reference": "EXP-1045",
+  "date": "2026-09-29",
+  "merchant": "Ryman Stationery",
+  "amount": "14.99",
+  "category": "Office supplies",
+  "receivedAt": "2026-09-30T06:43:34.917Z"
+ },
+ {
+  "reference": "EXP-1046",
+  "date": "2026-09-29",
+  "merchant": "Costa Coffee",
+  "amount": "6.20",
+  "category": "Meals",
+  "receivedAt": "2026-09-30T06:44:22.823Z"
+ }
+]

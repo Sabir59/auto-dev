@@ -1,0 +1,75 @@
+{
+ "ok": true,
+ "checks": [
+  {
+   "name": "EXP-1041 stored exactly once with correct fields",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "EXP-1042 stored exactly once with correct fields",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "EXP-1043 stored exactly once with correct fields",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "EXP-1044 stored exactly once with correct fields",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "EXP-1045 stored exactly once with correct fields",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "EXP-1046 stored exactly once with correct fields",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "no unexpected claims",
+   "ok": true,
+   "detail": "6 stored, 6 receipts"
+  },
+  {
+   "name": "two sessions: before and after the interruption",
+   "ok": true,
+   "detail": "2 logins"
+  },
+  {
+   "name": "old session's last request was a write that was stored",
+   "ok": true,
+   "detail": "2026-09-29T20:20:23.361Z POST /claims session=9b1711b7 → 2026-09-29T20:20:23.363Z   stored EXP-1044 (now 4 claims); responding in 3000ms"
+  },
+  {
+   "name": "(info) confirmation also lost at network level",
+   "ok": true,
+   "detail": "no: the response was sent before the browser died; the worker still never observed it"
+  },
+  {
+   "name": "recovered in a new session",
+   "ok": true,
+   "detail": "session f2cd087b"
+  },
+  {
+   "name": "new session read /claims before its first POST",
+   "ok": true,
+   "detail": "first GET /claims at +1, first POST at +3"
+  },
+  {
+   "name": "nothing already stored was re-posted",
+   "ok": true,
+   "detail": "stored before: EXP-1041, EXP-1042, EXP-1043, EXP-1044"
+  },
+  {
+   "name": "only missing receipts posted after recovery",
+   "ok": true,
+   "detail": "posted after: EXP-1045, EXP-1046"
+  }
+ ]
+}

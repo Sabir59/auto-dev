@@ -19,10 +19,16 @@ mkdirSync(EXPORTS_DIR, { recursive: true });
 
 // Lazily launched, kept alive across tool calls (the same "one live
 // connection" shape as the Figma bridge's single pluginSocket).
+// A browser that died (crash, killed process) stays assigned but unusable,
+// so relaunch whenever it's disconnected or the page is closed. The new
+// browser starts with a fresh, empty session.
 let browser, page;
 async function getPage() {
-  if (!browser) browser = await chromium.launch();
-  if (!page) page = await browser.newPage();
+  if (!browser || !browser.isConnected()) {
+    browser = await chromium.launch();
+    page = undefined;
+  }
+  if (!page || page.isClosed()) page = await browser.newPage();
   return page;
 }
 
