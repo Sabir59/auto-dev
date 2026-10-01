@@ -18,8 +18,8 @@
 //         | plan | observation | decision | recovery | verification | done | note
 import http from "node:http";
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, realpathSync } from "node:fs";
-import { join, dirname, resolve, extname, delimiter, relative, isAbsolute, sep } from "node:path";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync } from "node:fs";
+import { join, dirname, resolve, extname, delimiter, relative, isAbsolute, sep, basename } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -84,8 +84,9 @@ const workerEnv = () => {
 
 // ---- workspaces ----------------------------------------------------------------
 // "console" is this repo with the full profile: what every run used before workspaces existed.
-// Others come only from workspaces.json, edited by hand, never through the HTTP API:
-//   [{ "id": "matw", "root": "C:/Users/me/Desktop/MATW/site", "profile": "inspect" }]
+// Others live in workspaces.json, added by the person through the Workspace page (POST /workspaces,
+// same-origin only) or by hand:
+//   [{ "id": "matw-3f2a", "name": "MATW", "root": "C:/Users/me/Desktop/MATW/site", "profile": "inspect" }]
 // A run records its workspace's real root, profile and config dir when it starts, and the console
 // re-checks them before every resume, restart and file view. Claude resumes a session in whatever
 // cwd it is started in, so this can't be left to Claude.
@@ -93,14 +94,56 @@ const norm = (p) => (process.platform === "win32" ? resolve(p).toLowerCase() : r
 const samePath = (a, b) => norm(a) === norm(b);
 function resolveWorkspace(id) {
   const list = existsSync(WORKSPACES) ? JSON.parse(readFileSync(WORKSPACES, "utf8")) : [];
-  const ws = id === "console" ? { id, root: REPO, profile: "full" } : list.find((w) => w.id === id);
-  if (!ws) throw new Error(`No workspace "${id}". Workspaces are added by editing ${WORKSPACES}.`);
+  const ws = id === "console" ? CONSOLE_WS : list.find((w) => w.id === id);
+  if (!ws) throw new Error(`No workspace "${id}".`);
   if (!PROFILES[ws.profile]) throw new Error(`Workspace "${id}" has an unknown profile "${ws.profile}".`);
   if (!isAbsolute(String(ws.root || ""))) throw new Error(`Workspace "${id}" root must be an absolute path.`);
   let root;
   try { root = realpathSync.native(ws.root); } catch { throw new Error(`Workspace "${id}" root doesn't exist: ${ws.root}`); }
   if (!statSync(root).isDirectory()) throw new Error(`Workspace "${id}" root is not a folder: ${root}`);
   return { id, root, profile: ws.profile };
+}
+const CONSOLE_WS = { id: "console", name: "Executor", root: REPO, profile: "full" };
+const readWorkspaces = () => (existsSync(WORKSPACES) ? JSON.parse(readFileSync(WORKSPACES, "utf8")) : []);
+// Branch and short commit, read from the folder's own .git (worktrees included); null when not a repo.
+function gitInfo(root) {
+  try {
+    let dir = join(root, ".git");
+    if (statSync(dir).isFile()) dir = resolve(root, /gitdir:\s*(.+)/.exec(readFileSync(dir, "utf8"))[1].trim());
+    const common = existsSync(join(dir, "commondir")) ? resolve(dir, readFileSync(join(dir, "commondir"), "utf8").trim()) : dir;
+    const head = readFileSync(join(dir, "HEAD"), "utf8").trim();
+    const ref = /^ref: (.+)$/.exec(head)?.[1];
+    if (!ref) return { branch: null, commit: head.slice(0, 7) };
+    let sha = [dir, common].map((d) => join(d, ref)).filter(existsSync).map((p) => readFileSync(p, "utf8").trim())[0];
+    if (!sha && existsSync(join(common, "packed-refs"))) sha = readFileSync(join(common, "packed-refs"), "utf8").split("\n").find((l) => l.endsWith(" " + ref))?.split(" ")[0];
+    return { branch: ref.replace(/^refs\/heads\//, ""), commit: sha ? sha.slice(0, 7) : null };
+  } catch { return { branch: null, commit: null }; }
+}
+function listWorkspaces() {
+  return [CONSOLE_WS, ...readWorkspaces()].map((w) => {
+    let root = null; try { root = resolveWorkspace(w.id).root; } catch {}
+    return { id: w.id, name: w.name || w.id, root: root || w.root, profile: w.profile, available: !!root, ...(root ? gitInfo(root) : {}) };
+  });
+}
+// The person names a folder and a mode; the folder must exist, and can't be a drive root or the
+// whole home folder (too broad to be one project).
+function addWorkspace({ name, path, mode }) {
+  name = String(name || "").trim();
+  if (!name || name.length > 60) throw new Error("Give the workspace a name (up to 60 characters).");
+  if (!["inspect", "work"].includes(mode)) throw new Error("Choose Inspect or Work.");
+  if (!isAbsolute(String(path || "")) || /^[\\/]{2}/.test(path)) throw new Error("Give the full path of a folder on this computer, e.g. C:\\Users\\me\\project.");
+  let root;
+  try { root = realpathSync.native(path); } catch { throw new Error(`No folder at ${path}`); }
+  if (!statSync(root).isDirectory()) throw new Error(`${root} is not a folder.`);
+  if (dirname(root) === root || samePath(root, realpathSync.native(homedir()))) throw new Error(`${root} is too broad for a workspace. Pick a project folder.`);
+  const list = readWorkspaces();
+  const taken = listWorkspaces().find((w) => samePath(w.root, root));
+  if (taken) throw new Error(`${root} is already the workspace "${taken.name}".`);
+  const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "ws"}-${randomUUID().slice(0, 4)}`;
+  const ws = { id, name, root, profile: mode === "work" ? "full" : "inspect" };
+  writeFileSync(WORKSPACES + ".tmp", JSON.stringify([...list, ws], null, 1));
+  renameSync(WORKSPACES + ".tmp", WORKSPACES);
+  return listWorkspaces().find((w) => w.id === id);
 }
 // Every cwd recorded in the session's own transcript in this console's config dir (null: not there).
 function sessionCwds(sessionId) {
@@ -155,10 +198,9 @@ const envOf = (tool) =>
   : "Internal";
 const shortName = (tool) => tool.replace(/^mcp__[^_]+(?:-[^_]+)*__/, "");
 const clip = (s, n = 160) => { s = String(s ?? "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
-const rel = (p) => { const r = String(p || "").replace(/\\/g, "/"); const base = REPO.replace(/\\/g, "/"); return r.toLowerCase().startsWith(base.toLowerCase() + "/") ? r.slice(base.length + 1) : r; };
-function toolSummary(name, input = {}) {
+function toolSummary(name, input = {}, root = REPO) {
   const key = input.url || input.selector || input.id || input.pageId || input.componentId || input.file_path || input.path || input.pattern || input.query || input.command || "";
-  return `${shortName(name)} ${clip(rel(key), 110)}`.trim();
+  return `${shortName(name)} ${clip(relTo(root, key), 110)}`.trim();
 }
 function resultText(content) {
   if (typeof content === "string") return content;
@@ -210,8 +252,8 @@ function translate(run, msg) {
         run.toolUses.set(b.id, { name: b.name, env });
         if (b.name === "ToolSearch") continue; // loading tool schemas, not work
         run.meta.envs[env] = (run.meta.envs[env] || 0) + 1;
-        emit(run, { type: "tool", env, tool: shortName(b.name), summary: toolSummary(b.name, b.input) });
-        if ((b.name === "Write" || b.name === "Edit") && b.input?.file_path) addArtifact(run, rel(b.input.file_path), env);
+        emit(run, { type: "tool", ref: b.id, env, tool: shortName(b.name), summary: toolSummary(b.name, b.input, run.meta.workspace.root) });
+        if ((b.name === "Write" || b.name === "Edit") && b.input?.file_path) addArtifact(run, relTo(run.meta.workspace.root, b.input.file_path), env);
       } else if (b.type === "text" && b.text.trim()) {
         emit(run, { type: "reply", summary: b.text.trim() });
         for (const raw of b.text.split(/\r?\n/)) {
@@ -219,7 +261,7 @@ function translate(run, msg) {
           const tag = Object.keys(TAGS).find((t) => line.toUpperCase().startsWith(t));
           if (!tag) continue;
           const text = line.slice(tag.length).trim();
-          if (TAGS[tag] === "artifact") addArtifact(run, text.replace(/[`"]/g, ""), "Files");
+          if (TAGS[tag] === "artifact") addArtifact(run, relTo(run.meta.workspace.root, text.replace(/[`"]/g, "")), "Files");
           else emit(run, { type: TAGS[tag], summary: text });
           if (TAGS[tag] === "done") { run.meta.done = text; }
           if (TAGS[tag] === "failure") run.meta.failures++;
@@ -235,7 +277,7 @@ function translate(run, msg) {
       const use = run.toolUses.get(b.tool_use_id) || { name: "?", env: "Internal" };
       if (use.name === "ToolSearch") continue;
       if (b.is_error) run.meta.failures++;
-      emit(run, { type: b.is_error ? "failure" : "result", env: use.env, tool: shortName(use.name), summary: clip(resultText(b.content), 220) });
+      emit(run, { type: b.is_error ? "failure" : "result", ref: b.tool_use_id, env: use.env, tool: shortName(use.name), summary: clip(resultText(b.content), 220) });
     }
     return;
   }
@@ -250,8 +292,10 @@ function translate(run, msg) {
     setStatus(run, "waiting", "ready for a follow-up");
   }
 }
+// A path relative to the workspace root when it's inside it (the worker writes absolute paths).
+const relTo = (root, p) => { const r = String(p || "").replace(/\\/g, "/"), base = root.replace(/\\/g, "/"); return r.toLowerCase().startsWith(base.toLowerCase() + "/") ? r.slice(base.length + 1) : r; };
 function addArtifact(run, path, env) {
-  // Only files inside the repo are deliverables; worker scratch files elsewhere (absolute paths) are not.
+  // Only files inside the workspace are deliverables; worker scratch files elsewhere (absolute paths) are not.
   if (!path || /^([a-z]:|\/|\\)/i.test(path) || run.meta.artifacts.includes(path)) return;
   run.meta.artifacts.push(path);
   emit(run, { type: "artifact", env, summary: path });
@@ -369,6 +413,27 @@ function fileInside(root, requested) {
   return statSync(real).isFile() ? real : null;
 }
 
+// One directory of a workspace, for the file explorer. The directory goes through the same real
+// path containment as files; an entry whose real path leaves the root (a junction or symlink out)
+// is left out rather than listed.
+function dirInside(root, requested) {
+  if (requested.includes("\0") || isAbsolute(requested) || /^[a-z]:/i.test(requested) || /^[\\/]{2}/.test(requested)) return null;
+  let realRoot, real;
+  try { realRoot = realpathSync.native(root); real = realpathSync.native(resolve(realRoot, requested || ".")); } catch { return null; }
+  const r = relative(realRoot, real);
+  if (isAbsolute(r) || r === ".." || r.startsWith(".." + sep) || !statSync(real).isDirectory()) return null;
+  const entries = [];
+  for (const e of readdirSync(real, { withFileTypes: true })) {
+    if (e.name === ".git") continue;
+    let er; try { er = realpathSync.native(join(real, e.name)); } catch { continue; }
+    const rr = relative(realRoot, er);
+    if (!rr || isAbsolute(rr) || rr === ".." || rr.startsWith(".." + sep)) continue;
+    const st = statSync(er);
+    entries.push({ name: e.name, path: (r ? r + "/" : "").replace(/\\/g, "/") + e.name, dir: st.isDirectory(), size: st.isFile() ? st.size : undefined });
+  }
+  return entries.sort((a, b) => (b.dir - a.dir) || a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}
+
 // ---- request guard ------------------------------------------------------------
 // Local-only, same-origin-only. The server listens on 127.0.0.1 (not the LAN), every request
 // must name this console as its Host (blocks DNS rebinding), and every state-changing request
@@ -399,7 +464,19 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const parts = url.pathname.split("/").filter(Boolean);
   try {
-    if (url.pathname === "/") { res.writeHead(200, { "content-type": TYPES[".html"] }); return res.end(readFileSync(join(HERE, "index.html"))); }
+    if (url.pathname === "/") { res.writeHead(200, { "content-type": TYPES[".html"] }); return res.end(readFileSync(join(HERE, "workspace.html"))); }
+    if (url.pathname === "/console") { res.writeHead(200, { "content-type": TYPES[".html"] }); return res.end(readFileSync(join(HERE, "index.html"))); }
+    if (parts[0] === "assets" && /^[\w.-]+$/.test(parts[1] || "") && parts.length === 2 && existsSync(join(HERE, "assets", parts[1]))) {
+      res.writeHead(200, { "content-type": TYPES[extname(parts[1]).toLowerCase()] || "application/octet-stream" }); return res.end(readFileSync(join(HERE, "assets", parts[1])));
+    }
+
+    // workspaces
+    if (url.pathname === "/workspaces" && req.method === "GET") return json(res, 200, listWorkspaces());
+    if (url.pathname === "/workspaces" && req.method === "POST") return json(res, 200, addWorkspace(await body(req)));
+    if (url.pathname === "/tree") {
+      const entries = dirInside(resolveWorkspace(url.searchParams.get("workspace") || "").root, url.searchParams.get("path") || "");
+      return entries ? json(res, 200, entries) : json(res, 404, { error: "not found" });
+    }
 
     // runs
     if (url.pathname === "/runs" && req.method === "GET") return json(res, 200, { runs: allMetas(), active: active()?.meta.id || null });
@@ -449,13 +526,16 @@ http.createServer(async (req, res) => {
       if (req.method === "DELETE") { all.splice(i, 1); writePrompts(all); return json(res, 200, { deleted: parts[1] }); }
     }
 
-    // file viewer: a file inside this repo, or inside a run's workspace with ?run=<id>
+    // file viewer: a file inside this repo, a run's workspace (?run=<id>) or a workspace (?workspace=<id>)
     if (url.pathname === "/file") {
       const run = url.searchParams.has("run") ? loadRun(url.searchParams.get("run")) : null;
       if (url.searchParams.has("run") && !run) { res.writeHead(404); return res.end("not found"); }
-      const p = fileInside(run ? checkBinding(run, { resume: false }).root : REPO, url.searchParams.get("path") || "");
+      const root = run ? checkBinding(run, { resume: false }).root : url.searchParams.has("workspace") ? resolveWorkspace(url.searchParams.get("workspace")).root : REPO;
+      const p = fileInside(root, url.searchParams.get("path") || "");
       if (!p) { res.writeHead(404); return res.end("not found"); }
-      res.writeHead(200, { "content-type": TYPES[extname(p).toLowerCase()] || "text/plain; charset=utf-8" });
+      // Files are shown, never run: an HTML or SVG file opened directly gets an opaque origin with
+      // scripts disabled, so it can't act as this console (its requests would carry Origin: null).
+      res.writeHead(200, { "content-type": TYPES[extname(p).toLowerCase()] || "text/plain; charset=utf-8", "content-security-policy": "sandbox", "x-content-type-options": "nosniff" });
       return res.end(readFileSync(p));
     }
     res.writeHead(404); res.end("not found");

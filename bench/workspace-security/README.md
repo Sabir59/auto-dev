@@ -232,3 +232,12 @@ Not testable here: **symlinks.** Creating them needs administrator rights or Dev
 - **The full profile is still full trust:** shell, writes, the repo's own project settings and hooks, and WebSearch/WebFetch.
 - **Old runs** whose sessions live in `~/.claude-vscode` can't be resumed by this console any more (E5). That is intended.
 - **Behaviour changes for full-profile runs:** user settings are no longer loaded, and the effort is the default. If `high` effort or a specific model is wanted, the console should set it explicitly.
+
+## Workspace UI additions (2026-10-01)
+
+The Workspace page changed the console's surface in four ways (tests: `bench/workspace-ui/README.md`):
+
+- **`POST /workspaces`** takes a name, a folder path and Inspect/Work. This replaces "hand-edit `workspaces.json` only", and puts the trust act in the page. The request guard still applies (foreign Origin or missing header: refused). The folder must exist and be absolute; drive roots, the home folder, UNC and relative paths, files and duplicate folders are refused. Runs stay bound to the real root and profile recorded when they start.
+- **`GET /tree`** lists one directory under the same real-path containment as `/file`. Entries whose real path leaves the root (junctions or links out) are omitted, and `.git` is hidden.
+- **`GET /file?workspace=`** is the same containment as `?run=`, rooted at the workspace.
+- **Fixed, found while building the viewer:** `/file` served `.html`/`.svg` as live pages on the console's own origin. An HTML file in a workspace, opened directly, could therefore have called the API as the console. `/file` now sends `Content-Security-Policy: sandbox` (an opaque origin, no scripts) and `nosniff`. Tested: a hostile `evil.html` that `POST`s `/runs` was opened directly, and no run was created.

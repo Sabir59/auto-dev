@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Workspace</title>
+<link rel="icon" href="/assets/monogram.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Tokens, measured from the Stitch design (Figma "Test Scripter" → Main → "Html → Body"). */
+:root {
+  --bg: #0c0e13; --low: #1a1b21; --surf: #1e1f25; --high: #282a2f;
+  --t1: #e2e2e9; --t2: #bec8d2; --t3: #88929b; --t4: #3e4850;
+  --pri: #89ceff; --pri-c: #0ea5e9; --on-pri: #00344d; --ok: #4edea3; --star: #ffb95f; --err: #ffb4ab;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--t1); font: 400 12px/20px var(--sans);
+  display: grid; grid-template-columns: 256px minmax(0, 1fr) 320px; grid-template-rows: 56px minmax(0, 1fr);
+  overflow: hidden; -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 1px solid var(--pri); outline-offset: 1px; }
+svg.i { display: block; flex: none; fill: currentColor; }
+.m11 { font: 400 11px/14px var(--mono); letter-spacing: .44px; }
+.m12 { font: 400 12px/21.6px var(--mono); }
+.lab { font: 400 11px/14px var(--mono); letter-spacing: .55px; text-transform: uppercase; color: var(--t3); }
+.dot { width: 6px; height: 6px; border-radius: 12px; background: var(--ok); flex: none; }
+.dot.grey { background: var(--t3); } .dot.blue { background: var(--pri); } .dot.red { background: var(--err); }
+.dot.pulse { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { background: var(--high); border-radius: 8px; } ::-webkit-scrollbar-track { background: transparent; }
+
+/* ---- header ---- */
+header.top {
+  grid-column: 1 / -1; position: relative; z-index: 20; height: 56px; padding: 0 16px;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  background: rgba(26, 27, 33, .95); box-shadow: 0 1px 8px rgba(0, 0, 0, .04); backdrop-filter: blur(12px);
+}
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand img { width: 32px; height: 32px; display: block; }
+.brand .name { font: 500 16px/24px var(--sans); letter-spacing: -.16px; color: var(--t1); }
+.brand .para { display: flex; align-items: flex-end; gap: 4px; }
+.brand .ver { color: var(--t3); margin-bottom: 2px; }
+.switcher { height: 24px; display: flex; align-items: center; gap: 4px; padding: 4px 12px; background: var(--surf); border-radius: 2px; max-width: 360px; }
+.switcher .txt { font: 500 13px/16px var(--sans); letter-spacing: .13px; color: var(--t1); }
+.switcher .i { color: var(--t3); }
+.switcher .chev { margin-left: 4px; }
+.hright { display: flex; align-items: center; gap: 12px; justify-self: end; }
+.pill { height: 30px; display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--surf); border-radius: 2px; color: var(--t2); }
+.pill .dot { width: 8px; height: 8px; }
+.kbd { height: 18px; padding: 2px 4px; background: var(--surf); border-radius: 2px; color: var(--t3); }
+.hicon { width: 20px; height: 30px; padding: 4px; color: var(--t2); display: flex; justify-content: center; }
+.avatar { width: 32px; height: 32px; border-radius: 12px; background: var(--pri); color: var(--on-pri); display: flex; align-items: center; justify-content: center; }
+.menu { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); min-width: 240px; background: var(--surf); border-radius: 2px; padding: 4px; box-shadow: 0 2px 4px -2px rgba(0,0,0,.1), 0 4px 6px -1px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.35); z-index: 30; }
+.menu button { width: 100%; display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 2px; color: var(--t2); text-align: left; }
+.menu button:hover, .menu button:focus-visible { background: var(--high); }
+.toggle { display: none; width: 28px; height: 28px; border-radius: 2px; color: var(--t2); align-items: center; justify-content: center; }
+.toggle:hover { background: var(--surf); }
+
+/* ---- left sidebar ---- */
+aside.left { background: var(--low); display: flex; flex-direction: column; min-height: 0; }
+.lscroll { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 16px; }
+.sect { display: flex; flex-direction: column; gap: 4px; }
+.sect > .lab { padding: 0 4px 4px; }
+.sect ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.row { width: 100%; min-height: 28px; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 2px; color: var(--t2); text-align: left; }
+.row:hover { background: var(--surf); }
+.row[aria-current="true"] { color: var(--t1); }
+.row .grow { flex: 1; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.row .meta { color: var(--t3); flex: none; display: flex; align-items: center; gap: 4px; }
+.ws.row { min-height: 30px; }
+.badge { padding: 0 4px; background: var(--surf); border-radius: 2px; color: var(--t3); }
+.row:hover .badge { background: var(--high); }
+.add.row { color: var(--t3); }
+.add .i { color: var(--t3); margin-right: 0; }
+.star { color: var(--star); font: 500 11px/14px var(--sans); width: 11px; text-align: center; flex: none; }
+.fav { position: relative; }
+.fav .x { display: none; width: 18px; height: 18px; border-radius: 2px; color: var(--t3); align-items: center; justify-content: center; flex: none; }
+.fav:hover .x, .fav:focus-within .x { display: flex; }
+.fav .x:hover { color: var(--t1); background: var(--high); }
+.empty { color: var(--t3); padding: 4px 8px; }
+.tree .row { min-height: 24px; padding-top: 2px; padding-bottom: 2px; }
+.tree .tw { width: 12px; flex: none; color: var(--t3); display: flex; justify-content: center; }
+.tree .tw svg { transition: transform .12s; } .tree [aria-expanded="true"] .tw svg { transform: rotate(90deg); }
+.tree .ficon { color: var(--t3); }
+.tree .row[aria-selected="true"] { background: var(--surf); color: var(--t1); }
+.lfoot { background: var(--surf); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.lfoot .r1 { height: 22px; display: flex; align-items: center; justify-content: space-between; color: var(--t3); }
+.lfoot .r1 .dot { width: 8px; height: 8px; margin-right: 4px; }
+.lfoot .r2 { padding-top: 4px; height: 24px; display: flex; align-items: center; justify-content: space-between; color: var(--t3); }
+.addform { display: flex; flex-direction: column; gap: 6px; padding: 8px; background: var(--surf); border-radius: 2px; }
+.addform label { color: var(--t3); display: flex; flex-direction: column; gap: 2px; }
+.addform input { width: 100%; background: var(--low); color: var(--t1); border: 0; border-radius: 2px; padding: 4px 6px; font: 400 12px/20px var(--sans); }
+.addform input.mono { font: 400 11px/20px var(--mono); }
+.seg { display: flex; gap: 4px; }
+.seg button { flex: 1; padding: 2px 6px; border-radius: 2px; background: var(--low); color: var(--t3); }
+.seg button[aria-pressed="true"] { background: var(--high); color: var(--t1); }
+.addform .help { color: var(--t3); }
+.addform .acts { display: flex; gap: 6px; justify-content: flex-end; }
+.btn { padding: 2px 10px; border-radius: 2px; background: var(--high); color: var(--t2); }
+.btn.pri { background: var(--pri-c); color: var(--on-pri); font-weight: 500; }
+.err { color: var(--err); }
+
+/* ---- centre ---- */
+main { min-width: 0; min-height: 0; padding: 0 16px 32px; display: flex; justify-content: center; }
+.view { width: 100%; max-width: 860px; min-height: 0; padding: 0 12px; display: flex; flex-direction: column; }
+.ctx { height: 40px; flex: none; padding: 4px 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ctx .l, .ctx .r { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ctx .r { gap: 4px; flex: none; }
+.wschip { height: 28px; display: flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--high); border-radius: 2px; min-width: 0; }
+.wschip .txt { font: 500 16px/24px var(--sans); letter-spacing: -.4px; color: var(--t1); }
+.brchip { height: 18px; display: flex; align-items: center; gap: 4px; padding: 2px 6px; background: var(--surf); border-radius: 2px; color: var(--t3); flex: none; }
+.hash { color: var(--t4); flex: none; }
+.stchip { height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: var(--surf); border-radius: 2px; color: var(--t2); }
+.stchip.act:hover { background: var(--high); }
+.sq { width: 20px; height: 27px; padding: 4px 4px 11.2px; background: var(--surf); border-radius: 2px; color: var(--t3); }
+.canvas { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.emptyst { margin: auto 0; padding: 24px 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.motif { width: 48px; height: 48px; border-radius: 8px; background: var(--surf); box-shadow: 0 1px 2px rgba(0,0,0,.05); display: flex; align-items: center; justify-content: center; color: var(--pri); margin-bottom: 16px; }
+.emptyst h1 { margin: 0; font: 500 24px/32px var(--sans); letter-spacing: -.6px; color: var(--t1); }
+.emptyst p { margin: 3.375px 0 0; max-width: 443px; font: 400 14px/22.75px var(--sans); color: var(--t2); }
+.tagline { margin-top: 40px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; color: var(--t3); max-width: 100%; }
+.tagline span { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.tagline .dot { width: 4px; height: 4px; }
+
+/* chat thread: not drawn in the design; built from the design's own type and surfaces */
+.thread { padding: 16px 0 24px; display: flex; flex-direction: column; gap: 16px; }
+.msg-u { align-self: flex-end; max-width: 82%; background: var(--surf); border-radius: 8px; padding: 8px 12px; font: 400 14px/22.75px var(--sans); color: var(--t1); white-space: pre-wrap; word-wrap: break-word; }
+.msg-w { font: 400 14px/22.75px var(--sans); color: var(--t1); word-wrap: break-word; }
+.msg-w > :first-child { margin-top: 0; } .msg-w > :last-child { margin-bottom: 0; }
+.msg-w p { margin: 0 0 10px; }
+.msg-w h2, .msg-w h3, .msg-w h4 { font: 500 15px/24px var(--sans); margin: 14px 0 6px; color: var(--t1); }
+.msg-w h2 { font-size: 16px; }
+.msg-w ul, .msg-w ol { margin: 0 0 10px; padding-left: 20px; } .msg-w li { margin: 2px 0; }
+.msg-w code { font: 400 12.5px/20px var(--mono); background: var(--surf); border-radius: 2px; padding: 1px 4px; color: var(--t2); }
+.msg-w pre { margin: 0 0 10px; background: var(--low); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+.msg-w pre code { background: none; padding: 0; font-size: 12px; color: var(--t2); }
+.msg-w table { border-collapse: collapse; margin: 0 0 10px; font-size: 13px; line-height: 20px; display: block; overflow-x: auto; }
+.msg-w th, .msg-w td { border-bottom: 1px solid var(--high); padding: 4px 10px 4px 0; text-align: left; vertical-align: top; }
+.msg-w th { color: var(--t3); font-weight: 500; }
+.msg-w strong { font-weight: 600; color: var(--t1); }
+.tag { display: inline-block; font: 400 11px/14px var(--mono); letter-spacing: .44px; padding: 1px 4px; border-radius: 2px; background: var(--surf); color: var(--t3); margin-right: 6px; vertical-align: 1px; }
+.tag.DONE, .tag.VERIFICATION { color: var(--ok); } .tag.FAILURE { color: var(--err); } .tag.PLAN, .tag.DECISION { color: var(--pri); }
+.sys { display: flex; align-items: center; gap: 6px; color: var(--t3); }
+.sys.err { color: var(--err); }
+.working { display: flex; align-items: center; gap: 6px; color: var(--t3); min-width: 0; }
+.working .dot { background: var(--pri); }
+
+/* file viewer */
+.viewer { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--low); border-radius: 8px; margin: 8px 0 0; overflow: hidden; }
+.vbar { height: 36px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 12px; background: var(--surf); color: var(--t2); }
+.vbar .ell { flex: 1; }
+.vbar .ro { color: var(--t3); }
+.iconbtn { width: 24px; height: 24px; border-radius: 2px; display: flex; align-items: center; justify-content: center; color: var(--t3); flex: none; }
+.iconbtn:hover { background: var(--high); color: var(--t1); }
+.vbody { flex: 1; overflow: auto; }
+.code { display: grid; grid-template-columns: auto 1fr; font: 400 12px/20px var(--mono); padding: 8px 0; }
+.code .ln { color: var(--t4); text-align: right; padding: 0 12px 0 16px; user-select: none; white-space: pre; }
+.code .tx { color: var(--t2); white-space: pre; padding-right: 16px; tab-size: 2; }
+.vnote { padding: 24px; color: var(--t3); }
+.vimg { padding: 16px; } .vimg img { max-width: 100%; height: auto; background: repeating-conic-gradient(#20222a 0 25%, #191a20 0 50%) 0 0 / 16px 16px; }
+
+/* composer */
+.composer { flex: none; padding: 8px 0 4px; }
+.cbox { position: relative; background: var(--low); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 7.2px; box-shadow: 0 2px 4px -2px rgba(0,0,0,.1), 0 4px 6px -1px rgba(0,0,0,.1); }
+.cbox textarea { display: block; width: 100%; resize: none; border: 0; outline: 0; background: none; color: var(--t1); padding: 4px 4px 26.75px; font: 400 14px/22.75px var(--sans); min-height: 54px; max-height: 240px; }
+.cbox textarea::placeholder { color: rgba(136, 146, 155, .7); }
+.urow { height: 32px; padding: 4px 4px 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.urow .l, .urow .r { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.attach { width: 28px; height: 28px; border-radius: 2px; display: flex; align-items: center; justify-content: center; color: var(--t3); flex: none; }
+.cbadge { height: 18px; display: flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--surf); border-radius: 2px; color: var(--t2); min-width: 0; }
+.cbadge .sl, .cbadge .br { color: var(--t3); }
+.mtag { height: 18px; display: flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--surf); border-radius: 2px; color: var(--t3); flex: none; }
+.savep { height: 18px; padding: 0 6px; border-radius: 2px; color: var(--t3); flex: none; }
+.savep:hover { background: var(--surf); color: var(--t1); } .savep.done { color: var(--star); }
+.hint { color: var(--t3); flex: none; }
+.send { width: 28px; height: 28px; border-radius: 2px; background: var(--pri-c); color: var(--on-pri); display: flex; align-items: center; justify-content: center; flex: none; }
+.send:disabled { opacity: .45; }
+.send.stop { background: var(--high); color: var(--t1); }
+.foot { height: 18px; padding: 4px 4px 0; display: flex; justify-content: space-between; gap: 12px; color: var(--t3); opacity: .8; }
+.foot .err { opacity: 1; }
+
+/* ---- right: activity ---- */
+aside.right { background: var(--low); display: flex; flex-direction: column; min-height: 0; }
+.rhead { padding: 12px 12px 0; flex: none; }
+.rhead .h { height: 22px; padding-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+.rhead .h .t { display: flex; align-items: center; gap: 4px; color: var(--t1); }
+.rhead .h .t .i { color: var(--pri); }
+.rhead .h .t .lab { color: var(--t1); }
+.live { padding: 0 4px; background: var(--surf); border-radius: 2px; color: var(--ok); }
+.acts { flex: 1; overflow-y: auto; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; }
+.card { background: var(--surf); border-radius: 2px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.card .ch { height: 22px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.card .ct { color: var(--t1); display: flex; align-items: center; gap: 6px; min-width: 0; }
+.card .cm { color: var(--t3); flex: none; display: flex; align-items: center; gap: 6px; }
+.card .cm.ok { color: var(--ok); } .card .cm.bad { color: var(--err); } .card .cm.run { color: var(--pri); }
+.card .cb { color: var(--t2); word-wrap: break-word; overflow-wrap: anywhere; }
+.card .cb code { font: 400 11px/20px var(--mono); color: var(--t2); }
+.card .cx { color: var(--t3); font: 400 11px/16px var(--mono); overflow-wrap: anywhere; }
+.card a, .card .link { color: var(--pri); text-decoration: none; cursor: pointer; } .card .link:hover { text-decoration: underline; }
+.turn { color: var(--t3); padding: 4px 2px 0; display: flex; align-items: center; gap: 8px; }
+.turn::after { content: ""; flex: 1; height: 1px; background: var(--surf); }
+.rfoot { height: 38px; flex: none; background: var(--surf); padding: 8px; display: flex; align-items: center; justify-content: space-between; color: var(--t3); }
+.rfoot .s { display: flex; align-items: center; gap: 4px; }
+
+/* ---- smaller windows ---- */
+@media (max-width: 1180px) { body { grid-template-columns: 232px minmax(0, 1fr) 288px; } }
+@media (max-width: 980px) {
+  body { grid-template-columns: 232px minmax(0, 1fr); }
+  aside.right { position: fixed; top: 56px; right: 0; bottom: 0; width: min(320px, 90vw); z-index: 15; box-shadow: -8px 0 24px rgba(0,0,0,.35); display: none; }
+  body.show-act aside.right { display: flex; }
+  #actToggle { display: flex; }
+  .kbd, .hicon { display: none; }
+}
+@media (max-width: 720px) {
+  body { grid-template-columns: minmax(0, 1fr); }
+  aside.left { position: fixed; top: 56px; left: 0; bottom: 0; width: min(280px, 88vw); z-index: 15; box-shadow: 8px 0 24px rgba(0,0,0,.35); display: none; }
+  body.show-nav aside.left { display: flex; }
+  #navToggle { display: flex; }
+  .brand .ver, .avatar { display: none; }
+  main { padding: 0 8px 8px; } .view { padding: 0 4px; }
+  .hint, .mtag { display: none; }
+}
+@media (max-width: 520px) { .switcher { display: none; } .brand .name { display: none; } }
+@media (prefers-reduced-motion: reduce) { .dot.pulse { animation: none; } .tree .tw svg { transition: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <button class="toggle" id="navToggle" aria-label="Show workspaces" aria-expanded="false"><svg class="i" width="14" height="11" data-i="tune"></svg></button>
+    <img src="/assets/monogram.png" alt="">
+    <span class="para"><span class="name">AI Workspace</span><span class="ver m11">local</span></span>
+  </div>
+  <div style="position:relative">
+    <button class="switcher" id="switcher" aria-haspopup="menu" aria-expanded="false" aria-label="Switch workspace">
+      <span class="dot" id="swDot"></span><svg class="i" width="11" height="11" data-i="branch"></svg><span class="txt ell" id="swLabel">…</span><svg class="i chev" width="8" height="5" data-i="chevron"></svg>
+    </button>
+    <div class="menu" id="swMenu" role="menu" hidden></div>
+  </div>
+  <div class="hright">
+    <button class="toggle" id="actToggle" aria-label="Show activity" aria-expanded="false"><svg class="i" width="14" height="11" data-i="terminalSm"></svg></button>
+    <div class="pill m12" role="status" aria-live="polite"><span class="dot" id="wDot"></span><span id="wState">Worker · Ready</span></div>
+    <!-- Drawn in the design; no behaviour defined yet, so shown but not interactive. -->
+    <span class="kbd m11" aria-hidden="true">⌘K</span>
+    <span class="hicon" aria-hidden="true"><svg class="i" width="12" height="15" data-i="bell"></svg></span>
+    <span class="hicon" aria-hidden="true" style="width:23px"><svg class="i" width="15" height="15" data-i="gear"></svg></span>
+    <span class="avatar" aria-hidden="true"><svg class="i" width="12" height="12" data-i="person"></svg></span>
+  </div>
+</header>
+
+<aside class="left" aria-label="Workspaces, favourites, recent runs and files">
+  <div class="lscroll">
+    <nav class="sect" aria-labelledby="lWs">
+      <div class="lab" id="lWs">Workspaces</div>
+      <ul id="wsList"></ul>
+      <button class="row add" id="addWs"><svg class="i" width="9" height="9" data-i="plus"></svg><span>Add workspace</span></button>
+      <form class="addform" id="addForm" hidden novalidate>
+        <label class="m11">Name<input id="fName" autocomplete="off" maxlength="60" required></label>
+        <label class="m11">Folder<input id="fPath" class="mono" autocomplete="off" spellcheck="false" placeholder="C:\Users\you\Desktop\project" required></label>
+        <div class="seg" role="group" aria-label="Access mode">
+          <button type="button" class="m11" data-mode="inspect" aria-pressed="true">Inspect</button>
+          <button type="button" class="m11" data-mode="work" aria-pressed="false">Work</button>
+        </div>
+        <div class="help m11" id="fHelp"></div>
+        <div class="err m11" id="fErr" role="alert"></div>
+        <div class="acts"><button type="button" class="btn m11" id="fCancel">Cancel</button><button type="submit" class="btn pri m11">Add</button></div>
+      </form>
+    </nav>
+    <section class="sect" aria-labelledby="lFav">
+      <div class="lab" id="lFav">Favourites</div>
+      <ul id="favList"></ul>
+    </section>
+    <section class="sect" aria-labelledby="lRuns">
+      <div class="lab" id="lRuns">Recent runs</div>
+      <ul id="runList"></ul>
+    </section>
+    <section class="sect" aria-labelledby="lFiles">
+      <div class="lab" id="lFiles">Files</div>
+      <ul class="tree" id="tree" role="tree" aria-labelledby="lFiles"></ul>
+    </section>
+  </div>
+  <div class="lfoot">
+    <div class="r1"><span style="display:flex;align-items:center"><span class="dot" id="srvDot"></span><span class="m12">Local console</span></span><span class="m11" id="srvPort"></span></div>
+    <div class="r2" aria-hidden="true"><span>Docs &amp; Reference</span><svg class="i" width="12" height="12" data-i="docs"></svg></div>
+  </div>
+</aside>
+
+<main>
+  <div class="view">
+    <div class="ctx">
+      <div class="l">
+        <div class="wschip"><span class="dot" id="cDot"></span><span class="txt ell" id="cName">…</span></div>
+        <span class="brchip m11" id="cBranch" hidden><svg class="i" width="8" height="10" data-i="branchSm"></svg><span></span></span>
+        <span class="hash m11" id="cHash" hidden></span>
+      </div>
+      <div class="r">
+        <button class="stchip act m12" id="endBtn" hidden title="Close this conversation cleanly. It can be continued later.">End run</button>
+        <div class="stchip m12" id="runChip"><span class="dot" id="rDot"></span><span id="rState">Ready</span></div>
+        <span class="sq" aria-hidden="true"><svg class="i" width="12" height="12" data-i="tune"></svg></span>
+      </div>
+    </div>
+    <div class="canvas" id="canvas"></div>
+    <div class="composer">
+      <div class="cbox">
+        <label class="sr" for="input">Message the worker</label>
+        <textarea id="input" rows="1"></textarea>
+        <div class="urow">
+          <div class="l">
+            <span class="attach" aria-hidden="true"><svg class="i" width="11" height="11" data-i="plus11"></svg></span>
+            <span class="cbadge m11"><span class="dot" id="bDot"></span><span class="ell" id="bName"></span><span class="sl" id="bSl">/</span><span class="br" id="bBr"></span></span>
+            <span class="mtag m11" id="mTag"><svg class="i" width="9" height="11" data-i="bolt"></svg><span id="mName"></span></span>
+          </div>
+          <div class="r">
+            <button class="savep m11" id="saveP" title="Save this prompt to Favourites">☆ Save</button>
+            <span class="hint m11" aria-hidden="true">↵</span>
+            <button class="send" id="send" aria-label="Send"><svg class="i" width="11" height="11" data-i="arrowUp"></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="foot m11"><span id="footL"></span><span id="footR" class="ell"></span></div>
+    </div>
+  </div>
+</main>
+
+<aside class="right" aria-label="Worker activity">
+  <div class="rhead"><div class="h">
+    <span class="t"><svg class="i" width="13" height="11" data-i="terminalSm"></svg><span class="lab">Execution &amp; Telemetry</span></span>
+    <span class="live m11" id="live" hidden>LIVE</span>
+  </div></div>
+  <ol class="acts" id="acts" aria-live="off"></ol>
+  <div class="rfoot m12"><span class="s"><span class="dot" id="aDot"></span><span id="aState">Idle</span></span><span id="aTime">0.00s execution</span></div>
+</aside>
+
+<script>
+// Icons are the design's own Material Symbols paths, exported from the Figma file.
+const ICONS = {"branchSm":{"vb":"0 0 8 10","d":["M1.625 9.75V2.07188L0.758333 2.925L0 2.16667L2.16667 0L4.33333 2.16667L3.575 2.93854L2.70833 2.07188V5.60625C3.02431 5.32639 3.3809 5.12552 3.77813 5.00365C4.17535 4.88177 4.57257 4.82083 4.96979 4.82083C5.0691 4.82083 5.16389 4.82535 5.25417 4.83437C5.34444 4.8434 5.43021 4.85694 5.51146 4.875L4.65833 4.00833L5.41667 3.25L7.58333 5.41667L5.41667 7.58333L4.65833 6.825L5.51146 5.95833C5.41215 5.94028 5.31285 5.92448 5.21354 5.91094C5.11424 5.8974 5.01493 5.89062 4.91563 5.89062C4.42812 5.89062 3.97899 6.0283 3.56823 6.30365C3.15747 6.57899 2.87083 7.00556 2.70833 7.58333V9.75H1.625Z"]},"terminalLg":{"vb":"0 0 20 16","d":["M2 16C1.45 16 0.979167 15.8042 0.5875 15.4125C0.195833 15.0208 0 14.55 0 14V2C0 1.45 0.195833 0.979167 0.5875 0.5875C0.979167 0.195833 1.45 0 2 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H2ZM2 14H18V4H2V14ZM5.5 13L4.1 11.6L6.675 9L4.075 6.4L5.5 5L9.5 9L5.5 13ZM10 13V11H16V13H10Z"]},"bolt":{"vb":"0 0 9 11","d":["M3.54792 8.775L6.35104 5.41667H4.18437L4.57708 2.34271L2.07188 5.95833H3.95417L3.54792 8.775ZM2.16667 10.8333L2.70833 7.04167H0L4.875 0H5.95833L5.41667 4.33333H8.66667L3.25 10.8333H2.16667Z"]},"arrowUp":{"vb":"0 0 11 11","d":["M4.66667 10.6667V2.55L0.933333 6.28333L0 5.33333L5.33333 0L10.6667 5.33333L9.73333 6.28333L6 2.55V10.6667H4.66667Z"]},"plus":{"vb":"0 0 10 10","d":["M4 5.33333H0V4H4V0H5.33333V4H9.33333V5.33333H5.33333V9.33333H4V5.33333Z"]},"terminalSm":{"vb":"0 0 14 11","d":["M1.33333 10.6667C0.966667 10.6667 0.652778 10.5361 0.391667 10.275C0.130556 10.0139 0 9.7 0 9.33333V1.33333C0 0.966667 0.130556 0.652778 0.391667 0.391667C0.652778 0.130556 0.966667 0 1.33333 0H12C12.3667 0 12.6806 0.130556 12.9417 0.391667C13.2028 0.652778 13.3333 0.966667 13.3333 1.33333V9.33333C13.3333 9.7 13.2028 10.0139 12.9417 10.275C12.6806 10.5361 12.3667 10.6667 12 10.6667H1.33333ZM1.33333 9.33333H12V2.66667H1.33333V9.33333ZM3.66667 8.66667L2.73333 7.73333L4.45 6L2.71667 4.26667L3.66667 3.33333L6.33333 6L3.66667 8.66667ZM6.66667 8.66667V7.33333H10.6667V8.66667H6.66667Z"]},"branch":{"vb":"0 0 11 11","d":["M4.66667 10.6667V5.6L1.33333 2.26667V4H0V0H4V1.33333H2.26667L6 5.06667V10.6667H4.66667ZM7.23333 4.4L6.26667 3.43333L8.4 1.33333H6.66667V0H10.6667V4H9.33333V2.26667L7.23333 4.4Z"]},"chevron":{"vb":"0 0 8 5","d":["M4 4.93333L0 0.933333L0.933333 0L4 3.06667L7.06667 0L8 0.933333L4 4.93333Z"]},"arrowRight":{"vb":"0 0 11 11","d":["M8.11667 6H0V4.66667H8.11667L4.38333 0.933333L5.33333 0L10.6667 5.33333L5.33333 10.6667L4.38333 9.73333L8.11667 6Z"]},"tune":{"vb":"0 0 12 12","d":["M5.33333 12V8H6.66667V9.33333H12V10.6667H6.66667V12H5.33333ZM0 10.6667V9.33333H4V10.6667H0ZM2.66667 8V6.66667H0V5.33333H2.66667V4H4V8H2.66667ZM5.33333 6.66667V5.33333H12V6.66667H5.33333ZM8 4V0H9.33333V1.33333H12V2.66667H9.33333V4H8ZM0 2.66667V1.33333H6.66667V2.66667H0Z"]},"bell":{"vb":"0 0 12 15","d":["M0 12.75V11.25H1.5V6C1.5 4.9625 1.8125 4.04063 2.4375 3.23438C3.0625 2.42812 3.875 1.9 4.875 1.65V1.125C4.875 0.8125 4.98438 0.546875 5.20312 0.328125C5.42188 0.109375 5.6875 0 6 0C6.3125 0 6.57812 0.109375 6.79688 0.328125C7.01562 0.546875 7.125 0.8125 7.125 1.125V1.65C8.125 1.9 8.9375 2.42812 9.5625 3.23438C10.1875 4.04063 10.5 4.9625 10.5 6V11.25H12V12.75H0ZM6 15C5.5875 15 5.23438 14.8531 4.94063 14.5594C4.64688 14.2656 4.5 13.9125 4.5 13.5H7.5C7.5 13.9125 7.35312 14.2656 7.05937 14.5594C6.76562 14.8531 6.4125 15 6 15ZM3 11.25H9V6C9 5.175 8.70625 4.46875 8.11875 3.88125C7.53125 3.29375 6.825 3 6 3C5.175 3 4.46875 3.29375 3.88125 3.88125C3.29375 4.46875 3 5.175 3 6V11.25Z"]},"gear":{"vb":"0 0 16 15","d":["M5.475 15L5.175 12.6C5.0125 12.5375 4.85938 12.4625 4.71562 12.375C4.57187 12.2875 4.43125 12.1938 4.29375 12.0938L2.0625 13.0312L0 9.46875L1.93125 8.00625C1.91875 7.91875 1.9125 7.83438 1.9125 7.75313C1.9125 7.67188 1.9125 7.5875 1.9125 7.5C1.9125 7.4125 1.9125 7.32812 1.9125 7.24687C1.9125 7.16562 1.91875 7.08125 1.93125 6.99375L0 5.53125L2.0625 1.96875L4.29375 2.90625C4.43125 2.80625 4.575 2.7125 4.725 2.625C4.875 2.5375 5.025 2.4625 5.175 2.4L5.475 0H9.6L9.9 2.4C10.0625 2.4625 10.2156 2.5375 10.3594 2.625C10.5031 2.7125 10.6438 2.80625 10.7812 2.90625L13.0125 1.96875L15.075 5.53125L13.1438 6.99375C13.1562 7.08125 13.1625 7.16562 13.1625 7.24687C13.1625 7.32812 13.1625 7.4125 13.1625 7.5C13.1625 7.5875 13.1625 7.67188 13.1625 7.75313C13.1625 7.83438 13.15 7.91875 13.125 8.00625L15.0562 9.46875L12.9937 13.0312L10.7812 12.0938C10.6438 12.1938 10.5 12.2875 10.35 12.375C10.2 12.4625 10.05 12.5375 9.9 12.6L9.6 15H5.475ZM6.7875 13.5H8.26875L8.53125 11.5125C8.91875 11.4125 9.27812 11.2656 9.60938 11.0719C9.94063 10.8781 10.2438 10.6437 10.5188 10.3687L12.375 11.1375L13.1062 9.8625L11.4937 8.64375C11.5562 8.46875 11.6 8.28438 11.625 8.09062C11.65 7.89687 11.6625 7.7 11.6625 7.5C11.6625 7.3 11.65 7.10313 11.625 6.90938C11.6 6.71563 11.5562 6.53125 11.4937 6.35625L13.1062 5.1375L12.375 3.8625L10.5188 4.65C10.2438 4.3625 9.94063 4.12187 9.60938 3.92812C9.27812 3.73438 8.91875 3.5875 8.53125 3.4875L8.2875 1.5H6.80625L6.54375 3.4875C6.15625 3.5875 5.79688 3.73438 5.46562 3.92812C5.13437 4.12187 4.83125 4.35625 4.55625 4.63125L2.7 3.8625L1.96875 5.1375L3.58125 6.3375C3.51875 6.525 3.475 6.7125 3.45 6.9C3.425 7.0875 3.4125 7.2875 3.4125 7.5C3.4125 7.7 3.425 7.89375 3.45 8.08125C3.475 8.26875 3.51875 8.45625 3.58125 8.64375L1.96875 9.8625L2.7 11.1375L4.55625 10.35C4.83125 10.6375 5.13437 10.8781 5.46562 11.0719C5.79688 11.2656 6.15625 11.4125 6.54375 11.5125L6.7875 13.5ZM7.575 10.125C8.3 10.125 8.91875 9.86875 9.43125 9.35625C9.94375 8.84375 10.2 8.225 10.2 7.5C10.2 6.775 9.94375 6.15625 9.43125 5.64375C8.91875 5.13125 8.3 4.875 7.575 4.875C6.8375 4.875 6.21562 5.13125 5.70937 5.64375C5.20312 6.15625 4.95 6.775 4.95 7.5C4.95 8.225 5.20312 8.84375 5.70937 9.35625C6.21562 9.86875 6.8375 10.125 7.575 10.125Z"]},"person":{"vb":"0 0 12 12","d":["M6 6C5.175 6 4.46875 5.70625 3.88125 5.11875C3.29375 4.53125 3 3.825 3 3C3 2.175 3.29375 1.46875 3.88125 0.88125C4.46875 0.29375 5.175 0 6 0C6.825 0 7.53125 0.29375 8.11875 0.88125C8.70625 1.46875 9 2.175 9 3C9 3.825 8.70625 4.53125 8.11875 5.11875C7.53125 5.70625 6.825 6 6 6ZM0 12V9.9C0 9.475 0.109375 9.08437 0.328125 8.72812C0.546875 8.37187 0.8375 8.1 1.2 7.9125C1.975 7.525 2.7625 7.23438 3.5625 7.04063C4.3625 6.84688 5.175 6.75 6 6.75C6.825 6.75 7.6375 6.84688 8.4375 7.04063C9.2375 7.23438 10.025 7.525 10.8 7.9125C11.1625 8.1 11.4531 8.37187 11.6719 8.72812C11.8906 9.08437 12 9.475 12 9.9V12H0ZM1.5 10.5H10.5V9.9C10.5 9.7625 10.4656 9.6375 10.3969 9.525C10.3281 9.4125 10.2375 9.325 10.125 9.2625C9.45 8.925 8.76875 8.67188 8.08125 8.50313C7.39375 8.33438 6.7 8.25 6 8.25C5.3 8.25 4.60625 8.33438 3.91875 8.50313C3.23125 8.67188 2.55 8.925 1.875 9.2625C1.7625 9.325 1.67188 9.4125 1.60312 9.525C1.53437 9.6375 1.5 9.7625 1.5 9.9V10.5ZM6 4.5C6.4125 4.5 6.76562 4.35312 7.05937 4.05937C7.35312 3.76562 7.5 3.4125 7.5 3C7.5 2.5875 7.35312 2.23438 7.05937 1.94062C6.76562 1.64687 6.4125 1.5 6 1.5C5.5875 1.5 5.23438 1.64687 4.94063 1.94062C4.64688 2.23438 4.5 2.5875 4.5 3C4.5 3.4125 4.64688 3.76562 4.94063 4.05937C5.23438 4.35312 5.5875 4.5 6 4.5Z"]},"docs":{"vb":"0 0 12 12","d":["M5.33333 12V8H6.66667V9.33333H12V10.6667H6.66667V12H5.33333ZM0 10.6667V9.33333H4V10.6667H0ZM2.66667 8V6.66667H0V5.33333H2.66667V4H4V8H2.66667ZM5.33333 6.66667V5.33333H12V6.66667H5.33333ZM8 4V0H9.33333V1.33333H12V2.66667H9.33333V4H8ZM0 2.66667V1.33333H6.66667V2.66667H0Z"]},"plus11":{"vb":"0 0 11 11","d":["M4.5 6H0V4.5H4.5V0H6V4.5H10.5V6H6V10.5H4.5V6Z"]},
+  // Not in the design; same Material Symbols family, needed for stop, close and the file tree.
+  "stop":{"vb":"0 0 10 10","d":["M0 0H10V10H0Z"]},
+  "close":{"vb":"0 0 24 24","d":["M6.4 19 5 17.6 10.6 12 5 6.4 6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4Z"]},
+  "chevRight":{"vb":"0 0 24 24","d":["M12.6 12 8 7.4 9.4 6l6 6-6 6L8 16.6Z"]},
+  "folder":{"vb":"0 0 24 24","d":["M4 20q-.825 0-1.412-.587Q2 18.825 2 18V6q0-.825.588-1.412Q3.175 4 4 4h6l2 2h8q.825 0 1.413.588Q22 7.175 22 8v10q0 .825-.587 1.413Q20.825 20 20 20Zm0-2h16V8h-8.825l-2-2H4v12Z"]},
+  "file":{"vb":"0 0 24 24","d":["M6 22q-.825 0-1.412-.587Q4 20.825 4 20V4q0-.825.588-1.413Q5.175 2 6 2h8l6 6v12q0 .825-.587 1.413Q18.825 22 18 22Zm7-13V4H6v16h12V9Z"]}
+};
+const svgIcon = (name, w, h) => `<svg class="i" width="${w}" height="${h}" viewBox="${ICONS[name].vb}" aria-hidden="true">${ICONS[name].d.map((d) => `<path d="${d}"/>`).join("")}</svg>`;
+document.querySelectorAll("svg[data-i]").forEach((s) => { const ic = ICONS[s.dataset.i]; s.setAttribute("viewBox", ic.vb); s.setAttribute("aria-hidden", "true"); s.innerHTML = ic.d.map((d) => `<path d="${d}"/>`).join(""); });
+
+if (location.protocol === "file:") {
+  document.body.innerHTML = '<div style="grid-column:1/-1;padding:40px;font:14px/22px var(--sans);color:var(--t2)">Open this page through its server: run <code>node worker-ui/server.mjs</code>, then go to <a style="color:var(--pri)" href="http://localhost:8799">http://localhost:8799</a>.</div>';
+  throw new Error("Open via http://localhost:8799");
+}
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const api = async (method, path, data) => {
+  // The server accepts state-changing requests only from this page: same origin plus this header.
+  const r = await fetch(path, { method, headers: { "content-type": "application/json", "x-worker-console": "1" }, body: method === "GET" ? undefined : JSON.stringify(data || {}) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+};
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+
+// ---------------- state ----------------
+let WS = [], RUNS = [], PROMPTS = [], ACTIVE = null;
+let wsId = store.get("ws") || "console";
+let runId = null, meta = null, es = null;
+let view = "chat"; // chat | file
+let T = null; // per-run view state
+const ALIVE = ["starting", "running", "waiting"];
+const ws = () => WS.find((w) => w.id === wsId) || WS[0];
+const modeOf = (w) => (w?.profile === "inspect" ? "Inspect" : "Work");
+const runWs = (m) => m?.workspace?.id || "console";
+
+// ---------------- formatting ----------------
+function ago(iso) {
+  const d = new Date(iso), s = (Date.now() - d) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(iso).setHours(0, 0, 0, 0)) / 864e5);
+  if (days === 0) return `${Math.floor(s / 3600)}h ago`;
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+const STATE = {
+  starting: ["Starting", "blue pulse"], running: ["Working", "blue pulse"], waiting: ["Waiting for you", ""],
+  finished: ["Finished", ""], stopped: ["Stopped", "grey"], failed: ["Failed", "red"], interrupted: ["Interrupted", "grey"],
+};
+const setDot = (el, cls) => { el.className = "dot " + (cls || ""); };
+const TAGRE = /^(\s*(?:[-*•]\s+)?)\**(PLAN|OBSERVATION|DECISION|FAILURE|RECOVERY|VERIFICATION|ARTIFACT|DONE):\**\s*/i;
+
+// Small, safe markdown: everything is escaped first; only these constructs become markup.
+function inline(s) {
+  return esc(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, "$1");
+}
+function md(src) {
+  const out = [], parts = String(src).split(/^```[^\n]*\n?/m);
+  parts.forEach((part, i) => {
+    if (i % 2) { out.push(`<pre><code>${esc(part.replace(/\n$/, ""))}</code></pre>`); return; }
+    const lines = part.split("\n");
+    let para = [], list = null;
+    const flush = () => { if (para.length) out.push(`<p>${para.join("<br>")}</p>`); para = []; if (list) { out.push(`</${list}>`); list = null; } };
+    for (let k = 0; k < lines.length; k++) {
+      let l = lines[k];
+      if (!l.trim()) { flush(); continue; }
+      if (/^\s*\|.*\|\s*$/.test(l) && /^\s*\|?[\s:|-]+\|?\s*$/.test(lines[k + 1] || "") && (lines[k + 1] || "").includes("-")) {
+        flush();
+        const cells = (r) => r.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+        let h = `<table><thead><tr>${cells(l).map((c) => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>`;
+        k += 2;
+        while (k < lines.length && /^\s*\|.*\|\s*$/.test(lines[k])) { h += `<tr>${cells(lines[k]).map((c) => `<td>${inline(c)}</td>`).join("")}</tr>`; k++; }
+        k--; out.push(h + "</tbody></table>"); continue;
+      }
+      const hm = /^(#{1,4})\s+(.*)$/.exec(l);
+      if (hm) { flush(); const n = Math.min(4, hm[1].length + 1); out.push(`<h${n}>${inline(hm[2])}</h${n}>`); continue; }
+      const tm = TAGRE.exec(l);
+      const tag = tm ? `<span class="tag ${tm[2].toUpperCase()}">${tm[2].toUpperCase()}</span>` : "";
+      if (tm) l = tm[1] + l.slice(tm[0].length);
+      const lm = /^\s*(?:([-*•])|(\d+)[.)])\s+(.*)$/.exec(l);
+      if (lm) {
+        const type = lm[1] ? "ul" : "ol";
+        if (para.length) { out.push(`<p>${para.join("<br>")}</p>`); para = []; }
+        if (list !== type) { if (list) out.push(`</${list}>`); out.push(`<${type}>`); list = type; }
+        out.push(`<li>${tag}${inline(lm[3])}</li>`); continue;
+      }
+      if (list) { out.push(`</${list}>`); list = null; }
+      para.push(tag + inline(l));
+    }
+    flush();
+  });
+  return out.join("");
+}
+
+// Real tool events, phrased for people. The server's summary is "<tool> <main argument>".
+const ENV_LABEL = { Files: "Files", Shell: "Shell", Browser: "Browser", Figma: "Figma", Web: "Web", Internal: "Worker" };
+function phrase(ev) {
+  const tool = ev.tool || "", arg = ev.summary.startsWith(tool) ? ev.summary.slice(tool.length).trim() : ev.summary;
+  if (tool.startsWith("figma_")) return [`Figma ${tool.slice(6).replace(/_/g, " ")}`, arg];
+  const V = { Read: "Read", Glob: "Listed files matching", Grep: "Searched for", Bash: "Ran", PowerShell: "Ran", Write: "Wrote", Edit: "Edited", NotebookEdit: "Edited notebook",
+    WebFetch: "Fetched", WebSearch: "Searched the web for", Task: "Started a subagent", Agent: "Started a subagent", TodoWrite: "Updated its plan",
+    browser_navigate: "Opened", browser_get_dom_state: "Read the page", browser_click: "Clicked", browser_fill: "Filled", browser_screenshot: "Took a screenshot" };
+  return [V[tool] || tool, arg];
+}
+const dur = (ms) => (ms < 1000 ? `${Math.max(1, Math.round(ms))}ms` : `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)}s`);
+
+// ---------------- workspaces ----------------
+async function loadWorkspaces() {
+  WS = await api("GET", "/workspaces");
+  if (!WS.find((w) => w.id === wsId)) wsId = "console";
+  renderWorkspaces();
+}
+function renderWorkspaces() {
+  const w = ws();
+  $("wsList").innerHTML = WS.map((x) => `<li><button class="row ws" data-ws="${esc(x.id)}" aria-current="${x.id === wsId}" ${x.available ? "" : 'title="Folder not found"'}>
+      <span class="grow">${x.id === wsId ? '<span class="dot"></span>' : ""}<span class="ell" style="${x.available ? "" : "color:var(--t3)"}">${esc(x.name)}</span></span>
+      <span class="meta">${x.branch ? `<span class="m12 ell" style="max-width:80px">${esc(x.branch)}</span>` : ""}${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button></li>`).join("");
+  $("swMenu").innerHTML = WS.map((x) => `<button role="menuitem" data-ws="${esc(x.id)}" class="m12"><span class="dot ${x.id === wsId ? "" : "grey"}"></span><span class="ell" style="flex:1">${esc(x.name)}</span><span style="color:var(--t3)">${modeOf(x)}</span></button>`).join("");
+  $("swLabel").textContent = w.branch ? `${w.name} / ${w.branch}` : w.name;
+  $("cName").textContent = w.name;
+  $("cBranch").hidden = !w.branch; $("cBranch").querySelector("span").textContent = w.branch || "";
+  $("cHash").hidden = !w.commit; $("cHash").textContent = w.commit ? `#${w.commit}` : "";
+  $("bName").textContent = w.name; $("bBr").textContent = w.branch || ""; $("bSl").hidden = !w.branch;
+  $("mName").textContent = modeOf(w);
+  $("footR").textContent = w.profile === "inspect" ? "Inspect: reads and searches only. No edits, no commands" : "Work: can edit files and run commands in this folder";
+  $("input").placeholder = runId ? "Reply to the worker…" : (w.profile === "inspect" ? `Ask the worker to inspect ${w.name}…` : `Ask the worker to inspect or operate on ${w.name}…`);
+}
+function selectWorkspace(id, { newChat = true } = {}) {
+  wsId = id; store.set("ws", id);
+  renderWorkspaces(); renderRuns(); loadTree();
+  if (newChat) openNewChat();
+  closeMenus();
+}
+$("wsList").onclick = (e) => { const b = e.target.closest("[data-ws]"); if (b) selectWorkspace(b.dataset.ws); };
+$("swMenu").onclick = (e) => { const b = e.target.closest("[data-ws]"); if (b) selectWorkspace(b.dataset.ws); };
+$("switcher").onclick = (e) => { e.stopPropagation(); const open = $("swMenu").hidden; closeMenus(); $("swMenu").hidden = !open; $("switcher").setAttribute("aria-expanded", open); if (open) $("swMenu").querySelector("button")?.focus(); };
+function closeMenus() { $("swMenu").hidden = true; $("switcher").setAttribute("aria-expanded", "false"); }
+document.addEventListener("click", (e) => { if (!e.target.closest("#swMenu")) closeMenus(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); } else if (view === "file") closeFile(); document.body.classList.remove("show-act", "show-nav"); } });
+
+// Add workspace: the person names a folder and picks Inspect or Work. The server checks the folder.
+let fMode = "inspect";
+const HELP = { inspect: "Read and search only. No edits, no commands.", work: "Can edit files and run commands in this folder." };
+function setMode(m) { fMode = m; document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === m)); $("fHelp").textContent = HELP[m]; }
+$("addWs").onclick = () => { $("addForm").hidden = false; $("addWs").hidden = true; setMode("inspect"); $("fErr").textContent = ""; $("fName").focus(); };
+$("fCancel").onclick = () => { $("addForm").hidden = true; $("addWs").hidden = false; $("addForm").reset(); };
+document.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => setMode(b.dataset.mode)));
+$("addForm").onsubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const w = await api("POST", "/workspaces", { name: $("fName").value, path: $("fPath").value.trim().replace(/^"|"$/g, ""), mode: fMode });
+    $("addForm").reset(); $("addForm").hidden = true; $("addWs").hidden = false;
+    await loadWorkspaces(); selectWorkspace(w.id);
+  } catch (err) { $("fErr").textContent = err.message; }
+};
+
+// ---------------- favourites (the prompt library) ----------------
+async function loadPrompts() { PROMPTS = await api("GET", "/prompts"); renderPrompts(); }
+function renderPrompts() {
+  $("favList").innerHTML = PROMPTS.length ? PROMPTS.map((p) => `<li class="fav"><div class="row" style="padding-right:4px">
+      <button class="grow" data-p="${esc(p.id)}" title="${esc(p.text)}" style="text-align:left"><span class="star" aria-hidden="true">★</span><span class="ell">${esc(p.title)}</span></button>
+      <button class="x" data-del="${esc(p.id)}" aria-label="Remove ${esc(p.title)} from favourites">${svgIcon("close", 12, 12)}</button></div></li>`).join("")
+    : '<li class="empty">Save a prompt with ☆ Save</li>';
+}
+$("favList").onclick = async (e) => {
+  const del = e.target.closest("[data-del]"), use = e.target.closest("[data-p]");
+  if (del) { await api("DELETE", `/prompts/${del.dataset.del}`).catch(notice); return loadPrompts(); }
+  if (use) { const p = PROMPTS.find((x) => x.id === use.dataset.p); if (view === "file") closeFile(); $("input").value = p.text; autosize(); $("input").focus(); }
+};
+$("saveP").onclick = async () => {
+  const text = $("input").value.trim();
+  if (!text) { notice("Type a prompt first, then save it."); $("input").focus(); return; }
+  try {
+    await api("POST", "/prompts", { title: text.split("\n")[0].slice(0, 60), text, favourite: true });
+    $("saveP").textContent = "★ Saved"; $("saveP").classList.add("done");
+    setTimeout(() => { $("saveP").textContent = "☆ Save"; $("saveP").classList.remove("done"); }, 1600);
+    loadPrompts();
+  } catch (err) { notice(err.message); }
+};
+
+// ---------------- recent runs ----------------
+async function loadRuns() {
+  try {
+    const r = await api("GET", "/runs");
+    RUNS = r.runs; ACTIVE = r.runs.find((x) => x.id === r.active) || null;
+    setDot($("srvDot"), ""); renderRuns(); renderWorker();
+  } catch { setDot($("srvDot"), "red"); $("wState").textContent = "Worker · Console offline"; setDot($("wDot"), "red"); }
+}
+function renderRuns() {
+  const mine = RUNS.filter((r) => runWs(r) === wsId).slice(0, 20);
+  $("runList").innerHTML = mine.length ? mine.map((r) => {
+    const st = STATE[r.status] || [r.status, "grey"];
+    return `<li><button class="row" data-run="${esc(r.id)}" aria-current="${r.id === runId}" title="${esc(r.prompt)}\n${esc(st[0])}">
+      <span class="grow"><span class="dot ${st[1]}"></span><span class="ell">${esc(r.prompt.split("\n")[0])}</span></span><span class="meta m11">${esc(ago(r.updatedAt || r.createdAt))}</span></button></li>`;
+  }).join("") : '<li class="empty">No runs in this workspace yet</li>';
+}
+$("runList").onclick = (e) => { const b = e.target.closest("[data-run]"); if (b) openRun(b.dataset.run); };
+function renderWorker() {
+  const a = ACTIVE;
+  $("wState").textContent = !a ? "Worker · Ready" : a.status === "waiting" ? "Worker · Waiting" : "Worker · Working";
+  setDot($("wDot"), !a || a.status === "waiting" ? "" : "blue pulse");
+}
+
+// ---------------- files ----------------
+const open = new Set();
+async function loadTree() { open.clear(); $("tree").innerHTML = ""; await renderDir("", $("tree"), 0); }
+async function renderDir(path, ul, depth) {
+  let entries;
+  try { entries = await api("GET", `/tree?workspace=${encodeURIComponent(wsId)}&path=${encodeURIComponent(path)}`); }
+  catch (e) { ul.innerHTML = `<li class="empty">${esc(e.message === "not found" ? "Folder not available" : e.message)}</li>`; return; }
+  if (!entries.length) { ul.innerHTML = `<li class="empty" style="padding-left:${8 + depth * 12}px">Empty</li>`; return; }
+  ul.innerHTML = entries.map((e) => `<li role="none"><button class="row" role="treeitem" style="padding-left:${8 + depth * 12}px" data-path="${esc(e.path)}" ${e.dir ? `data-dir="1" aria-expanded="false"` : 'aria-selected="false"'}>
+      <span class="tw">${e.dir ? svgIcon("chevRight", 12, 12) : ""}</span><span class="ficon">${svgIcon(e.dir ? "folder" : "file", 13, 13)}</span><span class="ell">${esc(e.name)}</span></button>${e.dir ? '<ul role="group" hidden></ul>' : ""}</li>`).join("");
+}
+$("tree").onclick = async (e) => {
+  const b = e.target.closest("[data-path]"); if (!b) return;
+  if (b.dataset.dir) {
+    const sub = b.nextElementSibling, isOpen = b.getAttribute("aria-expanded") === "true";
+    b.setAttribute("aria-expanded", !isOpen); sub.hidden = isOpen;
+    if (!isOpen && !sub.dataset.loaded) { sub.dataset.loaded = 1; await renderDir(b.dataset.path, sub, (b.dataset.path.match(/\//g) || []).length + 1); }
+  } else openFile({ path: b.dataset.path, workspace: wsId });
+};
+
+// The viewer only shows text (escaped) or images. Nothing from the file is ever run.
+const IMG = /\.(png|jpe?g|gif|webp|svg|ico|bmp)$/i;
+async function openFile({ path, workspace, run }) {
+  view = "file";
+  document.querySelectorAll("#tree [aria-selected]").forEach((b) => b.setAttribute("aria-selected", b.dataset.path === path && !run));
+  const q = `${run ? `run=${encodeURIComponent(run)}` : `workspace=${encodeURIComponent(workspace)}`}&path=${encodeURIComponent(path)}`;
+  const c = $("canvas");
+  c.innerHTML = `<div class="viewer" role="region" aria-label="File ${esc(path)}"><div class="vbar m11"><span class="ell" title="${esc(path)}">${esc(path)}</span><span class="ro">read-only view</span>
+    <button class="iconbtn" id="vClose" aria-label="Close file">${svgIcon("close", 14, 14)}</button></div><div class="vbody" id="vBody"><div class="vnote m11">Loading…</div></div></div>`;
+  $("vClose").onclick = closeFile;
+  const body = $("vBody");
+  if (IMG.test(path)) { body.innerHTML = `<div class="vimg"><img alt="${esc(path)}" src="/file?${q}"></div>`; return; }
+  try {
+    const r = await fetch(`/file?${q}`);
+    if (!r.ok) { body.innerHTML = `<div class="vnote m11">This file can't be shown (${r.status === 404 ? "not found, or outside the workspace" : r.status}).</div>`; return; }
+    const buf = await r.arrayBuffer();
+    if (buf.byteLength > 2_000_000) { body.innerHTML = `<div class="vnote m11">${(buf.byteLength / 1e6).toFixed(1)} MB: too large to show here.</div>`; return; }
+    const bytes = new Uint8Array(buf.slice(0, 8000));
+    if (bytes.includes(0)) { body.innerHTML = '<div class="vnote m11">Binary file: not shown.</div>'; return; }
+    const lines = new TextDecoder().decode(buf).replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
+    body.innerHTML = `<div class="code"><div class="ln">${lines.map((_, i) => i + 1).join("\n")}</div><div class="tx">${esc(lines.join("\n"))}</div></div>`;
+  } catch (e) { body.innerHTML = `<div class="vnote m11">${esc(e.message)}</div>`; }
+}
+function closeFile() {
+  view = "chat";
+  document.querySelectorAll("#tree [aria-selected]").forEach((b) => b.setAttribute("aria-selected", "false"));
+  renderCanvas();
+}
+
+// ---------------- chat + activity for one run ----------------
+function freshState() { return { items: [], cards: [], openTools: new Map(), turnStart: null, lastSecs: null, status: null, current: null, n: 0, arts: new Set() }; }
+function openNewChat() {
+  if (es) { es.close(); es = null; }
+  runId = null; meta = null; T = freshState(); view = "chat";
+  $("acts").innerHTML = ""; renderCanvas(); renderRunState(); renderRuns(); renderWorkspaces(); $("live").hidden = true;
+  $("input").focus();
+}
+async function openRun(id) {
+  if (es) es.close();
+  try { meta = await api("GET", `/runs/${id}`); } catch (e) { return notice(e.message); }
+  runId = id; view = "chat";
+  if (runWs(meta) !== wsId) { wsId = runWs(meta); store.set("ws", wsId); renderWorkspaces(); loadTree(); }
+  renderRuns(); renderWorkspaces();
+  // The server replays a run's whole event log on every connection (including automatic
+  // reconnects), so the view is rebuilt from scratch each time the stream opens.
+  es = new EventSource(`/events?run=${encodeURIComponent(id)}`);
+  es.onopen = () => { T = freshState(); T.status = meta.status; $("acts").innerHTML = ""; renderCanvas(); };
+  es.onmessage = (m) => onEvent(JSON.parse(m.data));
+  es.onerror = () => { $("live").hidden = true; };
+  T = freshState(); T.status = meta.status; $("acts").innerHTML = ""; renderCanvas(); renderRunState();
+}
+
+function onEvent(ev) {
+  if (!T) return;
+  const t = ev.type, at = Date.parse(ev.ts);
+  if (t === "user") { T.items.push({ k: "u", text: ev.summary }); T.turnStart = at; T.n++; addTurn(ev); }
+  else if (t === "reply") T.items.push({ k: "w", text: ev.summary });
+  else if (t === "tool") {
+    const [verb, arg] = phrase(ev);
+    const card = addCard({ title: ENV_LABEL[ev.env] || ev.env, meta: "Running", metaCls: "run", body: `${esc(verb)}${arg ? ` <code>${esc(arg)}</code>` : ""}`, running: true });
+    card.start = at; T.openTools.set(ev.ref || `last:${ev.tool}`, card); T.current = `${verb}${arg ? " " + arg : ""}`;
+  } else if (t === "result" || (t === "failure" && ev.tool)) {
+    const card = T.openTools.get(ev.ref || `last:${ev.tool}`);
+    if (card) {
+      T.openTools.delete(ev.ref || `last:${ev.tool}`);
+      const ok = t === "result";
+      setCardMeta(card, `${ok ? "Success" : "Failed"} · ${dur(at - card.start)}`, ok ? "ok" : "bad");
+      if (!ok) card.el.insertAdjacentHTML("beforeend", `<div class="cx">${esc(ev.summary)}</div>`);
+    }
+  } else if (t === "failure") addCard({ title: "Failure", meta: "", body: esc(ev.summary), metaCls: "bad" });
+  else if (["plan", "observation", "decision", "verification", "recovery", "done"].includes(t)) {
+    addCard({ title: t[0].toUpperCase() + t.slice(1), meta: t === "done" ? "Complete" : t === "verification" ? "Check" : "", metaCls: t === "done" || t === "verification" ? "ok" : "", body: esc(ev.summary) });
+  } else if (t === "artifact") {
+    if (!T.arts.has(ev.summary)) { T.arts.add(ev.summary); addCard({ title: "Artifact", meta: "", body: `<span class="link" role="link" tabindex="0" data-art="${esc(ev.summary)}">${esc(ev.summary)}</span>` }); }
+  } else if (t === "start") {
+    const servers = String(ev.detail || "").replace(/^MCP /, "").split(", ").filter(Boolean).map((s) => { const [n, st] = s.split(": "); return `${n.replace(/-executor$/, "")} ${st}`; });
+    addCard({ title: "Worker started", meta: "", body: servers.length ? esc(servers.join(" · ")) : "Claude Code worker process" });
+  } else if (t === "note" && /^Resuming/.test(ev.summary)) {
+    addCard({ title: "Resumed", meta: "", body: "Same conversation in a new worker process. Browser pages and logins start fresh." });
+    T.items.push({ k: "s", text: "Resumed in a new worker process" });
+  } else if (t === "completed") {
+    const d = JSON.parse(ev.detail || "{}"); T.lastSecs = d.seconds; T.turnStart = null; T.current = null;
+    addCard({ title: /error/.test(ev.summary) ? "Turn ended with an error" : "Turn finished", meta: d.seconds != null ? `${d.seconds}s` : "", metaCls: /error/.test(ev.summary) ? "bad" : "ok", body: `${d.turns ?? "?"} step${d.turns === 1 ? "" : "s"}` });
+  } else if (t === "status") {
+    T.status = ev.summary;
+    if (meta) meta.status = ev.summary;
+    for (const [, c] of T.openTools) if (!ALIVE.includes(ev.summary)) setCardMeta(c, "Interrupted", "bad");
+    if (!ALIVE.includes(ev.summary)) { T.openTools.clear(); T.turnStart = null; T.current = null; }
+    if (["stopped", "failed"].includes(ev.summary)) {
+      T.items.push({ k: ev.summary === "failed" ? "e" : "s", text: `Worker ${ev.summary}${ev.detail && ev.detail !== "stopped by the user" ? `: ${ev.detail}` : ""}` });
+      addCard({ title: ev.summary === "failed" ? "Failed" : "Stopped", meta: "", metaCls: "bad", body: esc(ev.detail || "") });
+    }
+    if (["waiting", "finished", "stopped", "failed"].includes(ev.summary)) { refreshMeta(); loadRuns(); }
+    renderRunState();
+  }
+  scheduleCanvas();
+}
+// Cards in the activity panel: only real worker events, newest last.
+function addCard({ title, meta: m, metaCls = "", body }) {
+  const el = document.createElement("li");
+  el.className = "card";
+  el.innerHTML = `<div class="ch"><span class="ct m12 ell">${esc(title)}</span><span class="cm m11 ${metaCls}">${m ? esc(m) : ""}</span></div><div class="cb">${body}</div>`;
+  const list = $("acts"), atEnd = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
+  list.appendChild(el); if (atEnd) list.scrollTop = list.scrollHeight;
+  const card = { el }; T.cards.push(card); return card;
+}
+function setCardMeta(card, text, cls) { const m = card.el.querySelector(".cm"); m.className = `cm m11 ${cls}`; m.textContent = text; }
+function addTurn(ev) {
+  if (T.n < 2) return;
+  const el = document.createElement("li"); el.className = "turn m11";
+  el.textContent = `Message ${T.n} · ${new Date(ev.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  $("acts").appendChild(el);
+}
+$("acts").onclick = (e) => { const a = e.target.closest("[data-art]"); if (a) openFile({ path: a.dataset.art, run: runId }); };
+$("acts").onkeydown = (e) => { if (e.key === "Enter") { const a = e.target.closest("[data-art]"); if (a) openFile({ path: a.dataset.art, run: runId }); } };
+async function refreshMeta() { if (!runId) return; const id = runId; try { const m = await api("GET", `/runs/${id}`); if (runId === id) { meta = m; renderRunState(); } } catch {} }
+
+let canvasQueued = false;
+function scheduleCanvas() { if (canvasQueued) return; canvasQueued = true; requestAnimationFrame(() => { canvasQueued = false; if (view === "chat") renderCanvas(); renderRunState(); }); }
+function renderCanvas() {
+  if (view !== "chat") return;
+  const c = $("canvas"), w = ws();
+  if (!runId) {
+    c.innerHTML = `<div class="emptyst"><div class="motif">${svgIcon("terminalLg", 20, 16)}</div><h1>${esc(w.name)}</h1>
+      <p>${w.profile === "inspect" ? "Ask the worker to inspect this repository: read code, trace an implementation or review a component." : "Ask the worker to inspect your repository, analyze an implementation, debug an issue, or test components."}</p>
+      <div class="tagline m11"><span title="${esc(w.root)}"><span class="dot grey"></span><span class="ell" style="max-width:360px">${esc(w.root)}</span></span><span><span class="dot"></span>${modeOf(w)}</span></div></div>`;
+    return;
+  }
+  const atEnd = c.scrollHeight - c.scrollTop - c.clientHeight < 80;
+  const working = ["starting", "running"].includes(T.status);
+  c.innerHTML = `<div class="thread" role="log" aria-label="Conversation">${T.items.map((it) =>
+    it.k === "u" ? `<div class="msg-u">${esc(it.text)}</div>`
+    : it.k === "w" ? `<div class="msg-w">${md(it.text)}</div>`
+    : `<div class="sys m11 ${it.k === "e" ? "err" : ""}">${esc(it.text)}</div>`).join("")}
+    ${working ? `<div class="working m11"><span class="dot pulse"></span><span class="ell">${T.status === "starting" ? "Starting the worker…" : `Working${T.current ? ` · ${esc(T.current)}` : "…"}`}</span></div>` : ""}</div>`;
+  if (atEnd || working) c.scrollTop = c.scrollHeight;
+}
+function renderRunState() {
+  const st = runId ? (T?.status || meta?.status) : null;
+  const [label, cls] = st ? (STATE[st] || [st, "grey"]) : ["Ready", ""];
+  $("rState").textContent = label; setDot($("rDot"), cls);
+  const working = ["starting", "running"].includes(st);
+  $("endBtn").hidden = st !== "waiting";
+  const send = $("send");
+  send.classList.toggle("stop", working);
+  send.innerHTML = working ? svgIcon("stop", 9, 9) : svgIcon("arrowUp", 11, 11);
+  send.setAttribute("aria-label", working ? "Stop the worker" : runId ? "Send" : "Start a run");
+  $("live").hidden = !(es && es.readyState === 1 && ALIVE.includes(st));
+  setDot($("aDot"), cls); $("aState").textContent = st ? label : "Idle";
+  $("input").placeholder = runId ? (working ? "The worker is busy. Stop it, or wait to reply…" : "Reply to the worker…") : $("input").placeholder;
+}
+setInterval(() => {
+  if (T?.turnStart && ["starting", "running"].includes(T.status)) $("aTime").textContent = `${((Date.now() - T.turnStart) / 1000).toFixed(2)}s execution`;
+  else $("aTime").textContent = `${T?.lastSecs != null ? Number(T.lastSecs).toFixed(2) : "0.00"}s execution`;
+}, 100);
+
+// ---------------- sending (nothing runs unless the person sends) ----------------
+async function send() {
+  const st = runId ? (T?.status || meta?.status) : null;
+  if (["starting", "running"].includes(st)) { await api("POST", `/runs/${runId}/stop`).catch(notice); return; }
+  const text = $("input").value.trim();
+  if (!text) return;
+  $("send").disabled = true;
+  try {
+    if (!runId) {
+      await loadRuns();
+      // One worker at a time. A new chat closes a previous conversation that's only waiting
+      // (it can be continued later); a busy one has to be stopped first.
+      if (ACTIVE && ACTIVE.status !== "waiting") throw new Error("The worker is busy with another conversation. Open it from Recent runs and stop it first.");
+      if (ACTIVE) await endAndWait(ACTIVE.id);
+      const m = await api("POST", "/runs", { prompt: text, workspace: wsId });
+      $("input").value = ""; autosize();
+      await loadRuns(); await openRun(m.id);
+    } else {
+      if (ACTIVE && ACTIVE.id !== runId) {
+        if (ACTIVE.status !== "waiting") throw new Error("The worker is busy with another conversation. Stop it first.");
+        await endAndWait(ACTIVE.id);
+      }
+      await api("POST", `/runs/${runId}/message`, { text });
+      $("input").value = ""; autosize(); refreshMeta(); loadRuns();
+    }
+  } catch (e) { notice(e.message); }
+  finally { $("send").disabled = false; }
+}
+async function endAndWait(id) {
+  await api("POST", `/runs/${id}/end`);
+  for (let i = 0; i < 50; i++) { const r = await api("GET", "/runs"); if (!r.active) return; await new Promise((ok) => setTimeout(ok, 200)); }
+  throw new Error("The previous conversation didn't close. Try again.");
+}
+$("send").onclick = send;
+$("endBtn").onclick = () => runId && api("POST", `/runs/${runId}/end`).catch(notice);
+const autosize = () => { const i = $("input"); i.style.height = "auto"; i.style.height = Math.min(240, i.scrollHeight) + "px"; };
+$("input").addEventListener("input", autosize);
+$("input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!["starting", "running"].includes(T?.status)) send(); } });
+
+// Errors show briefly in the footnote, where the design keeps its small print.
+let noticeTimer;
+function notice(e) {
+  const msg = typeof e === "string" ? e : e.message;
+  $("footL").innerHTML = `<span class="err" role="alert">${esc(msg)}</span>`;
+  clearTimeout(noticeTimer); noticeTimer = setTimeout(setFootL, 9000);
+}
+const setFootL = () => { $("footL").textContent = `Runs locally via console port ${location.port || 80}`; };
+
+// small screens
+$("actToggle").onclick = () => { const on = document.body.classList.toggle("show-act"); $("actToggle").setAttribute("aria-expanded", on); };
+$("navToggle").onclick = () => { const on = document.body.classList.toggle("show-nav"); $("navToggle").setAttribute("aria-expanded", on); };
+
+// ---------------- start ----------------
+(async () => {
+  setFootL(); $("srvPort").textContent = `:${location.port || 80}`;
+  T = freshState();
+  try { await loadWorkspaces(); } catch (e) { notice(e); return; }
+  await Promise.all([loadPrompts().catch(notice), loadRuns()]);
+  loadTree();
+  if (ACTIVE) openRun(ACTIVE.id); else openNewChat();
+  setInterval(() => { if (!document.hidden) loadRuns(); }, 4000);
+})();
+</script>
+</body>
+</html>
