@@ -85,6 +85,15 @@ aside.left { background: var(--low); display: flex; flex-direction: column; min-
 .add.row { color: var(--t3); }
 .add .i { color: var(--t3); margin-right: 0; }
 .star { color: var(--star); font: 500 11px/14px var(--sans); width: 11px; text-align: center; flex: none; }
+.wsi { position: relative; }
+.wsi.dragging { opacity: .4; }
+.wsi.drop-before::before, .wsi.drop-after::after { content: ""; position: absolute; left: 8px; right: 8px; height: 2px; border-radius: 1px; background: var(--pri); pointer-events: none; }
+.wsi.drop-before::before { top: -3px; } .wsi.drop-after::after { bottom: -3px; }
+.wsi .x { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: none; width: 20px; height: 20px; border-radius: 2px; background: var(--surf); color: var(--t3); align-items: center; justify-content: center; }
+.wsi:hover .x, .wsi:focus-within .x { display: flex; }
+.wsi:hover .row .meta, .wsi:focus-within .row .meta { padding-right: 22px; }
+.wsi .x:hover { color: var(--t1); background: var(--high); }
+.btn.danger { color: var(--err); }
 .fav { position: relative; }
 .fav .x { display: none; width: 18px; height: 18px; border-radius: 2px; color: var(--t3); align-items: center; justify-content: center; flex: none; }
 .fav:hover .x, .fav:focus-within .x { display: flex; }
@@ -205,7 +214,7 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
 .rhead .h .t .i { color: var(--pri); }
 .rhead .h .t .lab { color: var(--t1); }
 .live { padding: 0 4px; background: var(--surf); border-radius: 2px; color: var(--ok); }
-.acts { flex: 1; overflow-y: auto; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; }
+#acts { flex: 1; overflow-y: auto; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; }
 .card { background: var(--surf); border-radius: 2px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
 .card .ch { height: 22px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .card .ct { color: var(--t1); display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -471,9 +480,13 @@ async function loadWorkspaces() {
 }
 function renderWorkspaces() {
   const w = ws();
-  $("wsList").innerHTML = WS.map((x) => `<li><button class="row ws" data-ws="${esc(x.id)}" aria-current="${x.id === wsId}" ${x.available ? "" : 'title="Folder not found"'}>
+  $("wsList").innerHTML = WS.map((x) => x.id === removing ? `<li class="wsi"><div class="addform m11" role="group" aria-label="Remove ${esc(x.name)}">
+      <div style="color:var(--t2)">Remove <strong>${esc(x.name)}</strong> from the list?</div><div class="help">The folder and its files stay on disk.</div>
+      <div class="err" id="rmErr" role="alert"></div>
+      <div class="acts"><button class="btn m11" data-rm-cancel>Cancel</button><button class="btn danger m11" data-rm-ok="${esc(x.id)}">Remove</button></div></div></li>`
+    : `<li class="wsi" draggable="true" data-ws-item="${esc(x.id)}"><button class="row ws" data-ws="${esc(x.id)}" aria-current="${x.id === wsId}" title="${esc(x.root)}${x.available ? "" : " (folder not found)"}&#10;Drag, or Alt+↑/↓, to reorder">
       <span class="grow">${x.id === wsId ? '<span class="dot"></span>' : ""}<span class="ell" style="${x.available ? "" : "color:var(--t3)"}">${esc(x.name)}</span></span>
-      <span class="meta">${x.branch ? `<span class="m12 ell" style="max-width:80px">${esc(x.branch)}</span>` : ""}${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button></li>`).join("");
+      <span class="meta">${x.branch ? `<span class="m12 ell" style="max-width:80px">${esc(x.branch)}</span>` : ""}${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button>${x.id === "console" ? "" : `<button class="x" data-rm="${esc(x.id)}" aria-label="Remove ${esc(x.name)} from the list">${svgIcon("close", 12, 12)}</button>`}</li>`).join("");
   $("swMenu").innerHTML = WS.map((x) => `<button role="menuitem" data-ws="${esc(x.id)}" class="m12"><span class="dot ${x.id === wsId ? "" : "grey"}"></span><span class="ell" style="flex:1">${esc(x.name)}</span><span style="color:var(--t3)">${modeOf(x)}</span></button>`).join("");
   $("swLabel").textContent = w.branch ? `${w.name} / ${w.branch}` : w.name;
   $("cName").textContent = w.name;
@@ -490,7 +503,63 @@ function selectWorkspace(id, { newChat = true } = {}) {
   if (newChat) openNewChat();
   closeMenus();
 }
-$("wsList").onclick = (e) => { const b = e.target.closest("[data-ws]"); if (b) selectWorkspace(b.dataset.ws); };
+// Remove takes a workspace off the list (after an inline confirm); its folder is never touched.
+let removing = null;
+$("wsList").onclick = async (e) => {
+  const rm = e.target.closest("[data-rm]"), ok = e.target.closest("[data-rm-ok]");
+  if (rm) { removing = rm.dataset.rm; renderWorkspaces(); $("wsList").querySelector("[data-rm-cancel]")?.focus(); return; }
+  if (e.target.closest("[data-rm-cancel]")) { const id = removing; removing = null; renderWorkspaces(); $("wsList").querySelector(`[data-rm="${CSS.escape(id)}"]`)?.focus(); return; }
+  if (ok) {
+    try {
+      WS = await api("DELETE", `/workspaces/${encodeURIComponent(ok.dataset.rmOk)}`);
+      removing = null;
+      if (!WS.find((w) => w.id === wsId)) selectWorkspace("console"); else renderWorkspaces();
+    } catch (err) { $("rmErr").textContent = err.message; }
+    return;
+  }
+  const b = e.target.closest("[data-ws]"); if (b) selectWorkspace(b.dataset.ws);
+};
+
+// Reorder: drag a workspace, or Alt+↑/↓ on a focused one. The order is saved on the server.
+async function saveOrder(ids, focusId) {
+  const prev = WS;
+  WS = ids.map((i) => WS.find((w) => w.id === i)); renderWorkspaces();
+  if (focusId) $("wsList").querySelector(`[data-ws="${CSS.escape(focusId)}"]`)?.focus();
+  try { WS = await api("POST", "/workspaces/order", { ids }); }
+  catch (err) { WS = prev; renderWorkspaces(); notice(err); }
+}
+let dragId = null;
+const clearDrop = () => $("wsList").querySelectorAll(".drop-before, .drop-after").forEach((li) => li.classList.remove("drop-before", "drop-after"));
+$("wsList").addEventListener("dragstart", (e) => {
+  const li = e.target.closest("[data-ws-item]"); if (!li) return;
+  dragId = li.dataset.wsItem; li.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragId);
+});
+$("wsList").addEventListener("dragover", (e) => {
+  const li = e.target.closest("[data-ws-item]"); if (!dragId || !li) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = "move";
+  const r = li.getBoundingClientRect(), after = e.clientY > r.top + r.height / 2;
+  clearDrop(); if (li.dataset.wsItem !== dragId) li.classList.add(after ? "drop-after" : "drop-before");
+});
+$("wsList").addEventListener("drop", (e) => {
+  const li = e.target.closest("[data-ws-item]"); if (!dragId || !li) return;
+  e.preventDefault();
+  const after = li.classList.contains("drop-after"), target = li.dataset.wsItem;
+  clearDrop();
+  if (target === dragId) return;
+  const ids = WS.map((w) => w.id).filter((i) => i !== dragId);
+  ids.splice(ids.indexOf(target) + (after ? 1 : 0), 0, dragId);
+  saveOrder(ids);
+});
+$("wsList").addEventListener("dragend", () => { clearDrop(); $("wsList").querySelector(".dragging")?.classList.remove("dragging"); dragId = null; });
+$("wsList").addEventListener("keydown", (e) => {
+  const b = e.target.closest("[data-ws]"); if (!b || !e.altKey || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
+  e.preventDefault();
+  const ids = WS.map((w) => w.id), i = ids.indexOf(b.dataset.ws), j = i + (e.key === "ArrowUp" ? -1 : 1);
+  if (j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  saveOrder(ids, b.dataset.ws);
+});
 $("swMenu").onclick = (e) => { const b = e.target.closest("[data-ws]"); if (b) selectWorkspace(b.dataset.ws); };
 $("switcher").onclick = (e) => { e.stopPropagation(); const open = $("swMenu").hidden; closeMenus(); $("swMenu").hidden = !open; $("switcher").setAttribute("aria-expanded", open); if (open) $("swMenu").querySelector("button")?.focus(); };
 function closeMenus() { $("swMenu").hidden = true; $("switcher").setAttribute("aria-expanded", "false"); }

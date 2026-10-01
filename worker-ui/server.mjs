@@ -104,7 +104,9 @@ function resolveWorkspace(id) {
   return { id, root, profile: ws.profile };
 }
 const CONSOLE_WS = { id: "console", name: "Executor", root: REPO, profile: "full" };
+// workspaces.json is in display order. { "id": "console" } marks where Executor sits (first when absent).
 const readWorkspaces = () => (existsSync(WORKSPACES) ? JSON.parse(readFileSync(WORKSPACES, "utf8")) : []);
+const writeWorkspaces = (list) => { writeFileSync(WORKSPACES + ".tmp", JSON.stringify(list, null, 1)); renameSync(WORKSPACES + ".tmp", WORKSPACES); };
 // Branch and short commit, read from the folder's own .git (worktrees included); null when not a repo.
 function gitInfo(root) {
   try {
@@ -120,7 +122,8 @@ function gitInfo(root) {
   } catch { return { branch: null, commit: null }; }
 }
 function listWorkspaces() {
-  return [CONSOLE_WS, ...readWorkspaces()].map((w) => {
+  const list = readWorkspaces();
+  return (list.some((w) => w.id === "console") ? list : [CONSOLE_WS, ...list]).map((w) => (w.id === "console" ? CONSOLE_WS : w)).map((w) => {
     let root = null; try { root = resolveWorkspace(w.id).root; } catch {}
     return { id: w.id, name: w.name || w.id, root: root || w.root, profile: w.profile, available: !!root, ...(root ? gitInfo(root) : {}) };
   });
@@ -141,9 +144,27 @@ function addWorkspace({ name, path, mode }) {
   if (taken) throw new Error(`${root} is already the workspace "${taken.name}".`);
   const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "ws"}-${randomUUID().slice(0, 4)}`;
   const ws = { id, name, root, profile: mode === "work" ? "full" : "inspect" };
-  writeFileSync(WORKSPACES + ".tmp", JSON.stringify([...list, ws], null, 1));
-  renameSync(WORKSPACES + ".tmp", WORKSPACES);
+  writeWorkspaces([...list, ws]);
   return listWorkspaces().find((w) => w.id === id);
+}
+// Removing a workspace only takes it off this list: its folder and files are not touched. Its runs
+// stay in the history but can no longer be resumed or browsed (the binding check refuses them).
+function removeWorkspace(id) {
+  if (id === "console") throw new Error("Executor is this app's own folder and can't be removed.");
+  const list = readWorkspaces();
+  if (!list.some((w) => w.id === id)) throw new Error(`No workspace "${id}".`);
+  const busy = active();
+  if (busy && busy.meta.workspace?.id === id) throw new Error("A worker is running in this workspace. Stop or end it first.");
+  writeWorkspaces(list.filter((w) => w.id !== id));
+  return listWorkspaces();
+}
+// New display order: the same workspaces, rearranged.
+function reorderWorkspaces(ids) {
+  const now = listWorkspaces().map((w) => w.id);
+  if (!Array.isArray(ids) || ids.length !== now.length || new Set(ids).size !== ids.length || !ids.every((i) => now.includes(i))) throw new Error("The workspace list changed. Reload and try again.");
+  const byId = new Map(readWorkspaces().filter((w) => w.id !== "console").map((w) => [w.id, w]));
+  writeWorkspaces(ids.map((i) => (i === "console" ? { id: "console" } : byId.get(i))));
+  return listWorkspaces();
 }
 // Browse: the standard Windows "Select Folder" dialog, shown on this computer's desktop by the
 // console (a web page can't learn a folder's real path). Only the chosen path comes back, and it
@@ -492,6 +513,8 @@ http.createServer(async (req, res) => {
     // workspaces
     if (url.pathname === "/workspaces" && req.method === "GET") return json(res, 200, listWorkspaces());
     if (url.pathname === "/workspaces" && req.method === "POST") return json(res, 200, addWorkspace(await body(req)));
+    if (url.pathname === "/workspaces/order" && req.method === "POST") return json(res, 200, reorderWorkspaces((await body(req)).ids));
+    if (parts[0] === "workspaces" && parts[1] && parts.length === 2 && req.method === "DELETE") return json(res, 200, removeWorkspace(decodeURIComponent(parts[1])));
     if (url.pathname === "/pick-folder" && req.method === "POST") return json(res, 200, await pickFolder());
     if (url.pathname === "/tree") {
       const entries = dirInside(resolveWorkspace(url.searchParams.get("workspace") || "").root, url.searchParams.get("path") || "");

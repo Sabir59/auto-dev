@@ -1,0 +1,136 @@
+{
+ "when": "2026-10-01T16:32:59.372Z",
+ "added": [
+  200,
+  200
+ ],
+ "results": [
+  {
+   "step": "starting order",
+   "ok": true,
+   "detail": {
+    "ui": [
+     "Executor",
+     "Canary",
+     "Work test"
+    ]
+   }
+  },
+  {
+   "step": "drag Work test above Executor; the order survives a reload",
+   "ok": true,
+   "detail": {
+    "afterDrag": [
+     "Work test",
+     "Executor",
+     "Canary"
+    ],
+    "afterReload": [
+     "Work test",
+     "Executor",
+     "Canary"
+    ],
+    "registry": [
+     "Work test",
+     "console",
+     "Canary"
+    ]
+   }
+  },
+  {
+   "step": "Alt+↓ on Work test moves it down one; focus stays on it",
+   "ok": true,
+   "detail": {
+    "afterKey": [
+     "Executor",
+     "Work test",
+     "Canary"
+    ],
+    "focusedId": "work-test-c739",
+    "afterReload": [
+     "Executor",
+     "Work test",
+     "Canary"
+    ]
+   }
+  },
+  {
+   "step": "Executor has no remove button, and the API refuses it",
+   "ok": true,
+   "detail": {
+    "removeButtons": 0,
+    "api": {
+     "status": 400,
+     "body": {
+      "error": "Executor is this app's own folder and can't be removed."
+     }
+    }
+   }
+  },
+  {
+   "step": "remove → Cancel keeps it; remove → Remove takes it off the list; folder untouched",
+   "ok": true,
+   "detail": {
+    "confirmText": "Remove Canary from the list? The folder and its files stay on disk. Cancel Remove",
+    "afterCancel": [
+     "Executor",
+     "Work test",
+     "Canary"
+    ],
+    "afterRemove": [
+     "Executor",
+     "Work test"
+    ],
+    "selectedNow": "Executor",
+    "registry": [
+     "console",
+     "Work test"
+    ],
+    "canaryFolderFiles": [
+     80,
+     80
+    ],
+    "canaryStillExists": true
+   }
+  },
+  {
+   "step": "a workspace with a running worker can't be removed until the run ends",
+   "ok": true,
+   "detail": {
+    "whileRunning": "A worker is running in this workspace. Stop or end it first.",
+    "afterEnd": [
+     "Executor"
+    ],
+    "selectedNow": "Executor",
+    "resumeRemovedRun": {
+     "status": 400,
+     "body": {
+      "error": "No workspace \"work-test-c739\"."
+     }
+    },
+    "workFolderFiles": [
+     5,
+     5
+    ]
+   }
+  },
+  {
+   "step": "guarded: foreign origin can't remove or reorder; a bad order is refused",
+   "ok": true,
+   "detail": {
+    "foreignDelete": 403,
+    "foreignOrder": 403,
+    "badOrder": {
+     "status": 400,
+     "body": {
+      "error": "The workspace list changed. Reload and try again."
+     }
+    },
+    "unknownDelete": {
+     "error": "No workspace \"nope\"."
+    }
+   }
+  }
+ ],
+ "pageErrors": []
+}

@@ -84,3 +84,23 @@ Pills differ only in width, because real text replaces the sample text. The desi
 9. **Foreign origin:** `POST /pick-folder` returned 403 and no dialog opened; `GET` returned 404.
 
 The full workflow suite (`workflow-test.mjs`) still passes **12/12** on the same build.
+
+## Remove and reorder workspaces (2026-10-01)
+
+- **Remove:** hover a workspace and press ×, then Remove in the inline confirm ("The folder and its files stay on disk").
+  - It only takes the workspace off the list (`DELETE /workspaces/:id`).
+  - The workspace's runs stay in history but can't be resumed or browsed: the binding check refuses them.
+  - Executor (this app's own folder) can't be removed.
+  - A workspace with a running worker can't be removed until the run is stopped or ended.
+- **Reorder:** drag a workspace, or press Alt+↑/↓ on a focused one. The order is saved to `workspaces.json` via `POST /workspaces/order`; Executor's position is kept as an `{ "id": "console" }` marker.
+
+`manage-test.mjs`: **7/7 passed** (`manage-results.json`):
+1. The starting order was Executor, Canary, Work test.
+2. Work test was dragged above Executor, and the order was the same after a reload and in `workspaces.json`.
+3. Alt+↓ moved Work test down one place, focus stayed on it, and the order persisted.
+4. Executor showed no × and the API refused to remove it.
+5. Remove → Cancel kept Canary; Remove → Remove took it off the list and selection fell back to Executor. The folder still exists with the same 80 entries.
+6. Removing Work test while its worker was waiting was refused. After End run it was removed, resuming its run was refused ("No workspace"), and the folder still had the same 5 entries.
+7. A foreign Origin was refused (403) for both remove and reorder; a bad order and an unknown id were refused.
+
+`workflow-test.mjs` still passes **12/12** on the same build.
