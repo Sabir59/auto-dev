@@ -1,0 +1,98 @@
+{
+ "when": "2026-10-01T15:46:15.571Z",
+ "results": [
+  {
+   "step": "Browse → pick a real project folder → path and name filled in",
+   "ok": true,
+   "detail": {
+    "dialog": "typed folder and pressed Select Folder",
+    "path": "C:\\Users\\hp\\Desktop\\MATW\\matw-revamp-main-frontend-site",
+    "name": "matw-revamp-main-frontend-site",
+    "error": ""
+   }
+  },
+  {
+   "step": "Browse → Cancel → form unchanged, no error",
+   "ok": true,
+   "detail": {
+    "dialog": "pressed Cancel",
+    "path": "keep-this-value",
+    "name": "keep-name",
+    "error": "",
+    "button": "Browse"
+   }
+  },
+  {
+   "step": "Browse → drive root → Add refused",
+   "ok": true,
+   "detail": {
+    "dialog": "typed folder and pressed Select Folder",
+    "path": "C:\\",
+    "addError": "C:\\ is too broad for a workspace. Pick a project folder."
+   }
+  },
+  {
+   "step": "Browse → home folder → Add refused",
+   "ok": true,
+   "detail": {
+    "dialog": "typed folder and pressed Select Folder",
+    "path": "C:\\Users\\hp",
+    "addError": "C:\\Users\\hp is too broad for a workspace. Pick a project folder."
+   }
+  },
+  {
+   "step": "typed: missing folder, a file, a UNC path → refused",
+   "ok": true,
+   "detail": {
+    "missing": "No folder at C:\\definitely\\not\\here",
+    "file": "C:\\Users\\hp\\Desktop\\millionaire\\auto-dev\\figma-ai-executor\\README.md is not a folder.",
+    "unc": "Give the full path of a folder on this computer, e.g. C:\\Users\\me\\project."
+   }
+  },
+  {
+   "step": "Browse → the real project → Add (Inspect) → selected",
+   "ok": true,
+   "detail": {
+    "selected": "matw-revamp-main-frontend-site",
+    "mode": "Inspect",
+    "branch": "dev-main"
+   }
+  },
+  {
+   "step": "Browse the same project again → duplicate refused; this repo → duplicate of Executor",
+   "ok": true,
+   "detail": {
+    "sameProject": "C:\\Users\\hp\\Desktop\\MATW\\matw-revamp-main-frontend-site is already the workspace \"matw-revamp-main-frontend-site\".",
+    "thisRepo": "C:\\Users\\hp\\Desktop\\millionaire\\auto-dev\\figma-ai-executor is already the workspace \"Executor\"."
+   }
+  },
+  {
+   "step": "the Browse-added workspace runs exactly as before (Inspect worker, real folder)",
+   "ok": true,
+   "detail": {
+    "boundTo": {
+     "id": "matw-revamp-main-fronten-e24e",
+     "root": "C:\\Users\\hp\\Desktop\\MATW\\matw-revamp-main-frontend-site",
+     "profile": "inspect"
+    },
+    "cards": [
+     "Worker started",
+     "Files Success · 1.1s",
+     "Files Success · 1.5s",
+     "Files Success · 1.2s",
+     "Turn finished 22s"
+    ],
+    "reply": "The top-level folders are .git, .idea, docs, gtranslate, node_modules, public, scripts, sites-enabled and src. This list only includes folders that contain files directly, and the first search was cut"
+   }
+  },
+  {
+   "step": "a foreign page can't open the picker",
+   "ok": true,
+   "detail": {
+    "foreignPost": 403,
+    "get": 404
+   }
+  }
+ ],
+ "pageErrors": []
+}

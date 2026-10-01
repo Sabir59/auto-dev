@@ -145,6 +145,25 @@ function addWorkspace({ name, path, mode }) {
   renameSync(WORKSPACES + ".tmp", WORKSPACES);
   return listWorkspaces().find((w) => w.id === id);
 }
+// Browse: the standard Windows "Select Folder" dialog, shown on this computer's desktop by the
+// console (a web page can't learn a folder's real path). Only the chosen path comes back, and it
+// goes through addWorkspace's checks like a typed one. Nothing is read from or copied out of it.
+let picking = false;
+function pickFolder() {
+  if (process.platform !== "win32") throw new Error("Browse is only available on Windows. Type the folder path instead.");
+  if (picking) throw new Error("The folder picker is already open.");
+  picking = true;
+  return new Promise((ok, fail) => {
+    const ps = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-STA", "-ExecutionPolicy", "Bypass", "-File", join(HERE, "pick-folder.ps1")], { windowsHide: true });
+    let out = "", err = "";
+    ps.stdout.on("data", (d) => (out += d));
+    ps.stderr.on("data", (d) => (err += d));
+    const timer = setTimeout(() => ps.kill(), 15 * 60_000);
+    const done = (fn) => { clearTimeout(timer); picking = false; fn(); };
+    ps.on("error", (e) => done(() => fail(new Error(`Couldn't open the folder picker: ${e.message}`))));
+    ps.on("exit", () => done(() => { try { ok(JSON.parse(out.trim().split(/\r?\n/).pop())); } catch { fail(new Error(`The folder picker failed${err ? `: ${clip(err, 160)}` : "."}`)); } }));
+  });
+}
 // Every cwd recorded in the session's own transcript in this console's config dir (null: not there).
 function sessionCwds(sessionId) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId || "")) return null;
@@ -473,6 +492,7 @@ http.createServer(async (req, res) => {
     // workspaces
     if (url.pathname === "/workspaces" && req.method === "GET") return json(res, 200, listWorkspaces());
     if (url.pathname === "/workspaces" && req.method === "POST") return json(res, 200, addWorkspace(await body(req)));
+    if (url.pathname === "/pick-folder" && req.method === "POST") return json(res, 200, await pickFolder());
     if (url.pathname === "/tree") {
       const entries = dirInside(resolveWorkspace(url.searchParams.get("workspace") || "").root, url.searchParams.get("path") || "");
       return entries ? json(res, 200, entries) : json(res, 404, { error: "not found" });

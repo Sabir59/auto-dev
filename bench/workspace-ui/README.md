@@ -61,3 +61,26 @@ Measured boxes match the design to ±1px for:
 - activity header and footer, empty-state icon and title.
 
 Pills differ only in width, because real text replaces the sample text. The design's small labels render in Geist Mono: the Figma import fell back to "Liberation Serif" for an unmapped mono font, at the mono metrics (11/14, +0.44px).
+
+## Browse for the workspace folder (2026-10-01)
+
+"Folder" in Add workspace now has a **Browse** button. A web page can't learn a folder's real path, so the button asks the console (`POST /pick-folder`, same-origin only) to open the standard Windows "Select Folder" dialog on this computer (`worker-ui/pick-folder.ps1`).
+
+- Only the chosen path comes back. It fills the Folder field, and the Name field if that is empty.
+- Nothing is read from the folder, copied or uploaded.
+- **Cancel** leaves the form as it was.
+- The path then goes through the same `POST /workspaces` checks as a typed one.
+
+`browse-test.mjs` drives the page with Playwright and the **real** dialog with `dialog-driver.ps1` (UI Automation to find the controls, their own window messages to type and click; no mouse). **9/9 passed** (`browse-results.json`):
+
+1. **Browse → MATW project:** the path and name were filled in.
+2. **Browse → Cancel:** the form was unchanged, with no error.
+3. **Browse → `C:\`, then Add:** refused ("too broad").
+4. **Browse → home folder, then Add:** refused.
+5. **Typed paths:** a missing folder, a file and a UNC path were each refused with their own message.
+6. **Browse → MATW, then Add (Inspect):** the workspace was selected, with its branch `dev-main`.
+7. **Duplicates:** browsing to MATW again was refused, and so was browsing to this repo (already Executor).
+8. **The Browse-added workspace runs:** an Inspect worker was bound to the real MATW root, its Glob calls succeeded, and it ended Finished.
+9. **Foreign origin:** `POST /pick-folder` returned 403 and no dialog opened; `GET` returned 404.
+
+The full workflow suite (`workflow-test.mjs`) still passes **12/12** on the same build.

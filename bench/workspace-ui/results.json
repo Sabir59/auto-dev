@@ -1,5 +1,5 @@
 {
- "when": "2026-10-01T15:27:17.844Z",
+ "when": "2026-10-01T15:47:01.296Z",
  "results": [
   {
    "step": "add an Inspect workspace through the form",
@@ -14,7 +14,7 @@
   {
    "step": "the form refuses a folder that doesn't exist and a drive root",
    "ok": true,
-   "seconds": 0.3,
+   "seconds": 0.2,
    "detail": {
     "missing": "No folder at C:\\definitely\\not\\here",
     "root": "C:\\ is too broad for a workspace. Pick a project folder."
@@ -23,10 +23,11 @@
   {
    "step": "add a Work workspace",
    "ok": true,
-   "seconds": 0.3,
+   "seconds": 0.2,
    "detail": {
     "workspaces": [
      "Executor\nmain",
+     "matw-revamp-main-frontend-site\ndev-main",
      "Canary\nmaster\nInspect",
      "Work test"
     ]
@@ -58,18 +59,18 @@
   {
    "step": "a hostile HTML file is shown as text, not run",
    "ok": true,
-   "seconds": 1.8,
+   "seconds": 1.7,
    "detail": {
     "shownAsText": true,
     "csp": "sandbox",
-    "runsBefore": 0,
-    "runsAfterOpeningItDirectly": 0
+    "runsBefore": 1,
+    "runsAfterOpeningItDirectly": 1
    }
   },
   {
    "step": "start a run, see live activity, get the result (Inspect)",
    "ok": true,
-   "seconds": 8.5,
+   "seconds": 8.9,
    "detail": {
     "liveSeen": true,
     "sendIsStop": "Stop the worker",
@@ -77,15 +78,15 @@
      "Worker started",
      "Files Success · 70ms",
      "Done Complete",
-     "Turn finished 5s"
+     "Turn finished 6s"
     ],
-    "reply": "DONEREADME.md says this folder is a \"Canary workspace\", a test repository meant to be thrown away."
+    "reply": "DONEREADME.md says this is a \"Canary workspace\", a disposable test repository."
    }
   },
   {
    "step": "follow-up in the same worker process",
    "ok": true,
-   "seconds": 1.9,
+   "seconds": 4.9,
    "detail": {
     "reply": "README.md",
     "workerStartedCards": 1,
@@ -115,7 +116,7 @@
   {
    "step": "reload, open the run from Recent runs, continue it (resume)",
    "ok": true,
-   "seconds": 7,
+   "seconds": 7.2,
    "detail": {
     "replayedMessages": 4,
     "resumedCard": 1,
@@ -136,7 +137,7 @@
   {
    "step": "Work workspace: the worker writes a file, it shows as an artifact, it opens in the viewer",
    "ok": true,
-   "seconds": 9.2,
+   "seconds": 9.9,
    "detail": {
     "artifact": "notes/summary.md",
     "content": "Workspace artifact test",

@@ -103,6 +103,12 @@ aside.left { background: var(--low); display: flex; flex-direction: column; min-
 .addform label { color: var(--t3); display: flex; flex-direction: column; gap: 2px; }
 .addform input { width: 100%; background: var(--low); color: var(--t1); border: 0; border-radius: 2px; padding: 4px 6px; font: 400 12px/20px var(--sans); }
 .addform input.mono { font: 400 11px/20px var(--mono); }
+.addform .field { color: var(--t3); display: flex; flex-direction: column; gap: 2px; }
+.pathrow { display: flex; gap: 4px; }
+.pathrow input { flex: 1; min-width: 0; }
+.pathrow .btn { height: 28px; flex: none; }
+.btn:hover:not(:disabled) { color: var(--t1); }
+.btn:disabled { opacity: .6; }
 .seg { display: flex; gap: 4px; }
 .seg button { flex: 1; padding: 2px 6px; border-radius: 2px; background: var(--low); color: var(--t3); }
 .seg button[aria-pressed="true"] { background: var(--high); color: var(--t1); }
@@ -268,7 +274,8 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
       <button class="row add" id="addWs"><svg class="i" width="9" height="9" data-i="plus"></svg><span>Add workspace</span></button>
       <form class="addform" id="addForm" hidden novalidate>
         <label class="m11">Name<input id="fName" autocomplete="off" maxlength="60" required></label>
-        <label class="m11">Folder<input id="fPath" class="mono" autocomplete="off" spellcheck="false" placeholder="C:\Users\you\Desktop\project" required></label>
+        <div class="field m11"><label for="fPath">Folder</label>
+          <div class="pathrow"><input id="fPath" class="mono" autocomplete="off" spellcheck="false" placeholder="C:\Users\you\Desktop\project" required><button type="button" class="btn m11" id="fBrowse">Browse</button></div></div>
         <div class="seg" role="group" aria-label="Access mode">
           <button type="button" class="m11" data-mode="inspect" aria-pressed="true">Inspect</button>
           <button type="button" class="m11" data-mode="work" aria-pressed="false">Work</button>
@@ -497,6 +504,20 @@ function setMode(m) { fMode = m; document.querySelectorAll(".seg button").forEac
 $("addWs").onclick = () => { $("addForm").hidden = false; $("addWs").hidden = true; setMode("inspect"); $("fErr").textContent = ""; $("fName").focus(); };
 $("fCancel").onclick = () => { $("addForm").hidden = true; $("addWs").hidden = false; $("addForm").reset(); };
 document.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => setMode(b.dataset.mode)));
+// Browse opens the standard Windows folder dialog on this computer (through the console); only the
+// chosen folder's path comes back. Cancelling leaves the form as it was.
+$("fBrowse").onclick = async () => {
+  const btn = $("fBrowse");
+  btn.disabled = true; btn.textContent = "Choosing…"; $("fErr").textContent = "";
+  try {
+    const r = await api("POST", "/pick-folder");
+    if (r.path) {
+      $("fPath").value = r.path;
+      if (!$("fName").value.trim()) $("fName").value = r.path.split(/[\\/]/).filter(Boolean).pop();
+    }
+  } catch (err) { $("fErr").textContent = err.message; }
+  finally { btn.disabled = false; btn.textContent = "Browse"; $("fPath").focus(); }
+};
 $("addForm").onsubmit = async (e) => {
   e.preventDefault();
   try {
