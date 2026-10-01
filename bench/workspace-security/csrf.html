@@ -1,0 +1,15 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>csrf probe</title></head>
+<body>
+<p id="out">sending…</p>
+<script>
+  // A page from ANOTHER origin tries to write to the console. "no-cors" + text/plain makes it a
+  // "simple" request: the browser sends it without asking the server first (no preflight),
+  // and the page just can't read the reply. The only question is whether the server acts on it.
+  fetch("http://localhost:8799/prompts", {
+    method: "POST", mode: "no-cors", headers: { "content-type": "text/plain" },
+    body: JSON.stringify({ title: "CSRF-PROBE", text: "harmless cross-origin probe; delete me" }),
+  }).then(() => (document.getElementById("out").textContent = "request sent"))
+    .catch((e) => (document.getElementById("out").textContent = "blocked: " + e));
+</script>
+</body></html>

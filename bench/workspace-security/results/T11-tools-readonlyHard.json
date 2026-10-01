@@ -1,0 +1,28 @@
+{
+ "label": "T11-tools-readonlyHard",
+ "profile": "readonlyHard",
+ "cwd": "C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/ws",
+ "exit": 0,
+ "seconds": 6,
+ "initCwd": "C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\ws",
+ "sessionId": "607ecd68-1ca0-411a-b310-062635c494c3",
+ "tools": [
+  "Task",
+  "Glob",
+  "Grep",
+  "Read",
+  "ToolSearch",
+  "WebSearch"
+ ],
+ "mcpTools": 35,
+ "mcpServers": [
+  "figma-executor:connected",
+  "browser-executor:connected"
+ ],
+ "calls": [],
+ "permissionDenials": [],
+ "final": "OK",
+ "isError": false,
+ "CANARY_LEAKS": [],
+ "FS_CHANGED": []
+}

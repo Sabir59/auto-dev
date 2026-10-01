@@ -1,0 +1,426 @@
+#!/usr/bin/env node
+// Local AI Workspace server. It does NOT reason, plan or run tools. It:
+//  - keeps a list of trusted local folders (workspaces.json); the user adds each
+//    one explicitly after a "Do you trust this folder?" confirmation;
+//  - starts the existing worker (headless Claude Code) IN the selected workspace
+//    (cwd), with this repo's MCP servers (Figma, browser), in stream-json INPUT
+//    mode so one process takes several chat messages (follow-ups keep the same
+//    context AND the same MCP/browser session);
+//  - forwards chat messages to the worker's stdin;
+//  - translates the worker's own stream-json output into a small event contract;
+//  - keeps run history (runs/<id>.jsonl + .meta.json) and a prompt library (prompts.json);
+//  - shows a read-only file tree of the selected workspace.
+//
+//   node worker-ui/server.mjs   ->  http://localhost:8799
+//
+// Event contract, one JSON object per line in runs/<id>.jsonl:
+//   { ts, type, env?, tool?, summary, detail? }
+//   type: user | reply | status | start | tool | result | failure | artifact | completed
+//         | plan | observation | decision | recovery | verification | done | note
+import http from "node:http";
+import { spawn } from "node:child_process";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, realpathSync } from "node:fs";
+import { join, dirname, resolve, extname, delimiter, basename, isAbsolute, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const REPO = resolve(HERE, "..");
+const RUNS = join(HERE, "runs");
+const PROMPTS = join(HERE, "prompts.json");
+const WORKSPACES = join(HERE, "workspaces.json");
+const MCP_CONFIG = join(HERE, ".mcp.generated.json");
+const PORT = 8799;
+mkdirSync(RUNS, { recursive: true });
+if (!existsSync(PROMPTS)) writeFileSync(PROMPTS, "[]\n");
+
+// Tools the worker may use: MCP environments, files, node/curl/git in the shell, web.
+const ALLOWED = [
+  "mcp__figma-executor", "mcp__browser-executor",
+  "Read", "Write", "Edit", "Glob", "Grep", "Bash(node:*)", "Bash(curl:*)", "Bash(git:*)", "WebFetch", "WebSearch", "ToolSearch",
+];
+const TAGS = { "PLAN:": "plan", "OBSERVATION:": "observation", "DECISION:": "decision", "FAILURE:": "failure", "RECOVERY:": "recovery", "VERIFICATION:": "verification", "ARTIFACT:": "artifact", "DONE:": "done" };
+
+// Launch the real claude binary directly (no shell), so Stop kills the worker itself,
+// not just a cmd.exe wrapper. Falls back to the `claude` shim through a shell.
+function claudeCommand() {
+  if (process.env.CLAUDE_BIN) return { cmd: process.env.CLAUDE_BIN, shell: false };
+  for (const dir of (process.env.PATH || "").split(delimiter)) {
+    const exe = join(dir, "node_modules", "@anthropic-ai", "claude-code", "bin", process.platform === "win32" ? "claude.exe" : "claude");
+    if (dir && existsSync(exe)) return { cmd: exe, shell: false };
+  }
+  return { cmd: "claude", shell: true };
+}
+const CLAUDE = claudeCommand();
+
+// The repo's .mcp.json uses paths relative to this repo ("node mcp/server.mjs"). Workers
+// now run in other folders, so give them a copy with absolute paths. .mcp.json is untouched.
+function writeMcpConfig() {
+  const cfg = JSON.parse(readFileSync(join(REPO, ".mcp.json"), "utf8"));
+  for (const s of Object.values(cfg.mcpServers || {})) s.args = (s.args || []).map((a) => (/\.(m?js|cjs)$/.test(a) && !isAbsolute(a) ? join(REPO, a) : a));
+  writeFileSync(MCP_CONFIG, JSON.stringify(cfg, null, 1));
+}
+writeMcpConfig();
+
+// ---- workspaces --------------------------------------------------------------
+// The Executor repo is always available (it's where the worker ran before workspaces existed).
+const EXECUTOR = { id: "executor", name: "Executor", path: REPO, builtin: true };
+function readWorkspaces() {
+  const list = existsSync(WORKSPACES) ? JSON.parse(readFileSync(WORKSPACES, "utf8")) : [];
+  return [EXECUTOR, ...list.filter((w) => w.id !== "executor")];
+}
+const writeWorkspaces = (list) => writeFileSync(WORKSPACES, JSON.stringify(list.filter((w) => !w.builtin), null, 1) + "\n");
+const wsById = (id) => readWorkspaces().find((w) => w.id === id);
+const inside = (base, p) => { const b = resolve(base).toLowerCase(), q = resolve(p).toLowerCase(); return q === b || q.startsWith(b.endsWith(sep) ? b : b + sep); };
+function gitBranch(path) {
+  try { const head = readFileSync(join(path, ".git", "HEAD"), "utf8").trim(); return head.startsWith("ref: ") ? head.replace(/^ref: refs\/heads\//, "") : head.slice(0, 7); } catch { return null; }
+}
+function validateFolder(raw) {
+  const p = String(raw || "").trim().replace(/^"(.*)"$/, "$1");
+  if (!p) throw new Error("Enter a folder path.");
+  if (!isAbsolute(p)) throw new Error("Use a full path, e.g. C:\\Users\\you\\project");
+  if (!existsSync(p)) throw new Error(`Folder not found: ${p}`);
+  if (!statSync(p).isDirectory()) throw new Error(`Not a folder: ${p}`);
+  const real = realpathSync(p);
+  if (/^[a-z]:\\?$/i.test(real) || real === "/") throw new Error("Pick a project folder, not a whole drive.");
+  return real;
+}
+const describeWs = (w) => ({ ...w, branch: gitBranch(w.path), exists: existsSync(w.path) });
+
+// Windows folder picker, opened by this local server on the user's desktop.
+function browseFolder() {
+  return new Promise((ok, fail) => {
+    if (process.platform !== "win32") return fail(new Error("Browse is only available on Windows; paste the path instead."));
+    const script = "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.Form; $f.TopMost = $true; $d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Choose a workspace folder'; $d.ShowNewFolderButton = $false; if ($d.ShowDialog($f) -eq 'OK') { [Console]::Out.Write($d.SelectedPath) }";
+    const ps = spawn("powershell.exe", ["-NoProfile", "-STA", "-Command", script]);
+    let out = "";
+    ps.stdout.on("data", (d) => (out += d));
+    ps.on("exit", () => ok(out.trim() || null));
+    ps.on("error", fail);
+  });
+}
+
+// ---- helpers ---------------------------------------------------------------------
+const envOf = (tool) =>
+  tool.startsWith("mcp__figma-executor") ? "Figma"
+  : tool.startsWith("mcp__browser-executor") ? "Browser"
+  : ["Read", "Write", "Edit", "Glob", "Grep", "NotebookEdit"].includes(tool) ? "Files"
+  : tool === "Bash" || tool === "PowerShell" ? "Shell"
+  : tool === "WebFetch" || tool === "WebSearch" ? "Web"
+  : "Internal";
+const shortName = (tool) => tool.replace(/^mcp__[^_]+(?:-[^_]+)*__/, "");
+const clip = (s, n = 160) => { s = String(s ?? "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+const rel = (p, base) => { const r = String(p || "").replace(/\\/g, "/"); const b = base.replace(/\\/g, "/"); return r.toLowerCase().startsWith(b.toLowerCase() + "/") ? r.slice(b.length + 1) : r; };
+function toolSummary(name, input = {}, base) {
+  const key = input.url || input.selector || input.id || input.pageId || input.componentId || input.file_path || input.path || input.pattern || input.query || input.command || "";
+  return `${shortName(name)} ${clip(rel(key, base), 110)}`.trim();
+}
+function resultText(content) {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) return content.map((c) => (c.type === "text" ? c.text : c.type === "tool_reference" ? `loaded ${c.tool_name}` : `[${c.type}]`)).join(" ");
+  return JSON.stringify(content);
+}
+
+// ---- runs ----------------------------------------------------------------
+// Status: starting | running | waiting | finished | stopped | failed | interrupted
+const runs = new Map(); // id -> { meta, child?, toolUses, file, raw }
+const listeners = new Map(); // id -> Set(res)
+const metaPath = (id) => join(RUNS, `${id}.meta.json`);
+const saveMeta = (run) => { run.meta.updatedAt = new Date().toISOString(); writeFileSync(metaPath(run.meta.id), JSON.stringify(run.meta, null, 1)); };
+
+function emit(run, ev) {
+  const line = JSON.stringify({ ts: new Date().toISOString(), ...ev });
+  appendFileSync(run.file, line + "\n");
+  for (const res of listeners.get(run.meta.id) || []) res.write(`data: ${line}\n\n`);
+}
+function setStatus(run, status, why) {
+  run.meta.status = status;
+  saveMeta(run);
+  emit(run, { type: "status", summary: status, detail: why });
+}
+const alive = (run) => run.child && run.child.exitCode === null && !run.child.killed;
+const active = () => [...runs.values()].find(alive);
+
+function translate(run, msg) {
+  const base = run.meta.cwd;
+  if (msg.session_id && run.meta.sessionId !== msg.session_id) { run.meta.sessionId = msg.session_id; saveMeta(run); }
+  if (msg.type === "system" && msg.subtype === "init") {
+    if (run.meta.status === "starting") setStatus(run, "running");
+    if (!run.initSeen) {
+      run.initSeen = true;
+      const servers = (msg.mcp_servers || []).map((s) => `${s.name}: ${s.status}`).join(", ");
+      emit(run, { type: "start", summary: `Worker process started in ${run.meta.workspaceName}`, detail: `${msg.cwd || base}${servers ? ` · MCP ${servers}` : ""}` });
+    }
+    return;
+  }
+  if (msg.type === "assistant") {
+    for (const b of msg.message?.content || []) {
+      if (b.type === "tool_use") {
+        const env = envOf(b.name);
+        run.toolUses.set(b.id, { name: b.name, env });
+        if (b.name === "ToolSearch") continue; // loading tool schemas, not work
+        run.meta.envs[env] = (run.meta.envs[env] || 0) + 1;
+        emit(run, { type: "tool", env, tool: shortName(b.name), summary: toolSummary(b.name, b.input, base) });
+        if ((b.name === "Write" || b.name === "Edit") && b.input?.file_path) addArtifact(run, rel(b.input.file_path, base), env);
+      } else if (b.type === "text" && b.text.trim()) {
+        emit(run, { type: "reply", summary: b.text.trim() });
+        for (const raw of b.text.split(/\r?\n/)) {
+          const line = raw.replace(/^[\s*>•-]+/, "").replace(/\*\*/g, "").trim();
+          const tag = Object.keys(TAGS).find((t) => line.toUpperCase().startsWith(t));
+          if (!tag) continue;
+          const text = line.slice(tag.length).trim();
+          if (TAGS[tag] === "artifact") addArtifact(run, rel(text.replace(/[`"]/g, ""), base), "Files");
+          else emit(run, { type: TAGS[tag], summary: text });
+          if (TAGS[tag] === "done") { run.meta.done = text; }
+          if (TAGS[tag] === "failure") run.meta.failures++;
+        }
+      }
+    }
+    saveMeta(run);
+    return;
+  }
+  if (msg.type === "user") {
+    for (const b of msg.message?.content || []) {
+      if (b.type !== "tool_result") continue;
+      const use = run.toolUses.get(b.tool_use_id) || { name: "?", env: "Internal" };
+      if (use.name === "ToolSearch") continue;
+      if (b.is_error) run.meta.failures++;
+      emit(run, { type: b.is_error ? "failure" : "result", env: use.env, tool: shortName(use.name), summary: clip(resultText(b.content), 220) });
+    }
+    return;
+  }
+  if (msg.type === "result") {
+    run.meta.costUsd = (run.meta.costUsd || 0) + (msg.total_cost_usd || 0);
+    emit(run, {
+      type: "completed",
+      summary: msg.is_error ? `Turn ended with an error (${msg.subtype})` : "Turn finished",
+      detail: JSON.stringify({ turns: msg.num_turns, seconds: Math.round((msg.duration_ms || 0) / 1000), costUsd: msg.total_cost_usd }),
+    });
+    if (msg.is_error) run.meta.lastError = msg.subtype;
+    setStatus(run, "waiting", "ready for a follow-up");
+  }
+}
+function addArtifact(run, path, env) {
+  // Only files inside the run's workspace are deliverables (paths are workspace-relative);
+  // worker scratch files elsewhere (still absolute after rel()) are not.
+  if (!path || /^([a-z]:|\/|\\)/i.test(path) || run.meta.artifacts.includes(path)) return;
+  run.meta.artifacts.push(path);
+  emit(run, { type: "artifact", env, summary: path });
+}
+
+function spawnWorker(run, { resume }) {
+  if (!existsSync(run.meta.cwd)) throw new Error(`Workspace folder no longer exists: ${run.meta.cwd}`);
+  const args = [
+    "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
+    "--mcp-config", MCP_CONFIG, "--strict-mcp-config",
+    "--append-system-prompt-file", join(HERE, "worker-instructions.md"),
+    "--allowedTools", ...ALLOWED,
+    ...(resume ? ["--resume", run.meta.sessionId] : []),
+  ];
+  // Sessions are stored per working directory, so a run always resumes in its own workspace.
+  const child = spawn(CLAUDE.cmd, CLAUDE.shell ? args.map((a) => (/[\s*()|&]/.test(a) ? `"${a}"` : a)) : args, { cwd: run.meta.cwd, shell: CLAUDE.shell });
+  run.child = child;
+  run.initSeen = false;
+  let buf = "";
+  child.stdout.on("data", (d) => {
+    buf += d;
+    let i;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, i).trim();
+      buf = buf.slice(i + 1);
+      if (!line) continue;
+      appendFileSync(run.raw, line + "\n");
+      try { translate(run, JSON.parse(line)); } catch { emit(run, { type: "note", summary: `unparsed worker output: ${clip(line, 120)}` }); }
+    }
+  });
+  child.stderr.on("data", (d) => emit(run, { type: "note", summary: `worker stderr: ${clip(d, 200)}` }));
+  child.on("exit", (code) => {
+    emit(run, { type: "note", summary: `worker process exited (code ${code})` });
+    if (run.stopRequested) setStatus(run, "stopped", "stopped by the user");
+    else if (run.endRequested && code === 0) setStatus(run, "finished", "run ended by the user");
+    else if (code === 0) setStatus(run, "finished");
+    else setStatus(run, "failed", `process exited with code ${code}`);
+    run.stopRequested = run.endRequested = false;
+  });
+  child.on("error", (e) => { emit(run, { type: "failure", summary: `could not start worker: ${e.message}` }); setStatus(run, "failed", e.message); });
+}
+
+function sendToWorker(run, text) {
+  run.meta.messages++;
+  emit(run, { type: "user", summary: text });
+  setStatus(run, "running");
+  run.child.stdin.write(JSON.stringify({ type: "user", message: { role: "user", content: text } }) + "\n");
+}
+
+function newRun(prompt, workspaceId = "executor") {
+  if (active()) throw new Error("A worker is already running. Stop or end it first.");
+  const ws = wsById(workspaceId);
+  if (!ws) throw new Error("Unknown workspace. Add it first.");
+  const id = new Date().toISOString().replace(/[:.]/g, "-");
+  const meta = { id, prompt, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0,
+    workspaceId: ws.id, workspaceName: ws.name, cwd: ws.path };
+  const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
+  writeFileSync(run.file, ""); writeFileSync(run.raw, "");
+  runs.set(id, run);
+  saveMeta(run);
+  emit(run, { type: "status", summary: "starting", detail: `workspace ${ws.name}` });
+  spawnWorker(run, { resume: false });
+  sendToWorker(run, prompt);
+  return run;
+}
+
+// Follow-up: same process if it's waiting; otherwise resume the saved session in a new process.
+function followUp(run, text) {
+  if (alive(run)) {
+    if (run.meta.status !== "waiting") throw new Error("The worker is still working on the previous message. Wait for it, or stop it.");
+    return sendToWorker(run, text);
+  }
+  if (active()) throw new Error("Another worker is running. Stop or end it first.");
+  if (!run.meta.sessionId) throw new Error("This run has no saved session to resume.");
+  emit(run, { type: "note", summary: "Resuming the saved session in a new worker process. Conversation context is kept; tool processes are new (browser pages and logins are gone, Figma and files are unaffected)." });
+  setStatus(run, "starting", "resuming session");
+  spawnWorker(run, { resume: true });
+  sendToWorker(run, text);
+}
+
+function loadRun(id) {
+  if (runs.has(id)) return runs.get(id);
+  if (!/^[\w-]+$/.test(id) || !existsSync(metaPath(id))) return null;
+  const meta = JSON.parse(readFileSync(metaPath(id), "utf8"));
+  if (!meta.cwd) Object.assign(meta, { workspaceId: "executor", workspaceName: "Executor", cwd: REPO }); // runs from before workspaces
+  const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
+  if (["starting", "running", "waiting"].includes(meta.status)) { meta.status = "interrupted"; saveMeta(run); } // server restarted under it
+  runs.set(id, run);
+  return run;
+}
+function allMetas() {
+  return readdirSync(RUNS).filter((f) => f.endsWith(".meta.json")).map((f) => loadRun(f.replace(".meta.json", "")).meta).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+// ---- prompts ---------------------------------------------------------------
+const readPrompts = () => JSON.parse(readFileSync(PROMPTS, "utf8"));
+const writePrompts = (p) => writeFileSync(PROMPTS, JSON.stringify(p, null, 1) + "\n");
+
+// ---- http --------------------------------------------------------------------
+const TYPES = { ".html": "text/html; charset=utf-8", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml", ".css": "text/css" };
+const HIDDEN = new Set(["node_modules", ".git", ".next", "dist", "build", ".cache", "coverage", "__pycache__", ".idea", ".vscode"]);
+const body = (req) => new Promise((ok) => { let b = ""; req.on("data", (d) => (b += d)); req.on("end", () => ok(b ? JSON.parse(b) : {})); });
+const json = (res, status, obj) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(obj)); };
+function sendFile(res, p) {
+  const type = TYPES[extname(p).toLowerCase()] || "text/plain; charset=utf-8";
+  if (statSync(p).size > 2_000_000 && type.startsWith("text/")) { res.writeHead(413, { "content-type": "text/plain" }); return res.end("File too large to preview (over 2 MB)."); }
+  res.writeHead(200, { "content-type": type });
+  res.end(readFileSync(p));
+}
+
+http.createServer(async (req, res) => {
+  const url = new URL(req.url, `http://localhost:${PORT}`);
+  const parts = url.pathname.split("/").filter(Boolean);
+  try {
+    if (url.pathname === "/") { res.writeHead(200, { "content-type": TYPES[".html"] }); return res.end(readFileSync(join(HERE, "index.html"))); }
+
+    // workspaces
+    if (url.pathname === "/workspaces" && req.method === "GET") return json(res, 200, readWorkspaces().map(describeWs));
+    if (url.pathname === "/workspaces/browse" && req.method === "POST") return json(res, 200, { path: await browseFolder() });
+    if (url.pathname === "/workspaces/check" && req.method === "POST") {
+      const path = validateFolder((await body(req)).path);
+      return json(res, 200, { path, name: basename(path), branch: gitBranch(path), entries: readdirSync(path).length });
+    }
+    if (url.pathname === "/workspaces" && req.method === "POST") {
+      const { path: raw, name, trusted } = await body(req);
+      if (trusted !== true) throw new Error("Confirm that you trust this folder first.");
+      const path = validateFolder(raw);
+      const list = readWorkspaces();
+      if (list.some((w) => w.path.toLowerCase() === path.toLowerCase())) throw new Error("That folder is already a workspace.");
+      const ws = { id: randomUUID().slice(0, 8), name: (name || basename(path)).trim().slice(0, 40), path, trustedAt: new Date().toISOString() };
+      writeWorkspaces([...list, ws]);
+      return json(res, 200, describeWs(ws));
+    }
+    if (parts[0] === "workspaces" && parts[1]) {
+      const ws = wsById(parts[1]);
+      if (!ws) return json(res, 404, { error: "no such workspace" });
+      if (req.method === "PUT") {
+        const { name } = await body(req);
+        writeWorkspaces(readWorkspaces().map((w) => (w.id === ws.id && name?.trim() ? { ...w, name: name.trim().slice(0, 40) } : w)));
+        return json(res, 200, describeWs(wsById(ws.id)));
+      }
+      if (req.method === "DELETE") {
+        if (ws.builtin) throw new Error("The Executor workspace can't be removed.");
+        if (active()?.meta.workspaceId === ws.id) throw new Error("A worker is running in this workspace. Stop or end it first.");
+        writeWorkspaces(readWorkspaces().filter((w) => w.id !== ws.id));
+        return json(res, 200, { removed: ws.id, note: "Only the workspace entry was removed; no files were touched." });
+      }
+      if (parts[2] === "tree") { // read-only, one level at a time
+        const dir = resolve(ws.path, url.searchParams.get("path") || ".");
+        if (!inside(ws.path, dir) || !existsSync(dir) || !statSync(dir).isDirectory()) return json(res, 404, { error: "not found" });
+        const entries = readdirSync(dir, { withFileTypes: true })
+          .filter((e) => !HIDDEN.has(e.name))
+          .map((e) => ({ name: e.name, dir: e.isDirectory(), path: rel(join(dir, e.name), ws.path) }))
+          .sort((a, b) => (b.dir - a.dir) || a.name.localeCompare(b.name));
+        return json(res, 200, { path: rel(dir, ws.path) === dir.replace(/\\/g, "/") ? "" : rel(dir, ws.path), entries: entries.slice(0, 500), truncated: entries.length > 500 });
+      }
+      if (parts[2] === "file") {
+        const p = resolve(ws.path, url.searchParams.get("path") || "");
+        if (!inside(ws.path, p) || !existsSync(p) || !statSync(p).isFile()) { res.writeHead(404); return res.end("not found"); }
+        return sendFile(res, p);
+      }
+    }
+
+    // runs
+    if (url.pathname === "/runs" && req.method === "GET") return json(res, 200, { runs: allMetas(), active: active()?.meta.id || null });
+    if (url.pathname === "/runs" && req.method === "POST") {
+      const { prompt, workspaceId } = await body(req);
+      if (!prompt?.trim()) throw new Error("Empty message");
+      return json(res, 200, newRun(prompt.trim(), workspaceId).meta);
+    }
+    if (parts[0] === "runs" && parts[1]) {
+      const run = loadRun(parts[1]);
+      if (!run) return json(res, 404, { error: "no such run" });
+      const action = parts[2];
+      if (!action && req.method === "GET") return json(res, 200, run.meta);
+      if (action === "message") { const { text } = await body(req); if (!text?.trim()) throw new Error("Empty message"); followUp(run, text.trim()); return json(res, 200, run.meta); }
+      if (action === "stop") { if (alive(run)) { run.stopRequested = true; run.child.kill(); } return json(res, 200, run.meta); }
+      if (action === "end") { if (alive(run)) { run.endRequested = true; run.child.stdin.end(); } return json(res, 200, run.meta); }
+      if (action === "restart") return json(res, 200, newRun(run.meta.prompt, run.meta.workspaceId).meta);
+    }
+    if (url.pathname === "/events") {
+      const run = loadRun(url.searchParams.get("run") || "");
+      if (!run) { res.writeHead(404); return res.end(); }
+      res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" });
+      for (const line of readFileSync(run.file, "utf8").split("\n")) if (line) res.write(`data: ${line}\n\n`);
+      const id = run.meta.id;
+      if (!listeners.has(id)) listeners.set(id, new Set());
+      listeners.get(id).add(res);
+      req.on("close", () => listeners.get(id).delete(res));
+      return;
+    }
+
+    // prompt library
+    if (url.pathname === "/prompts" && req.method === "GET") return json(res, 200, readPrompts());
+    if (url.pathname === "/prompts" && req.method === "POST") {
+      const { title, text, favourite } = await body(req);
+      if (!text?.trim()) throw new Error("Empty prompt");
+      const p = { id: randomUUID(), title: (title || text).trim().slice(0, 80), text: text.trim(), favourite: !!favourite, createdAt: new Date().toISOString() };
+      writePrompts([...readPrompts(), p]);
+      return json(res, 200, p);
+    }
+    if (parts[0] === "prompts" && parts[1]) {
+      const all = readPrompts();
+      const i = all.findIndex((p) => p.id === parts[1]);
+      if (i < 0) return json(res, 404, { error: "no such prompt" });
+      if (req.method === "PUT") { const b = await body(req); all[i] = { ...all[i], ...("title" in b ? { title: b.title } : {}), ...("text" in b ? { text: b.text } : {}), ...("favourite" in b ? { favourite: !!b.favourite } : {}), updatedAt: new Date().toISOString() }; writePrompts(all); return json(res, 200, all[i]); }
+      if (req.method === "DELETE") { all.splice(i, 1); writePrompts(all); return json(res, 200, { deleted: parts[1] }); }
+    }
+
+    // artifacts: a run's files, relative to that run's workspace (read-only)
+    if (url.pathname === "/file") {
+      const ws = wsById(url.searchParams.get("ws") || "executor") || EXECUTOR;
+      const p = resolve(ws.path, url.searchParams.get("path") || "");
+      if (!inside(ws.path, p) || !existsSync(p) || !statSync(p).isFile()) { res.writeHead(404); return res.end("not found"); }
+      return sendFile(res, p);
+    }
+    res.writeHead(404); res.end("not found");
+  } catch (e) {
+    json(res, 400, { error: e.message });
+  }
+}).listen(PORT, () => console.log(`AI Workspace on http://localhost:${PORT} (worker binary: ${CLAUDE.cmd}${CLAUDE.shell ? " via shell" : ""})`));
