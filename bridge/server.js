@@ -130,6 +130,13 @@ wss.on("connection", (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  log(`Bridge listening: HTTP+WS on http://localhost:${PORT} (WS path /ws)`);
+// Loopback only, never the LAN. Both loopbacks, because "localhost" can resolve to either:
+// Figma's plugin UI connects over ::1. One server can't listen on two addresses, so a second
+// one on 127.0.0.1 hands its requests and WebSocket upgrades to the first.
+server.listen(PORT, "::1", () => {
+  log(`Bridge listening: HTTP+WS on http://localhost:${PORT} (WS path /ws), loopback only`);
 });
+const v4 = http.createServer();
+v4.on("request", (req, res) => server.emit("request", req, res));
+v4.on("upgrade", (req, socket, head) => server.emit("upgrade", req, socket, head));
+v4.listen(PORT, "127.0.0.1");
