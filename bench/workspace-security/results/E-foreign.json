@@ -1,0 +1,87 @@
+{
+ "foreignSession": {
+  "id": "d75e2641-9aa2-4e80-8005-d882cb4c1d65",
+  "transcriptIn": {
+   ".claude": [
+    "C--Users-hp-AppData-Local-Temp-claude-c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor-2b2ef781-158d-46fa-a77f-4aadf5e96c75-scratchpad-sec-inj0"
+   ],
+   ".claude-vscode": []
+  }
+ },
+ "vsSession": {
+  "id": "0fa5446a-3475-494e-b119-0dadca3b80f0",
+  "transcriptIn": {
+   ".claude": [],
+   ".claude-vscode": [
+    "C--Users-hp-AppData-Local-Temp-claude-c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor-2b2ef781-158d-46fa-a77f-4aadf5e96c75-scratchpad-sec-ws"
+   ]
+  }
+ },
+ "cases": [
+  {
+   "name": "canary run carrying a session that worked in inj0",
+   "message": [
+    400,
+    "Session d75e2641-9aa2-4e80-8005-d882cb4c1d65 has worked in C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\inj0, outside this run's workspace C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\ws. It won't be resumed here."
+   ],
+   "rawLogGrew": 0,
+   "claudeProcs": [
+    9,
+    9
+   ],
+   "runStatus": "finished"
+  },
+  {
+   "name": "canary run carrying a session that exists only in ~/.claude-vscode",
+   "message": [
+    400,
+    "Session 0fa5446a-3475-494e-b119-0dadca3b80f0 isn't in this console's Claude config dir (C:\\Users\\hp\\.claude), so it can't be resumed here."
+   ],
+   "rawLogGrew": 0,
+   "claudeProcs": [
+    9,
+    9
+   ],
+   "runStatus": "finished"
+  },
+  {
+   "name": "run recorded under ~/.claude-vscode",
+   "message": [
+    400,
+    "This run's session lives in Claude config dir C:\\Users\\hp\\.claude-vscode; this console uses C:\\Users\\hp\\.claude."
+   ],
+   "rawLogGrew": 0,
+   "claudeProcs": [
+    9,
+    9
+   ],
+   "runStatus": "finished"
+  },
+  {
+   "name": "legacy run (no workspace/configDir recorded), session only in ~/.claude-vscode",
+   "message": [
+    400,
+    "Session 0fa5446a-3475-494e-b119-0dadca3b80f0 isn't in this console's Claude config dir (C:\\Users\\hp\\.claude), so it can't be resumed here."
+   ],
+   "rawLogGrew": 0,
+   "claudeProcs": [
+    9,
+    9
+   ],
+   "runStatus": "finished"
+  },
+  {
+   "name": "canary run with a non-UUID session id",
+   "message": [
+    400,
+    "Session ../../x isn't in this console's Claude config dir (C:\\Users\\hp\\.claude), so it can't be resumed here."
+   ],
+   "rawLogGrew": 0,
+   "claudeProcs": [
+    9,
+    9
+   ],
+   "runStatus": "finished"
+  }
+ ]
+}

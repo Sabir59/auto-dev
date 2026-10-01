@@ -1,0 +1,300 @@
+{
+ "label": "D3-adapter-full",
+ "profile": "full",
+ "tools": [
+  "browser_navigate",
+  "browser_get_dom_state",
+  "browser_click",
+  "browser_fill",
+  "browser_screenshot"
+ ],
+ "rows": [
+  {
+   "name": "file:///",
+   "url": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "FILE:///",
+   "url": "FILE:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "File:///",
+   "url": "File:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "fIlE:///",
+   "url": "fIlE:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "view-source:file:///",
+   "url": "view-source:file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "VIEW-SOURCE:FILE:///",
+   "url": "VIEW-SOURCE:FILE:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "view-source:http:",
+   "url": "view-source:http://127.0.0.1:59690/ok",
+   "refused": false,
+   "message": "{ \"url\": \"http://127.0.0.1:59690/ok\", \"title\": \"\" }",
+   "pageAfter": "http://127.0.0.1:59690/ok",
+   "canaryInOutput": false
+  },
+  {
+   "name": "file:/ (one slash)",
+   "url": "file:/C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "file://localhost/",
+   "url": "file://localhost/C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "leading space",
+   "url": " file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "leading tab+newline",
+   "url": "\t\nfile:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "tab inside scheme",
+   "url": "fi\tle:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "newline inside scheme",
+   "url": "fi\nle:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "percent-encoded scheme",
+   "url": "%66ile:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": true,
+   "message": "MCP error -32602: Input validation error: Invalid arguments for tool browser_navigate: Invalid URL at url",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "filesystem:file:",
+   "url": "filesystem:file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "refused": true,
+   "message": "page.goto: net::ERR_FILE_NOT_FOUND at filesystem:file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef7",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
+  },
+  {
+   "name": "javascript:",
+   "url": "javascript:document.title='js'",
+   "refused": true,
+   "message": "page.goto: net::ERR_ABORTED at javascript:document.title='js' Call log: \u001b[2m - navigating to \"javascript:document.title='js'\", waiting until \"domcontentloaded\"\u001b",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
+  },
+  {
+   "name": "data:",
+   "url": "data:text/html,<title>data</title>",
+   "refused": false,
+   "message": "{ \"url\": \"data:text/html,<title>data</title>\", \"title\": \"data\" }",
+   "pageAfter": "data:text/html,<title>data</title>",
+   "canaryInOutput": false
+  },
+  {
+   "name": "blob:",
+   "url": "blob:http://127.0.0.1:59690/0b5e2c4a-0000-0000-0000-000000000000",
+   "refused": true,
+   "message": "page.goto: net::ERR_FILE_NOT_FOUND at blob:http://127.0.0.1:59690/0b5e2c4a-0000-0000-0000-000000000000 Call log: \u001b[2m - navigating to \"blob:http://127.0.0.1:596",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
+  },
+  {
+   "name": "about:blank",
+   "url": "about:blank",
+   "refused": false,
+   "message": "{ \"url\": \"about:blank\", \"title\": \"\" }",
+   "pageAfter": "about:blank",
+   "canaryInOutput": false
+  },
+  {
+   "name": "chrome://version",
+   "url": "chrome://version",
+   "refused": true,
+   "message": "page.goto: net::ERR_INVALID_URL at chrome://version Call log: \u001b[2m - navigating to \"chrome://version\", waiting until \"domcontentloaded\"\u001b[22m ",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
+  },
+  {
+   "name": "ftp:",
+   "url": "ftp://127.0.0.1/",
+   "refused": true,
+   "message": "page.goto: net::ERR_ABORTED at ftp://127.0.0.1/ Call log: \u001b[2m - navigating to \"ftp://127.0.0.1/\", waiting until \"domcontentloaded\"\u001b[22m ",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
+  },
+  {
+   "name": "ws:",
+   "url": "ws://127.0.0.1/",
+   "refused": true,
+   "message": "page.goto: net::ERR_UNKNOWN_URL_SCHEME at ws://127.0.0.1/ Call log: \u001b[2m - navigating to \"ws://127.0.0.1/\", waiting until \"domcontentloaded\"\u001b[22m ",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
+  },
+  {
+   "name": "Windows path",
+   "url": "C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\outside\\secret.txt",
+   "refused": false,
+   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "UNC path",
+   "url": "\\\\localhost\\c$\\Windows\\win.ini",
+   "refused": true,
+   "message": "MCP error -32602: Input validation error: Invalid arguments for tool browser_navigate: Invalid URL at url",
+   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "canaryInOutput": true
+  },
+  {
+   "name": "http:\\\\ (backslashes)",
+   "url": "http:\\\\127.0.0.1:59690/ok",
+   "refused": false,
+   "message": "{ \"url\": \"http://127.0.0.1:59690/ok\", \"title\": \"t\" }",
+   "pageAfter": "http://127.0.0.1:59690/ok",
+   "canaryInOutput": false
+  },
+  {
+   "name": "HTTP: (upper, allowed)",
+   "url": "HTTP://127.0.0.1:59690/ok",
+   "refused": false,
+   "message": "{ \"url\": \"http://127.0.0.1:59690/ok\", \"title\": \"t\" }",
+   "pageAfter": "http://127.0.0.1:59690/ok",
+   "canaryInOutput": false
+  },
+  {
+   "name": "http: page (allowed)",
+   "url": "http://127.0.0.1:59690/ok",
+   "refused": false,
+   "message": "{ \"url\": \"http://127.0.0.1:59690/ok\", \"title\": \"t\" }",
+   "pageAfter": "http://127.0.0.1:59690/ok",
+   "canaryInOutput": false
+  },
+  {
+   "name": "http -> 302 -> file:",
+   "url": "http://127.0.0.1:59690/redirect",
+   "refused": true,
+   "message": "page.goto: net::ERR_UNSAFE_REDIRECT at http://127.0.0.1:59690/redirect Call log: \u001b[2m - navigating to \"http://127.0.0.1:59690/redirect\", waiting until \"domconte",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
+  },
+  {
+   "name": "http -> 302 -> FILE:",
+   "url": "http://127.0.0.1:59690/redirect-upper",
+   "refused": true,
+   "message": "page.goto: net::ERR_UNSAFE_REDIRECT at http://127.0.0.1:59690/redirect-upper Call log: \u001b[2m - navigating to \"http://127.0.0.1:59690/redirect-upper\", waiting unt",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
+  },
+  {
+   "name": "http page, script sets location to file:",
+   "url": "http://127.0.0.1:59690/script",
+   "refused": false,
+   "message": "{ \"url\": \"http://127.0.0.1:59690/script\", \"title\": \"t\" }",
+   "pageAfter": "http://127.0.0.1:59690/script",
+   "canaryInOutput": false
+  },
+  {
+   "name": "http page, meta refresh to file:",
+   "url": "http://127.0.0.1:59690/meta",
+   "refused": false,
+   "message": "{ \"url\": \"http://127.0.0.1:59690/meta\", \"title\": \"t\" }",
+   "pageAfter": "http://127.0.0.1:59690/meta",
+   "canaryInOutput": false
+  },
+  {
+   "name": "http page, iframe of file:",
+   "url": "http://127.0.0.1:59690/iframe",
+   "refused": false,
+   "message": "{ \"url\": \"http://127.0.0.1:59690/iframe\", \"title\": \"t\" }",
+   "pageAfter": "http://127.0.0.1:59690/iframe",
+   "canaryInOutput": false
+  },
+  {
+   "name": "click a file: link on an http page",
+   "refused": false,
+   "message": "{\n \"clicked\": \"#l\"\n}",
+   "pageAfter": "http://127.0.0.1:59690/link",
+   "canaryInOutput": false
+  }
+ ],
+ "screenshot": {
+  "error": false,
+  "text": "{\n \"path\": \"C:\\\\Users\\\\hp\\\\Desktop\\\\millionaire\\\\auto-dev\\\\figma-ai-executor\\\\browser-adapter\\\\exports\\\\1790864871749.png\"\n}"
+ },
+ "NEW_EXPORT_FILES": [
+  "1790864871749.png"
+ ],
+ "CANARY_LEAKS": [
+  "file:///",
+  "FILE:///",
+  "File:///",
+  "fIlE:///",
+  "view-source:file:///",
+  "VIEW-SOURCE:FILE:///",
+  "file:/ (one slash)",
+  "file://localhost/",
+  "leading space",
+  "leading tab+newline",
+  "tab inside scheme",
+  "newline inside scheme",
+  "percent-encoded scheme",
+  "Windows path",
+  "UNC path"
+ ]
+}

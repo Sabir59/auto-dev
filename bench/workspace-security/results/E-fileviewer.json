@@ -1,0 +1,207 @@
+{
+ "root": "C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\ws",
+ "rows": [
+  {
+   "path": "README.md",
+   "status": 200,
+   "served": true,
+   "canary": [],
+   "oldCheckWouldServe": true
+  },
+  {
+   "path": "src/index.js",
+   "status": 200,
+   "served": true,
+   "canary": [],
+   "oldCheckWouldServe": true
+  },
+  {
+   "path": ".env",
+   "status": 200,
+   "served": true,
+   "canary": [
+    "ws/.env"
+   ],
+   "oldCheckWouldServe": true
+  },
+  {
+   "path": "notes-link.txt",
+   "status": 200,
+   "served": true,
+   "canary": [
+    "ws/.env"
+   ],
+   "oldCheckWouldServe": true
+  },
+  {
+   "path": "../outside/secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "..\\outside\\secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "src/../../outside/secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "jdir/secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": true
+  },
+  {
+   "path": "JDIR/secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": true
+  },
+  {
+   "path": "jdir/.env",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": true
+  },
+  {
+   "path": "jdir./secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "jdir /secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "jdir\\secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": true
+  },
+  {
+   "path": "../ws-evil/evil.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": true
+  },
+  {
+   "path": "C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\outside\\secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "C:secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "\\\\localhost\\c$\\Windows\\win.ini",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "//localhost/c$/Windows/win.ini",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "\\\\?\\C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\outside\\secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "\\\\.\\C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\outside\\secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "README.md\u0000.png",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "src",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": ".",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "%2e%2e/outside/secret.txt",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": false
+  },
+  {
+   "path": "README.md::$DATA",
+   "status": 200,
+   "served": true,
+   "canary": [],
+   "oldCheckWouldServe": true
+  },
+  {
+   "path": "jdir/secret.txt::$DATA",
+   "status": 404,
+   "served": false,
+   "canary": [],
+   "oldCheckWouldServe": true
+  }
+ ],
+ "repoRootFile": 200,
+ "unknownRun": 404
+}

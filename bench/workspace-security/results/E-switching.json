@@ -1,0 +1,88 @@
+{
+ "attempts": [
+  {
+   "name": "canary root re-pointed at another folder (inj0)",
+   "message": [
+    400,
+    "Workspace \"canary\" now resolves to C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\inj0, but this run is bound to C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\ws. Start a new run."
+   ],
+   "restart": [
+    400,
+    "Workspace \"canary\" now resolves to C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\inj0, but this run is bound to C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\ws. Start a new run."
+   ],
+   "fileViewer": [
+    400,
+    "Workspace \"canary\" now resolves to C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\inj0, but this run is bound to C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\ws. Start a new run."
+   ],
+   "runStatus": "finished",
+   "rawLogGrew": 0,
+   "eventLogGrew": 0,
+   "claudeProcsBefore": 9,
+   "claudeProcsAfter": 9,
+   "activeRun": null
+  },
+  {
+   "name": "canary profile changed inspect -> full",
+   "message": [
+    400,
+    "Workspace \"canary\" now has the full profile, but this run is bound to inspect. Start a new run."
+   ],
+   "restart": [
+    400,
+    "Workspace \"canary\" now has the full profile, but this run is bound to inspect. Start a new run."
+   ],
+   "fileViewer": [
+    400,
+    "Workspace \"canary\" now has the full profile, but this run is bound to inspect. Start a new run."
+   ],
+   "runStatus": "finished",
+   "rawLogGrew": 0,
+   "eventLogGrew": 0,
+   "claudeProcsBefore": 9,
+   "claudeProcsAfter": 9,
+   "activeRun": null
+  },
+  {
+   "name": "canary removed from workspaces.json",
+   "message": [
+    400,
+    "No workspace \"canary\". Workspaces are added by editing C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\console-data\\workspaces.json."
+   ],
+   "restart": [
+    400,
+    "No workspace \"canary\". Workspaces are added by editing C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\console-data\\workspaces.json."
+   ],
+   "fileViewer": [
+    400,
+    "No workspace \"canary\". Workspaces are added by editing C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\console-data\\workspaces.json."
+   ],
+   "runStatus": "finished",
+   "rawLogGrew": 0,
+   "eventLogGrew": 0,
+   "claudeProcsBefore": 9,
+   "claudeProcsAfter": 9,
+   "activeRun": null
+  },
+  {
+   "name": "canary root given as a junction to the same folder (same real path: allowed)",
+   "message": [
+    200,
+    "running"
+   ],
+   "restart": [
+    400,
+    "A worker is already running. Stop or end it first."
+   ],
+   "fileViewer": [
+    200,
+    "# Canary workspace\nA disposable test repo.\n"
+   ],
+   "runStatus": "running",
+   "rawLogGrew": 0,
+   "eventLogGrew": 513,
+   "claudeProcsBefore": 9,
+   "claudeProcsAfter": 11,
+   "activeRun": "2026-10-01T14-31-41-842Z"
+  }
+ ]
+}
