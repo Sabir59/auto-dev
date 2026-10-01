@@ -1,0 +1,147 @@
+{
+ "when": "2026-10-01T16:40:49.565Z",
+ "results": [
+  {
+   "step": "+ opens the file picker; an image, a text file and a PDF become chips; × removes one",
+   "ok": true,
+   "detail": {
+    "added": [
+     "monogram.png",
+     "notes.txt",
+     "reference.pdf",
+     "followup.txt"
+    ],
+    "afterRemove": [
+     "monogram.png",
+     "notes.txt",
+     "reference.pdf"
+    ],
+    "imageThumb": 1
+   }
+  },
+  {
+   "step": "send: the worker reads the image, the text file and the PDF",
+   "ok": true,
+   "detail": {
+    "chipsAfterSend": 0,
+    "reply": "The image is a dark, rounded-square app icon showing a blue upward arrow with a small blue dot to its right, both sitting above a grey horizontal line.\n\nCodeword from notes.txt: MARIGOLD\nCodeword from the PDF: OSPREY\n\nDONEI described the image and gave both codewords, reading them straight from the ",
+    "marigold": true,
+    "osprey": true
+   }
+  },
+  {
+   "step": "the conversation shows the attachments; the copies are served read-only with the real type",
+   "ok": true,
+   "detail": {
+    "imagePreviews": 1,
+    "fileChips": [
+     "notes.txt 40 B",
+     "reference.pdf PDF · 594 B"
+    ],
+    "served": [
+     {
+      "file": "1-monogram.png",
+      "status": 200,
+      "type": "image/png",
+      "csp": "sandbox"
+     },
+     {
+      "file": "2-notes.txt",
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "csp": "sandbox"
+     },
+     {
+      "file": "3-reference.pdf",
+      "status": 200,
+      "type": "application/pdf",
+      "csp": "sandbox"
+     }
+    ],
+    "runPrompt": "Describe the attached image in one sentence. Then give the codeword from notes.txt and the codeword from the PDF.",
+    "attIndex": "not found"
+   }
+  },
+  {
+   "step": "paste an image into the prompt box, follow up; the worker sees it",
+   "ok": true,
+   "detail": {
+    "reply": "Blue"
+   }
+  },
+  {
+   "step": "drop a file on the prompt box → chip",
+   "ok": true,
+   "detail": {
+    "dropped": [
+     "dropped.txt"
+    ],
+    "afterRemove": 0
+   }
+  },
+  {
+   "step": "End, reload, reopen from Recent runs: attachments still shown; resume with a new attachment",
+   "ok": true,
+   "detail": {
+    "previewsLoaded": [
+     true,
+     true
+    ],
+    "resumedCard": 1,
+    "reply": "LANTERN",
+    "lantern": true
+   }
+  },
+  {
+   "step": "wrong files are refused in the page (binary, too big)",
+   "ok": true,
+   "detail": {
+    "binary": "tool.bin can't be attached: only images, PDFs and text files.",
+    "big": "big.png is too large (5 MB at most).",
+    "chips": 0
+   }
+  },
+  {
+   "step": "the server checks again: binary, too many, oversized, a disguised file; nothing starts",
+   "ok": true,
+   "detail": {
+    "binary": {
+     "error": "tool.bin can't be attached: only images (PNG, JPG, GIF, WebP), PDFs and text files."
+    },
+    "tooMany": {
+     "error": "Attach up to 10 files per message."
+    },
+    "oversizedImage": {
+     "error": "big.png is too large (5 MB at most for this type)."
+    },
+    "exeNamedPng": {
+     "error": "photo.png can't be attached: only images (PNG, JPG, GIF, WebP), PDFs and text files."
+    },
+    "foreignOrigin": 403,
+    "runsCreated": 0
+   }
+  },
+  {
+   "step": "attachment URLs can't reach other files",
+   "ok": true,
+   "detail": {
+    "..%2F..%2Fserver.mjs": 404,
+    "..%5C..%5Cserver.mjs": 404,
+    "%2e%2e": 200,
+    "..": 200,
+    "nope.png": 404,
+    "postToAtt": 404
+   }
+  },
+  {
+   "step": "nothing was written into the workspace",
+   "ok": true,
+   "detail": {
+    "filesBefore": 11,
+    "filesAfter": 11,
+    "changed": []
+   }
+  }
+ ],
+ "pageErrors": []
+}

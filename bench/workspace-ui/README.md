@@ -19,7 +19,7 @@ The Workspace page (`worker-ui/workspace.html`, served at `/` by `worker-ui/serv
 - the three suggestion cards, which were sample MATW tasks;
 - "Worker Engine v3" (model selection is out of scope); its place shows the access mode.
 
-**Drawn but not interactive**, because no behaviour is defined for them: ⌘K, the bell, the gear, the avatar, the sliders icon, "+ attach" and "Docs & Reference".
+**Drawn but not interactive**, because no behaviour is defined for them: ⌘K, the bell, the gear, the avatar, the sliders icon and "Docs & Reference". ("+ attach" is now live: see Attachments below.)
 
 **Added only where the function needed it:**
 - the send button turns into Stop while the worker is busy;
@@ -102,5 +102,28 @@ The full workflow suite (`workflow-test.mjs`) still passes **12/12** on the same
 5. Remove → Cancel kept Canary; Remove → Remove took it off the list and selection fell back to Executor. The folder still exists with the same 80 entries.
 6. Removing Work test while its worker was waiting was refused. After End run it was removed, resuming its run was refused ("No workspace"), and the folder still had the same 5 entries.
 7. A foreign Origin was refused (403) for both remove and reorder; a bad order and an unknown id were refused.
+
+`workflow-test.mjs` still passes **12/12** on the same build.
+
+## Attachments (2026-10-01)
+
+The composer's **+** now attaches files to a message, as do **paste** (e.g. a screenshot) and **drop** onto the prompt box. Attachments show as chips that can be removed before sending.
+
+- **Supported:** images (PNG, JPG, GIF, WebP, up to 5 MB each), PDFs (up to 10 MB) and text/code files (up to 300 KB). At most 10 per message, 25 MB together.
+- **How they reach the worker:** inside the message itself, as image, document and text content blocks in Claude Code's stream-json input, so they also stay in a resumed session. They are **never written into the workspace**: Inspect stays read-only, and the worker doesn't need file access to see them.
+- **Type checks:** the console decides the type from the bytes, not the name, and refuses anything else.
+- **Stored copy:** kept in `runs/<id>.att/` (gitignored) so the conversation can show them again. It is served read-only at `GET /runs/:id/att/:file` with the sniffed content type, `Content-Security-Policy: sandbox` and `nosniff`.
+
+`attach-test.mjs` (real worker, real browser): **10/10 passed** (`attach-results.json`):
+1. "+" opened the file picker. An image, a text file, a PDF and a fourth file became chips, and × removed one.
+2. On sending, the worker described the image and gave both codewords: MARIGOLD from the text file and OSPREY from the PDF.
+3. The conversation showed the image preview and two file chips. Each copy was served with its real type (`image/png`, `text/plain`, `application/pdf`) and the sandbox policy.
+4. A pasted image was sent in a follow-up, and the worker answered "Blue" about the arrow.
+5. Dropping a file onto the prompt box added a chip.
+6. After End and a reload, reopening the run from Recent runs still showed the previews. Resuming with a new attached file worked: it answered LANTERN.
+7. In the page, a binary file was refused as "can't be attached" and a 6 MB image as "too large".
+8. The server refused on its own: a binary, 11 files, an oversized image, and an executable renamed `photo.png`. A foreign Origin got 403, and no run was created.
+9. Path tricks on `/att/` (`..%2F..%2Fserver.mjs`, backslashes, an unknown file) returned 404. `/att/..` collapses to `/runs/:id`, the run's own public metadata, not a file.
+10. The workspace had 11 files with the same hashes before and after: nothing was written into it.
 
 `workflow-test.mjs` still passes **12/12** on the same build.

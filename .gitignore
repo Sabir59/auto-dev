@@ -6,3 +6,4 @@ exports/*.svg
 # Worker Console local state
 worker-ui/workspaces.json
 worker-ui/mcp.*.json
+worker-ui/runs/*.att/

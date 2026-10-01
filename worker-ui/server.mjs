@@ -378,33 +378,75 @@ function spawnWorker(run, { resume }) {
   child.on("error", (e) => { emit(run, { type: "failure", summary: `could not start worker: ${e.message}` }); setStatus(run, "failed", e.message); });
 }
 
-function sendToWorker(run, text) {
-  run.meta.messages++;
-  emit(run, { type: "user", summary: text });
-  setStatus(run, "running");
-  run.child.stdin.write(JSON.stringify({ type: "user", message: { role: "user", content: text } }) + "\n");
+// ---- attachments ------------------------------------------------------------------
+// Files attached to a message reach the worker inside the message itself (image, PDF or text
+// content blocks), never through the workspace folder. A copy is kept with the run
+// (runs/<id>.att/) only so the conversation can show it again. The type is decided from the
+// bytes, not from the name the browser sent.
+const ATT = { count: 10, image: 5e6, pdf: 10e6, text: 3e5, total: 25e6 };
+const IMAGE_SIGS = [["image/png", "89504e47"], ["image/jpeg", "ffd8ff"], ["image/gif", "47494638"], ["image/webp", "52494646"]];
+function sniff(buf) {
+  const hex = buf.subarray(0, 4).toString("hex");
+  const img = IMAGE_SIGS.find(([, sig]) => hex.startsWith(sig) && (sig !== "52494646" || buf.subarray(8, 12).toString() === "WEBP"));
+  if (img) return { kind: "image", mime: img[0] };
+  if (buf.subarray(0, 5).toString() === "%PDF-") return { kind: "pdf", mime: "application/pdf" };
+  return { kind: buf.includes(0) ? "binary" : "text", mime: "text/plain; charset=utf-8" };
+}
+function readAttachments(list) {
+  if (list === undefined) return [];
+  if (!Array.isArray(list) || list.length > ATT.count) throw new Error(`Attach up to ${ATT.count} files per message.`);
+  let total = 0;
+  return list.map((a) => {
+    const name = basename(String(a?.name || "file")).replace(/[^\w.\- ()]+/g, "_").slice(0, 100) || "file";
+    const buf = Buffer.from(String(a?.data || ""), "base64");
+    if (!buf.length) throw new Error(`${name} is empty.`);
+    if ((total += buf.length) > ATT.total) throw new Error("The attachments are too large together (25 MB at most).");
+    const t = sniff(buf);
+    if (t.kind === "binary") throw new Error(`${name} can't be attached: only images (PNG, JPG, GIF, WebP), PDFs and text files.`);
+    if (buf.length > ATT[t.kind]) throw new Error(`${name} is too large (${t.kind === "image" ? "5 MB" : t.kind === "pdf" ? "10 MB" : "300 KB"} at most for this type).`);
+    return { name, ...t, buf };
+  });
+}
+const attBlock = (a) => (a.kind === "image" ? { type: "image", source: { type: "base64", media_type: a.mime, data: a.buf.toString("base64") } }
+  : a.kind === "pdf" ? { type: "document", source: { type: "base64", media_type: a.mime, data: a.buf.toString("base64") }, title: a.name }
+  : { type: "text", text: `<attached_file name="${a.name}">\n${a.buf.toString("utf8")}\n</attached_file>` });
+const attDir = (run) => join(RUNS, `${run.meta.id}.att`);
+function saveAttachments(run, atts) {
+  if (!atts.length) return [];
+  mkdirSync(attDir(run), { recursive: true });
+  const n = readdirSync(attDir(run)).length;
+  return atts.map((a, i) => { const file = `${n + i + 1}-${a.name}`; writeFileSync(join(attDir(run), file), a.buf); return { name: a.name, kind: a.kind, size: a.buf.length, file }; });
 }
 
-function newRun(prompt, workspaceId = "console") {
+function sendToWorker(run, text, atts = []) {
+  run.meta.messages++;
+  const saved = saveAttachments(run, atts);
+  emit(run, { type: "user", summary: text, ...(saved.length ? { attachments: saved } : {}) });
+  setStatus(run, "running");
+  const content = atts.length ? [...atts.map(attBlock), ...(text ? [{ type: "text", text }] : [])] : text;
+  run.child.stdin.write(JSON.stringify({ type: "user", message: { role: "user", content } }) + "\n");
+}
+
+function newRun(prompt, workspaceId = "console", atts = []) {
   if (active()) throw new Error("A worker is already running. Stop or end it first.");
   const workspace = resolveWorkspace(workspaceId);
   const id = new Date().toISOString().replace(/[:.]/g, "-");
-  const meta = { id, prompt, workspace, configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
+  const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
   const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
   writeFileSync(run.file, ""); writeFileSync(run.raw, "");
   runs.set(id, run);
   saveMeta(run);
   emit(run, { type: "status", summary: "starting" });
   spawnWorker(run, { resume: false });
-  sendToWorker(run, prompt);
+  sendToWorker(run, prompt, atts);
   return run;
 }
 
 // Follow-up: same process if it's waiting; otherwise resume the saved session in a new process.
-function followUp(run, text) {
+function followUp(run, text, atts = []) {
   if (alive(run)) {
     if (run.meta.status !== "waiting") throw new Error("The worker is still working on the previous message. Wait for it, or stop it.");
-    return sendToWorker(run, text);
+    return sendToWorker(run, text, atts);
   }
   if (active()) throw new Error("Another worker is running. Stop or end it first.");
   if (!run.meta.sessionId) throw new Error("This run has no saved session to resume.");
@@ -412,7 +454,7 @@ function followUp(run, text) {
   emit(run, { type: "note", summary: "Resuming the saved session in a new worker process. Conversation context is kept; tool processes are new (browser pages and logins are gone, Figma and files are unaffected)." });
   setStatus(run, "starting", "resuming session");
   spawnWorker(run, { resume: true });
-  sendToWorker(run, text);
+  sendToWorker(run, text, atts);
 }
 
 function loadRun(id) {
@@ -434,7 +476,12 @@ const writePrompts = (p) => writeFileSync(PROMPTS, JSON.stringify(p, null, 1) + 
 
 // ---- http --------------------------------------------------------------------
 const TYPES = { ".html": "text/html; charset=utf-8", ".json": "application/json", ".md": "text/plain; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8", ".mjs": "text/plain; charset=utf-8", ".csv": "text/plain; charset=utf-8", ".css": "text/css" };
-const body = (req) => new Promise((ok) => { let b = ""; req.on("data", (d) => (b += d)); req.on("end", () => ok(b ? JSON.parse(b) : {})); });
+// Request bodies are JSON; attachments make them large, so they're capped (base64 of 25 MB fits).
+const body = (req) => new Promise((ok, fail) => {
+  let b = "", n = 0;
+  req.on("data", (d) => { n += d.length; if (n <= 40e6) b += d; });
+  req.on("end", () => { if (n > 40e6) return fail(new Error("The request is too large.")); try { ok(b ? JSON.parse(b) : {}); } catch { fail(new Error("Bad request body.")); } });
+});
 const json = (res, status, obj) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(obj)); };
 
 // ---- file viewer containment -----------------------------------------------------
@@ -524,18 +571,33 @@ http.createServer(async (req, res) => {
     // runs
     if (url.pathname === "/runs" && req.method === "GET") return json(res, 200, { runs: allMetas(), active: active()?.meta.id || null });
     if (url.pathname === "/runs" && req.method === "POST") {
-      const { prompt, workspace } = await body(req);
-      if (!prompt?.trim()) throw new Error("Empty message");
-      return json(res, 200, newRun(prompt.trim(), workspace === undefined ? "console" : String(workspace)).meta);
+      const { prompt, workspace, attachments } = await body(req);
+      const atts = readAttachments(attachments);
+      if (!prompt?.trim() && !atts.length) throw new Error("Empty message");
+      return json(res, 200, newRun(String(prompt || "").trim(), workspace === undefined ? "console" : String(workspace), atts).meta);
     }
     if (parts[0] === "runs" && parts[1]) {
       const run = loadRun(parts[1]);
       if (!run) return json(res, 404, { error: "no such run" });
       const action = parts[2];
       if (!action && req.method === "GET") return json(res, 200, run.meta);
+      // An attachment of this run, shown back in the conversation: read-only, never run.
+      if (action === "att" && req.method === "GET") {
+        const name = decodeURIComponent(parts[3] || "");
+        const p = /^[\w.\- ()]+$/.test(name) && fileInside(attDir(run), name);
+        if (!p) { res.writeHead(404); return res.end("not found"); }
+        const buf = readFileSync(p);
+        res.writeHead(200, { "content-type": sniff(buf).mime, "content-security-policy": "sandbox", "x-content-type-options": "nosniff" });
+        return res.end(buf);
+      }
       // Actions change state, so they're POST-only (a GET would skip the request guard).
       if (action && req.method !== "POST") return json(res, 405, { error: "Use POST" });
-      if (action === "message") { const { text } = await body(req); if (!text?.trim()) throw new Error("Empty message"); followUp(run, text.trim()); return json(res, 200, run.meta); }
+      if (action === "message") {
+        const { text, attachments } = await body(req);
+        const atts = readAttachments(attachments);
+        if (!text?.trim() && !atts.length) throw new Error("Empty message");
+        followUp(run, String(text || "").trim(), atts); return json(res, 200, run.meta);
+      }
       if (action === "stop") { if (alive(run)) { run.stopRequested = true; run.child.kill(); } return json(res, 200, run.meta); }
       if (action === "end") { if (alive(run)) { run.endRequested = true; run.child.stdin.end(); } return json(res, 200, run.meta); }
       if (action === "restart") return json(res, 200, newRun(run.meta.prompt, checkBinding(run, { resume: false }).id).meta);

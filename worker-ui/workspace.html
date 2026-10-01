@@ -194,6 +194,20 @@ main { min-width: 0; min-height: 0; padding: 0 16px 32px; display: flex; justify
 .urow { height: 32px; padding: 4px 4px 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .urow .l, .urow .r { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .attach { width: 28px; height: 28px; border-radius: 2px; display: flex; align-items: center; justify-content: center; color: var(--t3); flex: none; }
+.attach:hover { background: var(--surf); color: var(--t1); }
+.cbox.drop { box-shadow: 0 2px 4px -2px rgba(0,0,0,.1), 0 4px 6px -1px rgba(0,0,0,.1), 0 0 0 1px var(--pri); }
+.attrow { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 4px 0; }
+.achip { height: 36px; max-width: 220px; display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 4px; background: var(--surf); border-radius: 2px; color: var(--t2); text-decoration: none; }
+.achip img, .achip .ic { width: 28px; height: 28px; border-radius: 2px; flex: none; }
+.achip img { object-fit: cover; background: var(--high); }
+.achip .ic { display: flex; align-items: center; justify-content: center; background: var(--high); color: var(--t3); }
+.achip .tx { display: flex; flex-direction: column; min-width: 0; line-height: 14px; }
+.achip .sz { color: var(--t3); }
+.achip .iconbtn { width: 20px; height: 20px; }
+.msg-att { align-self: flex-end; display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 82%; }
+.msg-att .big { display: block; border-radius: 8px; overflow: hidden; background: var(--surf); }
+.msg-att .big img { display: block; max-width: 240px; max-height: 180px; }
+a.achip:hover { background: var(--high); }
 .cbadge { height: 18px; display: flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--surf); border-radius: 2px; color: var(--t2); min-width: 0; }
 .cbadge .sl, .cbadge .br { color: var(--t3); }
 .mtag { height: 18px; display: flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--surf); border-radius: 2px; color: var(--t3); flex: none; }
@@ -331,10 +345,12 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
     <div class="composer">
       <div class="cbox">
         <label class="sr" for="input">Message the worker</label>
+        <div class="attrow" id="attRow" hidden aria-label="Attached files"></div>
         <textarea id="input" rows="1"></textarea>
         <div class="urow">
           <div class="l">
-            <span class="attach" aria-hidden="true"><svg class="i" width="11" height="11" data-i="plus11"></svg></span>
+            <button class="attach" id="attachBtn" aria-label="Attach files" title="Attach images, PDFs or text files (or paste / drop them here)"><svg class="i" width="11" height="11" data-i="plus11"></svg></button>
+            <input type="file" id="fileIn" multiple hidden accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/*,.md,.json,.csv,.txt,.log,.xml,.yml,.yaml,.svg,.js,.jsx,.mjs,.ts,.tsx,.css,.scss,.html,.py,.sql,.sh,.env.example">
             <span class="cbadge m11"><span class="dot" id="bDot"></span><span class="ell" id="bName"></span><span class="sl" id="bSl">/</span><span class="br" id="bBr"></span></span>
             <span class="mtag m11" id="mTag"><svg class="i" width="9" height="11" data-i="bolt"></svg><span id="mName"></span></span>
           </div>
@@ -718,7 +734,7 @@ async function openRun(id) {
 function onEvent(ev) {
   if (!T) return;
   const t = ev.type, at = Date.parse(ev.ts);
-  if (t === "user") { T.items.push({ k: "u", text: ev.summary }); T.turnStart = at; T.n++; addTurn(ev); }
+  if (t === "user") { T.items.push({ k: "u", text: ev.summary, atts: ev.attachments || [] }); T.turnStart = at; T.n++; addTurn(ev); }
   else if (t === "reply") T.items.push({ k: "w", text: ev.summary });
   else if (t === "tool") {
     const [verb, arg] = phrase(ev);
@@ -794,7 +810,7 @@ function renderCanvas() {
   const atEnd = c.scrollHeight - c.scrollTop - c.clientHeight < 80;
   const working = ["starting", "running"].includes(T.status);
   c.innerHTML = `<div class="thread" role="log" aria-label="Conversation">${T.items.map((it) =>
-    it.k === "u" ? `<div class="msg-u">${esc(it.text)}</div>`
+    it.k === "u" ? `${it.atts?.length ? `<div class="msg-att">${it.atts.map(attLink).join("")}</div>` : ""}${it.text ? `<div class="msg-u">${esc(it.text)}</div>` : ""}`
     : it.k === "w" ? `<div class="msg-w">${md(it.text)}</div>`
     : `<div class="sys m11 ${it.k === "e" ? "err" : ""}">${esc(it.text)}</div>`).join("")}
     ${working ? `<div class="working m11"><span class="dot pulse"></span><span class="ell">${T.status === "starting" ? "Starting the worker…" : `Working${T.current ? ` · ${esc(T.current)}` : "…"}`}</span></div>` : ""}</div>`;
@@ -819,12 +835,54 @@ setInterval(() => {
   else $("aTime").textContent = `${T?.lastSecs != null ? Number(T.lastSecs).toFixed(2) : "0.00"}s execution`;
 }, 100);
 
+// ---------------- attachments ----------------
+// Files go to the worker inside the message (the console checks them again by their bytes); they
+// are never written into the workspace. "+", paste and drop all land here.
+let PENDING = [];
+const ALIM = { image: 5e6, pdf: 10e6, text: 3e5 }, ALIMTXT = { image: "5 MB", pdf: "10 MB", text: "300 KB" };
+const IMGTYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+const fmtSize = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`);
+const readB64 = (file) => new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => fail(r.error); r.readAsDataURL(file); });
+async function addFiles(files) {
+  for (const file of files) {
+    if (PENDING.length >= 10) { notice("Attach up to 10 files per message."); break; }
+    const kind = IMGTYPES.includes(file.type) ? "image" : file.type === "application/pdf" || /\.pdf$/i.test(file.name) ? "pdf" : "text";
+    if (file.size > ALIM[kind]) { notice(`${file.name} is too large (${ALIMTXT[kind]} at most).`); continue; }
+    if (kind === "text" && new Uint8Array(await file.slice(0, 8000).arrayBuffer()).includes(0)) { notice(`${file.name} can't be attached: only images, PDFs and text files.`); continue; }
+    try { PENDING.push({ name: file.name || "pasted-image.png", size: file.size, kind, data: await readB64(file), url: kind === "image" ? URL.createObjectURL(file) : null }); }
+    catch (e) { notice(`${file.name}: ${e.message}`); }
+  }
+  renderPending();
+}
+const chipBody = (a, img) => `${img ? `<img src="${esc(img)}" alt="">` : `<span class="ic">${svgIcon("file", 14, 14)}</span>`}<span class="tx m11"><span class="ell">${esc(a.name)}</span><span class="sz">${a.kind === "pdf" ? "PDF · " : ""}${fmtSize(a.size)}</span></span>`;
+function renderPending() {
+  $("attRow").hidden = !PENDING.length;
+  $("attRow").innerHTML = PENDING.map((a, i) => `<span class="achip">${chipBody(a, a.url)}<button class="iconbtn" data-unatt="${i}" aria-label="Remove ${esc(a.name)}">${svgIcon("close", 12, 12)}</button></span>`).join("");
+}
+function clearPending() { PENDING.forEach((a) => a.url && URL.revokeObjectURL(a.url)); PENDING = []; renderPending(); }
+// In the conversation: images as a preview, other files as a chip; both open the stored copy.
+function attLink(a) {
+  const href = `/runs/${encodeURIComponent(runId)}/att/${encodeURIComponent(a.file)}`;
+  return a.kind === "image" ? `<a class="big" href="${href}" target="_blank" rel="noopener" title="${esc(a.name)}"><img src="${href}" alt="${esc(a.name)}"></a>`
+    : `<a class="achip" href="${href}" target="_blank" rel="noopener">${chipBody(a)}</a>`;
+}
+$("attachBtn").onclick = () => $("fileIn").click();
+$("fileIn").onchange = () => { addFiles([...$("fileIn").files]); $("fileIn").value = ""; };
+$("attRow").onclick = (e) => { const b = e.target.closest("[data-unatt]"); if (!b) return; const [a] = PENDING.splice(+b.dataset.unatt, 1); if (a?.url) URL.revokeObjectURL(a.url); renderPending(); $("input").focus(); };
+$("input").addEventListener("paste", (e) => { const files = [...(e.clipboardData?.files || [])]; if (files.length) { e.preventDefault(); addFiles(files); } });
+const cbox = document.querySelector(".cbox");
+const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+cbox.addEventListener("dragover", (e) => { if (!hasFiles(e)) return; e.preventDefault(); cbox.classList.add("drop"); });
+cbox.addEventListener("dragleave", (e) => { if (!cbox.contains(e.relatedTarget)) cbox.classList.remove("drop"); });
+cbox.addEventListener("drop", (e) => { if (!hasFiles(e)) return; e.preventDefault(); cbox.classList.remove("drop"); addFiles([...e.dataTransfer.files]); });
+
 // ---------------- sending (nothing runs unless the person sends) ----------------
 async function send() {
   const st = runId ? (T?.status || meta?.status) : null;
   if (["starting", "running"].includes(st)) { await api("POST", `/runs/${runId}/stop`).catch(notice); return; }
   const text = $("input").value.trim();
-  if (!text) return;
+  if (!text && !PENDING.length) return;
+  const attachments = PENDING.map(({ name, data }) => ({ name, data }));
   $("send").disabled = true;
   try {
     if (!runId) {
@@ -833,16 +891,16 @@ async function send() {
       // (it can be continued later); a busy one has to be stopped first.
       if (ACTIVE && ACTIVE.status !== "waiting") throw new Error("The worker is busy with another conversation. Open it from Recent runs and stop it first.");
       if (ACTIVE) await endAndWait(ACTIVE.id);
-      const m = await api("POST", "/runs", { prompt: text, workspace: wsId });
-      $("input").value = ""; autosize();
+      const m = await api("POST", "/runs", { prompt: text, workspace: wsId, attachments });
+      $("input").value = ""; autosize(); clearPending();
       await loadRuns(); await openRun(m.id);
     } else {
       if (ACTIVE && ACTIVE.id !== runId) {
         if (ACTIVE.status !== "waiting") throw new Error("The worker is busy with another conversation. Stop it first.");
         await endAndWait(ACTIVE.id);
       }
-      await api("POST", `/runs/${runId}/message`, { text });
-      $("input").value = ""; autosize(); refreshMeta(); loadRuns();
+      await api("POST", `/runs/${runId}/message`, { text, attachments });
+      $("input").value = ""; autosize(); clearPending(); refreshMeta(); loadRuns();
     }
   } catch (e) { notice(e.message); }
   finally { $("send").disabled = false; }

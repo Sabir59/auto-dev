@@ -1,5 +1,5 @@
 {
- "when": "2026-10-01T16:33:34.559Z",
+ "when": "2026-10-01T16:44:58.542Z",
  "results": [
   {
    "step": "add an Inspect workspace through the form",
@@ -58,34 +58,34 @@
   {
    "step": "a hostile HTML file is shown as text, not run",
    "ok": true,
-   "seconds": 1.8,
+   "seconds": 1.9,
    "detail": {
     "shownAsText": true,
     "csp": "sandbox",
-    "runsBefore": 1,
-    "runsAfterOpeningItDirectly": 1
+    "runsBefore": 0,
+    "runsAfterOpeningItDirectly": 0
    }
   },
   {
    "step": "start a run, see live activity, get the result (Inspect)",
    "ok": true,
-   "seconds": 8.7,
+   "seconds": 12.4,
    "detail": {
     "liveSeen": true,
     "sendIsStop": "Stop the worker",
     "cards": [
      "Worker started",
-     "Files Success · 77ms",
+     "Files Success · 47ms",
      "Done Complete",
-     "Turn finished 6s"
+     "Turn finished 10s"
     ],
-    "reply": "DONEAccording to README.md, this is a \"Canary workspace,\" a test repository meant to be thrown away."
+    "reply": "DONEThe README says this folder is a \"Canary workspace\", which is a disposable test repo."
    }
   },
   {
    "step": "follow-up in the same worker process",
    "ok": true,
-   "seconds": 2.3,
+   "seconds": 2.8,
    "detail": {
     "reply": "README.md",
     "workerStartedCards": 1,
@@ -105,7 +105,7 @@
   {
    "step": "End run, then it appears in Recent runs as finished",
    "ok": true,
-   "seconds": 1.1,
+   "seconds": 1.2,
    "detail": {
     "recent": [
      "Read README.md in this folder and summarise it in one sentence. just now"
@@ -115,7 +115,7 @@
   {
    "step": "reload, open the run from Recent runs, continue it (resume)",
    "ok": true,
-   "seconds": 6.3,
+   "seconds": 6.1,
    "detail": {
     "replayedMessages": 4,
     "resumedCard": 1,
@@ -136,7 +136,7 @@
   {
    "step": "Work workspace: the worker writes a file, it shows as an artifact, it opens in the viewer",
    "ok": true,
-   "seconds": 11.2,
+   "seconds": 11,
    "detail": {
     "artifact": "notes/summary.md",
     "content": "Workspace artifact test",
