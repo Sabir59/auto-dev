@@ -9,22 +9,30 @@
 //
 //   node worker-ui/server.mjs   ->  http://localhost:8799
 //
+// Every run is bound to one workspace (a folder + a capability profile) and to one Claude
+// config directory for its whole life, resumes included. See "workspaces" below.
+//
 // Event contract, one JSON object per line in runs/<id>.jsonl:
 //   { ts, type, env?, tool?, summary, detail? }
 //   type: user | reply | status | start | tool | result | failure | artifact | completed
 //         | plan | observation | decision | recovery | verification | done | note
 import http from "node:http";
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
-import { join, dirname, resolve, extname, delimiter } from "node:path";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, realpathSync } from "node:fs";
+import { join, dirname, resolve, extname, delimiter, relative, isAbsolute, sep } from "node:path";
+import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "..");
-const RUNS = join(HERE, "runs");
-const PROMPTS = join(HERE, "prompts.json");
-const PORT = 8799;
+// WORKER_CONSOLE_PORT / WORKER_CONSOLE_DATA exist so tests can run a second console with its own
+// runs, prompts and workspaces without touching this one's.
+const DATA = resolve(process.env.WORKER_CONSOLE_DATA || HERE);
+const RUNS = join(DATA, "runs");
+const PROMPTS = join(DATA, "prompts.json");
+const WORKSPACES = join(DATA, "workspaces.json");
+const PORT = Number(process.env.WORKER_CONSOLE_PORT) || 8799;
 mkdirSync(RUNS, { recursive: true });
 if (!existsSync(PROMPTS)) writeFileSync(PROMPTS, "[]\n");
 
@@ -33,6 +41,97 @@ const ALLOWED = [
   "mcp__figma-executor", "mcp__browser-executor",
   "Read", "Write", "Edit", "Glob", "Grep", "Bash(node:*)", "Bash(curl:*)", "WebFetch", "WebSearch", "ToolSearch",
 ];
+// Inspect: look, don't touch. An allow-list, so anything not named here is unavailable:
+//  - built-in tools: --tools keeps only these four; --restricted also drops shell/code tools and
+//    ignores user, project and local settings (no repo hooks, no CLAUDE.md, no personal allow rules);
+//  - MCP tools: only these are approved, and with --permission-prompts none nothing else can be;
+//  - the browser adapter itself runs in its inspect profile (http/https only, no screenshot tool).
+// Not named, so unavailable: Bash/PowerShell, Write, Edit, NotebookEdit, worktrees, subagents,
+// WebSearch/WebFetch, Figma mutation, export and page switching (it changes what the person sees
+// in Figma), browser click/fill/screenshot.
+const INSPECT_BUILTINS = ["Read", "Glob", "Grep", "ToolSearch"];
+const INSPECT_MCP = [
+  ...["ping", "get_file_info", "list_pages", "get_selection", "search_nodes", "get_document_state", "get_variables", "get_styles", "get_icon_components", "get_component_tree", "get_screen_tree", "get_prototype"].map((t) => `mcp__figma-executor__figma_${t}`),
+  "mcp__browser-executor__browser_navigate", "mcp__browser-executor__browser_get_dom_state",
+];
+// Both profiles skip user settings, so a worker's capabilities never depend on which config dir's
+// personal allow rules or model setting happen to be there.
+const PROFILES = {
+  full: { browser: "full", args: ["--setting-sources", "project,local", "--allowedTools", ...ALLOWED] },
+  inspect: { browser: "inspect", args: ["--restricted", "--tools", INSPECT_BUILTINS.join(","), "--allowedTools", ...INSPECT_BUILTINS, ...INSPECT_MCP, "--permission-prompts", "none"] },
+};
+// MCP config per profile, with absolute paths (the worker's cwd is its workspace, not this repo).
+const mcpConfig = (profile) => {
+  const file = join(DATA, `mcp.${profile}.json`);
+  writeFileSync(file, JSON.stringify({ mcpServers: {
+    "figma-executor": { command: process.execPath, args: [join(REPO, "mcp", "server.mjs")] },
+    "browser-executor": { command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser } },
+  } }, null, 1));
+  return file;
+};
+
+// ---- Claude config directory ------------------------------------------------------
+// One deliberate directory for every worker: Claude Code's own default, ~/.claude, unless
+// WORKER_CONSOLE_CLAUDE_CONFIG_DIR names another. The console's own environment is not passed on
+// as-is: an inherited CLAUDE_CONFIG_DIR (the VS Code extension sets one) and the other CLAUDE_*
+// variables of whatever started the console (its session id, messaging socket and token, entry
+// point) are dropped, so sessions never land in, or resume from, another tool's directory.
+const CONFIG_DIR = resolve(process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR || join(homedir(), ".claude"));
+const workerEnv = () => {
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(CLAUDE|AI_AGENT|WORKER_CONSOLE_)/i.test(k)));
+  return { ...env, CLAUDE_CONFIG_DIR: CONFIG_DIR };
+};
+
+// ---- workspaces ----------------------------------------------------------------
+// "console" is this repo with the full profile: what every run used before workspaces existed.
+// Others come only from workspaces.json, edited by hand, never through the HTTP API:
+//   [{ "id": "matw", "root": "C:/Users/me/Desktop/MATW/site", "profile": "inspect" }]
+// A run records its workspace's real root, profile and config dir when it starts, and the console
+// re-checks them before every resume, restart and file view. Claude resumes a session in whatever
+// cwd it is started in, so this can't be left to Claude.
+const norm = (p) => (process.platform === "win32" ? resolve(p).toLowerCase() : resolve(p));
+const samePath = (a, b) => norm(a) === norm(b);
+function resolveWorkspace(id) {
+  const list = existsSync(WORKSPACES) ? JSON.parse(readFileSync(WORKSPACES, "utf8")) : [];
+  const ws = id === "console" ? { id, root: REPO, profile: "full" } : list.find((w) => w.id === id);
+  if (!ws) throw new Error(`No workspace "${id}". Workspaces are added by editing ${WORKSPACES}.`);
+  if (!PROFILES[ws.profile]) throw new Error(`Workspace "${id}" has an unknown profile "${ws.profile}".`);
+  if (!isAbsolute(String(ws.root || ""))) throw new Error(`Workspace "${id}" root must be an absolute path.`);
+  let root;
+  try { root = realpathSync.native(ws.root); } catch { throw new Error(`Workspace "${id}" root doesn't exist: ${ws.root}`); }
+  if (!statSync(root).isDirectory()) throw new Error(`Workspace "${id}" root is not a folder: ${root}`);
+  return { id, root, profile: ws.profile };
+}
+// Every cwd recorded in the session's own transcript in this console's config dir (null: not there).
+function sessionCwds(sessionId) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId || "")) return null;
+  const projects = join(CONFIG_DIR, "projects");
+  const dir = existsSync(projects) && readdirSync(projects).find((d) => existsSync(join(projects, d, `${sessionId}.jsonl`)));
+  if (!dir) return null;
+  const cwds = new Set();
+  for (const line of readFileSync(join(projects, dir, `${sessionId}.jsonl`), "utf8").split("\n")) {
+    try { const c = JSON.parse(line).cwd; if (c) cwds.add(c); } catch {}
+  }
+  return [...cwds];
+}
+function checkBinding(run, { resume }) {
+  // Runs from before workspaces were all created in this repo with the full profile.
+  const bound = run.meta.workspace || { id: "console", root: realpathSync.native(REPO), profile: "full" };
+  const now = resolveWorkspace(bound.id);
+  if (!samePath(now.root, bound.root)) throw new Error(`Workspace "${bound.id}" now resolves to ${now.root}, but this run is bound to ${bound.root}. Start a new run.`);
+  if (now.profile !== bound.profile) throw new Error(`Workspace "${bound.id}" now has the ${now.profile} profile, but this run is bound to ${bound.profile}. Start a new run.`);
+  if (resume) {
+    if (run.meta.configDir && !samePath(run.meta.configDir, CONFIG_DIR)) throw new Error(`This run's session lives in Claude config dir ${run.meta.configDir}; this console uses ${CONFIG_DIR}.`);
+    const cwds = sessionCwds(run.meta.sessionId);
+    if (!cwds) throw new Error(`Session ${run.meta.sessionId} isn't in this console's Claude config dir (${CONFIG_DIR}), so it can't be resumed here.`);
+    const real = (p) => { try { return realpathSync.native(p); } catch { return p; } };
+    const elsewhere = cwds.find((c) => !samePath(real(c), bound.root));
+    if (elsewhere) throw new Error(`Session ${run.meta.sessionId} has worked in ${elsewhere}, outside this run's workspace ${bound.root}. It won't be resumed here.`);
+  }
+  if (!run.meta.workspace) { run.meta.workspace = bound; saveMeta(run); }
+  return bound;
+}
+
 const TAGS = { "PLAN:": "plan", "OBSERVATION:": "observation", "DECISION:": "decision", "FAILURE:": "failure", "RECOVERY:": "recovery", "VERIFICATION:": "verification", "ARTIFACT:": "artifact", "DONE:": "done" };
 
 // Launch the real claude binary directly (no shell), so Stop kills the worker itself,
@@ -90,6 +189,12 @@ const active = () => [...runs.values()].find(alive);
 function translate(run, msg) {
   if (msg.session_id && run.meta.sessionId !== msg.session_id) { run.meta.sessionId = msg.session_id; saveMeta(run); }
   if (msg.type === "system" && msg.subtype === "init") {
+    // Check what the worker reports about itself, not only what it was told.
+    const ws = run.meta.workspace;
+    const extra = ws.profile === "inspect" ? (msg.tools || []).filter((t) => !t.startsWith("mcp__") && !INSPECT_BUILTINS.includes(t)) : [];
+    const why = !samePath(msg.cwd || "", ws.root) ? `worker reports cwd ${msg.cwd}, not the workspace ${ws.root}`
+      : extra.length ? `inspect worker has tools outside its allow-list: ${extra.join(", ")}` : null;
+    if (why) { run.bindingError = why; emit(run, { type: "failure", summary: `Stopped the worker: ${why}` }); run.child.kill(); return; }
     if (run.meta.status === "starting") setStatus(run, "running");
     if (!run.initSeen) {
       run.initSeen = true;
@@ -153,14 +258,15 @@ function addArtifact(run, path, env) {
 }
 
 function spawnWorker(run, { resume }) {
+  const ws = checkBinding(run, { resume });
   const args = [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
-    "--mcp-config", ".mcp.json", "--strict-mcp-config",
+    "--mcp-config", mcpConfig(ws.profile), "--strict-mcp-config",
     "--append-system-prompt-file", join(HERE, "worker-instructions.md"),
-    "--allowedTools", ...ALLOWED,
+    ...PROFILES[ws.profile].args,
     ...(resume ? ["--resume", run.meta.sessionId] : []),
   ];
-  const child = spawn(CLAUDE.cmd, CLAUDE.shell ? args.map((a) => (/[\s*()|&]/.test(a) ? `"${a}"` : a)) : args, { cwd: REPO, shell: CLAUDE.shell });
+  const child = spawn(CLAUDE.cmd, CLAUDE.shell ? args.map((a) => (/[\s*()|&,]/.test(a) ? `"${a}"` : a)) : args, { cwd: ws.root, shell: CLAUDE.shell, env: workerEnv() });
   run.child = child;
   run.initSeen = false;
   let buf = "";
@@ -178,7 +284,8 @@ function spawnWorker(run, { resume }) {
   child.stderr.on("data", (d) => emit(run, { type: "note", summary: `worker stderr: ${clip(d, 200)}` }));
   child.on("exit", (code) => {
     emit(run, { type: "note", summary: `worker process exited (code ${code})` });
-    if (run.stopRequested) setStatus(run, "stopped", "stopped by the user");
+    if (run.bindingError) setStatus(run, "failed", run.bindingError);
+    else if (run.stopRequested) setStatus(run, "stopped", "stopped by the user");
     else if (run.endRequested && code === 0) setStatus(run, "finished", "run ended by the user");
     else if (code === 0) setStatus(run, "finished");
     else setStatus(run, "failed", `process exited with code ${code}`);
@@ -194,10 +301,11 @@ function sendToWorker(run, text) {
   run.child.stdin.write(JSON.stringify({ type: "user", message: { role: "user", content: text } }) + "\n");
 }
 
-function newRun(prompt) {
+function newRun(prompt, workspaceId = "console") {
   if (active()) throw new Error("A worker is already running. Stop or end it first.");
+  const workspace = resolveWorkspace(workspaceId);
   const id = new Date().toISOString().replace(/[:.]/g, "-");
-  const meta = { id, prompt, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
+  const meta = { id, prompt, workspace, configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
   const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
   writeFileSync(run.file, ""); writeFileSync(run.raw, "");
   runs.set(id, run);
@@ -216,6 +324,7 @@ function followUp(run, text) {
   }
   if (active()) throw new Error("Another worker is running. Stop or end it first.");
   if (!run.meta.sessionId) throw new Error("This run has no saved session to resume.");
+  checkBinding(run, { resume: true }); // before anything is logged, so a refused resume changes nothing
   emit(run, { type: "note", summary: "Resuming the saved session in a new worker process. Conversation context is kept; tool processes are new (browser pages and logins are gone, Figma and files are unaffected)." });
   setStatus(run, "starting", "resuming session");
   spawnWorker(run, { resume: true });
@@ -243,6 +352,22 @@ const writePrompts = (p) => writeFileSync(PROMPTS, JSON.stringify(p, null, 1) + 
 const TYPES = { ".html": "text/html; charset=utf-8", ".json": "application/json", ".md": "text/plain; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8", ".mjs": "text/plain; charset=utf-8", ".csv": "text/plain; charset=utf-8", ".css": "text/css" };
 const body = (req) => new Promise((ok) => { let b = ""; req.on("data", (d) => (b += d)); req.on("end", () => ok(b ? JSON.parse(b) : {})); });
 const json = (res, status, obj) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(obj)); };
+
+// ---- file viewer containment -----------------------------------------------------
+// The real path of the requested file must be inside the real path of the root. Real paths
+// resolve symlinks, junctions, "..", 8.3 short names and trailing dots, so this compares where
+// the file actually is with where the root actually is, not two strings as typed. Absolute,
+// drive-relative, UNC and device paths are refused before touching the disk (a realpath of
+// \\host\share would open an SMB connection).
+// Not covered: a hardlink inside the root to a file elsewhere is a real file inside the root.
+function fileInside(root, requested) {
+  if (!requested || requested.includes("\0") || isAbsolute(requested) || /^[a-z]:/i.test(requested) || /^[\\/]{2}/.test(requested)) return null;
+  let realRoot, real;
+  try { realRoot = realpathSync.native(root); real = realpathSync.native(resolve(realRoot, requested)); } catch { return null; }
+  const r = relative(realRoot, real);
+  if (!r || isAbsolute(r) || r === ".." || r.startsWith(".." + sep)) return null;
+  return statSync(real).isFile() ? real : null;
+}
 
 // ---- request guard ------------------------------------------------------------
 // Local-only, same-origin-only. The server listens on 127.0.0.1 (not the LAN), every request
@@ -279,9 +404,9 @@ http.createServer(async (req, res) => {
     // runs
     if (url.pathname === "/runs" && req.method === "GET") return json(res, 200, { runs: allMetas(), active: active()?.meta.id || null });
     if (url.pathname === "/runs" && req.method === "POST") {
-      const { prompt } = await body(req);
+      const { prompt, workspace } = await body(req);
       if (!prompt?.trim()) throw new Error("Empty message");
-      return json(res, 200, newRun(prompt.trim()).meta);
+      return json(res, 200, newRun(prompt.trim(), workspace === undefined ? "console" : String(workspace)).meta);
     }
     if (parts[0] === "runs" && parts[1]) {
       const run = loadRun(parts[1]);
@@ -293,7 +418,7 @@ http.createServer(async (req, res) => {
       if (action === "message") { const { text } = await body(req); if (!text?.trim()) throw new Error("Empty message"); followUp(run, text.trim()); return json(res, 200, run.meta); }
       if (action === "stop") { if (alive(run)) { run.stopRequested = true; run.child.kill(); } return json(res, 200, run.meta); }
       if (action === "end") { if (alive(run)) { run.endRequested = true; run.child.stdin.end(); } return json(res, 200, run.meta); }
-      if (action === "restart") return json(res, 200, newRun(run.meta.prompt).meta);
+      if (action === "restart") return json(res, 200, newRun(run.meta.prompt, checkBinding(run, { resume: false }).id).meta);
     }
     if (url.pathname === "/events") {
       const run = loadRun(url.searchParams.get("run") || "");
@@ -324,10 +449,12 @@ http.createServer(async (req, res) => {
       if (req.method === "DELETE") { all.splice(i, 1); writePrompts(all); return json(res, 200, { deleted: parts[1] }); }
     }
 
-    // artifacts (read-only, inside the repo)
+    // file viewer: a file inside this repo, or inside a run's workspace with ?run=<id>
     if (url.pathname === "/file") {
-      const p = resolve(REPO, url.searchParams.get("path") || "");
-      if (!p.toLowerCase().startsWith(REPO.toLowerCase()) || !existsSync(p) || !statSync(p).isFile()) { res.writeHead(404); return res.end("not found"); }
+      const run = url.searchParams.has("run") ? loadRun(url.searchParams.get("run")) : null;
+      if (url.searchParams.has("run") && !run) { res.writeHead(404); return res.end("not found"); }
+      const p = fileInside(run ? checkBinding(run, { resume: false }).root : REPO, url.searchParams.get("path") || "");
+      if (!p) { res.writeHead(404); return res.end("not found"); }
       res.writeHead(200, { "content-type": TYPES[extname(p).toLowerCase()] || "text/plain; charset=utf-8" });
       return res.end(readFileSync(p));
     }
@@ -335,4 +462,4 @@ http.createServer(async (req, res) => {
   } catch (e) {
     json(res, 400, { error: e.message });
   }
-}).listen(PORT, "127.0.0.1", () => console.log(`Worker Console on http://localhost:${PORT} (worker binary: ${CLAUDE.cmd}${CLAUDE.shell ? " via shell" : ""})`));
+}).listen(PORT, "127.0.0.1", () => console.log(`Worker Console on http://localhost:${PORT} (worker binary: ${CLAUDE.cmd}${CLAUDE.shell ? " via shell" : ""}; Claude config dir: ${CONFIG_DIR})`));

@@ -2,3 +2,7 @@ node_modules/
 exports/*.png
 exports/*.svg
 *.log
+
+# Worker Console local state
+worker-ui/workspaces.json
+worker-ui/mcp.*.json

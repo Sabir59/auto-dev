@@ -6,7 +6,8 @@
     },
     "browser-executor": {
       "command": "node",
-      "args": ["browser-adapter/server.mjs"]
+      "args": ["browser-adapter/server.mjs"],
+      "env": { "BROWSER_EXECUTOR_PROFILE": "full" }
     }
   }
 }
