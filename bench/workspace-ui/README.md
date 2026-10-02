@@ -145,3 +145,50 @@ The composer's **+** now attaches files to a message, as do **paste** (e.g. a sc
 6. With every workspace removed, the "No workspace" empty state appeared and sending was refused ("Add a workspace first", no run created). Adding Executor back restored both tabs.
 
 `manage-test.mjs` passes 7/7 and `workflow-test.mjs` 12/12 on the same build.
+
+## Versions and push (2026-10-02)
+
+**Versions are the workspace's own Git history; there's no second version system.** The new **Versions** section in the sidebar lists:
+- **Working copy:** "N changed", or "clean", plus "↑N" when there are commits not on the remote yet.
+- **The latest commits** of this folder: a green dot when pushed, grey when only local.
+
+Opening a version shows:
+- its id, author, date and message, and the run it came from;
+- the changed files with +/− lines;
+- for each file, its **Changes** (diff) or the **File** as it was in that version.
+
+Viewing is read-only: nothing is ever checked out, reset or reverted. A workspace inside a bigger repo sees and commits only its own folder.
+
+**Commit and push happen only when you click, and only in Work workspaces.** Inspect shows versions but can't commit or push.
+- **Commit:** stages this folder's changes and commits them with **your message as typed**, using your existing Git identity. It never adds a trailer. If a repo's own commit hook adds a co-author line, the Workspace says so.
+- **Runs:** whose work went into the version are linked to it.
+- **Push:**
+  - It pushes the branch to its own remote and branch, with the credentials Git already has.
+  - It uses `GIT_TERMINAL_PROMPT=0` and `GCM_INTERACTIVE=never`: no prompts, no `--force`, no `-u`, and no change to the repo's config.
+  - Missing login, a remote with newer commits, or an unreachable remote are each reported in plain words.
+- **Where the result shows:** in the version view, and as a "Version" or "Push" card in the open run's activity panel.
+
+**Co-author trailers:**
+- The Workspace's own commits never add one.
+- Workers now start with `--settings {"includeCoAuthoredBy":false,"attribution":{"commit":"","pr":""}}`, so Claude Code adds no co-author line if a worker ever commits by itself.
+- The worker instructions also say not to commit or push.
+
+**Reading Git safely:** git runs with `core.fsmonitor=false`, `--no-ext-diff` and `--no-textconv` (no repo-configured programs), with no inherited `GIT_DIR`-style variables. Versions and paths are validated (hex ids only, no `..`, absolute paths or flags).
+
+`versions-test.mjs`: **14/14 passed** (`versions-results.json`). It used the real worker and disposable repos whose remote is a local bare repository, so nothing went to GitHub:
+1. The versions list started with the working copy (clean) and the repo's commit.
+2. The worker changed `src/math.js`. The working copy showed "1 changed", the file with +1, and "Changes from: <the run>".
+3. The diff showed the added line, and the File tab showed the new content.
+4. Committed from the Workspace: the message was exactly as typed, the author was your Git identity, and there was **no Co-authored-by**. A "Version" card appeared in the activity panel.
+5. The new version was linked to the run and marked "not pushed yet".
+6. The older version opened read-only and showed the file without the change. The working tree and HEAD were untouched.
+7. Push worked: the bare remote now has the commit with the same message, and a "Push" card appeared.
+8. Pushing again said "Nothing to push".
+9. When the remote had newer commits, the push was refused with a plain message, nothing was forced, and the other commit stayed.
+10. With a remote requiring login (HTTP 401), it reported "Git has no working login…" in 2 s with no prompt.
+11. Inspect workspace: versions shown, no Commit or Push buttons, and the API refused to commit.
+12. A plain folder showed "Not a Git repository".
+13. A foreign Origin got 403 for commit and push. Bad revisions, a flag passed as a revision, and `..` paths were refused.
+14. Plain Claude Code committed with `Co-Authored-By: Claude …`. With the Workspace's worker settings, the same request committed with **no trailer**.
+
+On the same build, `workflow-test.mjs` passes 12/12, `manage-test.mjs` 7/7, `sync-test.mjs` 6/6 and `attach-test.mjs` 10/10. The Browse test wasn't re-run, because it opens real folder dialogs and its code didn't change.

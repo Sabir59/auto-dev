@@ -1,0 +1,181 @@
+{
+ "when": "2026-10-02T09:09:21.196Z",
+ "results": [
+  {
+   "step": "versions list: working copy (clean) and the repo's commits",
+   "ok": true,
+   "detail": {
+    "rows": [
+     "Working copy clean",
+     "Initial version just now"
+    ]
+   }
+  },
+  {
+   "step": "the worker changes a file; the working copy shows it, linked to the run",
+   "ok": true,
+   "detail": {
+    "rows": [
+     "Working copy 1 changed",
+     "Initial version just now"
+    ],
+    "files": [
+     "M src/math.js +1 −0"
+    ],
+    "changesFrom": "Changes from: In src/math.js add one line: export const mul = (a, b) => a"
+   }
+  },
+  {
+   "step": "diff and file views of the change",
+   "ok": true,
+   "detail": {
+    "addedLines": [
+     "+export const mul = (a, b) => a * b;"
+    ],
+    "fileHasMul": true
+   }
+  },
+  {
+   "step": "commit from the Workspace: the typed message, your identity, no trailer; activity shows it",
+   "ok": true,
+   "detail": {
+    "result": "Committed f6ff78e · 1 file.",
+    "message": "Add mul() to math",
+    "coAuthoredBy": false,
+    "author": true,
+    "activityCard": "Version Committed f6ff78e Add mul() to math · 1 file",
+    "rows": [
+     "Working copy clean · ↑1",
+     "Add mul() to math just now",
+     "Initial version just now"
+    ]
+   }
+  },
+  {
+   "step": "the new version is linked to the run and marked not pushed",
+   "ok": true,
+   "detail": {
+    "meta": "#f6ff78e Sabir Nawaz 10/2/2026, 2:08:45 PM from In src/math.js add one line: export const mul = (a, b) => a not pushed yet",
+    "files": [
+     "M src/math.js +1 −0"
+    ]
+   }
+  },
+  {
+   "step": "an older version opens read-only, with the file as it was then",
+   "ok": true,
+   "detail": {
+    "oldFile": "export const add = (a, b) => a + b;",
+    "hasMul": false,
+    "workingTreeUnchanged": true,
+    "head": true
+   }
+  },
+  {
+   "step": "push to the remote; the result shows in the version view and the activity panel",
+   "ok": true,
+   "detail": {
+    "before": "↑ 1 commit not on origin · origin/main Push to origin",
+    "result": "Pushed 1 commit to origin/main.",
+    "remoteHead": true,
+    "remoteMessage": "Add mul() to math",
+    "activityCard": "Push Pushed Pushed 1 commit to origin/main (C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\vt\\remote.git)",
+    "rows": [
+     "Working copy clean",
+     "Add mul() to math just now",
+     "Initial version just now"
+    ]
+   }
+  },
+  {
+   "step": "nothing left to push",
+   "ok": true,
+   "detail": {
+    "api": {
+     "error": "Nothing to push: origin/main already has these commits."
+    },
+    "view": "Nothing to commit. Everything is on origin/main."
+   }
+  },
+  {
+   "step": "push refused when the remote has newer commits (no force push)",
+   "ok": true,
+   "detail": {
+    "push": {
+     "status": 400,
+     "body": {
+      "error": "origin/main has commits this folder doesn't have yet. Bring them in first (pull, outside the Workspace), then push."
+     }
+    },
+    "remoteStillHasOthers": "Someone else"
+   }
+  },
+  {
+   "step": "missing authentication is reported, never prompted for",
+   "ok": true,
+   "detail": {
+    "push": {
+     "status": 400,
+     "body": {
+      "error": "Git has no working login for http://127.0.0.1:64817/repo.git. Sign in once with Git outside the Workspace (for example, run \"git push\" in a terminal in this folder), then push again."
+     }
+    },
+    "seconds": 1.927
+   }
+  },
+  {
+   "step": "Inspect workspace: versions are shown, but no commit or push",
+   "ok": true,
+   "detail": {
+    "view": "Commit and push are available in Work workspaces. This one is Inspect.",
+    "commitButtons": 0,
+    "api": {
+     "status": 400,
+     "body": {
+      "error": "Commit and push are available in Work workspaces only."
+     }
+    },
+    "stillUncommitted": "M a.txt"
+   }
+  },
+  {
+   "step": "a folder that isn't a Git repo says so",
+   "ok": true,
+   "detail": {
+    "versions": "Not a Git repository",
+    "api": {
+     "error": "This workspace isn't a Git repository."
+    }
+   }
+  },
+  {
+   "step": "guarded and validated: foreign origin, bad versions and paths",
+   "ok": true,
+   "detail": {
+    "foreignCommit": 403,
+    "foreignPush": 403,
+    "badRev": {
+     "error": "Unknown version."
+    },
+    "revFlag": {
+     "error": "Unknown version."
+    },
+    "traversal": {
+     "error": "Bad path."
+    },
+    "fileTraversal": 400
+   }
+  },
+  {
+   "step": "Claude Code's own co-author trailer: present by default, absent with the Workspace's worker settings",
+   "ok": true,
+   "detail": {
+    "defaultMessage": "Add f.txt\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>",
+    "defaultHasTrailer": true,
+    "workspaceSettingsMessage": "Add f.txt",
+    "workspaceSettingsHasTrailer": false
+   }
+  }
+ ],
+ "pageErrors": []
+}

@@ -12,3 +12,5 @@ In your normal text between tool calls, report what matters as short lines (one 
 - `DONE:` when you believe the goal is complete, with a one-line summary
 
 State conclusions and evidence, not private deliberation. Don't claim success you haven't verified.
+
+Don't commit or push. The person reviews your changes and makes versions (commits) and pushes from the Workspace.

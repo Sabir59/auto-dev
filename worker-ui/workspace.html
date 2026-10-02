@@ -184,6 +184,29 @@ main { min-width: 0; min-height: 0; padding: 0 16px 32px; display: flex; justify
 .code .ln { color: var(--t4); text-align: right; padding: 0 12px 0 16px; user-select: none; white-space: pre; }
 .code .tx { color: var(--t2); white-space: pre; padding-right: 16px; tab-size: 2; }
 .vnote { padding: 24px; color: var(--t3); }
+/* versions: same surfaces and type as the file viewer */
+.vmeta { padding: 10px 12px 4px; color: var(--t3); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.vmeta .link, .vruns .link { color: var(--pri); cursor: pointer; } .vmeta .link:hover, .vruns .link:hover { text-decoration: underline; }
+.vbody2 { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.vfiles { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.vfile { width: 100%; display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 2px; color: var(--t2); text-align: left; }
+.vfile:hover { background: var(--surf); }
+.st { width: 14px; flex: none; text-align: center; font: 500 11px/14px var(--mono); }
+.st-A { color: var(--ok); } .st-D { color: var(--err); } .st-M, .st-R { color: var(--star); }
+.plus { color: var(--ok); } .minus { color: var(--err); }
+.vact { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 8px; background: var(--surf); border-radius: 2px; }
+.vact .txt { color: var(--t2); flex: 1; min-width: 160px; }
+.vinput { flex: 1; min-width: 180px; background: var(--low); color: var(--t1); border: 0; border-radius: 2px; padding: 4px 8px; font: 400 12px/20px var(--sans); }
+.vact .btn { height: 28px; flex: none; }
+.vres { padding: 6px 8px; border-radius: 2px; background: var(--surf); }
+.vres.ok { color: var(--ok); } .vres.err { color: var(--err); }
+.vruns { color: var(--t3); }
+.vtabs { display: flex; gap: 4px; }
+.vtabs button { padding: 0 6px; border-radius: 2px; color: var(--t3); } .vtabs button[aria-pressed="true"] { background: var(--high); color: var(--t1); }
+.diff { font: 400 12px/20px var(--mono); padding: 8px 0; min-width: max-content; }
+.diff div { white-space: pre; padding: 0 16px; color: var(--t2); }
+.diff .add { background: rgba(78, 222, 163, .08); color: #b8f0d6; } .diff .del { background: rgba(255, 180, 171, .08); color: #ffd3cd; }
+.diff .hunk { color: var(--pri); } .diff .meta { color: var(--t3); }
 .vimg { padding: 16px; } .vimg img { max-width: 100%; height: auto; background: repeating-conic-gradient(#20222a 0 25%, #191a20 0 50%) 0 0 / 16px 16px; }
 
 /* composer */
@@ -315,6 +338,10 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
     <section class="sect" aria-labelledby="lRuns">
       <div class="lab" id="lRuns">Recent runs</div>
       <ul id="runList"></ul>
+    </section>
+    <section class="sect" aria-labelledby="lVer">
+      <div class="lab" id="lVer">Versions</div>
+      <ul id="verList"></ul>
     </section>
     <section class="sect" aria-labelledby="lFiles">
       <div class="lab" id="lFiles">Files</div>
@@ -508,7 +535,7 @@ async function syncWorkspaces() {
   if (!WS.find((w) => w.id === wsId)) selectWorkspace(WS[0]?.id || null); else renderWorkspaces();
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) syncWorkspaces(); });
-window.addEventListener("focus", syncWorkspaces);
+window.addEventListener("focus", () => { syncWorkspaces(); loadGit(); });
 function renderWorkspaces() {
   const w = ws();
   $("wsList").innerHTML = WS.map((x) => x.id === removing ? `<li class="wsi"><div class="addform m11" role="group" aria-label="Remove ${esc(x.name)}">
@@ -530,7 +557,7 @@ function renderWorkspaces() {
 }
 function selectWorkspace(id, { newChat = true } = {}) {
   wsId = id; store.set("ws", id);
-  renderWorkspaces(); renderRuns(); loadTree();
+  renderWorkspaces(); renderRuns(); loadTree(); loadGit();
   if (newChat) openNewChat();
   closeMenus();
 }
@@ -595,7 +622,7 @@ $("swMenu").onclick = (e) => { const b = e.target.closest("[data-ws]"); if (b) s
 $("switcher").onclick = (e) => { e.stopPropagation(); const open = $("swMenu").hidden; closeMenus(); $("swMenu").hidden = !open; $("switcher").setAttribute("aria-expanded", open); if (open) $("swMenu").querySelector("button")?.focus(); };
 function closeMenus() { $("swMenu").hidden = true; $("switcher").setAttribute("aria-expanded", "false"); }
 document.addEventListener("click", (e) => { if (!e.target.closest("#swMenu")) closeMenus(); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); } else if (view === "file") closeFile(); document.body.classList.remove("show-act", "show-nav"); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); } else if (view === "file" || view === "version") closeFile(); document.body.classList.remove("show-act", "show-nav"); } });
 
 // Add workspace: the person names a folder and picks Inspect or Work. The server checks the folder.
 let fMode = "inspect";
@@ -697,7 +724,7 @@ $("tree").onclick = async (e) => {
 // The viewer only shows text (escaped) or images. Nothing from the file is ever run.
 const IMG = /\.(png|jpe?g|gif|webp|svg|ico|bmp)$/i;
 async function openFile({ path, workspace, run }) {
-  view = "file";
+  view = "file"; verOpen = null; renderVersions();
   document.querySelectorAll("#tree [aria-selected]").forEach((b) => b.setAttribute("aria-selected", b.dataset.path === path && !run));
   const q = `${run ? `run=${encodeURIComponent(run)}` : `workspace=${encodeURIComponent(workspace)}`}&path=${encodeURIComponent(path)}`;
   const c = $("canvas");
@@ -718,26 +745,145 @@ async function openFile({ path, workspace, run }) {
   } catch (e) { body.innerHTML = `<div class="vnote m11">${esc(e.message)}</div>`; }
 }
 function closeFile() {
+  verOpen = null; renderVersions();
   view = "chat";
   document.querySelectorAll("#tree [aria-selected]").forEach((b) => b.setAttribute("aria-selected", "false"));
   renderCanvas();
+}
+
+// ---------------- versions (the workspace's own Git history) ----------------
+// Versions are the folder's commits plus its uncommitted changes. Everything here is read-only
+// except two buttons in Work workspaces: Commit (your message, your Git identity) and Push.
+let GIT = null, gitFor = null, verOpen = null, gitResult = {};
+const STLABEL = { A: "added", D: "deleted", M: "modified", R: "renamed" };
+async function loadGit() {
+  const id = wsId;
+  if (!id) { GIT = null; renderVersions(); return; }
+  try { const g = await api("GET", `/git?workspace=${encodeURIComponent(id)}`); if (wsId !== id) return; GIT = g; gitFor = id; }
+  catch (e) { if (wsId !== id) return; GIT = { error: e.message }; gitFor = id; }
+  renderVersions();
+  if (view === "version" && verOpen && !verOpen.path) openVersion(verOpen.rev, { keepScroll: true });
+}
+function renderVersions() {
+  const g = gitFor === wsId ? GIT : null, ul = $("verList");
+  if (!wsId) { ul.innerHTML = ""; return; }
+  if (!g) { ul.innerHTML = '<li class="empty">…</li>'; return; }
+  if (g.error) { ul.innerHTML = `<li class="empty">${esc(g.error)}</li>`; return; }
+  if (!g.repo) { ul.innerHTML = '<li class="empty">Not a Git repository</li>'; return; }
+  const cur = verOpen?.rev;
+  const wc = `<li><button class="row" data-rev="WORKTREE" aria-current="${cur === "WORKTREE"}" title="Uncommitted changes in this folder">
+      <span class="grow"><span class="dot ${g.changeCount ? "blue" : ""}"></span><span class="ell">Working copy</span></span>
+      <span class="meta m11">${g.changeCount ? `${g.changeCount} changed` : "clean"}${g.ahead ? ` · ↑${g.ahead}` : ""}</span></button></li>`;
+  ul.innerHTML = wc + g.commits.slice(0, 12).map((c) => `<li><button class="row" data-rev="${esc(c.short)}" aria-current="${cur === c.short}" title="${esc(c.subject)}&#10;#${esc(c.short)} · ${esc(c.author)} · ${esc(new Date(c.date).toLocaleString())}${c.pushed ? "" : "&#10;Not pushed yet"}">
+      <span class="grow"><span class="dot ${c.pushed ? "" : "grey"}"></span><span class="ell">${esc(c.subject)}</span></span><span class="meta m11">${esc(ago(c.date))}</span></button></li>`).join("");
+}
+$("verList").onclick = (e) => { const b = e.target.closest("[data-rev]"); if (b) openVersion(b.dataset.rev); };
+const verUrl = (p, rev, path) => `/git/${p}?workspace=${encodeURIComponent(wsId)}&rev=${encodeURIComponent(rev)}${path ? `&path=${encodeURIComponent(path)}` : ""}`;
+function versionShell(title, right, inner, { back } = {}) {
+  return `<div class="viewer" role="region" aria-label="${esc(title)}"><div class="vbar m11">${back ? `<button class="iconbtn" id="vBack" aria-label="Back to the files of this version" style="transform:rotate(180deg)">${svgIcon("chevRight", 14, 14)}</button>` : ""}<span class="ell" title="${esc(title)}">${esc(title)}</span>${right}
+    <button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div><div class="vbody" id="vBody">${inner}</div></div>`;
+}
+async function openVersion(rev, { keepScroll } = {}) {
+  view = "version"; verOpen = { rev }; renderVersions();
+  const c = $("canvas"), top = keepScroll ? $("vBody")?.scrollTop : 0;
+  if (!keepScroll) c.innerHTML = versionShell(rev === "WORKTREE" ? "Working copy" : `Version ${rev}`, "", '<div class="vnote m11">Loading…</div>');
+  let v; try { v = await api("GET", verUrl("version", rev)); } catch (e) { c.innerHTML = versionShell("Version", "", `<div class="vnote m11">${esc(e.message)}</div>`); wireViewer(); return; }
+  if (view !== "version" || verOpen?.rev !== rev) return;
+  const g = GIT || {}, wt = rev === "WORKTREE";
+  const files = v.files.length ? `<ul class="vfiles">${v.files.map((x) => `<li><button class="vfile" data-path="${esc(x.path)}" data-st="${esc(x.status)}" title="${esc(STLABEL[x.status] || x.status)}">
+      <span class="st st-${esc(x.status)}">${esc(x.status)}</span><span class="ell" style="flex:1">${esc(x.path)}</span>
+      <span class="m11">${x.add != null ? `<span class="plus">+${x.add}</span> ` : ""}${x.del != null ? `<span class="minus">−${x.del}</span>` : ""}</span></button></li>`).join("")}</ul>`
+    : `<div class="vnote m11" style="padding:8px 0">${wt ? "No uncommitted changes." : "No changes in this folder."}</div>`;
+  const res = gitResult[wsId] ? `<div class="vres m11 ${gitResult[wsId].ok ? "ok" : "err"}" role="status">${esc(gitResult[wsId].text)}</div>` : "";
+  let head, actions = "";
+  if (wt) {
+    head = g.pendingRuns?.length ? `<div class="vruns m11">Changes from: ${g.pendingRuns.slice(0, 5).map((r) => `<span class="link" data-run="${esc(r.id)}">${esc(r.prompt.split("\n")[0].slice(0, 60))}</span>`).join(" · ")}</div>` : "";
+    if (!g.canWrite) actions = '<div class="vact"><span class="txt m11">Commit and push are available in Work workspaces. This one is Inspect.</span></div>';
+    else {
+      if (v.files.length) actions += `<div class="vact"><label class="sr" for="cMsg">Describe this version</label><input id="cMsg" class="vinput" maxlength="5000" placeholder="Describe this version (commit message)" autocomplete="off"><button class="btn pri m11" id="cBtn">Commit</button></div>`;
+      if (g.detached) actions += '<div class="vact"><span class="txt m11">Not on a branch, so there is nothing to push.</span></div>';
+      else if (!g.remote) actions += '<div class="vact"><span class="txt m11">No remote: versions stay on this computer.</span></div>';
+      else if (g.ahead) actions += `<div class="vact"><span class="txt m11">↑ ${g.ahead} commit${g.ahead === 1 ? "" : "s"} not on ${g.github ? "GitHub" : esc(g.remote)} · ${esc(g.remote)}/${esc(g.target)}</span><button class="btn pri m11" id="pBtn">Push to ${g.github ? "GitHub" : esc(g.remote)}</button></div>`;
+      else if (!v.files.length) actions += `<div class="vact"><span class="txt m11">Nothing to commit. Everything is on ${esc(g.remote)}/${esc(g.target)}.</span></div>`;
+    }
+  } else {
+    head = `<div class="vmeta m11"><span>#${esc(v.short)}</span><span>${esc(v.author)}</span><span>${esc(new Date(v.date).toLocaleString())}</span>${v.run ? `<span>from <span class="link" data-run="${esc(v.run.id)}">${esc(v.run.prompt.split("\n")[0].slice(0, 60))}</span></span>` : ""}${g.commits?.find((x) => x.hash === v.hash)?.pushed === false ? "<span>not pushed yet</span>" : ""}</div>${v.body ? `<div class="vmeta m11" style="white-space:pre-wrap;color:var(--t2);padding-top:0">${esc(v.body)}</div>` : ""}`;
+  }
+  const title = wt ? `Working copy${g.branch && !g.detached ? ` · ${g.branch}` : ""}` : v.subject;
+  const right = `<span class="ro">${wt ? `${v.files.length} changed` : `${v.files.length} file${v.files.length === 1 ? "" : "s"}`}</span>`;
+  c.innerHTML = versionShell(title, right, `${head}<div class="vbody2">${files}${res}${actions}</div>`);
+  wireViewer();
+  if (top) $("vBody").scrollTop = top;
+  $("vBody").onclick = (e) => {
+    const fb = e.target.closest(".vfile"), rl = e.target.closest("[data-run]");
+    if (fb) openVersionFile(rev, fb.dataset.path, fb.dataset.st, "diff");
+    else if (rl) openRun(rl.dataset.run);
+  };
+  $("cBtn") && ($("cBtn").onclick = () => doCommit());
+  $("cMsg") && $("cMsg").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doCommit(); } });
+  $("pBtn") && ($("pBtn").onclick = () => doPush());
+}
+function wireViewer() { $("vClose") && ($("vClose").onclick = closeFile); }
+// One file of a version: its changes (diff), or the whole file as it was in that version.
+async function openVersionFile(rev, path, st, mode) {
+  verOpen = { rev, path };
+  const canFile = st !== "D";
+  const tabs = `<span class="vtabs m11" role="group" aria-label="Show"><button data-m="diff" aria-pressed="${mode === "diff"}">Changes</button>${canFile ? `<button data-m="file" aria-pressed="${mode === "file"}">File</button>` : ""}</span>`;
+  const c = $("canvas");
+  c.innerHTML = versionShell(`${path} · ${rev === "WORKTREE" ? "working copy" : rev}`, tabs, '<div class="vnote m11">Loading…</div>', { back: true });
+  wireViewer();
+  $("vBack").onclick = () => openVersion(rev);
+  c.querySelector(".vtabs").onclick = (e) => { const b = e.target.closest("[data-m]"); if (b) openVersionFile(rev, path, st, b.dataset.m); };
+  const body = $("vBody");
+  try {
+    if (mode === "diff") {
+      const { diff } = await api("GET", verUrl("diff", rev, path));
+      const lines = diff.replace(/\n$/, "").split("\n");
+      body.innerHTML = diff.trim() ? `<div class="diff">${lines.map((l) => `<div class="${/^(\+\+\+|---|diff |index |new file|deleted file|similarity|rename |Binary )/.test(l) ? "meta" : l.startsWith("@@") ? "hunk" : l.startsWith("+") ? "add" : l.startsWith("-") ? "del" : ""}">${esc(l) || " "}</div>`).join("")}</div>` : '<div class="vnote m11">No text changes to show.</div>';
+    } else {
+      const r = await fetch(rev === "WORKTREE" ? `/file?workspace=${encodeURIComponent(wsId)}&path=${encodeURIComponent(path)}` : verUrl("file", rev, path));
+      if (!r.ok) throw new Error(r.status === 404 ? "Not found." : (await r.json().catch(() => ({}))).error || r.statusText);
+      const buf = await r.arrayBuffer();
+      if (new Uint8Array(buf.slice(0, 8000)).includes(0)) { body.innerHTML = '<div class="vnote m11">Binary file: not shown.</div>'; return; }
+      const lines = new TextDecoder().decode(buf).replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
+      body.innerHTML = `<div class="code"><div class="ln">${lines.map((_, i) => i + 1).join("\n")}</div><div class="tx">${esc(lines.join("\n"))}</div></div>`;
+    }
+  } catch (e) { body.innerHTML = `<div class="vnote m11">${esc(e.message)}</div>`; }
+}
+// The open run is the one these actions are reported to, when it belongs to this workspace.
+const actionRun = () => (runId && runWs(meta) === wsId ? runId : undefined);
+async function doCommit() {
+  const message = $("cMsg").value.trim();
+  if (!message) { $("cMsg").focus(); gitResult[wsId] = { ok: false, text: "Write a short description of this version first." }; return openVersion("WORKTREE", { keepScroll: true }); }
+  $("cBtn").disabled = true; $("cBtn").textContent = "Committing…";
+  try {
+    const r = await api("POST", "/git/commit", { workspace: wsId, message, run: actionRun() });
+    gitResult[wsId] = { ok: true, text: `Committed ${r.short} · ${r.files} file${r.files === 1 ? "" : "s"}.${r.hookTrailer ? " Note: this repository's own commit hook added a Co-authored-by line." : ""}` };
+  } catch (e) { gitResult[wsId] = { ok: false, text: e.message }; }
+  await loadGit(); openVersion("WORKTREE");
+}
+async function doPush() {
+  $("pBtn").disabled = true; $("pBtn").textContent = "Pushing…";
+  try { const r = await api("POST", "/git/push", { workspace: wsId, run: actionRun() }); gitResult[wsId] = { ok: true, text: `${r.summary}.` }; }
+  catch (e) { gitResult[wsId] = { ok: false, text: e.message }; }
+  await loadGit(); openVersion("WORKTREE");
 }
 
 // ---------------- chat + activity for one run ----------------
 function freshState() { return { items: [], cards: [], openTools: new Map(), turnStart: null, lastSecs: null, status: null, current: null, n: 0, arts: new Set() }; }
 function openNewChat() {
   if (es) { es.close(); es = null; }
-  runId = null; meta = null; T = freshState(); view = "chat";
+  runId = null; meta = null; T = freshState(); view = "chat"; verOpen = null; renderVersions();
   $("acts").innerHTML = ""; renderCanvas(); renderRunState(); renderRuns(); renderWorkspaces(); $("live").hidden = true;
   $("input").focus();
 }
 async function openRun(id) {
   if (es) es.close();
   try { meta = await api("GET", `/runs/${id}`); } catch (e) { return notice(e.message); }
-  runId = id; view = "chat";
+  runId = id; view = "chat"; verOpen = null; renderVersions();
   if (runWs(meta) !== wsId) {
     if (!WS.find((w) => w.id === runWs(meta))) await syncWorkspaces();
-    if (WS.find((w) => w.id === runWs(meta))) { wsId = runWs(meta); store.set("ws", wsId); renderWorkspaces(); loadTree(); }
+    if (WS.find((w) => w.id === runWs(meta))) { wsId = runWs(meta); store.set("ws", wsId); renderWorkspaces(); loadTree(); loadGit(); }
     else notice("This run's workspace was removed. You can read the conversation but not continue it.");
   }
   renderRuns(); renderWorkspaces();
@@ -778,6 +924,14 @@ function onEvent(ev) {
   } else if (t === "note" && /^Resuming/.test(ev.summary)) {
     addCard({ title: "Resumed", meta: "", body: "Same conversation in a new worker process. Browser pages and logins start fresh." });
     T.items.push({ k: "s", text: "Resumed in a new worker process" });
+  } else if (t === "commit") {
+    const d = JSON.parse(ev.detail || "{}");
+    addCard({ title: "Version", meta: "Committed", metaCls: "ok", body: `<code>${esc(ev.summary.split(" ")[0])}</code> ${esc(ev.summary.split(" ").slice(1).join(" "))}${d.files ? ` · ${d.files} file${d.files === 1 ? "" : "s"}` : ""}` });
+    T.items.push({ k: "s", text: `Version ${ev.summary}` });
+  } else if (t === "push") {
+    const ok = ev.ok !== false;
+    addCard({ title: "Push", meta: ok ? "Pushed" : "Failed", metaCls: ok ? "ok" : "bad", body: esc(ok ? `${ev.summary}${ev.detail ? ` (${ev.detail})` : ""}` : ev.detail || ev.summary) });
+    T.items.push({ k: ok ? "s" : "e", text: ok ? ev.summary : `Push failed: ${ev.detail || ""}` });
   } else if (t === "completed") {
     const d = JSON.parse(ev.detail || "{}"); T.lastSecs = d.seconds; T.turnStart = null; T.current = null;
     addCard({ title: /error/.test(ev.summary) ? "Turn ended with an error" : "Turn finished", meta: d.seconds != null ? `${d.seconds}s` : "", metaCls: /error/.test(ev.summary) ? "bad" : "ok", body: `${d.turns ?? "?"} step${d.turns === 1 ? "" : "s"}` });
@@ -790,7 +944,7 @@ function onEvent(ev) {
       T.items.push({ k: ev.summary === "failed" ? "e" : "s", text: `Worker ${ev.summary}${ev.detail && ev.detail !== "stopped by the user" ? `: ${ev.detail}` : ""}` });
       addCard({ title: ev.summary === "failed" ? "Failed" : "Stopped", meta: "", metaCls: "bad", body: esc(ev.detail || "") });
     }
-    if (["waiting", "finished", "stopped", "failed"].includes(ev.summary)) { refreshMeta(); loadRuns(); }
+    if (["waiting", "finished", "stopped", "failed"].includes(ev.summary)) { refreshMeta(); loadRuns(); loadGit(); }
     renderRunState();
   }
   scheduleCanvas();
@@ -960,7 +1114,7 @@ $("navToggle").onclick = () => { const on = document.body.classList.toggle("show
   T = freshState();
   try { await loadWorkspaces(); } catch (e) { notice(e); return; }
   await Promise.all([loadPrompts().catch(notice), loadRuns()]);
-  loadTree();
+  loadTree(); loadGit();
   if (ACTIVE) openRun(ACTIVE.id); else openNewChat();
   setInterval(() => { if (!document.hidden) { loadRuns(); syncWorkspaces(); } }, 4000);
 })();

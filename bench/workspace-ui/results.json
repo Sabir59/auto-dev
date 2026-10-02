@@ -1,10 +1,10 @@
 {
- "when": "2026-10-02T06:54:55.865Z",
+ "when": "2026-10-02T09:10:25.709Z",
  "results": [
   {
    "step": "add an Inspect workspace through the form",
    "ok": true,
-   "seconds": 0.3,
+   "seconds": 0.2,
    "detail": {
     "selected": "Canary",
     "mode": "Inspect",
@@ -62,30 +62,30 @@
    "detail": {
     "shownAsText": true,
     "csp": "sandbox",
-    "runsBefore": 1,
-    "runsAfterOpeningItDirectly": 1
+    "runsBefore": 0,
+    "runsAfterOpeningItDirectly": 0
    }
   },
   {
    "step": "start a run, see live activity, get the result (Inspect)",
    "ok": true,
-   "seconds": 12,
+   "seconds": 10.7,
    "detail": {
     "liveSeen": true,
     "sendIsStop": "Stop the worker",
     "cards": [
      "Worker started",
-     "Files Success · 197ms",
+     "Files Success · 53ms",
      "Done Complete",
-     "Turn finished 9s"
+     "Turn finished 6s"
     ],
-    "reply": "DONEThe README says this is a \"Canary workspace\", a test repository you can throw away."
+    "reply": "README.md says this is a canary workspace: a test repository meant to be thrown away.\n\nDONERead README.md and summarised it."
    }
   },
   {
    "step": "follow-up in the same worker process",
    "ok": true,
-   "seconds": 2.5,
+   "seconds": 2.9,
    "detail": {
     "reply": "README.md",
     "workerStartedCards": 1,
@@ -95,7 +95,7 @@
   {
    "step": "save the prompt as a favourite, use it, remove it",
    "ok": true,
-   "seconds": 0.6,
+   "seconds": 0.4,
    "detail": {
     "saved": "★\nList the files in src and say what each one does.",
     "composerAfterClick": "List the files in src and say what each one does.",
@@ -115,7 +115,7 @@
   {
    "step": "reload, open the run from Recent runs, continue it (resume)",
    "ok": true,
-   "seconds": 9.8,
+   "seconds": 7.7,
    "detail": {
     "replayedMessages": 4,
     "resumedCard": 1,
@@ -125,7 +125,7 @@
   {
    "step": "Stop a busy run with the send button",
    "ok": true,
-   "seconds": 0.4,
+   "seconds": 0.3,
    "detail": {
     "status": "Stopped",
     "thread": [
@@ -136,7 +136,7 @@
   {
    "step": "Work workspace: the worker writes a file, it shows as an artifact, it opens in the viewer",
    "ok": true,
-   "seconds": 11.9,
+   "seconds": 12.7,
    "detail": {
     "artifact": "notes/summary.md",
     "content": "Workspace artifact test",

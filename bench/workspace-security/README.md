@@ -241,3 +241,20 @@ The Workspace page changed the console's surface in four ways (tests: `bench/wor
 - **`GET /tree`** lists one directory under the same real-path containment as `/file`. Entries whose real path leaves the root (junctions or links out) are omitted, and `.git` is hidden.
 - **`GET /file?workspace=`** is the same containment as `?run=`, rooted at the workspace.
 - **Fixed, found while building the viewer:** `/file` served `.html`/`.svg` as live pages on the console's own origin. An HTML file in a workspace, opened directly, could therefore have called the API as the console. `/file` now sends `Content-Security-Policy: sandbox` (an opaque origin, no scripts) and `nosniff`. Tested: a hostile `evil.html` that `POST`s `/runs` was opened directly, and no run was created.
+
+## Versions and push additions (2026-10-02)
+
+- **Read-only git endpoints** (`GET /git`, `/git/version`, `/git/diff`, `/git/file`):
+  - git runs with `core.fsmonitor=false` and `--no-ext-diff --no-textconv`, so no repo-configured program runs while reading. Filters and textconv would need local `.git/config` or global config to be defined, and a cloned repo can't bring those.
+  - Inherited `GIT_DIR`/`GIT_WORK_TREE`-style variables are dropped.
+  - Revisions must be hex. Paths must be relative, with no `..` and no leading `-`, and are passed after `--`.
+  - `/git/file` is served as text with `CSP: sandbox`.
+- **`POST /git/commit` and `/git/push`:**
+  - They go through the same-origin guard and work only in Work workspaces.
+  - Commit is limited to the workspace's folder (pathspec) and adds nothing to the message.
+  - Push never prompts (`GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`), never forces and never sets an upstream.
+  - Remote URLs are shown without any embedded credentials.
+- **Worker settings:** Claude Code's commit and PR attribution is turned off for workers (`--settings`). Tested: the default adds `Co-Authored-By: Claude …`; with these settings the trailer is absent.
+- **Limits:**
+  - Commit stages everything changed in the folder that isn't ignored, including a new `.env` if the repo doesn't ignore it. Review the working copy before committing.
+  - Repo hooks run on commit and push (Work is full trust anyway).

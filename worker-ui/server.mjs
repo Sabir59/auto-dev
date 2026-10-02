@@ -56,9 +56,12 @@ const INSPECT_MCP = [
 ];
 // Both profiles skip user settings, so a worker's capabilities never depend on which config dir's
 // personal allow rules or model setting happen to be there.
+// Commits are the person's: Claude Code must not add its co-author trailer to any commit or PR a
+// worker might make (the Workspace's own commits never add one either; see "versions").
+const WORKER_SETTINGS = JSON.stringify({ includeCoAuthoredBy: false, attribution: { commit: "", pr: "" } });
 const PROFILES = {
-  full: { browser: "full", args: ["--setting-sources", "project,local", "--allowedTools", ...ALLOWED] },
-  inspect: { browser: "inspect", args: ["--restricted", "--tools", INSPECT_BUILTINS.join(","), "--allowedTools", ...INSPECT_BUILTINS, ...INSPECT_MCP, "--permission-prompts", "none"] },
+  full: { browser: "full", args: ["--settings", WORKER_SETTINGS, "--setting-sources", "project,local", "--allowedTools", ...ALLOWED] },
+  inspect: { browser: "inspect", args: ["--settings", WORKER_SETTINGS, "--restricted", "--tools", INSPECT_BUILTINS.join(","), "--allowedTools", ...INSPECT_BUILTINS, ...INSPECT_MCP, "--permission-prompts", "none"] },
 };
 // MCP config per profile, with absolute paths (the worker's cwd is its workspace, not this repo).
 const mcpConfig = (profile) => {
@@ -477,6 +480,211 @@ function allMetas() {
   return readdirSync(RUNS).filter((f) => f.endsWith(".meta.json")).map((f) => loadRun(f.replace(".meta.json", "")).meta).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+// ---- versions (git) ----------------------------------------------------------------
+// A workspace's history is its own Git history: every commit is a version, plus the uncommitted
+// changes ("WORKTREE"). The console reads it with plain git commands. It changes it only through two
+// explicit actions the person takes in a Work workspace: commit (their message, their configured
+// identity, nothing added to the message) and push (the branch's own remote, their existing
+// credentials, never a prompt, never a force push). Nothing is ever checked out or reset.
+// Workspaces inside a larger repo only see and commit their own folder (the pathspec "prefix").
+const GIT_OPTS = ["-c", "core.fsmonitor=false", "-c", "core.quotepath=false", "-c", "color.ui=false"];
+const NO_PROGRAMS = ["--no-ext-diff", "--no-textconv"]; // never run repo-configured diff programs
+function gitEnv() {
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GIT_(DIR|WORK_TREE|INDEX_FILE|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|NAMESPACE|COMMON_DIR|CEILING_DIRECTORIES)$/.test(k)));
+  // No credential prompts of any kind: missing authentication is reported, not asked for.
+  return { ...env, GIT_TERMINAL_PROMPT: "0", GCM_INTERACTIVE: "never", GIT_OPTIONAL_LOCKS: "0", LC_ALL: "C" };
+}
+function git(cwd, args, { timeout = 30000, input } = {}) {
+  return new Promise((ok, fail) => {
+    const p = spawn("git", [...GIT_OPTS, ...args], { cwd, env: gitEnv(), windowsHide: true });
+    const out = [], err = []; let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; p.kill(); }, timeout);
+    p.stdout.on("data", (d) => out.push(d)); p.stderr.on("data", (d) => err.push(d));
+    p.on("error", (e) => { clearTimeout(timer); fail(new Error(`Couldn't run git: ${e.message}`)); });
+    p.on("close", (code) => {
+      clearTimeout(timer);
+      const stdout = Buffer.concat(out).toString("utf8"), stderr = Buffer.concat(err).toString("utf8").trim();
+      if (code === 0) return ok(stdout);
+      const e = new Error(timedOut ? "git timed out" : stderr || `git exited with code ${code}`); e.stderr = stderr; e.timedOut = timedOut; fail(e);
+    });
+    if (input !== undefined) p.stdin.end(input); else p.stdin.end();
+  });
+}
+async function repoOf(wsId) {
+  const ws = resolveWorkspace(wsId);
+  let top;
+  try { top = (await git(ws.root, ["rev-parse", "--show-toplevel"])).trim(); } catch { return { ws, repo: false }; }
+  const prefix = (await git(ws.root, ["rev-parse", "--show-prefix"])).trim();
+  const hasHead = await git(top, ["rev-parse", "--verify", "-q", "HEAD"]).then(() => true, () => false);
+  return { ws, repo: true, top, prefix, spec: prefix || ".", hasHead, canWrite: ws.profile === "full" };
+}
+const REV = /^[0-9a-f]{7,40}$/;
+const checkRev = (rev) => { if (rev !== "WORKTREE" && !REV.test(rev || "")) throw new Error("Unknown version."); return rev; };
+const checkRel = (rel) => { rel = String(rel || "").replace(/\\/g, "/"); if (!rel || rel.includes("\0") || rel.startsWith("-") || rel.startsWith("/") || /^[a-z]:/i.test(rel) || /(^|\/)\.\.(\/|$)/.test(rel)) throw new Error("Bad path."); return rel; };
+const stripPrefix = (r, p) => (p.startsWith(r.prefix) ? p.slice(r.prefix.length) : p);
+// Remote URLs can carry credentials (https://user:token@host/...): never show those.
+const safeUrl = (u) => String(u || "").replace(/^(\w+:\/\/)[^@/]+@/, "$1");
+function parseStatus(r, text) {
+  const out = [], parts = text.split("\0");
+  for (let i = 0; i < parts.length; i++) {
+    const e = parts[i]; if (!e) continue;
+    const xy = e.slice(0, 2), path = stripPrefix(r, e.slice(3));
+    if (xy[0] === "R" || xy[0] === "C") i++; // -z puts the old name after a rename
+    out.push({ path, status: xy === "??" ? "A" : xy.includes("D") ? "D" : xy.includes("A") ? "A" : xy.includes("R") ? "R" : "M" });
+  }
+  return out;
+}
+function parseNumstat(r, text) {
+  const m = new Map();
+  for (const e of text.split("\0")) { const t = /^(\d+|-)\t(\d+|-)\t(.+)$/s.exec(e); if (t) m.set(stripPrefix(r, t[3]), { add: t[1] === "-" ? null : +t[1], del: t[2] === "-" ? null : +t[2] }); }
+  return m;
+}
+async function branchState(r) {
+  const branch = (await git(r.top, ["rev-parse", "--abbrev-ref", "HEAD"]).catch(() => "HEAD")).trim();
+  const remoteName = branch !== "HEAD" ? (await git(r.top, ["config", "--get", `branch.${branch}.remote`]).catch(() => "")).trim() : "";
+  const mergeRef = branch !== "HEAD" ? (await git(r.top, ["config", "--get", `branch.${branch}.merge`]).catch(() => "")).trim() : "";
+  const remotes = (await git(r.top, ["remote"]).catch(() => "")).split(/\r?\n/).filter(Boolean);
+  const remote = remoteName && remotes.includes(remoteName) ? remoteName : remotes.includes("origin") ? "origin" : remotes[0] || null;
+  const target = remoteName && mergeRef ? mergeRef.replace(/^refs\/heads\//, "") : branch;
+  const url = remote ? safeUrl((await git(r.top, ["remote", "get-url", "--push", remote]).catch(() => "")).trim()) : null;
+  // Commits on this branch that aren't on the remote yet.
+  let ahead = 0, local = new Set();
+  if (r.hasHead) {
+    const tracking = remote ? `refs/remotes/${remote}/${target}` : null;
+    const hasTracking = tracking && (await git(r.top, ["rev-parse", "--verify", "-q", tracking]).then(() => true, () => false));
+    const list = await git(r.top, hasTracking ? ["rev-list", "-n", "500", "HEAD", `^${tracking}`] : ["rev-list", "-n", "500", "HEAD", "--not", "--remotes"]).catch(() => "");
+    local = new Set(list.split(/\r?\n/).filter(Boolean)); ahead = local.size;
+  }
+  return { branch, detached: branch === "HEAD", remote, target, url, github: /github\.com[:/]/i.test(url || ""), ahead, local };
+}
+// Runs in this workspace, and which of them a commit came from.
+const wsRuns = (wsId) => allMetas().filter((m) => (m.workspace?.id || "console") === wsId);
+async function gitSummary(wsId) {
+  const r = await repoOf(wsId);
+  if (!r.repo) return { repo: false };
+  const [status, log, b] = await Promise.all([
+    git(r.top, ["status", "--porcelain=v1", "-z", "--untracked-files=all", "--", r.spec]),
+    r.hasHead ? git(r.top, ["log", "-n", "30", "--format=%H%x1f%h%x1f%s%x1f%an%x1f%aI%x1e", "--", r.spec]) : "",
+    branchState(r),
+  ]);
+  const runs = wsRuns(wsId), byCommit = new Map();
+  for (const m of runs) for (const h of m.commits || []) if (!byCommit.has(h)) byCommit.set(h, { id: m.id, prompt: m.prompt });
+  const commits = log.split("\x1e").map((x) => x.trim()).filter(Boolean).map((x) => {
+    const [hash, short, subject, author, date] = x.split("\x1f");
+    return { hash, short, subject, author, date, pushed: !b.local.has(hash), run: byCommit.get(hash) || null };
+  });
+  const changes = parseStatus(r, status);
+  // Runs that changed files since the newest version: their work is in the uncommitted changes.
+  const since = commits[0] ? Date.parse(commits[0].date) : 0;
+  const pendingRuns = runs.filter((m) => m.artifacts?.length && !(m.commits || []).length && Date.parse(m.updatedAt || m.createdAt) > since).map((m) => ({ id: m.id, prompt: m.prompt }));
+  const { local, ...branch } = b;
+  return { repo: true, canWrite: r.canWrite, prefix: r.prefix, ...branch, changes: changes.slice(0, 300), changeCount: changes.length, commits, pendingRuns };
+}
+async function gitVersion(wsId, rev) {
+  const r = await repoOf(wsId);
+  if (!r.repo) throw new Error("This workspace isn't a Git repository.");
+  checkRev(rev);
+  if (rev === "WORKTREE") {
+    const [status, num] = await Promise.all([
+      git(r.top, ["status", "--porcelain=v1", "-z", "--untracked-files=all", "--", r.spec]),
+      r.hasHead ? git(r.top, ["diff", "HEAD", "--numstat", "-z", "--no-renames", ...NO_PROGRAMS, "--", r.spec]) : "",
+    ]);
+    const n = parseNumstat(r, num);
+    return { rev, files: parseStatus(r, status).slice(0, 300).map((x) => ({ ...x, ...(n.get(x.path) || {}) })) };
+  }
+  const head = await git(r.top, ["show", "-s", "--format=%H%x1f%h%x1f%s%x1f%b%x1f%an%x1f%aI", rev]);
+  const [hash, short, subject, body, author, date] = head.trim().split("\x1f");
+  const [names, num] = await Promise.all([
+    git(r.top, ["show", "--format=", "--name-status", "-z", "--no-renames", "--diff-merges=first-parent", rev, "--", r.spec]),
+    git(r.top, ["show", "--format=", "--numstat", "-z", "--no-renames", "--diff-merges=first-parent", ...NO_PROGRAMS, rev, "--", r.spec]),
+  ]);
+  const n = parseNumstat(r, num), files = [], p = names.split("\0").filter(Boolean);
+  for (let i = 0; i + 1 < p.length; i += 2) { const path = stripPrefix(r, p[i + 1]); files.push({ path, status: p[i][0], ...(n.get(path) || {}) }); }
+  const run = wsRuns(wsId).find((m) => (m.commits || []).includes(hash));
+  return { rev, hash, short, subject, body: body.trim(), author, date, files, run: run ? { id: run.id, prompt: run.prompt } : null };
+}
+// One file's change in a version, as a unified diff (a new, untracked file is shown as all-added).
+async function gitDiff(wsId, rev, rel) {
+  const r = await repoOf(wsId);
+  if (!r.repo) throw new Error("This workspace isn't a Git repository.");
+  checkRev(rev); rel = checkRel(rel);
+  const p = r.prefix + rel;
+  if (rev !== "WORKTREE") return git(r.top, ["show", "--format=", "--no-color", "--diff-merges=first-parent", ...NO_PROGRAMS, rev, "--", p]);
+  const tracked = r.hasHead && (await git(r.top, ["cat-file", "-e", `HEAD:${p}`]).then(() => true, () => false));
+  if (tracked) return git(r.top, ["diff", "HEAD", "--no-color", ...NO_PROGRAMS, "--", p]);
+  const real = fileInside(r.ws.root, rel);
+  if (!real) return "";
+  const buf = readFileSync(real);
+  if (buf.subarray(0, 8000).includes(0)) return `new file: ${rel}\nBinary file, not shown\n`;
+  const lines = buf.toString("utf8").replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
+  return `new file: ${rel}\n@@ -0,0 +1,${lines.length} @@\n${lines.map((l) => "+" + l).join("\n")}\n`;
+}
+async function gitFileAt(wsId, rev, rel) {
+  const r = await repoOf(wsId);
+  if (!r.repo) throw new Error("This workspace isn't a Git repository.");
+  if (!REV.test(rev || "")) throw new Error("Unknown version.");
+  return git(r.top, ["show", `${rev}:${r.prefix + checkRel(rel)}`]);
+}
+const runIn = (wsId, id) => { const run = id && loadRun(String(id)); return run && (run.meta.workspace?.id || "console") === wsId ? run : null; };
+async function gitCommit(wsId, message, runId) {
+  const r = await repoOf(wsId);
+  if (!r.repo) throw new Error("This workspace isn't a Git repository.");
+  if (!r.canWrite) throw new Error("Commit and push are available in Work workspaces only.");
+  message = String(message || "").replace(/\r\n/g, "\n").trim();
+  if (!message) throw new Error("Write a short description of this version first.");
+  if (message.length > 5000) throw new Error("That message is too long.");
+  const busy = active();
+  if (busy && (busy.meta.workspace?.id || "console") === wsId && busy.meta.status !== "waiting") throw new Error("The worker is still working in this workspace. Let it finish (or stop it), then commit.");
+  await git(r.top, ["add", "-A", "--", r.spec]);
+  if (!(await git(r.top, ["diff", "--cached", "--name-only", "--", r.spec])).trim()) throw new Error("There are no changes to commit.");
+  // The person's message as typed, read from stdin; git's configured identity; only this
+  // workspace's folder (--only semantics of a pathspec). No trailer of any kind is added here.
+  try { await git(r.top, ["commit", "-q", "-F", "-", "--", r.spec], { input: message + "\n", timeout: 120000 }); }
+  catch (e) {
+    if (/Author identity unknown|Please tell me who you are|user\.email|user\.name/i.test(e.message)) throw new Error("Git doesn't know who you are yet. Set your name and email for Git (git config user.name / user.email), then commit again.");
+    throw new Error(`Commit failed: ${clip(e.message, 300)}`);
+  }
+  const [hash, short, subject] = (await git(r.top, ["log", "-1", "--format=%H%x1f%h%x1f%s"])).trim().split("\x1f");
+  const finalMessage = await git(r.top, ["log", "-1", "--format=%B"]);
+  const files = (await git(r.top, ["show", "--format=", "--name-only", hash])).split(/\r?\n/).filter(Boolean).length;
+  // Link the runs whose work went into this version.
+  const linked = new Set((await gitSummary(wsId).catch(() => ({ pendingRuns: [] }))).pendingRuns?.map((x) => x.id) || []);
+  const run = runIn(wsId, runId); if (run) linked.add(run.meta.id);
+  for (const id of linked) { const m = loadRun(id); if (m) { m.meta.commits = [...(m.meta.commits || []), hash]; saveMeta(m); } }
+  // Repo hooks (not this console) can still edit messages; say so if one added a co-author.
+  const hookTrailer = /^co-authored-by:/im.test(finalMessage) && !/^co-authored-by:/im.test(message);
+  if (run) emit(run, { type: "commit", summary: `${short} ${subject}`, detail: JSON.stringify({ hash, files }) });
+  return { hash, short, subject, files, runs: [...linked], hookTrailer };
+}
+async function gitPush(wsId, runId) {
+  const r = await repoOf(wsId);
+  if (!r.repo) throw new Error("This workspace isn't a Git repository.");
+  if (!r.canWrite) throw new Error("Commit and push are available in Work workspaces only.");
+  const b = await branchState(r);
+  if (b.detached) throw new Error("This folder isn't on a branch (detached HEAD), so there's nothing to push.");
+  if (!b.remote) throw new Error("This repository has no remote to push to.");
+  if (!b.ahead) throw new Error(`Nothing to push: ${b.remote}/${b.target} already has these commits.`);
+  const run = runIn(wsId, runId);
+  const where = `${b.remote}/${b.target}`;
+  try {
+    // Explicit refspec, no --force, no -u: nothing in the repo's config is changed.
+    const out = await git(r.top, ["push", "--porcelain", b.remote, `HEAD:refs/heads/${b.target}`], { timeout: 120000 });
+    const line = out.split(/\r?\n/).find((l) => /^[ +*=]\t/.test(l)) || "";
+    const res = { ok: true, remote: b.remote, branch: b.target, url: b.url, github: b.github, commits: b.ahead, summary: `Pushed ${b.ahead} commit${b.ahead === 1 ? "" : "s"} to ${where}`, detail: line.trim() };
+    if (run) emit(run, { type: "push", summary: res.summary, detail: b.url || "" });
+    return res;
+  } catch (e) {
+    const m = e.message;
+    const why = e.timedOut ? "The push timed out." : /Authentication failed|could not read Username|could not read Password|terminal prompts disabled|Logon failed|Invalid username or password|Permission denied \(publickey|Host key verification failed|returned error: 40[13]|HTTP Basic: Access denied/i.test(m)
+      ? `Git has no working login for ${b.url || b.remote}. Sign in once with Git outside the Workspace (for example, run "git push" in a terminal in this folder), then push again.`
+      : /rejected|non-fast-forward|fetch first|stale info/i.test(m) ? `${where} has commits this folder doesn't have yet. Bring them in first (pull, outside the Workspace), then push.`
+      : /Could not resolve host|unable to access|Connection refused|timed out|Failed to connect/i.test(m) ? `Couldn't reach ${b.url || b.remote}: ${clip(m.split(/\r?\n/)[0], 200)}`
+      : `Push failed: ${clip(m, 300)}`;
+    if (run) emit(run, { type: "push", summary: "Push failed", detail: why, ok: false });
+    const err = new Error(why); err.push = true; throw err;
+  }
+}
+
 // ---- prompts ---------------------------------------------------------------
 const readPrompts = () => JSON.parse(readFileSync(PROMPTS, "utf8"));
 const writePrompts = (p) => writeFileSync(PROMPTS, JSON.stringify(p, null, 1) + "\n");
@@ -570,6 +778,18 @@ http.createServer(async (req, res) => {
     if (url.pathname === "/workspaces/order" && req.method === "POST") return json(res, 200, reorderWorkspaces((await body(req)).ids));
     if (parts[0] === "workspaces" && parts[1] && parts.length === 2 && req.method === "DELETE") return json(res, 200, removeWorkspace(decodeURIComponent(parts[1])));
     if (url.pathname === "/pick-folder" && req.method === "POST") return json(res, 200, await pickFolder());
+
+    // versions (git)
+    const W = url.searchParams.get("workspace") || "";
+    if (url.pathname === "/git" && req.method === "GET") return json(res, 200, await gitSummary(W));
+    if (url.pathname === "/git/version" && req.method === "GET") return json(res, 200, await gitVersion(W, url.searchParams.get("rev")));
+    if (url.pathname === "/git/diff" && req.method === "GET") return json(res, 200, { diff: await gitDiff(W, url.searchParams.get("rev"), url.searchParams.get("path")) });
+    if (url.pathname === "/git/file" && req.method === "GET") {
+      const text = await gitFileAt(W, url.searchParams.get("rev"), url.searchParams.get("path"));
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "content-security-policy": "sandbox", "x-content-type-options": "nosniff" }); return res.end(text);
+    }
+    if (url.pathname === "/git/commit" && req.method === "POST") { const b = await body(req); return json(res, 200, await gitCommit(String(b.workspace || ""), b.message, b.run)); }
+    if (url.pathname === "/git/push" && req.method === "POST") { const b = await body(req); return json(res, 200, await gitPush(String(b.workspace || ""), b.run)); }
     if (url.pathname === "/tree") {
       const entries = dirInside(resolveWorkspace(url.searchParams.get("workspace") || "").root, url.searchParams.get("path") || "");
       return entries ? json(res, 200, entries) : json(res, 404, { error: "not found" });
