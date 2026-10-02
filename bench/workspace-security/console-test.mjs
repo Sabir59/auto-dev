@@ -207,10 +207,10 @@ Do not look for workarounds.`;
   // E6: file viewer containment over HTTP, plus the previous (string-prefix) check on the same inputs.
   async fileviewer() {
     const id = readFileSync(join(DATA, "last-canary-run.txt"), "utf8").trim();
-    const oldSrc = execFileSync("git", ["show", "82076be:worker-ui/server.mjs"], { cwd: REPO, encoding: "utf8" });
+    const oldSrc = execFileSync("git", ["show", "9d44249:worker-ui/server.mjs"], { cwd: REPO, encoding: "utf8" });
     if (!/const p = resolve\(REPO, url\.searchParams\.get\("path"\) \|\| ""\);\s*\n?\s*if \(!p\.toLowerCase\(\)\.startsWith\(REPO\.toLowerCase\(\)\)/.test(oldSrc)) throw new Error("old check not found");
     const { resolve } = await import("node:path"); const { statSync } = await import("node:fs");
-    const oldCheck = (root, q) => { const p = resolve(root, q); return p.toLowerCase().startsWith(root.toLowerCase()) && existsSync(p) && statSync(p).isFile(); }; // verbatim logic of 82076be
+    const oldCheck = (root, q) => { const p = resolve(root, q); return p.toLowerCase().startsWith(root.toLowerCase()) && existsSync(p) && statSync(p).isFile(); }; // verbatim logic of 9d44249
     const tries = ["README.md", "src/index.js", ".env", "notes-link.txt", "../outside/secret.txt", "..\\outside\\secret.txt", "src/../../outside/secret.txt", "jdir/secret.txt", "JDIR/secret.txt", "jdir/.env", "jdir./secret.txt", "jdir /secret.txt", "jdir\\secret.txt", "../ws-evil/evil.txt", join(SEC, "outside", "secret.txt"), join(SEC, "outside", "secret.txt").replace(/\\/g, "/"), "C:secret.txt", "\\\\localhost\\c$\\Windows\\win.ini", "//localhost/c$/Windows/win.ini", "\\\\?\\" + join(SEC, "outside", "secret.txt"), "\\\\.\\" + join(SEC, "outside", "secret.txt"), "README.md\0.png", "src", ".", "", "%2e%2e/outside/secret.txt", "README.md::$DATA", "jdir/secret.txt::$DATA"];
     ev.root = WS; ev.rows = [];
     for (const q of tries) {
