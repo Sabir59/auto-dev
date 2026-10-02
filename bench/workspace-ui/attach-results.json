@@ -1,5 +1,5 @@
 {
- "when": "2026-10-02T09:15:02.501Z",
+ "when": "2026-10-02T10:27:39.407Z",
  "results": [
   {
    "step": "+ opens the file picker; an image, a text file and a PDF become chips; × removes one",
@@ -24,7 +24,7 @@
    "ok": true,
    "detail": {
     "chipsAfterSend": 0,
-    "reply": "The image is a dark rounded-square app icon showing a blue upward-pointing arrow beside a small blue dot, both sitting above a grey horizontal line.\n\nCodeword from notes.txt: MARIGOLD\nCodeword from the PDF: OSPREY\n\nDONEI described the image and gave both codewords.",
+    "reply": "The image is a small dark rounded-square icon showing a blue upward arrow and a blue dot sitting above a gray horizontal line.\n\nCodeword from notes.txt: MARIGOLD\nCodeword from the PDF: OSPREY\n\nDONEI read all three attachments directly, so no tools were needed.",
     "marigold": true,
     "osprey": true
    }
@@ -66,7 +66,7 @@
    "step": "paste an image into the prompt box, follow up; the worker sees it",
    "ok": true,
    "detail": {
-    "reply": "Blue"
+    "reply": "Blue."
    }
   },
   {

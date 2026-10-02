@@ -19,7 +19,7 @@ The Workspace page (`worker-ui/workspace.html`, served at `/` by `worker-ui/serv
 - the three suggestion cards, which were sample MATW tasks;
 - "Worker Engine v3" (model selection is out of scope); its place shows the access mode.
 
-**Drawn but not interactive**, because no behaviour is defined for them: ⌘K, the bell, the gear, the avatar, the sliders icon and "Docs & Reference". ("+ attach" is now live: see Attachments below.)
+**Drawn but not interactive** at first: ⌘K, the bell, the gear, the avatar, the sliders icon and "Docs & Reference". These were removed later; see "Cleanup" below. "+ attach" became live; see Attachments.
 
 **Added only where the function needed it:**
 - the send button turns into Stop while the worker is busy;
@@ -192,3 +192,27 @@ Viewing is read-only: nothing is ever checked out, reset or reverted. A workspac
 14. Plain Claude Code committed with `Co-Authored-By: Claude …`. With the Workspace's worker settings, the same request committed with **no trailer**.
 
 On the same build, `workflow-test.mjs` passes 12/12, `manage-test.mjs` 7/7, `sync-test.mjs` 6/6 and `attach-test.mjs` 10/10. The Browse test wasn't re-run, because it opens real folder dialogs and its code didn't change.
+
+## Cleanup: UI with no purpose removed (2026-10-02)
+
+The principle is to build from real use, not to fill a design. Elements that did nothing, or only repeated what's already shown, are gone. Nothing replaced them:
+
+| Removed | Where | Why |
+|---|---|---|
+| ⌘K badge | header | There is no command palette. |
+| Bell | header | There are no notifications. |
+| Gear | header | There are no settings. |
+| Avatar | header | There are no accounts. |
+| Sliders icon | centre header, next to the run status | No settings or filter behind it. |
+| "Docs & Reference" and its icon | bottom of the sidebar | There are no docs to open. |
+| "↵" glyph | composer | Looked like a button but did nothing. Enter-to-send is unchanged. |
+| "Runs locally via console port …" | composer footnote | Repeated the sidebar's "Local console :port". The spot now only shows notices. |
+
+Their styles and icon paths (bell, gear, person, docs, and the unused arrow-right from the omitted suggestion cards) are removed too. `shots/design-difference.png` predates this cleanup.
+
+Every suite still passes on this build:
+- `workflow-test.mjs`: 12/12
+- `manage-test.mjs`: 7/7
+- `sync-test.mjs`: 6/6
+- `attach-test.mjs`: 10/10
+- `versions-test.mjs`: 14/14

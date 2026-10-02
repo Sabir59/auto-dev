@@ -59,9 +59,6 @@ header.top {
 .hright { display: flex; align-items: center; gap: 12px; justify-self: end; }
 .pill { height: 30px; display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--surf); border-radius: 2px; color: var(--t2); }
 .pill .dot { width: 8px; height: 8px; }
-.kbd { height: 18px; padding: 2px 4px; background: var(--surf); border-radius: 2px; color: var(--t3); }
-.hicon { width: 20px; height: 30px; padding: 4px; color: var(--t2); display: flex; justify-content: center; }
-.avatar { width: 32px; height: 32px; border-radius: 12px; background: var(--pri); color: var(--on-pri); display: flex; align-items: center; justify-content: center; }
 .menu { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); min-width: 240px; background: var(--surf); border-radius: 2px; padding: 4px; box-shadow: 0 2px 4px -2px rgba(0,0,0,.1), 0 4px 6px -1px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.35); z-index: 30; }
 .menu button { width: 100%; display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 2px; color: var(--t2); text-align: left; }
 .menu button:hover, .menu button:focus-visible { background: var(--high); }
@@ -107,7 +104,6 @@ aside.left { background: var(--low); display: flex; flex-direction: column; min-
 .lfoot { background: var(--surf); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
 .lfoot .r1 { height: 22px; display: flex; align-items: center; justify-content: space-between; color: var(--t3); }
 .lfoot .r1 .dot { width: 8px; height: 8px; margin-right: 4px; }
-.lfoot .r2 { padding-top: 4px; height: 24px; display: flex; align-items: center; justify-content: space-between; color: var(--t3); }
 .addform { display: flex; flex-direction: column; gap: 6px; padding: 8px; background: var(--surf); border-radius: 2px; }
 .addform label { color: var(--t3); display: flex; flex-direction: column; gap: 2px; }
 .addform input { width: 100%; background: var(--low); color: var(--t1); border: 0; border-radius: 2px; padding: 4px 6px; font: 400 12px/20px var(--sans); }
@@ -139,7 +135,6 @@ main { min-width: 0; min-height: 0; padding: 0 16px 32px; display: flex; justify
 .hash { color: var(--t4); flex: none; }
 .stchip { height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: var(--surf); border-radius: 2px; color: var(--t2); }
 .stchip.act:hover { background: var(--high); }
-.sq { width: 20px; height: 27px; padding: 4px 4px 11.2px; background: var(--surf); border-radius: 2px; color: var(--t3); }
 .canvas { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
 .emptyst { margin: auto 0; padding: 24px 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .motif { width: 48px; height: 48px; border-radius: 8px; background: var(--surf); box-shadow: 0 1px 2px rgba(0,0,0,.05); display: flex; align-items: center; justify-content: center; color: var(--pri); margin-bottom: 16px; }
@@ -236,7 +231,6 @@ a.achip:hover { background: var(--high); }
 .mtag { height: 18px; display: flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--surf); border-radius: 2px; color: var(--t3); flex: none; }
 .savep { height: 18px; padding: 0 6px; border-radius: 2px; color: var(--t3); flex: none; }
 .savep:hover { background: var(--surf); color: var(--t1); } .savep.done { color: var(--star); }
-.hint { color: var(--t3); flex: none; }
 .send { width: 28px; height: 28px; border-radius: 2px; background: var(--pri-c); color: var(--on-pri); display: flex; align-items: center; justify-content: center; flex: none; }
 .send:disabled { opacity: .45; }
 .send.stop { background: var(--high); color: var(--t1); }
@@ -273,16 +267,15 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
   aside.right { position: fixed; top: 56px; right: 0; bottom: 0; width: min(320px, 90vw); z-index: 15; box-shadow: -8px 0 24px rgba(0,0,0,.35); display: none; }
   body.show-act aside.right { display: flex; }
   #actToggle { display: flex; }
-  .kbd, .hicon { display: none; }
 }
 @media (max-width: 720px) {
   body { grid-template-columns: minmax(0, 1fr); }
   aside.left { position: fixed; top: 56px; left: 0; bottom: 0; width: min(280px, 88vw); z-index: 15; box-shadow: 8px 0 24px rgba(0,0,0,.35); display: none; }
   body.show-nav aside.left { display: flex; }
   #navToggle { display: flex; }
-  .brand .ver, .avatar { display: none; }
+  .brand .ver { display: none; }
   main { padding: 0 8px 8px; } .view { padding: 0 4px; }
-  .hint, .mtag { display: none; }
+  .mtag { display: none; }
 }
 @media (max-width: 520px) { .switcher { display: none; } .brand .name { display: none; } }
 @media (prefers-reduced-motion: reduce) { .dot.pulse { animation: none; } .tree .tw svg { transition: none; } }
@@ -304,11 +297,6 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
   <div class="hright">
     <button class="toggle" id="actToggle" aria-label="Show activity" aria-expanded="false"><svg class="i" width="14" height="11" data-i="terminalSm"></svg></button>
     <div class="pill m12" role="status" aria-live="polite"><span class="dot" id="wDot"></span><span id="wState">Worker · Ready</span></div>
-    <!-- Drawn in the design; no behaviour defined yet, so shown but not interactive. -->
-    <span class="kbd m11" aria-hidden="true">⌘K</span>
-    <span class="hicon" aria-hidden="true"><svg class="i" width="12" height="15" data-i="bell"></svg></span>
-    <span class="hicon" aria-hidden="true" style="width:23px"><svg class="i" width="15" height="15" data-i="gear"></svg></span>
-    <span class="avatar" aria-hidden="true"><svg class="i" width="12" height="12" data-i="person"></svg></span>
   </div>
 </header>
 
@@ -350,7 +338,6 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
   </div>
   <div class="lfoot">
     <div class="r1"><span style="display:flex;align-items:center"><span class="dot" id="srvDot"></span><span class="m12">Local console</span></span><span class="m11" id="srvPort"></span></div>
-    <div class="r2" aria-hidden="true"><span>Docs &amp; Reference</span><svg class="i" width="12" height="12" data-i="docs"></svg></div>
   </div>
 </aside>
 
@@ -365,7 +352,6 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
       <div class="r">
         <button class="stchip act m12" id="endBtn" hidden title="Close this conversation cleanly. It can be continued later.">End run</button>
         <div class="stchip m12" id="runChip"><span class="dot" id="rDot"></span><span id="rState">Ready</span></div>
-        <span class="sq" aria-hidden="true"><svg class="i" width="12" height="12" data-i="tune"></svg></span>
       </div>
     </div>
     <div class="canvas" id="canvas"></div>
@@ -383,7 +369,6 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
           </div>
           <div class="r">
             <button class="savep m11" id="saveP" title="Save this prompt to Favourites">☆ Save</button>
-            <span class="hint m11" aria-hidden="true">↵</span>
             <button class="send" id="send" aria-label="Send"><svg class="i" width="11" height="11" data-i="arrowUp"></svg></button>
           </div>
         </div>
@@ -404,7 +389,7 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
 
 <script>
 // Icons are the design's own Material Symbols paths, exported from the Figma file.
-const ICONS = {"branchSm":{"vb":"0 0 8 10","d":["M1.625 9.75V2.07188L0.758333 2.925L0 2.16667L2.16667 0L4.33333 2.16667L3.575 2.93854L2.70833 2.07188V5.60625C3.02431 5.32639 3.3809 5.12552 3.77813 5.00365C4.17535 4.88177 4.57257 4.82083 4.96979 4.82083C5.0691 4.82083 5.16389 4.82535 5.25417 4.83437C5.34444 4.8434 5.43021 4.85694 5.51146 4.875L4.65833 4.00833L5.41667 3.25L7.58333 5.41667L5.41667 7.58333L4.65833 6.825L5.51146 5.95833C5.41215 5.94028 5.31285 5.92448 5.21354 5.91094C5.11424 5.8974 5.01493 5.89062 4.91563 5.89062C4.42812 5.89062 3.97899 6.0283 3.56823 6.30365C3.15747 6.57899 2.87083 7.00556 2.70833 7.58333V9.75H1.625Z"]},"terminalLg":{"vb":"0 0 20 16","d":["M2 16C1.45 16 0.979167 15.8042 0.5875 15.4125C0.195833 15.0208 0 14.55 0 14V2C0 1.45 0.195833 0.979167 0.5875 0.5875C0.979167 0.195833 1.45 0 2 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H2ZM2 14H18V4H2V14ZM5.5 13L4.1 11.6L6.675 9L4.075 6.4L5.5 5L9.5 9L5.5 13ZM10 13V11H16V13H10Z"]},"bolt":{"vb":"0 0 9 11","d":["M3.54792 8.775L6.35104 5.41667H4.18437L4.57708 2.34271L2.07188 5.95833H3.95417L3.54792 8.775ZM2.16667 10.8333L2.70833 7.04167H0L4.875 0H5.95833L5.41667 4.33333H8.66667L3.25 10.8333H2.16667Z"]},"arrowUp":{"vb":"0 0 11 11","d":["M4.66667 10.6667V2.55L0.933333 6.28333L0 5.33333L5.33333 0L10.6667 5.33333L9.73333 6.28333L6 2.55V10.6667H4.66667Z"]},"plus":{"vb":"0 0 10 10","d":["M4 5.33333H0V4H4V0H5.33333V4H9.33333V5.33333H5.33333V9.33333H4V5.33333Z"]},"terminalSm":{"vb":"0 0 14 11","d":["M1.33333 10.6667C0.966667 10.6667 0.652778 10.5361 0.391667 10.275C0.130556 10.0139 0 9.7 0 9.33333V1.33333C0 0.966667 0.130556 0.652778 0.391667 0.391667C0.652778 0.130556 0.966667 0 1.33333 0H12C12.3667 0 12.6806 0.130556 12.9417 0.391667C13.2028 0.652778 13.3333 0.966667 13.3333 1.33333V9.33333C13.3333 9.7 13.2028 10.0139 12.9417 10.275C12.6806 10.5361 12.3667 10.6667 12 10.6667H1.33333ZM1.33333 9.33333H12V2.66667H1.33333V9.33333ZM3.66667 8.66667L2.73333 7.73333L4.45 6L2.71667 4.26667L3.66667 3.33333L6.33333 6L3.66667 8.66667ZM6.66667 8.66667V7.33333H10.6667V8.66667H6.66667Z"]},"branch":{"vb":"0 0 11 11","d":["M4.66667 10.6667V5.6L1.33333 2.26667V4H0V0H4V1.33333H2.26667L6 5.06667V10.6667H4.66667ZM7.23333 4.4L6.26667 3.43333L8.4 1.33333H6.66667V0H10.6667V4H9.33333V2.26667L7.23333 4.4Z"]},"chevron":{"vb":"0 0 8 5","d":["M4 4.93333L0 0.933333L0.933333 0L4 3.06667L7.06667 0L8 0.933333L4 4.93333Z"]},"arrowRight":{"vb":"0 0 11 11","d":["M8.11667 6H0V4.66667H8.11667L4.38333 0.933333L5.33333 0L10.6667 5.33333L5.33333 10.6667L4.38333 9.73333L8.11667 6Z"]},"tune":{"vb":"0 0 12 12","d":["M5.33333 12V8H6.66667V9.33333H12V10.6667H6.66667V12H5.33333ZM0 10.6667V9.33333H4V10.6667H0ZM2.66667 8V6.66667H0V5.33333H2.66667V4H4V8H2.66667ZM5.33333 6.66667V5.33333H12V6.66667H5.33333ZM8 4V0H9.33333V1.33333H12V2.66667H9.33333V4H8ZM0 2.66667V1.33333H6.66667V2.66667H0Z"]},"bell":{"vb":"0 0 12 15","d":["M0 12.75V11.25H1.5V6C1.5 4.9625 1.8125 4.04063 2.4375 3.23438C3.0625 2.42812 3.875 1.9 4.875 1.65V1.125C4.875 0.8125 4.98438 0.546875 5.20312 0.328125C5.42188 0.109375 5.6875 0 6 0C6.3125 0 6.57812 0.109375 6.79688 0.328125C7.01562 0.546875 7.125 0.8125 7.125 1.125V1.65C8.125 1.9 8.9375 2.42812 9.5625 3.23438C10.1875 4.04063 10.5 4.9625 10.5 6V11.25H12V12.75H0ZM6 15C5.5875 15 5.23438 14.8531 4.94063 14.5594C4.64688 14.2656 4.5 13.9125 4.5 13.5H7.5C7.5 13.9125 7.35312 14.2656 7.05937 14.5594C6.76562 14.8531 6.4125 15 6 15ZM3 11.25H9V6C9 5.175 8.70625 4.46875 8.11875 3.88125C7.53125 3.29375 6.825 3 6 3C5.175 3 4.46875 3.29375 3.88125 3.88125C3.29375 4.46875 3 5.175 3 6V11.25Z"]},"gear":{"vb":"0 0 16 15","d":["M5.475 15L5.175 12.6C5.0125 12.5375 4.85938 12.4625 4.71562 12.375C4.57187 12.2875 4.43125 12.1938 4.29375 12.0938L2.0625 13.0312L0 9.46875L1.93125 8.00625C1.91875 7.91875 1.9125 7.83438 1.9125 7.75313C1.9125 7.67188 1.9125 7.5875 1.9125 7.5C1.9125 7.4125 1.9125 7.32812 1.9125 7.24687C1.9125 7.16562 1.91875 7.08125 1.93125 6.99375L0 5.53125L2.0625 1.96875L4.29375 2.90625C4.43125 2.80625 4.575 2.7125 4.725 2.625C4.875 2.5375 5.025 2.4625 5.175 2.4L5.475 0H9.6L9.9 2.4C10.0625 2.4625 10.2156 2.5375 10.3594 2.625C10.5031 2.7125 10.6438 2.80625 10.7812 2.90625L13.0125 1.96875L15.075 5.53125L13.1438 6.99375C13.1562 7.08125 13.1625 7.16562 13.1625 7.24687C13.1625 7.32812 13.1625 7.4125 13.1625 7.5C13.1625 7.5875 13.1625 7.67188 13.1625 7.75313C13.1625 7.83438 13.15 7.91875 13.125 8.00625L15.0562 9.46875L12.9937 13.0312L10.7812 12.0938C10.6438 12.1938 10.5 12.2875 10.35 12.375C10.2 12.4625 10.05 12.5375 9.9 12.6L9.6 15H5.475ZM6.7875 13.5H8.26875L8.53125 11.5125C8.91875 11.4125 9.27812 11.2656 9.60938 11.0719C9.94063 10.8781 10.2438 10.6437 10.5188 10.3687L12.375 11.1375L13.1062 9.8625L11.4937 8.64375C11.5562 8.46875 11.6 8.28438 11.625 8.09062C11.65 7.89687 11.6625 7.7 11.6625 7.5C11.6625 7.3 11.65 7.10313 11.625 6.90938C11.6 6.71563 11.5562 6.53125 11.4937 6.35625L13.1062 5.1375L12.375 3.8625L10.5188 4.65C10.2438 4.3625 9.94063 4.12187 9.60938 3.92812C9.27812 3.73438 8.91875 3.5875 8.53125 3.4875L8.2875 1.5H6.80625L6.54375 3.4875C6.15625 3.5875 5.79688 3.73438 5.46562 3.92812C5.13437 4.12187 4.83125 4.35625 4.55625 4.63125L2.7 3.8625L1.96875 5.1375L3.58125 6.3375C3.51875 6.525 3.475 6.7125 3.45 6.9C3.425 7.0875 3.4125 7.2875 3.4125 7.5C3.4125 7.7 3.425 7.89375 3.45 8.08125C3.475 8.26875 3.51875 8.45625 3.58125 8.64375L1.96875 9.8625L2.7 11.1375L4.55625 10.35C4.83125 10.6375 5.13437 10.8781 5.46562 11.0719C5.79688 11.2656 6.15625 11.4125 6.54375 11.5125L6.7875 13.5ZM7.575 10.125C8.3 10.125 8.91875 9.86875 9.43125 9.35625C9.94375 8.84375 10.2 8.225 10.2 7.5C10.2 6.775 9.94375 6.15625 9.43125 5.64375C8.91875 5.13125 8.3 4.875 7.575 4.875C6.8375 4.875 6.21562 5.13125 5.70937 5.64375C5.20312 6.15625 4.95 6.775 4.95 7.5C4.95 8.225 5.20312 8.84375 5.70937 9.35625C6.21562 9.86875 6.8375 10.125 7.575 10.125Z"]},"person":{"vb":"0 0 12 12","d":["M6 6C5.175 6 4.46875 5.70625 3.88125 5.11875C3.29375 4.53125 3 3.825 3 3C3 2.175 3.29375 1.46875 3.88125 0.88125C4.46875 0.29375 5.175 0 6 0C6.825 0 7.53125 0.29375 8.11875 0.88125C8.70625 1.46875 9 2.175 9 3C9 3.825 8.70625 4.53125 8.11875 5.11875C7.53125 5.70625 6.825 6 6 6ZM0 12V9.9C0 9.475 0.109375 9.08437 0.328125 8.72812C0.546875 8.37187 0.8375 8.1 1.2 7.9125C1.975 7.525 2.7625 7.23438 3.5625 7.04063C4.3625 6.84688 5.175 6.75 6 6.75C6.825 6.75 7.6375 6.84688 8.4375 7.04063C9.2375 7.23438 10.025 7.525 10.8 7.9125C11.1625 8.1 11.4531 8.37187 11.6719 8.72812C11.8906 9.08437 12 9.475 12 9.9V12H0ZM1.5 10.5H10.5V9.9C10.5 9.7625 10.4656 9.6375 10.3969 9.525C10.3281 9.4125 10.2375 9.325 10.125 9.2625C9.45 8.925 8.76875 8.67188 8.08125 8.50313C7.39375 8.33438 6.7 8.25 6 8.25C5.3 8.25 4.60625 8.33438 3.91875 8.50313C3.23125 8.67188 2.55 8.925 1.875 9.2625C1.7625 9.325 1.67188 9.4125 1.60312 9.525C1.53437 9.6375 1.5 9.7625 1.5 9.9V10.5ZM6 4.5C6.4125 4.5 6.76562 4.35312 7.05937 4.05937C7.35312 3.76562 7.5 3.4125 7.5 3C7.5 2.5875 7.35312 2.23438 7.05937 1.94062C6.76562 1.64687 6.4125 1.5 6 1.5C5.5875 1.5 5.23438 1.64687 4.94063 1.94062C4.64688 2.23438 4.5 2.5875 4.5 3C4.5 3.4125 4.64688 3.76562 4.94063 4.05937C5.23438 4.35312 5.5875 4.5 6 4.5Z"]},"docs":{"vb":"0 0 12 12","d":["M5.33333 12V8H6.66667V9.33333H12V10.6667H6.66667V12H5.33333ZM0 10.6667V9.33333H4V10.6667H0ZM2.66667 8V6.66667H0V5.33333H2.66667V4H4V8H2.66667ZM5.33333 6.66667V5.33333H12V6.66667H5.33333ZM8 4V0H9.33333V1.33333H12V2.66667H9.33333V4H8ZM0 2.66667V1.33333H6.66667V2.66667H0Z"]},"plus11":{"vb":"0 0 11 11","d":["M4.5 6H0V4.5H4.5V0H6V4.5H10.5V6H6V10.5H4.5V6Z"]},
+const ICONS = {"branchSm":{"vb":"0 0 8 10","d":["M1.625 9.75V2.07188L0.758333 2.925L0 2.16667L2.16667 0L4.33333 2.16667L3.575 2.93854L2.70833 2.07188V5.60625C3.02431 5.32639 3.3809 5.12552 3.77813 5.00365C4.17535 4.88177 4.57257 4.82083 4.96979 4.82083C5.0691 4.82083 5.16389 4.82535 5.25417 4.83437C5.34444 4.8434 5.43021 4.85694 5.51146 4.875L4.65833 4.00833L5.41667 3.25L7.58333 5.41667L5.41667 7.58333L4.65833 6.825L5.51146 5.95833C5.41215 5.94028 5.31285 5.92448 5.21354 5.91094C5.11424 5.8974 5.01493 5.89062 4.91563 5.89062C4.42812 5.89062 3.97899 6.0283 3.56823 6.30365C3.15747 6.57899 2.87083 7.00556 2.70833 7.58333V9.75H1.625Z"]},"terminalLg":{"vb":"0 0 20 16","d":["M2 16C1.45 16 0.979167 15.8042 0.5875 15.4125C0.195833 15.0208 0 14.55 0 14V2C0 1.45 0.195833 0.979167 0.5875 0.5875C0.979167 0.195833 1.45 0 2 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H2ZM2 14H18V4H2V14ZM5.5 13L4.1 11.6L6.675 9L4.075 6.4L5.5 5L9.5 9L5.5 13ZM10 13V11H16V13H10Z"]},"bolt":{"vb":"0 0 9 11","d":["M3.54792 8.775L6.35104 5.41667H4.18437L4.57708 2.34271L2.07188 5.95833H3.95417L3.54792 8.775ZM2.16667 10.8333L2.70833 7.04167H0L4.875 0H5.95833L5.41667 4.33333H8.66667L3.25 10.8333H2.16667Z"]},"arrowUp":{"vb":"0 0 11 11","d":["M4.66667 10.6667V2.55L0.933333 6.28333L0 5.33333L5.33333 0L10.6667 5.33333L9.73333 6.28333L6 2.55V10.6667H4.66667Z"]},"plus":{"vb":"0 0 10 10","d":["M4 5.33333H0V4H4V0H5.33333V4H9.33333V5.33333H5.33333V9.33333H4V5.33333Z"]},"terminalSm":{"vb":"0 0 14 11","d":["M1.33333 10.6667C0.966667 10.6667 0.652778 10.5361 0.391667 10.275C0.130556 10.0139 0 9.7 0 9.33333V1.33333C0 0.966667 0.130556 0.652778 0.391667 0.391667C0.652778 0.130556 0.966667 0 1.33333 0H12C12.3667 0 12.6806 0.130556 12.9417 0.391667C13.2028 0.652778 13.3333 0.966667 13.3333 1.33333V9.33333C13.3333 9.7 13.2028 10.0139 12.9417 10.275C12.6806 10.5361 12.3667 10.6667 12 10.6667H1.33333ZM1.33333 9.33333H12V2.66667H1.33333V9.33333ZM3.66667 8.66667L2.73333 7.73333L4.45 6L2.71667 4.26667L3.66667 3.33333L6.33333 6L3.66667 8.66667ZM6.66667 8.66667V7.33333H10.6667V8.66667H6.66667Z"]},"branch":{"vb":"0 0 11 11","d":["M4.66667 10.6667V5.6L1.33333 2.26667V4H0V0H4V1.33333H2.26667L6 5.06667V10.6667H4.66667ZM7.23333 4.4L6.26667 3.43333L8.4 1.33333H6.66667V0H10.6667V4H9.33333V2.26667L7.23333 4.4Z"]},"chevron":{"vb":"0 0 8 5","d":["M4 4.93333L0 0.933333L0.933333 0L4 3.06667L7.06667 0L8 0.933333L4 4.93333Z"]},"tune":{"vb":"0 0 12 12","d":["M5.33333 12V8H6.66667V9.33333H12V10.6667H6.66667V12H5.33333ZM0 10.6667V9.33333H4V10.6667H0ZM2.66667 8V6.66667H0V5.33333H2.66667V4H4V8H2.66667ZM5.33333 6.66667V5.33333H12V6.66667H5.33333ZM8 4V0H9.33333V1.33333H12V2.66667H9.33333V4H8ZM0 2.66667V1.33333H6.66667V2.66667H0Z"]},"plus11":{"vb":"0 0 11 11","d":["M4.5 6H0V4.5H4.5V0H6V4.5H10.5V6H6V10.5H4.5V6Z"]},
   // Not in the design; same Material Symbols family, needed for stop, close and the file tree.
   "stop":{"vb":"0 0 10 10","d":["M0 0H10V10H0Z"]},
   "close":{"vb":"0 0 24 24","d":["M6.4 19 5 17.6 10.6 12 5 6.4 6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4Z"]},
@@ -1102,7 +1087,7 @@ function notice(e) {
   $("footL").innerHTML = `<span class="err" role="alert">${esc(msg)}</span>`;
   clearTimeout(noticeTimer); noticeTimer = setTimeout(setFootL, 9000);
 }
-const setFootL = () => { $("footL").textContent = `Runs locally via console port ${location.port || 80}`; };
+const setFootL = () => { $("footL").textContent = ""; }; // only notices go here (the port is in the sidebar footer)
 
 // small screens
 $("actToggle").onclick = () => { const on = document.body.classList.toggle("show-act"); $("actToggle").setAttribute("aria-expanded", on); };

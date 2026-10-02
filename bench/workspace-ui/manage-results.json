@@ -1,5 +1,5 @@
 {
- "when": "2026-10-02T09:10:44.699Z",
+ "when": "2026-10-02T10:26:27.556Z",
  "added": [
   200,
   200
@@ -46,7 +46,7 @@
      "Work test",
      "Canary"
     ],
-    "focusedId": "work-test-c2da",
+    "focusedId": "work-test-b0e0",
     "afterReload": [
      "Executor",
      "Work test",
@@ -99,7 +99,7 @@
     "resumeRemovedRun": {
      "status": 400,
      "body": {
-      "error": "No workspace \"work-test-c2da\"."
+      "error": "No workspace \"work-test-b0e0\"."
      }
     },
     "workFolderFiles": [
