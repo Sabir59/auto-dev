@@ -1,5 +1,5 @@
 {
- "when": "2026-10-01T16:32:59.372Z",
+ "when": "2026-10-02T06:55:24.784Z",
  "added": [
   200,
   200
@@ -46,7 +46,7 @@
      "Work test",
      "Canary"
     ],
-    "focusedId": "work-test-c739",
+    "focusedId": "work-test-aeb8",
     "afterReload": [
      "Executor",
      "Work test",
@@ -55,16 +55,10 @@
    }
   },
   {
-   "step": "Executor has no remove button, and the API refuses it",
+   "step": "Executor also has a remove button (removing it only hides it: see sync-test.mjs)",
    "ok": true,
    "detail": {
-    "removeButtons": 0,
-    "api": {
-     "status": 400,
-     "body": {
-      "error": "Executor is this app's own folder and can't be removed."
-     }
-    }
+    "removeButtons": 1
    }
   },
   {
@@ -105,7 +99,7 @@
     "resumeRemovedRun": {
      "status": 400,
      "body": {
-      "error": "No workspace \"work-test-c739\"."
+      "error": "No workspace \"work-test-aeb8\"."
      }
     },
     "workFolderFiles": [

@@ -48,9 +48,9 @@ await step("Alt+↓ on Work test moves it down one; focus stays on it", async ()
   await page.reload({ waitUntil: "networkidle" });
   return { afterKey: await order(), focusedId: focused, afterReload: await order() };
 });
-await step("Executor has no remove button, and the API refuses it", async () => {
+await step("Executor also has a remove button (removing it only hides it: see sync-test.mjs)", async () => {
   await page.hover('[data-ws-item="console"]');
-  return { removeButtons: await page.locator('[data-ws-item="console"] [data-rm]').count(), api: await call("DELETE", "/workspaces/console") };
+  return { removeButtons: await page.locator('[data-ws-item="console"] [data-rm]').count() };
 });
 await step("remove → Cancel keeps it; remove → Remove takes it off the list; folder untouched", async () => {
   await page.click('#wsList [data-ws]:has-text("Canary")');

@@ -1,0 +1,202 @@
+{
+ "when": "2026-10-02T06:54:00.343Z",
+ "results": [
+  {
+   "step": "Executor: remove it (it has a run) → off the list, its run hidden",
+   "ok": true,
+   "detail": {
+    "runsShownBefore": 1,
+    "after": {
+     "wsId": "work-test-cf9f",
+     "rows": [
+      "work-test-cf9f"
+     ],
+     "current": [
+      "work-test-cf9f"
+     ],
+     "cName": "Work test",
+     "runs": 0,
+     "tree": [
+      "notes",
+      "src",
+      "README.md"
+     ],
+     "consistent": true
+    },
+    "resumeHiddenRun": {
+     "status": 400,
+     "body": {
+      "error": "No workspace \"console\"."
+     }
+    }
+   }
+  },
+  {
+   "step": "the other tab corrects itself within the refresh (it had Executor open)",
+   "ok": true,
+   "detail": {
+    "wsId": "work-test-cf9f",
+    "rows": [
+     "work-test-cf9f"
+    ],
+    "current": [
+     "work-test-cf9f"
+    ],
+    "cName": "Work test",
+    "runs": 0,
+    "tree": [
+     "notes",
+     "src",
+     "README.md"
+    ],
+    "consistent": true
+   }
+  },
+  {
+   "step": "add this app's folder again → Executor comes back with its run",
+   "ok": true,
+   "detail": {
+    "after": {
+     "wsId": "console",
+     "rows": [
+      "console",
+      "work-test-cf9f"
+     ],
+     "current": [
+      "console"
+     ],
+     "cName": "Executor",
+     "runs": 1,
+     "tree": [
+      "agent",
+      "bench",
+      "bridge",
+      "browser-adapter"
+     ],
+     "consistent": true
+    },
+    "resumeRestoredRun": 200
+   }
+  },
+  {
+   "step": "tab B has Work test open; tab A removes it → B falls back, no stale selection",
+   "ok": true,
+   "detail": {
+    "wsId": "console",
+    "rows": [
+     "console"
+    ],
+    "current": [
+     "console"
+    ],
+    "cName": "Executor",
+    "runs": 1,
+    "tree": [
+     "agent",
+     "bench",
+     "bridge",
+     "browser-adapter"
+    ],
+    "consistent": true
+   }
+  },
+  {
+   "step": "tab A adds a workspace and reorders; tab B shows the same list",
+   "ok": true,
+   "detail": {
+    "A": {
+     "wsId": "work-test-2bc1",
+     "rows": [
+      "work-test-2bc1",
+      "console"
+     ],
+     "current": [
+      "work-test-2bc1"
+     ],
+     "cName": "Work test",
+     "runs": 0,
+     "tree": [
+      "notes",
+      "src",
+      "README.md"
+     ],
+     "consistent": true
+    },
+    "B": {
+     "wsId": "console",
+     "rows": [
+      "work-test-2bc1",
+      "console"
+     ],
+     "current": [
+      "console"
+     ],
+     "cName": "Executor",
+     "runs": 1,
+     "tree": [
+      "agent",
+      "bench",
+      "bridge",
+      "browser-adapter"
+     ],
+     "consistent": true
+    }
+   }
+  },
+  {
+   "step": "remove everything → empty state; sending is refused politely; adding brings it back",
+   "ok": true,
+   "detail": {
+    "empty": {
+     "wsId": null,
+     "rows": [],
+     "current": [],
+     "cName": "No workspace",
+     "runs": 0,
+     "tree": [],
+     "consistent": true
+    },
+    "heading": "No workspace",
+    "notice": "Add a workspace first.",
+    "runsCreated": 0,
+    "restoredA": {
+     "wsId": "console",
+     "rows": [
+      "console"
+     ],
+     "current": [
+      "console"
+     ],
+     "cName": "Executor",
+     "runs": 1,
+     "tree": [
+      "agent",
+      "bench",
+      "bridge",
+      "browser-adapter"
+     ],
+     "consistent": true
+    },
+    "restoredB": {
+     "wsId": "console",
+     "rows": [
+      "console"
+     ],
+     "current": [
+      "console"
+     ],
+     "cName": "Executor",
+     "runs": 1,
+     "tree": [
+      "agent",
+      "bench",
+      "bridge",
+      "browser-adapter"
+     ],
+     "consistent": true
+    }
+   }
+  }
+ ],
+ "pageErrors": []
+}

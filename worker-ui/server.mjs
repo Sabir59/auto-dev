@@ -94,8 +94,8 @@ const norm = (p) => (process.platform === "win32" ? resolve(p).toLowerCase() : r
 const samePath = (a, b) => norm(a) === norm(b);
 function resolveWorkspace(id) {
   const list = existsSync(WORKSPACES) ? JSON.parse(readFileSync(WORKSPACES, "utf8")) : [];
-  const ws = id === "console" ? CONSOLE_WS : list.find((w) => w.id === id);
-  if (!ws) throw new Error(`No workspace "${id}".`);
+  const ws = id === "console" ? consoleWs(list) : list.find((w) => w.id === id);
+  if (!ws || ws.hidden) throw new Error(`No workspace "${id}".`);
   if (!PROFILES[ws.profile]) throw new Error(`Workspace "${id}" has an unknown profile "${ws.profile}".`);
   if (!isAbsolute(String(ws.root || ""))) throw new Error(`Workspace "${id}" root must be an absolute path.`);
   let root;
@@ -103,7 +103,11 @@ function resolveWorkspace(id) {
   if (!statSync(root).isDirectory()) throw new Error(`Workspace "${id}" root is not a folder: ${root}`);
   return { id, root, profile: ws.profile };
 }
-const CONSOLE_WS = { id: "console", name: "Executor", root: REPO, profile: "full" };
+// Executor, this app's own folder, is a workspace whose record has no root (it's always this
+// repo). Removing it only hides it ({ "id": "console", "hidden": true }); adding this folder again
+// brings it back, with its runs.
+const consoleWs = (list = readWorkspaces()) => { const m = list.find((w) => w.id === "console") || {}; return { id: "console", name: m.name || "Executor", root: REPO, profile: m.profile || "full", hidden: !!m.hidden }; };
+const withConsole = (list) => (list.some((w) => w.id === "console") ? list : [{ id: "console" }, ...list]);
 // workspaces.json is in display order. { "id": "console" } marks where Executor sits (first when absent).
 const readWorkspaces = () => (existsSync(WORKSPACES) ? JSON.parse(readFileSync(WORKSPACES, "utf8")) : []);
 const writeWorkspaces = (list) => { writeFileSync(WORKSPACES + ".tmp", JSON.stringify(list, null, 1)); renameSync(WORKSPACES + ".tmp", WORKSPACES); };
@@ -123,7 +127,7 @@ function gitInfo(root) {
 }
 function listWorkspaces() {
   const list = readWorkspaces();
-  return (list.some((w) => w.id === "console") ? list : [CONSOLE_WS, ...list]).map((w) => (w.id === "console" ? CONSOLE_WS : w)).map((w) => {
+  return withConsole(list).map((w) => (w.id === "console" ? consoleWs(list) : w)).filter((w) => !w.hidden).map((w) => {
     let root = null; try { root = resolveWorkspace(w.id).root; } catch {}
     return { id: w.id, name: w.name || w.id, root: root || w.root, profile: w.profile, available: !!root, ...(root ? gitInfo(root) : {}) };
   });
@@ -142,6 +146,10 @@ function addWorkspace({ name, path, mode }) {
   const list = readWorkspaces();
   const taken = listWorkspaces().find((w) => samePath(w.root, root));
   if (taken) throw new Error(`${root} is already the workspace "${taken.name}".`);
+  if (samePath(root, realpathSync.native(REPO))) { // Executor, removed earlier: bring it back where it was
+    writeWorkspaces(withConsole(list).map((w) => (w.id === "console" ? { id: "console", name, profile: mode === "work" ? "full" : "inspect" } : w)));
+    return listWorkspaces().find((w) => w.id === "console");
+  }
   const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "ws"}-${randomUUID().slice(0, 4)}`;
   const ws = { id, name, root, profile: mode === "work" ? "full" : "inspect" };
   writeWorkspaces([...list, ws]);
@@ -150,20 +158,19 @@ function addWorkspace({ name, path, mode }) {
 // Removing a workspace only takes it off this list: its folder and files are not touched. Its runs
 // stay in the history but can no longer be resumed or browsed (the binding check refuses them).
 function removeWorkspace(id) {
-  if (id === "console") throw new Error("Executor is this app's own folder and can't be removed.");
   const list = readWorkspaces();
-  if (!list.some((w) => w.id === id)) throw new Error(`No workspace "${id}".`);
+  if (!listWorkspaces().some((w) => w.id === id)) throw new Error(`No workspace "${id}".`);
   const busy = active();
-  if (busy && busy.meta.workspace?.id === id) throw new Error("A worker is running in this workspace. Stop or end it first.");
-  writeWorkspaces(list.filter((w) => w.id !== id));
+  if (busy && (busy.meta.workspace?.id || "console") === id) throw new Error("A worker is running in this workspace. Stop or end it first.");
+  writeWorkspaces(id === "console" ? withConsole(list).map((w) => (w.id === "console" ? { ...w, hidden: true } : w)) : list.filter((w) => w.id !== id));
   return listWorkspaces();
 }
 // New display order: the same workspaces, rearranged.
 function reorderWorkspaces(ids) {
   const now = listWorkspaces().map((w) => w.id);
   if (!Array.isArray(ids) || ids.length !== now.length || new Set(ids).size !== ids.length || !ids.every((i) => now.includes(i))) throw new Error("The workspace list changed. Reload and try again.");
-  const byId = new Map(readWorkspaces().filter((w) => w.id !== "console").map((w) => [w.id, w]));
-  writeWorkspaces(ids.map((i) => (i === "console" ? { id: "console" } : byId.get(i))));
+  const list = readWorkspaces(), byId = new Map(list.map((w) => [w.id, w]));
+  writeWorkspaces([...ids.map((i) => byId.get(i) || { id: i }), ...list.filter((w) => w.hidden)]);
   return listWorkspaces();
 }
 // Browse: the standard Windows "Select Folder" dialog, shown on this computer's desktop by the

@@ -411,7 +411,8 @@ let runId = null, meta = null, es = null;
 let view = "chat"; // chat | file
 let T = null; // per-run view state
 const ALIVE = ["starting", "running", "waiting"];
-const ws = () => WS.find((w) => w.id === wsId) || WS[0];
+const NONE = { id: null, name: "No workspace", root: "", profile: "inspect", branch: null, commit: null, none: true };
+const ws = () => WS.find((w) => w.id === wsId) || WS[0] || NONE;
 const modeOf = (w) => (w?.profile === "inspect" ? "Inspect" : "Work");
 const runWs = (m) => m?.workspace?.id || "console";
 
@@ -491,18 +492,32 @@ const dur = (ms) => (ms < 1000 ? `${Math.max(1, Math.round(ms))}ms` : `${(ms / 1
 // ---------------- workspaces ----------------
 async function loadWorkspaces() {
   WS = await api("GET", "/workspaces");
-  if (!WS.find((w) => w.id === wsId)) wsId = "console";
+  if (!WS.find((w) => w.id === wsId)) wsId = WS[0]?.id || null;
   renderWorkspaces();
 }
+// Another tab (or the API) may have added, removed or reordered workspaces: pick that up with the
+// regular refresh and when the tab comes back, and never stay on a workspace that's gone.
+let wsSig = "";
+async function syncWorkspaces() {
+  if (dragId) return;
+  let list; try { list = await api("GET", "/workspaces"); } catch { return; }
+  const sig = JSON.stringify(list.map((w) => [w.id, w.name, w.profile, w.available, w.branch, w.commit]));
+  if (sig === wsSig) return;
+  wsSig = sig; WS = list;
+  if (removing && !WS.find((w) => w.id === removing)) removing = null;
+  if (!WS.find((w) => w.id === wsId)) selectWorkspace(WS[0]?.id || null); else renderWorkspaces();
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) syncWorkspaces(); });
+window.addEventListener("focus", syncWorkspaces);
 function renderWorkspaces() {
   const w = ws();
   $("wsList").innerHTML = WS.map((x) => x.id === removing ? `<li class="wsi"><div class="addform m11" role="group" aria-label="Remove ${esc(x.name)}">
-      <div style="color:var(--t2)">Remove <strong>${esc(x.name)}</strong> from the list?</div><div class="help">The folder and its files stay on disk.</div>
+      <div style="color:var(--t2)">Remove <strong>${esc(x.name)}</strong> from the list?</div><div class="help">The folder and its files stay on disk.${x.id === "console" ? " Executor is this app's own folder: add it again any time to bring it back with its runs." : ""}</div>
       <div class="err" id="rmErr" role="alert"></div>
       <div class="acts"><button class="btn m11" data-rm-cancel>Cancel</button><button class="btn danger m11" data-rm-ok="${esc(x.id)}">Remove</button></div></div></li>`
     : `<li class="wsi" draggable="true" data-ws-item="${esc(x.id)}"><button class="row ws" data-ws="${esc(x.id)}" aria-current="${x.id === wsId}" title="${esc(x.root)}${x.available ? "" : " (folder not found)"}&#10;Drag, or Alt+↑/↓, to reorder">
       <span class="grow">${x.id === wsId ? '<span class="dot"></span>' : ""}<span class="ell" style="${x.available ? "" : "color:var(--t3)"}">${esc(x.name)}</span></span>
-      <span class="meta">${x.branch ? `<span class="m12 ell" style="max-width:80px">${esc(x.branch)}</span>` : ""}${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button>${x.id === "console" ? "" : `<button class="x" data-rm="${esc(x.id)}" aria-label="Remove ${esc(x.name)} from the list">${svgIcon("close", 12, 12)}</button>`}</li>`).join("");
+      <span class="meta">${x.branch ? `<span class="m12 ell" style="max-width:80px">${esc(x.branch)}</span>` : ""}${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button><button class="x" data-rm="${esc(x.id)}" aria-label="Remove ${esc(x.name)} from the list">${svgIcon("close", 12, 12)}</button></li>`).join("") || '<li class="empty">No workspaces. Add one to start.</li>';
   $("swMenu").innerHTML = WS.map((x) => `<button role="menuitem" data-ws="${esc(x.id)}" class="m12"><span class="dot ${x.id === wsId ? "" : "grey"}"></span><span class="ell" style="flex:1">${esc(x.name)}</span><span style="color:var(--t3)">${modeOf(x)}</span></button>`).join("");
   $("swLabel").textContent = w.branch ? `${w.name} / ${w.branch}` : w.name;
   $("cName").textContent = w.name;
@@ -529,7 +544,7 @@ $("wsList").onclick = async (e) => {
     try {
       WS = await api("DELETE", `/workspaces/${encodeURIComponent(ok.dataset.rmOk)}`);
       removing = null;
-      if (!WS.find((w) => w.id === wsId)) selectWorkspace("console"); else renderWorkspaces();
+      if (!WS.find((w) => w.id === wsId)) selectWorkspace(WS[0]?.id || null); else renderWorkspaces();
     } catch (err) { $("rmErr").textContent = err.message; }
     return;
   }
@@ -661,7 +676,7 @@ function renderWorker() {
 
 // ---------------- files ----------------
 const open = new Set();
-async function loadTree() { open.clear(); $("tree").innerHTML = ""; await renderDir("", $("tree"), 0); }
+async function loadTree() { open.clear(); $("tree").innerHTML = ""; if (wsId) await renderDir("", $("tree"), 0); }
 async function renderDir(path, ul, depth) {
   let entries;
   try { entries = await api("GET", `/tree?workspace=${encodeURIComponent(wsId)}&path=${encodeURIComponent(path)}`); }
@@ -720,7 +735,11 @@ async function openRun(id) {
   if (es) es.close();
   try { meta = await api("GET", `/runs/${id}`); } catch (e) { return notice(e.message); }
   runId = id; view = "chat";
-  if (runWs(meta) !== wsId) { wsId = runWs(meta); store.set("ws", wsId); renderWorkspaces(); loadTree(); }
+  if (runWs(meta) !== wsId) {
+    if (!WS.find((w) => w.id === runWs(meta))) await syncWorkspaces();
+    if (WS.find((w) => w.id === runWs(meta))) { wsId = runWs(meta); store.set("ws", wsId); renderWorkspaces(); loadTree(); }
+    else notice("This run's workspace was removed. You can read the conversation but not continue it.");
+  }
   renderRuns(); renderWorkspaces();
   // The server replays a run's whole event log on every connection (including automatic
   // reconnects), so the view is rebuilt from scratch each time the stream opens.
@@ -801,6 +820,11 @@ function scheduleCanvas() { if (canvasQueued) return; canvasQueued = true; reque
 function renderCanvas() {
   if (view !== "chat") return;
   const c = $("canvas"), w = ws();
+  if (!runId && w.none) {
+    c.innerHTML = `<div class="emptyst"><div class="motif">${svgIcon("terminalLg", 20, 16)}</div><h1>No workspace</h1>
+      <p>Add a workspace to start: choose a project folder with “+ Add workspace” and pick Inspect or Work.</p></div>`;
+    return;
+  }
   if (!runId) {
     c.innerHTML = `<div class="emptyst"><div class="motif">${svgIcon("terminalLg", 20, 16)}</div><h1>${esc(w.name)}</h1>
       <p>${w.profile === "inspect" ? "Ask the worker to inspect this repository: read code, trace an implementation or review a component." : "Ask the worker to inspect your repository, analyze an implementation, debug an issue, or test components."}</p>
@@ -878,6 +902,7 @@ cbox.addEventListener("drop", (e) => { if (!hasFiles(e)) return; e.preventDefaul
 
 // ---------------- sending (nothing runs unless the person sends) ----------------
 async function send() {
+  if (!runId && ws().none) { notice("Add a workspace first."); return; }
   const st = runId ? (T?.status || meta?.status) : null;
   if (["starting", "running"].includes(st)) { await api("POST", `/runs/${runId}/stop`).catch(notice); return; }
   const text = $("input").value.trim();
@@ -937,7 +962,7 @@ $("navToggle").onclick = () => { const on = document.body.classList.toggle("show
   await Promise.all([loadPrompts().catch(notice), loadRuns()]);
   loadTree();
   if (ACTIVE) openRun(ACTIVE.id); else openNewChat();
-  setInterval(() => { if (!document.hidden) loadRuns(); }, 4000);
+  setInterval(() => { if (!document.hidden) { loadRuns(); syncWorkspaces(); } }, 4000);
 })();
 </script>
 </body>

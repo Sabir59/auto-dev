@@ -90,7 +90,7 @@ The full workflow suite (`workflow-test.mjs`) still passes **12/12** on the same
 - **Remove:** hover a workspace and press ×, then Remove in the inline confirm ("The folder and its files stay on disk").
   - It only takes the workspace off the list (`DELETE /workspaces/:id`).
   - The workspace's runs stay in history but can't be resumed or browsed: the binding check refuses them.
-  - Executor (this app's own folder) can't be removed.
+  - Executor (this app's own folder) can be removed too; that only hides it, and adding the folder again brings it back with its runs (see below).
   - A workspace with a running worker can't be removed until the run is stopped or ended.
 - **Reorder:** drag a workspace, or press Alt+↑/↓ on a focused one. The order is saved to `workspaces.json` via `POST /workspaces/order`; Executor's position is kept as an `{ "id": "console" }` marker.
 
@@ -98,7 +98,7 @@ The full workflow suite (`workflow-test.mjs`) still passes **12/12** on the same
 1. The starting order was Executor, Canary, Work test.
 2. Work test was dragged above Executor, and the order was the same after a reload and in `workspaces.json`.
 3. Alt+↓ moved Work test down one place, focus stayed on it, and the order persisted.
-4. Executor showed no × and the API refused to remove it.
+4. Executor has a × as well (since the sync change below; it was protected before).
 5. Remove → Cancel kept Canary; Remove → Remove took it off the list and selection fell back to Executor. The folder still exists with the same 80 entries.
 6. Removing Work test while its worker was waiting was refused. After End run it was removed, resuming its run was refused ("No workspace"), and the folder still had the same 5 entries.
 7. A foreign Origin was refused (403) for both remove and reorder; a bad order and an unknown id were refused.
@@ -127,3 +127,21 @@ The composer's **+** now attaches files to a message, as do **paste** (e.g. a sc
 10. The workspace had 11 files with the same hashes before and after: nothing was written into it.
 
 `workflow-test.mjs` still passes **12/12** on the same build.
+
+## Executor removable, pages kept in sync (2026-10-02)
+
+**The reported bug:** an open page could keep an old workspace list after the list changed in another tab (VS Code's browser and Chrome were both open). It then showed Executor without its selection mark, "no runs", and the Files of a workspace that list no longer showed. A fresh load was always correct, and no single-tab sequence of add, remove, re-add, drag, Alt+arrow and cancel reproduced it.
+
+**The fix:** each page re-reads `/workspaces` with its 4-second refresh, on focus and when the tab becomes visible. If its selected workspace is gone, it falls back to the first one, or to an empty "No workspace" state. A run whose workspace was removed can still be read, but the page doesn't switch to that workspace.
+
+**Executor can be removed.** Removing it hides it (`{ "id": "console", "hidden": true }`). Its runs can't be resumed while it is hidden. Adding this app's folder again restores Executor in its old place, with its runs.
+
+`sync-test.mjs`, two tabs in one browser profile: **6/6 passed** (`sync-results.json`), and every snapshot's list, selection, runs and Files agreed with the server:
+1. Executor, which has a run, was removed. Its run was hidden, and resuming it was refused.
+2. The other tab, which had Executor open, corrected itself within the refresh.
+3. Adding this app's folder again brought Executor back with its run, and resuming that run worked (200).
+4. Tab B had Work test open when tab A removed it. B fell back with no stale selection.
+5. Tab A added a workspace and reordered it, and B showed the same list.
+6. With every workspace removed, the "No workspace" empty state appeared and sending was refused ("Add a workspace first", no run created). Adding Executor back restored both tabs.
+
+`manage-test.mjs` passes 7/7 and `workflow-test.mjs` 12/12 on the same build.
