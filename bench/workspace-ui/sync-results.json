@@ -1,5 +1,5 @@
 {
- "when": "2026-10-02T10:27:14.462Z",
+ "when": "2026-10-02T12:22:25.292Z",
  "results": [
   {
    "step": "Executor: remove it (it has a run) → off the list, its run hidden",
@@ -7,12 +7,12 @@
    "detail": {
     "runsShownBefore": 1,
     "after": {
-     "wsId": "work-test-c9dc",
+     "wsId": "work-test-ec2d",
      "rows": [
-      "work-test-c9dc"
+      "work-test-ec2d"
      ],
      "current": [
-      "work-test-c9dc"
+      "work-test-ec2d"
      ],
      "cName": "Work test",
      "runs": 0,
@@ -34,12 +34,12 @@
    "step": "the other tab corrects itself within the refresh (it had Executor open)",
    "ok": true,
    "detail": {
-    "wsId": "work-test-c9dc",
+    "wsId": "work-test-ec2d",
     "rows": [
-     "work-test-c9dc"
+     "work-test-ec2d"
     ],
     "current": [
-     "work-test-c9dc"
+     "work-test-ec2d"
     ],
     "cName": "Work test",
     "runs": 0,
@@ -58,7 +58,7 @@
      "wsId": "console",
      "rows": [
       "console",
-      "work-test-c9dc"
+      "work-test-ec2d"
      ],
      "current": [
       "console"
@@ -103,13 +103,13 @@
    "ok": true,
    "detail": {
     "A": {
-     "wsId": "work-test-4e0d",
+     "wsId": "work-test-70a2",
      "rows": [
-      "work-test-4e0d",
+      "work-test-70a2",
       "console"
      ],
      "current": [
-      "work-test-4e0d"
+      "work-test-70a2"
      ],
      "cName": "Work test",
      "runs": 0,
@@ -122,7 +122,7 @@
     "B": {
      "wsId": "console",
      "rows": [
-      "work-test-4e0d",
+      "work-test-70a2",
       "console"
      ],
      "current": [

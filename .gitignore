@@ -7,3 +7,8 @@ exports/*.svg
 worker-ui/workspaces.json
 worker-ui/mcp.*.json
 worker-ui/runs/*.att/
+worker-ui/workers.json
+worker-ui/workers/
+worker-ui/runs/*.worker.*
+worker-ui/runs/*.mcp.json
+figma-read/

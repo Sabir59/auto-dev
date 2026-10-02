@@ -82,6 +82,31 @@ aside.left { background: var(--low); display: flex; flex-direction: column; min-
 .add.row { color: var(--t3); }
 .add .i { color: var(--t3); margin-right: 0; }
 .star { color: var(--star); font: 500 11px/14px var(--sans); width: 11px; text-align: center; flex: none; }
+/* workers: the editor uses the viewer card and the add-workspace form's controls */
+.wkdot { color: var(--pri); font: 500 10px/14px var(--sans); }
+.wform { padding: 12px; display: flex; flex-direction: column; gap: 16px; }
+.wf { display: flex; flex-direction: column; gap: 4px; }
+.wf > .lab { padding: 0; }
+.wf .sub { color: var(--t3); }
+.wrow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wfield, .wtext { width: 100%; background: var(--surf); color: var(--t1); border: 0; border-radius: 2px; padding: 6px 8px; font: 400 12px/20px var(--sans); resize: vertical; }
+.caps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.cap { display: flex; gap: 8px; align-items: flex-start; padding: 4px 6px; border-radius: 2px; color: var(--t2); cursor: pointer; }
+.cap:hover { background: var(--surf); }
+.cap input { margin: 3px 0 0; accent-color: var(--pri-c); }
+.cap .t { display: flex; flex-direction: column; } .cap .d { color: var(--t3); }
+.cap .off { color: var(--star); }
+.reqs { display: flex; flex-direction: column; gap: 4px; }
+.req { display: grid; grid-template-columns: minmax(0, 1fr) 110px minmax(0, 160px) 24px; gap: 6px; align-items: center; }
+.req select { background: var(--surf); color: var(--t1); border: 0; border-radius: 2px; padding: 4px 6px; font: 400 12px/20px var(--sans); }
+.wstat { display: flex; align-items: center; gap: 4px; color: var(--t3); }
+.wstat.ok { color: var(--ok); } .wstat.bad { color: var(--err); }
+.wmem { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.wmem li { display: flex; gap: 8px; align-items: center; padding: 2px 6px; color: var(--t2); }
+.wmem li .when { color: var(--t3); flex: none; }
+.wfoot { display: flex; gap: 6px; align-items: center; justify-content: flex-end; padding-top: 4px; }
+.wfoot .msg { flex: 1; }
+.wfoot .btn { height: 28px; }
 .wsi { position: relative; }
 .wsi.dragging { opacity: .4; }
 .wsi.drop-before::before, .wsi.drop-after::after { content: ""; position: absolute; left: 8px; right: 8px; height: 2px; border-radius: 1px; background: var(--pri); pointer-events: none; }
@@ -302,6 +327,11 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
 
 <aside class="left" aria-label="Workspaces, favourites, recent runs and files">
   <div class="lscroll">
+    <nav class="sect" aria-labelledby="lWk">
+      <div class="lab" id="lWk">Workers</div>
+      <ul id="wkList"></ul>
+      <button class="row add" id="addWk"><svg class="i" width="9" height="9" data-i="plus"></svg><span>New worker</span></button>
+    </nav>
     <nav class="sect" aria-labelledby="lWs">
       <div class="lab" id="lWs">Workspaces</div>
       <ul id="wsList"></ul>
@@ -364,6 +394,7 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
           <div class="l">
             <button class="attach" id="attachBtn" aria-label="Attach files" title="Attach images, PDFs or text files (or paste / drop them here)"><svg class="i" width="11" height="11" data-i="plus11"></svg></button>
             <input type="file" id="fileIn" multiple hidden accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/*,.md,.json,.csv,.txt,.log,.xml,.yml,.yaml,.svg,.js,.jsx,.mjs,.ts,.tsx,.css,.scss,.html,.py,.sql,.sh,.env.example">
+            <span class="cbadge m11" title="The worker that answers new chats"><span class="wkdot" aria-hidden="true">◆</span><span class="ell" id="wkName">General</span></span>
             <span class="cbadge m11"><span class="dot" id="bDot"></span><span class="ell" id="bName"></span><span class="sl" id="bSl">/</span><span class="br" id="bBr"></span></span>
             <span class="mtag m11" id="mTag"><svg class="i" width="9" height="11" data-i="bolt"></svg><span id="mName"></span></span>
           </div>
@@ -542,7 +573,7 @@ function renderWorkspaces() {
 }
 function selectWorkspace(id, { newChat = true } = {}) {
   wsId = id; store.set("ws", id);
-  renderWorkspaces(); renderRuns(); loadTree(); loadGit();
+  renderWorkspaces(); renderRuns(); loadTree(); loadGit(); loadWorkers();
   if (newChat) openNewChat();
   closeMenus();
 }
@@ -607,7 +638,7 @@ $("swMenu").onclick = (e) => { const b = e.target.closest("[data-ws]"); if (b) s
 $("switcher").onclick = (e) => { e.stopPropagation(); const open = $("swMenu").hidden; closeMenus(); $("swMenu").hidden = !open; $("switcher").setAttribute("aria-expanded", open); if (open) $("swMenu").querySelector("button")?.focus(); };
 function closeMenus() { $("swMenu").hidden = true; $("switcher").setAttribute("aria-expanded", "false"); }
 document.addEventListener("click", (e) => { if (!e.target.closest("#swMenu")) closeMenus(); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); } else if (view === "file" || view === "version") closeFile(); document.body.classList.remove("show-act", "show-nav"); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); } else if (view === "file" || view === "version" || view === "worker") closeFile(); document.body.classList.remove("show-act", "show-nav"); } });
 
 // Add workspace: the person names a folder and picks Inspect or Work. The server checks the folder.
 let fMode = "inspect";
@@ -730,10 +761,118 @@ async function openFile({ path, workspace, run }) {
   } catch (e) { body.innerHTML = `<div class="vnote m11">${esc(e.message)}</div>`; }
 }
 function closeFile() {
+  wkEdit = null;
   verOpen = null; renderVersions();
   view = "chat";
   document.querySelectorAll("#tree [aria-selected]").forEach((b) => b.setAttribute("aria-selected", "false"));
   renderCanvas();
+}
+
+// ---------------- workers ----------------
+// Who answers new chats. "General" is the worker with no definition (everything the workspace
+// allows). A defined worker brings its own identity, tools, requirements, rules and memory; the
+// console turns them into the run's context and tool set (docs/worker-platform.md).
+let WK = { workers: [], capabilities: [], resources: [], profile: "full" }, wkId = store.get("worker") || null, wkEdit = null;
+const wk = () => WK.workers.find((x) => x.id === wkId) || null;
+async function loadWorkers() {
+  try { WK = await api("GET", `/workers?workspace=${encodeURIComponent(wsId || "console")}`); } catch { return; }
+  if (wkId && !wk()) { wkId = null; store.set("worker", ""); }
+  renderWorkers();
+  if (view === "chat" && !runId) renderCanvas();
+}
+function renderWorkers() {
+  const rows = [{ id: null, name: "General", general: true }, ...WK.workers];
+  $("wkList").innerHTML = rows.map((x) => {
+    const sel = (x.id || null) === wkId, missing = (x.status || []).filter((r) => !r.ok && r.need === "required").length;
+    return `<li class="wsi"><button class="row ws" data-wk="${esc(x.id || "")}" aria-current="${sel}" title="${esc(x.general ? "The general worker: every tool this workspace allows, no definition" : x.mission || x.name)}">
+      <span class="grow">${sel ? '<span class="dot"></span>' : ""}<span class="ell">${esc(x.name)}</span></span>
+      <span class="meta m11">${x.general ? "" : missing ? `<span style="color:var(--err)">${missing} missing</span>` : `v${x.version}`}</span></button>
+      ${x.general ? "" : `<button class="x" data-wk-edit="${esc(x.id)}" aria-label="Define ${esc(x.name)}">${svgIcon("tune", 12, 12)}</button>`}</li>`;
+  }).join("");
+  $("wkName").textContent = wk()?.name || "General";
+}
+$("wkList").onclick = (e) => {
+  const ed = e.target.closest("[data-wk-edit]"), b = e.target.closest("[data-wk]");
+  if (ed) return openWorkerEditor(ed.dataset.wkEdit);
+  if (b) { wkId = b.dataset.wk || null; store.set("worker", wkId || ""); renderWorkers(); openNewChat(); }
+};
+$("addWk").onclick = () => openWorkerEditor(null);
+const BLANK = { name: "", mission: "", specialization: "", capabilities: ["files.read"], knowledge: "", workflow: [], limitations: [], requirements: [], onMissing: "" };
+// Defining a worker. Every field here reaches the run: identity, tools, steps, knowledge, limits
+// and requirements go into its context, capabilities decide its tools, requirements are checked.
+function openWorkerEditor(id, note) {
+  view = "worker"; verOpen = null; renderVersions();
+  const d = id ? WK.workers.find((x) => x.id === id) : { ...BLANK };
+  if (!d) return;
+  wkEdit = { id, reqs: (d.requirements || []).map((r) => ({ ...r })), confirmDelete: false };
+  const inspect = WK.profile === "inspect";
+  const capRows = WK.capabilities.map((c) => {
+    const workOnly = !c.profiles.includes("inspect");
+    return `<li><label class="cap"><input type="checkbox" data-cap="${esc(c.id)}" ${d.capabilities.includes(c.id) ? "checked" : ""}><span class="t"><span>${esc(c.label)}${workOnly ? ` <span class="d m11">· Work workspaces only</span>` : ""}${workOnly && inspect ? ` <span class="off m11">· not in this workspace</span>` : ""}</span><span class="d m11">${esc(c.tools)}</span></span></label></li>`;
+  }).join("");
+  const title = id ? `${d.name} · v${d.version}` : "New worker";
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="${esc(title)}"><div class="vbar m11"><span class="ell">${esc(title)}</span><span class="ro">${id ? "edits apply to new chats" : ""}</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
+    <div class="vbody"><form class="wform" id="wkForm" novalidate>
+      <div class="wrow2">
+        <label class="wf"><span class="lab">Name</span><input class="wfield" id="wkN" maxlength="60" value="${esc(d.name)}" placeholder="Figma Specialist" autocomplete="off"></label>
+        <label class="wf"><span class="lab">Specialization</span><input class="wfield" id="wkS" maxlength="200" value="${esc(d.specialization)}" placeholder="Figma design and implementation" autocomplete="off"></label>
+      </div>
+      <label class="wf"><span class="lab">Mission</span><textarea class="wtext" id="wkM" rows="2" maxlength="600" placeholder="What this worker is for, in a sentence or two">${esc(d.mission)}</textarea></label>
+      <div class="wf"><span class="lab">What it can use</span><span class="sub m11">Only checked tools are loaded. A tool gives no access by itself: requirements and the workspace decide that.</span><ul class="caps">${capRows}</ul></div>
+      <label class="wf"><span class="lab">How it works</span><span class="sub m11">One step per line, in order.</span><textarea class="wtext" id="wkW" rows="5" placeholder="Understand the request&#10;Check access to everything it needs&#10;Inspect&#10;Plan&#10;Do the work&#10;Verify&#10;Report">${esc(d.workflow.join("\n"))}</textarea></label>
+      <label class="wf"><span class="lab">What it knows</span><span class="sub m11">Domain knowledge, conventions, operating principles.</span><textarea class="wtext" id="wkK" rows="6">${esc(d.knowledge)}</textarea></label>
+      <label class="wf"><span class="lab">Hard limits</span><span class="sub m11">One per line. Things it must never do, even if asked.</span><textarea class="wtext" id="wkL" rows="4">${esc(d.limitations.join("\n"))}</textarea></label>
+      <div class="wf"><span class="lab">What it requires</span><span class="sub m11">Checked at the start of every run. Missing access makes the worker stop and ask for it.</span><div class="reqs" id="wkReqs"></div><button type="button" class="row add" id="wkAddReq" style="width:auto"><svg class="i" width="9" height="9" viewBox="${ICONS.plus.vb}"><path d="${ICONS.plus.d[0]}"/></svg><span>Add requirement</span></button></div>
+      <label class="wf"><span class="lab">When something is missing</span><span class="sub m11">How it should ask for what it needs.</span><textarea class="wtext" id="wkO" rows="2" maxlength="1000" placeholder="Ask in plain words, and say exactly what the person has to do.">${esc(d.onMissing)}</textarea></label>
+      ${id ? `<div class="wf"><span class="lab">Memory</span><span class="sub m11">What it chose to remember (REMEMBER: lines). Given to its next runs; never part of its definition.</span><ul class="wmem" id="wkMem"><li class="when">Loading…</li></ul></div>` : ""}
+      <div class="wfoot">${id ? '<button type="button" class="btn danger m11" id="wkDel">Delete</button>' : ""}<span class="msg m11" id="wkMsg" role="status">${esc(note || "")}</span><button type="button" class="btn m11" id="wkCancel">Cancel</button><button type="submit" class="btn pri m11">Save</button></div>
+    </form></div></div>`;
+  wireViewer();
+  renderReqs(d);
+  $("wkAddReq").onclick = () => { const r = WK.resources[0]; wkEdit.reqs.push({ resource: r.resource, access: r.access, need: "required" }); renderReqs(d); };
+  $("wkCancel").onclick = closeFile;
+  $("wkForm").onsubmit = (e) => { e.preventDefault(); saveWorker(); };
+  if (id) { $("wkDel").onclick = () => deleteWorker(id); loadMemory(id); }
+  $("wkN").focus();
+}
+function renderReqs(d) {
+  const statusOf = (r) => (wkEdit.id ? d.status || [] : []).find((x) => x.resource === r.resource && x.access === r.access);
+  $("wkReqs").innerHTML = wkEdit.reqs.length ? wkEdit.reqs.map((r, i) => {
+    const st = statusOf(r);
+    return `<div class="req"><select data-ri="${i}" data-k="res" aria-label="Resource">${WK.resources.map((x) => `<option value="${esc(x.resource + ":" + x.access)}" ${x.resource === r.resource && x.access === r.access ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select>
+      <select data-ri="${i}" data-k="need" aria-label="Required or optional"><option value="required" ${r.need === "required" ? "selected" : ""}>Required</option><option value="optional" ${r.need === "optional" ? "selected" : ""}>Optional</option></select>
+      <span class="wstat m11 ${st ? (st.ok ? "ok" : "bad") : ""}" title="${esc(st && !st.ok ? st.how : "")}">${st ? `<span class="dot ${st.ok ? "" : "red"}"></span>${esc(st.state)}` : "checked when saved"}</span>
+      <button type="button" class="iconbtn" data-ri-del="${i}" aria-label="Remove requirement">${svgIcon("close", 12, 12)}</button></div>`;
+  }).join("") : '<span class="sub m11">None.</span>';
+  $("wkReqs").onchange = (e) => { const el = e.target, i = +el.dataset.ri; if (el.dataset.k === "res") { const [res, acc] = el.value.split(":"); wkEdit.reqs[i] = { ...wkEdit.reqs[i], resource: res, access: acc }; } else wkEdit.reqs[i].need = el.value; renderReqs(d); };
+  $("wkReqs").onclick = (e) => { const b = e.target.closest("[data-ri-del]"); if (b) { wkEdit.reqs.splice(+b.dataset.riDel, 1); renderReqs(d); } };
+}
+async function saveWorker() {
+  const body = { name: $("wkN").value, specialization: $("wkS").value, mission: $("wkM").value, workflow: $("wkW").value, knowledge: $("wkK").value, limitations: $("wkL").value, onMissing: $("wkO").value,
+    capabilities: [...document.querySelectorAll("[data-cap]")].filter((x) => x.checked).map((x) => x.dataset.cap), requirements: wkEdit.reqs };
+  try {
+    const w = wkEdit.id ? await api("PUT", `/workers/${encodeURIComponent(wkEdit.id)}`, body) : await api("POST", "/workers", body);
+    wkId = w.id; store.set("worker", w.id);
+    await loadWorkers();
+    openWorkerEditor(w.id, `Saved v${w.version}. New chats use it; earlier runs keep the version they started with.`);
+  } catch (e) { $("wkMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+async function deleteWorker(id) {
+  if (!wkEdit.confirmDelete) { wkEdit.confirmDelete = true; $("wkDel").textContent = "Delete: sure?"; $("wkMsg").textContent = "Its past runs stay readable; its memory is deleted."; return; }
+  try { await api("DELETE", `/workers/${encodeURIComponent(id)}`); if (wkId === id) { wkId = null; store.set("worker", ""); } await loadWorkers(); closeFile(); }
+  catch (e) { $("wkMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+async function loadMemory(id) {
+  let m; try { m = await api("GET", `/workers/${encodeURIComponent(id)}/memory`); } catch { return; }
+  const ul = $("wkMem"); if (!ul) return;
+  ul.innerHTML = m.length ? m.map((x, i) => `<li><span class="when m11">${esc(new Date(x.at).toLocaleDateString())}</span><span style="flex:1">${esc(x.text)}</span><button type="button" class="iconbtn" data-mem-del="${i}" aria-label="Forget this">${svgIcon("close", 12, 12)}</button></li>`).join("") + '<li><button type="button" class="btn m11" id="wkMemClear">Clear memory</button></li>' : '<li class="when m11">Nothing yet.</li>';
+  ul.onclick = async (e) => {
+    const b = e.target.closest("[data-mem-del]");
+    if (b) await api("DELETE", `/workers/${encodeURIComponent(id)}/memory/${b.dataset.memDel}`);
+    else if (e.target.id === "wkMemClear") await api("DELETE", `/workers/${encodeURIComponent(id)}/memory`);
+    else return;
+    loadMemory(id); loadWorkers();
+  };
 }
 
 // ---------------- versions (the workspace's own Git history) ----------------
@@ -909,6 +1048,17 @@ function onEvent(ev) {
   } else if (t === "note" && /^Resuming/.test(ev.summary)) {
     addCard({ title: "Resumed", meta: "", body: "Same conversation in a new worker process. Browser pages and logins start fresh." });
     T.items.push({ k: "s", text: "Resumed in a new worker process" });
+  } else if (t === "worker") {
+    const d = JSON.parse(ev.detail || "{}");
+    addCard({ title: "Worker", meta: ev.summary, body: `${esc((d.capabilities || []).join(" · ") || "No tools")}${d.blocked?.length ? `<div class="cx">Not in this workspace: ${esc(d.blocked.join(", "))}</div>` : ""}${d.memory ? `<div class="cx">${d.memory} remembered item${d.memory === 1 ? "" : "s"}</div>` : ""}` });
+  } else if (t === "requirements") {
+    const list = JSON.parse(ev.detail || "[]");
+    addCard({ title: "Requirements", meta: ev.summary, metaCls: list.some((r) => !r.ok && r.need === "required") ? "bad" : "ok", body: list.length ? list.map((r) => `<div class="wstat ${r.ok ? "ok" : "bad"} m11"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)} · ${esc(r.need)} · ${esc(r.state)}${r.detail ? " " + esc(r.detail) : ""}</div>`).join("") : "None declared" });
+  } else if (t === "needs") {
+    addCard({ title: "Needs access", meta: "Waiting for you", metaCls: "bad", body: esc(ev.summary) });
+    T.items.push({ k: "e", text: `Needs: ${ev.summary}` });
+  } else if (t === "memory") {
+    addCard({ title: ev.ok === false ? "Not remembered" : "Remembered", meta: "", metaCls: ev.ok === false ? "bad" : "ok", body: esc(ev.summary) });
   } else if (t === "commit") {
     const d = JSON.parse(ev.detail || "{}");
     addCard({ title: "Version", meta: "Committed", metaCls: "ok", body: `<code>${esc(ev.summary.split(" ")[0])}</code> ${esc(ev.summary.split(" ").slice(1).join(" "))}${d.files ? ` · ${d.files} file${d.files === 1 ? "" : "s"}` : ""}` });
@@ -965,9 +1115,10 @@ function renderCanvas() {
     return;
   }
   if (!runId) {
-    c.innerHTML = `<div class="emptyst"><div class="motif">${svgIcon("terminalLg", 20, 16)}</div><h1>${esc(w.name)}</h1>
-      <p>${w.profile === "inspect" ? "Ask the worker to inspect this repository: read code, trace an implementation or review a component." : "Ask the worker to inspect your repository, analyze an implementation, debug an issue, or test components."}</p>
-      <div class="tagline m11"><span title="${esc(w.root)}"><span class="dot grey"></span><span class="ell" style="max-width:360px">${esc(w.root)}</span></span><span><span class="dot"></span>${modeOf(w)}</span></div></div>`;
+    const k = wk();
+    c.innerHTML = `<div class="emptyst"><div class="motif">${svgIcon("terminalLg", 20, 16)}</div><h1>${esc(k ? k.name : w.name)}</h1>
+      <p>${k ? `${esc(k.mission || k.specialization || "")} ${k.mission ? "" : ""}<br><span style="color:var(--t3)">in ${esc(w.name)}</span>` : w.profile === "inspect" ? "Ask the worker to inspect this repository: read code, trace an implementation or review a component." : "Ask the worker to inspect your repository, analyze an implementation, debug an issue, or test components."}</p>
+      <div class="tagline m11"><span title="${esc(w.root)}"><span class="dot grey"></span><span class="ell" style="max-width:360px">${esc(w.root)}</span></span><span><span class="dot"></span>${modeOf(w)}</span>${(k?.status || []).map((r) => `<span title="${esc(r.ok ? "" : r.how)}"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)}: ${esc(r.state)}</span>`).join("")}</div></div>`;
     return;
   }
   const atEnd = c.scrollHeight - c.scrollTop - c.clientHeight < 80;
@@ -1055,7 +1206,7 @@ async function send() {
       // (it can be continued later); a busy one has to be stopped first.
       if (ACTIVE && ACTIVE.status !== "waiting") throw new Error("The worker is busy with another conversation. Open it from Recent runs and stop it first.");
       if (ACTIVE) await endAndWait(ACTIVE.id);
-      const m = await api("POST", "/runs", { prompt: text, workspace: wsId, attachments });
+      const m = await api("POST", "/runs", { prompt: text, workspace: wsId, attachments, ...(wkId ? { worker: wkId } : {}) });
       $("input").value = ""; autosize(); clearPending();
       await loadRuns(); await openRun(m.id);
     } else {
@@ -1099,7 +1250,7 @@ $("navToggle").onclick = () => { const on = document.body.classList.toggle("show
   T = freshState();
   try { await loadWorkspaces(); } catch (e) { notice(e); return; }
   await Promise.all([loadPrompts().catch(notice), loadRuns()]);
-  loadTree(); loadGit();
+  loadTree(); loadGit(); await loadWorkers();
   if (ACTIVE) openRun(ACTIVE.id); else openNewChat();
   setInterval(() => { if (!document.hidden) { loadRuns(); syncWorkspaces(); } }, 4000);
 })();

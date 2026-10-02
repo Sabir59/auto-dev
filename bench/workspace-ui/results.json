@@ -1,10 +1,10 @@
 {
- "when": "2026-10-02T10:26:13.827Z",
+ "when": "2026-10-02T12:21:35.399Z",
  "results": [
   {
    "step": "add an Inspect workspace through the form",
    "ok": true,
-   "seconds": 0.3,
+   "seconds": 0.2,
    "detail": {
     "selected": "Canary",
     "mode": "Inspect",
@@ -69,23 +69,23 @@
   {
    "step": "start a run, see live activity, get the result (Inspect)",
    "ok": true,
-   "seconds": 11,
+   "seconds": 10.5,
    "detail": {
     "liveSeen": true,
     "sendIsStop": "Stop the worker",
     "cards": [
      "Worker started",
-     "Files Success · 71ms",
+     "Files Success · 68ms",
      "Done Complete",
      "Turn finished 7s"
     ],
-    "reply": "DONEThe README says this is a \"Canary workspace\", a test repo meant to be thrown away."
+    "reply": "DONEREADME.md says this is a \"Canary workspace\", a test repository meant to be thrown away."
    }
   },
   {
    "step": "follow-up in the same worker process",
    "ok": true,
-   "seconds": 2.4,
+   "seconds": 7.2,
    "detail": {
     "reply": "README.md",
     "workerStartedCards": 1,
@@ -105,7 +105,7 @@
   {
    "step": "End run, then it appears in Recent runs as finished",
    "ok": true,
-   "seconds": 1.1,
+   "seconds": 1.2,
    "detail": {
     "recent": [
      "Read README.md in this folder and summarise it in one sentence. just now"
@@ -115,7 +115,7 @@
   {
    "step": "reload, open the run from Recent runs, continue it (resume)",
    "ok": true,
-   "seconds": 7.4,
+   "seconds": 13.7,
    "detail": {
     "replayedMessages": 4,
     "resumedCard": 1,
@@ -125,7 +125,7 @@
   {
    "step": "Stop a busy run with the send button",
    "ok": true,
-   "seconds": 0.2,
+   "seconds": 0.4,
    "detail": {
     "status": "Stopped",
     "thread": [
@@ -136,7 +136,7 @@
   {
    "step": "Work workspace: the worker writes a file, it shows as an artifact, it opens in the viewer",
    "ok": true,
-   "seconds": 10.5,
+   "seconds": 13.6,
    "detail": {
     "artifact": "notes/summary.md",
     "content": "Workspace artifact test",

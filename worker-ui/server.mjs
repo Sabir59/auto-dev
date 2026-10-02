@@ -23,6 +23,7 @@ import { join, dirname, resolve, extname, delimiter, relative, isAbsolute, sep, 
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
+import { api as figmaApi, CRED_FILE as FIGMA_CRED_FILE } from "../figma-reader/reader.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "..");
@@ -32,6 +33,8 @@ const DATA = resolve(process.env.WORKER_CONSOLE_DATA || HERE);
 const RUNS = join(DATA, "runs");
 const PROMPTS = join(DATA, "prompts.json");
 const WORKSPACES = join(DATA, "workspaces.json");
+const WORKERS = join(DATA, "workers.json");
+const MEMORY = join(DATA, "workers");
 const PORT = Number(process.env.WORKER_CONSOLE_PORT) || 8799;
 mkdirSync(RUNS, { recursive: true });
 if (!existsSync(PROMPTS)) writeFileSync(PROMPTS, "[]\n");
@@ -73,6 +76,126 @@ const mcpConfig = (profile) => {
   return file;
 };
 
+// ---- workers ------------------------------------------------------------------------
+// A worker definition says who a worker is, what it may use, what it needs and its rules. It runs
+// on this same runtime: it only changes the context file, tools and MCP servers spawnWorker passes
+// to claude.exe. It can narrow what the workspace's profile allows, never widen it (a capability
+// that the profile doesn't allow is simply not loaded). The general worker (no definition) keeps
+// the profile's full tool set, exactly as before workers existed. See docs/worker-platform.md.
+//
+// Capabilities name real tools. A capability turns tools on; it grants access to nothing.
+const FIGMA_READ_TOOLS = INSPECT_MCP.filter((t) => t.startsWith("mcp__figma-executor__"));
+const CAPABILITIES = {
+  "files.read": { label: "Read files in the workspace", tools: "Read, Glob, Grep", builtins: ["Read", "Glob", "Grep"], allow: ["Read", "Glob", "Grep"], profiles: ["full", "inspect"] },
+  "files.write": { label: "Edit files in the workspace", tools: "Write, Edit", builtins: ["Write", "Edit"], allow: ["Write", "Edit"], profiles: ["full"] },
+  shell: { label: "Run node and curl", tools: "Bash(node:*), Bash(curl:*)", builtins: ["Bash"], allow: ["Bash(node:*)", "Bash(curl:*)"], profiles: ["full"] },
+  web: { label: "Search and fetch the web", tools: "WebSearch, WebFetch", builtins: ["WebSearch", "WebFetch"], allow: ["WebSearch", "WebFetch"], profiles: ["full"] },
+  browser: { label: "Use a browser", tools: "browser-executor (in Inspect: open and read pages only)", mcp: "browser-executor", allow: { full: ["mcp__browser-executor"], inspect: ["mcp__browser-executor__browser_navigate", "mcp__browser-executor__browser_get_dom_state"] }, profiles: ["full", "inspect"] },
+  "figma.read": { label: "Read Figma designs from a link", tools: "figma-reader: figma_read_design, figma_access_status (REST API)", mcp: "figma-reader", allow: ["mcp__figma-reader"], profiles: ["full", "inspect"] },
+  "figma.plugin.read": { label: "Read the open Figma file (plugin)", tools: "figma-executor read tools; the plugin must be running", mcp: "figma-executor", allow: FIGMA_READ_TOOLS, profiles: ["full", "inspect"] },
+  "figma.plugin.edit": { label: "Change the open Figma file (plugin)", tools: "figma-executor, all tools; the plugin must be running", mcp: "figma-executor", allow: ["mcp__figma-executor"], profiles: ["full"] },
+};
+const MCP_SERVERS = {
+  "figma-executor": () => ({ command: process.execPath, args: [join(REPO, "mcp", "server.mjs")] }),
+  "figma-reader": () => ({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")] }),
+  "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser } }),
+};
+// What a defined worker gets in a given profile: the context, the tools and the MCP servers.
+function workerRuntime(def, profile) {
+  const usable = def.capabilities.filter((c) => CAPABILITIES[c]?.profiles.includes(profile));
+  const builtins = ["ToolSearch", ...new Set(usable.flatMap((c) => CAPABILITIES[c].builtins || []))];
+  const allow = ["ToolSearch", ...usable.flatMap((c) => { const a = CAPABILITIES[c].allow; return Array.isArray(a) ? a : a[profile] || []; })];
+  const servers = [...new Set(usable.map((c) => CAPABILITIES[c].mcp).filter(Boolean))];
+  const base = profile === "inspect" ? ["--restricted"] : ["--setting-sources", "project,local"];
+  return { usable, blocked: def.capabilities.filter((c) => !usable.includes(c)), servers,
+    args: ["--settings", WORKER_SETTINGS, ...base, "--tools", builtins.join(","), "--allowedTools", ...allow, "--permission-prompts", "none"] };
+}
+
+// Requirements are generic {resource, access, need}; this registry knows how to check each one
+// now, without showing any secret. A missing requirement doesn't block the run: the worker is
+// told, and the tools themselves refuse without access.
+let figmaCheck = { at: 0, value: null };
+const RESOURCES = {
+  figma: { label: "Figma", access: {
+    read: { label: "read designs", how: "Connect Figma on this computer once: a Figma personal access token with file_content:read, or the OAuth flow (figma-reader/README.md). The connected account must be able to open the file.",
+      async check() {
+        if (!existsSync(FIGMA_CRED_FILE)) return { ok: false, state: "Not connected" };
+        if (Date.now() - figmaCheck.at < 300000 && figmaCheck.value) return figmaCheck.value;
+        let v; try { const me = await figmaApi("/v1/me"); v = { ok: true, state: "Connected", detail: me.handle ? `as ${me.handle}` : "" }; }
+        catch (e) { v = { ok: false, state: e.status === 401 || e.status === 403 ? "Authorization rejected" : "Can't verify", detail: clip(e.message, 120) }; }
+        figmaCheck = { at: Date.now(), value: v }; return v;
+      } },
+    edit: { label: "change the open file", how: "Open the Figma file and run the AI Executor plugin, so it connects to the bridge.",
+      async check() {
+        try { const r = await fetch("http://127.0.0.1:8787/command", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "PING", params: {} }), signal: AbortSignal.timeout(2500) }); const j = await r.json(); return j.ok ? { ok: true, state: "Connected" } : { ok: false, state: "Plugin not running" }; }
+        catch { return { ok: false, state: "Bridge not running" }; }
+      } },
+  } },
+  workspace: { label: "Workspace folder", access: {
+    read: { label: "read files", how: "Run the worker in a workspace.", async check() { return { ok: true, state: "Available" }; } },
+    write: { label: "edit files", how: "Run the worker in a Work workspace (Inspect workspaces are read-only).", async check(ctx) { return ctx.profile === "full" ? { ok: true, state: "Available" } : { ok: false, state: "Inspect workspace" }; } },
+  } },
+  browser: { label: "Browser", access: {
+    use: { label: "open web pages", how: "Install the browser adapter (browser-adapter, npm install).", async check() { return existsSync(join(REPO, "browser-adapter", "node_modules", "playwright")) ? { ok: true, state: "Available" } : { ok: false, state: "Not installed" }; } },
+  } },
+};
+async function requirementStatus(def, ctx) {
+  return Promise.all((def.requirements || []).map(async (r) => {
+    const a = RESOURCES[r.resource]?.access[r.access];
+    const st = a ? await a.check(ctx).catch((e) => ({ ok: false, state: "Check failed", detail: e.message })) : { ok: false, state: "Unknown requirement" };
+    return { ...r, label: `${RESOURCES[r.resource]?.label || r.resource}: ${a?.label || r.access}`, how: a?.how || "", ...st };
+  }));
+}
+
+const readWorkers = () => (existsSync(WORKERS) ? JSON.parse(readFileSync(WORKERS, "utf8")) : []);
+const writeWorkers = (list) => { writeFileSync(WORKERS + ".tmp", JSON.stringify(list, null, 1)); renameSync(WORKERS + ".tmp", WORKERS); };
+const lines = (v, max, len) => (Array.isArray(v) ? v : String(v || "").split(/\r?\n/)).map((x) => String(x).trim()).filter(Boolean).slice(0, max).map((x) => x.slice(0, len));
+// Everything the person can set, checked: unknown capabilities or requirements are refused.
+function normalizeWorker(b, prev) {
+  const name = String(b.name || "").trim();
+  if (!name || name.length > 60) throw new Error("Give the worker a name (up to 60 characters).");
+  const capabilities = [...new Set((b.capabilities || []).map(String))];
+  for (const c of capabilities) if (!CAPABILITIES[c]) throw new Error(`Unknown capability "${c}".`);
+  const requirements = (b.requirements || []).map((r) => ({ resource: String(r.resource || ""), access: String(r.access || ""), need: r.need === "optional" ? "optional" : "required" }));
+  for (const r of requirements) if (!RESOURCES[r.resource]?.access[r.access]) throw new Error(`Unknown requirement "${r.resource} ${r.access}".`);
+  const now = new Date().toISOString();
+  return { id: prev?.id || `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "worker"}-${randomUUID().slice(0, 4)}`, name,
+    mission: String(b.mission || "").trim().slice(0, 600), specialization: String(b.specialization || "").trim().slice(0, 200),
+    capabilities, knowledge: String(b.knowledge || "").trim().slice(0, 20000), workflow: lines(b.workflow, 30, 300), limitations: lines(b.limitations, 30, 300),
+    requirements: requirements.filter((r, i) => requirements.findIndex((x) => x.resource === r.resource && x.access === r.access) === i), onMissing: String(b.onMissing || "").trim().slice(0, 1000),
+    version: (prev?.version || 0) + 1, createdAt: prev?.createdAt || now, updatedAt: now };
+}
+// Memory: what a worker chose to remember from its work (REMEMBER: lines), kept apart from its
+// definition, shown to the person, and given to its later runs as a labelled section.
+const memPath = (id) => join(MEMORY, `${id}.memory.json`);
+const readMemory = (id) => (/^[\w-]+$/.test(id) && existsSync(memPath(id)) ? JSON.parse(readFileSync(memPath(id), "utf8")) : []);
+const writeMemory = (id, list) => { mkdirSync(MEMORY, { recursive: true }); writeFileSync(memPath(id), JSON.stringify(list, null, 1)); };
+const SECRETISH = /(figd_|ghp_|github_pat_|sk-[a-z0-9]|xox[bp]-|AKIA[0-9A-Z]{8}|-----BEGIN|password\s*[:=]|api[_-]?key\s*[:=]|token\s*[:=])/i;
+
+// The worker's context for one run: the shared instructions, then this worker, then what was
+// checked at start, then its memory. Written once per run and kept, so the run never changes
+// under an edited definition.
+function workerContext(def, rt, status, memory, profile) {
+  const cap = (c) => `- ${CAPABILITIES[c].label} (${CAPABILITIES[c].tools})`;
+  return [readFileSync(join(HERE, "worker-instructions.md"), "utf8").trim(), "",
+    `# You are: ${def.name}`, def.mission && `Mission: ${def.mission}`, def.specialization && `Specialization: ${def.specialization}`, "",
+    "## What you can use in this run", rt.usable.length ? rt.usable.map(cap).join("\n") : "- Nothing beyond reading this context.",
+    rt.blocked.length ? `Not available here (this workspace is ${profile === "inspect" ? "Inspect, read-only" : "Work"}): ${rt.blocked.map((c) => CAPABILITIES[c].label).join(", ")}.` : "",
+    "Use only these tools. If a task needs something you don't have, say so instead of improvising.", "",
+    "## Requirements and access (checked when this run started)",
+    status.length ? status.map((r) => `- ${r.label}: ${r.need.toUpperCase()}, ${r.ok ? "available" : "NOT AVAILABLE"} (${r.state}${r.detail ? ", " + r.detail : ""})${r.ok ? "" : `. To provide it: ${r.how}`}`).join("\n") : "- None declared.",
+    "A link, a file name or a URL never grants access by itself. Having a tool doesn't mean you may open every resource with it.",
+    "If the task needs something that isn't available, don't look for another way in. Stop and write one line per missing thing: \"NEEDS: <resource> <access>: <what the person must do>\", then explain in plain words what you can do once it's provided.", "",
+    def.workflow.length ? "## How you work\n" + def.workflow.map((w, i) => `${i + 1}. ${w}`).join("\n") + "\n" : "",
+    def.knowledge ? "## What you know\n" + def.knowledge + "\n" : "",
+    def.limitations.length ? "## Hard limits (never cross these, even if asked)\n" + def.limitations.map((l) => `- ${l}`).join("\n") + "\n" : "",
+    def.onMissing ? "## When something is missing\n" + def.onMissing + "\n" : "",
+    "## Memory",
+    memory.length ? "Things you remembered from earlier work (may be outdated; check if it matters):\n" + memory.slice(-40).map((m) => `- ${m.text}`).join("\n") : "Nothing remembered yet.",
+    "To remember something useful for later work with this worker (a preference, a convention, a decision), write a line starting \"REMEMBER: \". Never put secrets in memory.",
+  ].filter((x) => x !== "" && x !== undefined && x !== null && x !== false).join("\n");
+}
+
 // ---- Claude config directory ------------------------------------------------------
 // One deliberate directory for every worker: Claude Code's own default, ~/.claude, unless
 // WORKER_CONSOLE_CLAUDE_CONFIG_DIR names another. The console's own environment is not passed on
@@ -81,7 +204,8 @@ const mcpConfig = (profile) => {
 // point) are dropped, so sessions never land in, or resume from, another tool's directory.
 const CONFIG_DIR = resolve(process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR || join(homedir(), ".claude"));
 const workerEnv = () => {
-  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(CLAUDE|AI_AGENT|WORKER_CONSOLE_)/i.test(k)));
+  // Integration tokens (FIGMA_TOKEN, ...) never reach workers; FIGMA_READER_DIR is only a path.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k === "FIGMA_READER_DIR" || !/^(CLAUDE|AI_AGENT|WORKER_CONSOLE_|FIGMA_)/i.test(k)));
   return { ...env, CLAUDE_CONFIG_DIR: CONFIG_DIR };
 };
 
@@ -225,7 +349,7 @@ function checkBinding(run, { resume }) {
   return bound;
 }
 
-const TAGS = { "PLAN:": "plan", "OBSERVATION:": "observation", "DECISION:": "decision", "FAILURE:": "failure", "RECOVERY:": "recovery", "VERIFICATION:": "verification", "ARTIFACT:": "artifact", "DONE:": "done" };
+const TAGS = { "NEEDS:": "needs", "REMEMBER:": "remember", "PLAN:": "plan", "OBSERVATION:": "observation", "DECISION:": "decision", "FAILURE:": "failure", "RECOVERY:": "recovery", "VERIFICATION:": "verification", "ARTIFACT:": "artifact", "DONE:": "done" };
 
 // Launch the real claude binary directly (no shell), so Stop kills the worker itself,
 // not just a cmd.exe wrapper. Falls back to the `claude` shim through a shell.
@@ -240,7 +364,7 @@ function claudeCommand() {
 const CLAUDE = claudeCommand();
 
 const envOf = (tool) =>
-  tool.startsWith("mcp__figma-executor") ? "Figma"
+  tool.startsWith("mcp__figma-executor") || tool.startsWith("mcp__figma-reader") ? "Figma"
   : tool.startsWith("mcp__browser-executor") ? "Browser"
   : ["Read", "Write", "Edit", "Glob", "Grep", "NotebookEdit"].includes(tool) ? "Files"
   : tool === "Bash" || tool === "PowerShell" ? "Shell"
@@ -312,7 +436,9 @@ function translate(run, msg) {
           if (!tag) continue;
           const text = line.slice(tag.length).trim();
           if (TAGS[tag] === "artifact") addArtifact(run, relTo(run.meta.workspace.root, text.replace(/[`"]/g, "")), "Files");
+          else if (TAGS[tag] === "remember") remember(run, text);
           else emit(run, { type: TAGS[tag], summary: text });
+          if (TAGS[tag] === "needs") run.meta.needs = [...(run.meta.needs || []), text];
           if (TAGS[tag] === "done") { run.meta.done = text; }
           if (TAGS[tag] === "failure") run.meta.failures++;
         }
@@ -344,6 +470,14 @@ function translate(run, msg) {
 }
 // A path relative to the workspace root when it's inside it (the worker writes absolute paths).
 const relTo = (root, p) => { const r = String(p || "").replace(/\\/g, "/"), base = root.replace(/\\/g, "/"); return r.toLowerCase().startsWith(base.toLowerCase() + "/") ? r.slice(base.length + 1) : r; };
+function remember(run, text) {
+  const w = run.meta.worker;
+  if (!w) return emit(run, { type: "note", summary: "REMEMBER ignored: the general worker has no memory." });
+  if (!text || SECRETISH.test(text)) return emit(run, { type: "memory", summary: "Not remembered: it looked like a secret.", ok: false });
+  const list = readMemory(w.id);
+  if (!list.some((m) => m.text === text)) { list.push({ text: text.slice(0, 500), at: new Date().toISOString(), run: run.meta.id }); writeMemory(w.id, list.slice(-200)); }
+  emit(run, { type: "memory", summary: text });
+}
 function addArtifact(run, path, env) {
   // Only files inside the workspace are deliverables; worker scratch files elsewhere (absolute paths) are not.
   if (!path || /^([a-z]:|\/|\\)/i.test(path) || run.meta.artifacts.includes(path)) return;
@@ -351,13 +485,23 @@ function addArtifact(run, path, env) {
   emit(run, { type: "artifact", env, summary: path });
 }
 
+const snapPath = (id) => join(RUNS, `${id}.worker.json`);
 function spawnWorker(run, { resume }) {
   const ws = checkBinding(run, { resume });
+  // A defined worker runs from the snapshot taken when its run started (definition, context,
+  // tools), so editing the worker later never changes this conversation.
+  const snap = run.meta.worker && existsSync(snapPath(run.meta.id)) ? JSON.parse(readFileSync(snapPath(run.meta.id), "utf8")) : null;
+  let mcpFile = mcpConfig(ws.profile), promptFile = join(HERE, "worker-instructions.md"), profileArgs = PROFILES[ws.profile].args;
+  if (snap) {
+    mcpFile = join(RUNS, `${run.meta.id}.mcp.json`);
+    writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(snap.runtime.servers.map((n) => [n, MCP_SERVERS[n](ws.profile)])) }, null, 1));
+    promptFile = join(RUNS, `${run.meta.id}.worker.md`); profileArgs = snap.runtime.args;
+  }
   const args = [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
-    "--mcp-config", mcpConfig(ws.profile), "--strict-mcp-config",
-    "--append-system-prompt-file", join(HERE, "worker-instructions.md"),
-    ...PROFILES[ws.profile].args,
+    "--mcp-config", mcpFile, "--strict-mcp-config",
+    "--append-system-prompt-file", promptFile,
+    ...profileArgs,
     ...(resume ? ["--resume", run.meta.sessionId] : []),
   ];
   const child = spawn(CLAUDE.cmd, CLAUDE.shell ? args.map((a) => (/[\s*()|&,]/.test(a) ? `"${a}"` : a)) : args, { cwd: ws.root, shell: CLAUDE.shell, env: workerEnv() });
@@ -437,15 +581,31 @@ function sendToWorker(run, text, atts = []) {
   run.child.stdin.write(JSON.stringify({ type: "user", message: { role: "user", content } }) + "\n");
 }
 
-function newRun(prompt, workspaceId = "console", atts = []) {
+async function newRun(prompt, workspaceId = "console", atts = [], workerId = null) {
   if (active()) throw new Error("A worker is already running. Stop or end it first.");
   const workspace = resolveWorkspace(workspaceId);
+  const def = workerId ? readWorkers().find((w) => w.id === workerId) : null;
+  if (workerId && !def) throw new Error(`No worker "${workerId}".`);
+  let snap = null;
+  if (def) {
+    const runtime = workerRuntime(def, workspace.profile);
+    const status = await requirementStatus(def, { profile: workspace.profile });
+    snap = { definition: def, runtime, status, memory: readMemory(def.id).slice(-40) };
+    snap.context = workerContext(def, runtime, status, snap.memory, workspace.profile);
+  }
+  if (active()) throw new Error("A worker is already running. Stop or end it first.");
   const id = new Date().toISOString().replace(/[:.]/g, "-");
-  const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
+  const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, ...(def ? { worker: { id: def.id, name: def.name, version: def.version } } : {}), configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
   const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
   writeFileSync(run.file, ""); writeFileSync(run.raw, "");
   runs.set(id, run);
   saveMeta(run);
+  if (snap) {
+    writeFileSync(snapPath(id), JSON.stringify(snap, null, 1));
+    writeFileSync(join(RUNS, `${id}.worker.md`), snap.context);
+    emit(run, { type: "worker", summary: `${def.name} (v${def.version})`, detail: JSON.stringify({ capabilities: snap.runtime.usable.map((c) => CAPABILITIES[c].label), blocked: snap.runtime.blocked.map((c) => CAPABILITIES[c].label), memory: snap.memory.length }) });
+    emit(run, { type: "requirements", summary: snap.status.length ? `${snap.status.filter((r) => r.ok).length}/${snap.status.length} available` : "none declared", detail: JSON.stringify(snap.status.map(({ label, need, ok, state, detail }) => ({ label, need, ok, state, detail }))) });
+  }
   emit(run, { type: "status", summary: "starting" });
   spawnWorker(run, { resume: false });
   sendToWorker(run, prompt, atts);
@@ -779,6 +939,27 @@ http.createServer(async (req, res) => {
     if (parts[0] === "workspaces" && parts[1] && parts.length === 2 && req.method === "DELETE") return json(res, 200, removeWorkspace(decodeURIComponent(parts[1])));
     if (url.pathname === "/pick-folder" && req.method === "POST") return json(res, 200, await pickFolder());
 
+    // workers: definitions (with live requirement status for a workspace) and their memory
+    if (url.pathname === "/workers" && req.method === "GET") {
+      let profile = "full"; try { profile = resolveWorkspace(url.searchParams.get("workspace") || "console").profile; } catch {}
+      const workers = await Promise.all(readWorkers().map(async (w) => ({ ...w, status: await requirementStatus(w, { profile }), memoryCount: readMemory(w.id).length, runtime: workerRuntime(w, profile) })));
+      return json(res, 200, { workers, profile,
+        capabilities: Object.entries(CAPABILITIES).map(([id, c]) => ({ id, label: c.label, tools: c.tools, profiles: c.profiles })),
+        resources: Object.entries(RESOURCES).flatMap(([id, r]) => Object.entries(r.access).map(([access, a]) => ({ resource: id, access, label: `${r.label}: ${a.label}`, how: a.how }))) });
+    }
+    if (url.pathname === "/workers" && req.method === "POST") { const w = normalizeWorker(await body(req)); writeWorkers([...readWorkers(), w]); return json(res, 200, w); }
+    if (parts[0] === "workers" && parts[1]) {
+      const list = readWorkers(), i = list.findIndex((w) => w.id === parts[1]);
+      if (i < 0) return json(res, 404, { error: "no such worker" });
+      if (parts[2] === "memory") {
+        if (req.method === "GET") return json(res, 200, readMemory(parts[1]));
+        if (req.method === "DELETE") { const m = readMemory(parts[1]); if (parts[3] !== undefined) m.splice(Number(parts[3]), 1); else m.length = 0; writeMemory(parts[1], m); return json(res, 200, m); }
+      }
+      if (!parts[2] && req.method === "PUT") { list[i] = normalizeWorker(await body(req), list[i]); writeWorkers(list); return json(res, 200, list[i]); }
+      // Its runs keep their snapshots (definition and context), so they stay readable and resumable.
+      if (!parts[2] && req.method === "DELETE") { const [gone] = list.splice(i, 1); writeWorkers(list); if (existsSync(memPath(gone.id))) writeFileSync(memPath(gone.id), "[]"); return json(res, 200, { deleted: gone.id }); }
+    }
+
     // versions (git)
     const W = url.searchParams.get("workspace") || "";
     if (url.pathname === "/git" && req.method === "GET") return json(res, 200, await gitSummary(W));
@@ -798,10 +979,11 @@ http.createServer(async (req, res) => {
     // runs
     if (url.pathname === "/runs" && req.method === "GET") return json(res, 200, { runs: allMetas(), active: active()?.meta.id || null });
     if (url.pathname === "/runs" && req.method === "POST") {
-      const { prompt, workspace, attachments } = await body(req);
+      const b = await body(req);
+      const { prompt, workspace, attachments } = b;
       const atts = readAttachments(attachments);
       if (!prompt?.trim() && !atts.length) throw new Error("Empty message");
-      return json(res, 200, newRun(String(prompt || "").trim(), workspace === undefined ? "console" : String(workspace), atts).meta);
+      return json(res, 200, (await newRun(String(prompt || "").trim(), workspace === undefined ? "console" : String(workspace), atts, b.worker ? String(b.worker) : null)).meta);
     }
     if (parts[0] === "runs" && parts[1]) {
       const run = loadRun(parts[1]);
@@ -827,7 +1009,7 @@ http.createServer(async (req, res) => {
       }
       if (action === "stop") { if (alive(run)) { run.stopRequested = true; run.child.kill(); } return json(res, 200, run.meta); }
       if (action === "end") { if (alive(run)) { run.endRequested = true; run.child.stdin.end(); } return json(res, 200, run.meta); }
-      if (action === "restart") return json(res, 200, newRun(run.meta.prompt, checkBinding(run, { resume: false }).id).meta);
+      if (action === "restart") return json(res, 200, (await newRun(run.meta.prompt, checkBinding(run, { resume: false }).id, [], run.meta.worker?.id || null)).meta);
     }
     if (url.pathname === "/events") {
       const run = loadRun(url.searchParams.get("run") || "");
