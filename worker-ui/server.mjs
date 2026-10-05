@@ -107,8 +107,11 @@ function workerRuntime(def, profile) {
   const allow = ["ToolSearch", ...usable.flatMap((c) => { const a = CAPABILITIES[c].allow; return Array.isArray(a) ? a : a[profile] || []; })];
   const servers = [...new Set(usable.map((c) => CAPABILITIES[c].mcp).filter(Boolean))];
   const base = profile === "inspect" ? ["--restricted"] : ["--setting-sources", "project,local"];
-  return { usable, blocked: def.capabilities.filter((c) => !usable.includes(c)), servers,
-    args: ["--settings", WORKER_SETTINGS, ...base, "--tools", builtins.join(","), "--allowedTools", ...allow, "--permission-prompts", "none"] };
+  // Renders the worker makes (figma_export_node, browser_screenshot) land in the adapters' own
+  // exports folders; it may read those, and only those, outside its workspace, to look at its work.
+  const exportsDirs = [...new Set(usable.flatMap((c) => (c.startsWith("figma.plugin") ? [join(REPO, "exports")] : c === "browser" ? [join(REPO, "browser-adapter", "exports")] : [])))];
+  return { usable, blocked: def.capabilities.filter((c) => !usable.includes(c)), servers, exportsDirs,
+    args: ["--settings", WORKER_SETTINGS, ...base, "--tools", builtins.join(","), "--allowedTools", ...allow, ...(exportsDirs.length ? ["--add-dir", ...exportsDirs] : []), "--permission-prompts", "none"] };
 }
 
 // Requirements are generic {resource, access, need}; this registry knows how to check each one
@@ -161,7 +164,7 @@ function normalizeWorker(b, prev) {
   const now = new Date().toISOString();
   return { id: prev?.id || `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "worker"}-${randomUUID().slice(0, 4)}`, name,
     mission: String(b.mission || "").trim().slice(0, 600), specialization: String(b.specialization || "").trim().slice(0, 200),
-    capabilities, knowledge: String(b.knowledge || "").trim().slice(0, 20000), workflow: lines(b.workflow, 30, 300), limitations: lines(b.limitations, 30, 300),
+    capabilities, knowledge: String(b.knowledge || "").trim().slice(0, 20000), workflow: lines(b.workflow, 30, 600), limitations: lines(b.limitations, 30, 300),
     requirements: requirements.filter((r, i) => requirements.findIndex((x) => x.resource === r.resource && x.access === r.access) === i), onMissing: String(b.onMissing || "").trim().slice(0, 1000),
     version: (prev?.version || 0) + 1, createdAt: prev?.createdAt || now, updatedAt: now };
 }

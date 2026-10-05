@@ -269,3 +269,24 @@ Design: `docs/worker-platform.md`.
 On the same build, `workflow-test.mjs` passes 12/12, `manage-test.mjs` 7/7, `sync-test.mjs` 6/6, `attach-test.mjs` 10/10 and `versions-test.mjs` 14/14.
 
 **Prepared, not yet proven with a real Figma account:** the "authorized" path, where a valid credential leads to `figma_read_design` returning the outline and render. It needs a real Figma token (see `figma-reader/README.md`).
+
+## Worker: Senior UI/UX Design Engineer (2026-10-06)
+
+The definition lives in `workers/senior-uiux-design-engineer.json`. It's created through `POST /workers`, like any worker.
+- **Capabilities:** read files, read and change the open Figma file (plugin), read Figma designs from a link, browser.
+- **Requirements:** Figma edit (plugin connected) is required; Figma read by link is optional.
+- **Context:** its brief, the Mode A/B workflow and the design → execute → inspect → critique → refine loop, the design principles (including WCAG 2.2 AA numbers), the hard limits, and the summary format.
+
+**Platform changes it needed:**
+- **Seeing its own renders:** workers with Figma plugin or browser capabilities may read the adapters' own exports folders (`--add-dir exports`, `browser-adapter/exports`), and nothing else outside their workspace. Without this a worker in another workspace couldn't see its own renders.
+- **Workflow steps** may be up to 600 characters.
+
+`designer-worker-test.mjs`: **4/4 passed** (`designer-worker-results.json`):
+1. Created from its file, with knowledge, workflow and limits unchanged.
+2. Access checked first. The Figma plugin was really connected to an open file (statuses: edit "Connected", read-by-link "Not connected"). Asked only to check access, it made 0 edit calls.
+3. The run's context holds the mission, the Mode A/B workflow, the inspect loop, "4.5:1", the limits and the summary headings. The tools add read access to both exports folders.
+4. Working in another workspace, it opened a render from the Figma exports folder (Read returned an image) and described it correctly.
+
+**Note:** an earlier version of step 2 sent the worker a redesign request ("Redesign the onboarding screen…") while a real Figma file, "trekking hiking", was open.
+- **What it did:** it used only read tools, found no onboarding screen, changed nothing and said so.
+- **The fix:** the step is now an explicitly read-only access check.
