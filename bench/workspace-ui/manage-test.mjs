@@ -22,7 +22,8 @@ const step = async (name, fn) => {
   try { const detail = await fn(); results.push({ step: name, ok: true, detail }); console.log("PASS", name, JSON.stringify(detail).slice(0, 220)); }
   catch (e) { results.push({ step: name, ok: false, error: e.message }); console.log("FAIL", name, e.message); await page.screenshot({ path: join(HERE, "shots", `manage-fail-${results.length}.png`) }); }
 };
-const order = () => page.locator("#wsList .row.ws .grow .ell").allInnerTexts();
+// "No folder" is built in and always first; these tests are about the folders.
+const order = () => page.locator('#wsList .row.ws:not([data-ws="scratch"]) .grow .ell').allInnerTexts();
 const fileState = (dir) => readdirSync(dir, { recursive: true }).length;
 const registry = () => JSON.parse(readFileSync(join(process.env.DATA, "workspaces.json"), "utf8")).map((w) => w.name || w.id);
 const status = () => page.innerText("#rState");
@@ -35,7 +36,7 @@ await page.goto(BASE, { waitUntil: "networkidle" });
 await step("starting order", async () => ({ ui: await order() }));
 await step("drag Work test above Executor; the order survives a reload", async () => {
   await page.locator('[data-ws-item]:has-text("Work test")').dragTo(page.locator('[data-ws-item]:has-text("Executor")'), { targetPosition: { x: 40, y: 4 } });
-  await page.waitForFunction(() => document.querySelector("#wsList .row.ws .grow .ell").textContent === "Work test");
+  await page.waitForFunction(() => document.querySelector('#wsList .row.ws:not([data-ws="scratch"]) .grow .ell').textContent === "Work test");
   const after = await order();
   await page.reload({ waitUntil: "networkidle" });
   return { afterDrag: after, afterReload: await order(), registry: registry() };
@@ -43,7 +44,7 @@ await step("drag Work test above Executor; the order survives a reload", async (
 await step("Alt+↓ on Work test moves it down one; focus stays on it", async () => {
   await page.focus('#wsList [data-ws]:has-text("Work test")');
   await page.keyboard.press("Alt+ArrowDown");
-  await page.waitForFunction(() => document.querySelectorAll("#wsList .row.ws .grow .ell")[1]?.textContent === "Work test");
+  await page.waitForFunction(() => document.querySelectorAll('#wsList .row.ws:not([data-ws="scratch"]) .grow .ell')[1]?.textContent === "Work test");
   const focused = await page.evaluate(() => document.activeElement?.dataset.ws);
   await page.reload({ waitUntil: "networkidle" });
   return { afterKey: await order(), focusedId: focused, afterReload: await order() };

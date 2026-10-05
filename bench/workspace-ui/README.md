@@ -290,3 +290,20 @@ The definition lives in `workers/senior-uiux-design-engineer.json`. It's created
 **Note:** an earlier version of step 2 sent the worker a redesign request ("Redesign the onboarding screen…") while a real Figma file, "trekking hiking", was open.
 - **What it did:** it used only read tools, found no onboarding screen, changed nothing and said so.
 - **The fix:** the step is now an explicitly read-only access check.
+
+## "No folder" (2026-10-06)
+
+**The problem:** a Figma design job has no project folder, yet the Workspace demanded one. With every folder removed it showed "No workspace", and nothing could run.
+
+**The fix:** a built-in **No folder** workspace is now always first in the list. It can't be removed or dragged.
+- **Where it runs:** in a private, console-owned scratch folder (`<data>/scratch`, gitignored), with the Work profile. The worker's own capabilities still decide its tools.
+- **What the work targets:** a Figma worker works on whatever file the Figma plugin has open.
+- **The page:** says "No project folder", and Versions says the same.
+
+**Tests updated:**
+- `manage-test.mjs` (7/7) ignores the fixed row when checking order.
+- `sync-test.mjs` (6/6): with every folder removed, "No folder" stays selected, has no remove button, and the API refuses to remove it (400). A tab sitting on "No folder" stays there when a folder comes back.
+
+The Senior UI/UX Design Engineer in "No folder" gets every capability, including Figma edit.
+
+On the same build: workflow 12/12, attach 10/10, versions 14/14, workers 12/12.

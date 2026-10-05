@@ -1,5 +1,5 @@
 {
- "when": "2026-10-02T12:23:10.949Z",
+ "when": "2026-10-05T20:55:31.937Z",
  "results": [
   {
    "step": "+ opens the file picker; an image, a text file and a PDF become chips; × removes one",
@@ -24,7 +24,7 @@
    "ok": true,
    "detail": {
     "chipsAfterSend": 0,
-    "reply": "The image is a dark rounded-square app icon showing a light-blue upward arrow with a small blue dot to its right, sitting above a gray horizontal line.\n\nCodeword from notes.txt: MARIGOLD\nCodeword from the PDF: OSPREY\n\nDONEI described the image and gave both codewords from the attached files.",
+    "reply": "The image is a small dark rounded-square icon with a blue upward arrow next to a blue dot, sitting above a gray horizontal line.\n\nCodeword from notes.txt: MARIGOLD\nCodeword from the PDF: OSPREY\n\nDONEI described the image and gave both codewords.",
     "marigold": true,
     "osprey": true
    }

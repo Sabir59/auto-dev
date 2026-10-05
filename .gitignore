@@ -12,3 +12,4 @@ worker-ui/workers/
 worker-ui/runs/*.worker.*
 worker-ui/runs/*.mcp.json
 figma-read/
+worker-ui/scratch/

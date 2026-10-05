@@ -122,3 +122,11 @@ Requirements are generic `{resource, access, need}` entries. A small resource re
 
 - **Capabilities can't override the workspace's security profile.** The request's diagram puts resources under the worker. Here the workspace stays the security boundary, and the worker can only narrow it.
 - **Credentials are per integration on this machine, not per worker.** A worker reaches a credential only through a tool its capabilities load. Per-worker credentials need a credential store that doesn't exist yet. That's documented rather than faked.
+
+## 11. Work without a folder (added 2026-10-06)
+
+Not all work has a project folder. A Figma design job's target is the Figma file the plugin has open.
+
+- **"No folder":** a built-in workspace (`id: scratch`) that's always present.
+- **How runs use it:** they run in a private, console-owned scratch folder with the Work profile, and the worker's capabilities still narrow its tools.
+- **The rule stays the same:** every run has exactly one bound workspace. That's what keeps resume and the file viewer bound to a real folder.

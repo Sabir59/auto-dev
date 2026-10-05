@@ -1,5 +1,5 @@
 {
- "when": "2026-10-02T12:21:49.205Z",
+ "when": "2026-10-05T20:53:17.222Z",
  "added": [
   200,
   200
@@ -46,7 +46,7 @@
      "Work test",
      "Canary"
     ],
-    "focusedId": "work-test-69aa",
+    "focusedId": "work-test-6748",
     "afterReload": [
      "Executor",
      "Work test",
@@ -75,14 +75,14 @@
      "Executor",
      "Work test"
     ],
-    "selectedNow": "Executor",
+    "selectedNow": "No folder",
     "registry": [
      "console",
      "Work test"
     ],
     "canaryFolderFiles": [
-     80,
-     80
+     77,
+     77
     ],
     "canaryStillExists": true
    }
@@ -95,11 +95,11 @@
     "afterEnd": [
      "Executor"
     ],
-    "selectedNow": "Executor",
+    "selectedNow": "No folder",
     "resumeRemovedRun": {
      "status": 400,
      "body": {
-      "error": "No workspace \"work-test-69aa\"."
+      "error": "No workspace \"work-test-6748\"."
      }
     },
     "workFolderFiles": [

@@ -75,22 +75,23 @@ await step("tab A adds a workspace and reorders; tab B shows the same list", asy
   await A.waitForFunction(() => document.querySelector("#cName").textContent === "Work test");
   const id = await A.evaluate(() => wsId);
   await A.focus(`#wsList [data-ws="${id}"]`); await A.keyboard.press("Alt+ArrowUp");
-  await A.waitForFunction((i) => document.querySelector("#wsList .row.ws").dataset.ws === i, id);
-  await B.waitForFunction((i) => document.querySelector("#wsList .row.ws")?.dataset.ws === i, id, { timeout: 10000 });
+  await A.waitForFunction((i) => document.querySelector('#wsList .row.ws:not([data-ws="scratch"])').dataset.ws === i, id);
+  await B.waitForFunction((i) => document.querySelector('#wsList .row.ws:not([data-ws="scratch"])')?.dataset.ws === i, id, { timeout: 10000 });
   return { A: await state(A), B: await state(B) };
 });
-await step("remove everything → empty state; sending is refused politely; adding brings it back", async () => {
-  for (const id of (await (await fetch(BASE + "/workspaces")).json()).map((w) => w.id)) await removeIn(A, id);
+await step("remove every folder → \"No folder\" remains and is selected; adding brings the folder back", async () => {
+  for (const id of (await (await fetch(BASE + "/workspaces")).json()).map((w) => w.id).filter((i) => i !== "scratch")) await removeIn(A, id);
+  await A.waitForFunction(() => wsId === "scratch");
   const empty = await state(A);
   const heading = await A.locator(".emptyst h1").innerText();
-  await A.fill("#input", "hello"); await A.click("#send");
-  await A.waitForFunction(() => /Add a workspace first/.test(document.querySelector("#footL").textContent));
+  const noRemoveButton = await A.locator('#wsList [data-rm="scratch"]').count();
+  const refused = await call("DELETE", "/workspaces/scratch");
   const runsBefore = (await call("GET", "/runs")).body.runs.length;
-  await A.screenshot({ path: join(HERE, "shots", "no-workspace.png") });
+  await A.screenshot({ path: join(HERE, "shots", "no-folder.png") });
   await addIn(A, "Executor", REPO, "work");
   await A.waitForFunction(() => document.querySelector("#cName").textContent === "Executor");
-  await B.waitForFunction(() => document.querySelector("#cName").textContent === "Executor" && document.querySelectorAll("#wsList .row.ws").length === 1, null, { timeout: 10000 });
-  return { empty, heading, notice: await A.locator("#footL").innerText(), runsCreated: (await call("GET", "/runs")).body.runs.length - runsBefore, restoredA: await state(A), restoredB: await state(B) };
+  await B.waitForFunction(() => [...document.querySelectorAll('#wsList .row.ws:not([data-ws="scratch"])')].map((e) => e.dataset.ws).join() === "console", null, { timeout: 10000 });
+  return { empty, heading, noRemoveButton, refused, runsCreated: (await call("GET", "/runs")).body.runs.length - runsBefore, restoredA: await state(A), restoredB: await state(B) };
 });
 writeFileSync(join(HERE, "sync-results.json"), JSON.stringify({ when: new Date().toISOString(), results, pageErrors: errors }, null, 1));
 console.log(`\n${results.filter((x) => x.ok).length}/${results.length} passed; page errors: ${errors.length ? errors.join(" | ") : "none"}`);

@@ -1,5 +1,5 @@
 {
- "when": "2026-10-02T12:22:25.292Z",
+ "when": "2026-10-05T20:54:53.893Z",
  "results": [
   {
    "step": "Executor: remove it (it has a run) → off the list, its run hidden",
@@ -7,19 +7,17 @@
    "detail": {
     "runsShownBefore": 1,
     "after": {
-     "wsId": "work-test-ec2d",
+     "wsId": "scratch",
      "rows": [
-      "work-test-ec2d"
+      "scratch",
+      "work-test-e30c"
      ],
      "current": [
-      "work-test-ec2d"
+      "scratch"
      ],
-     "cName": "Work test",
+     "cName": "No folder",
      "runs": 0,
-     "tree": [
-      "src",
-      "README.md"
-     ],
+     "tree": [],
      "consistent": true
     },
     "resumeHiddenRun": {
@@ -34,19 +32,17 @@
    "step": "the other tab corrects itself within the refresh (it had Executor open)",
    "ok": true,
    "detail": {
-    "wsId": "work-test-ec2d",
+    "wsId": "scratch",
     "rows": [
-     "work-test-ec2d"
+     "scratch",
+     "work-test-e30c"
     ],
     "current": [
-     "work-test-ec2d"
+     "scratch"
     ],
-    "cName": "Work test",
+    "cName": "No folder",
     "runs": 0,
-    "tree": [
-     "src",
-     "README.md"
-    ],
+    "tree": [],
     "consistent": true
    }
   },
@@ -57,8 +53,9 @@
     "after": {
      "wsId": "console",
      "rows": [
+      "scratch",
       "console",
-      "work-test-ec2d"
+      "work-test-e30c"
      ],
      "current": [
       "console"
@@ -80,21 +77,17 @@
    "step": "tab B has Work test open; tab A removes it → B falls back, no stale selection",
    "ok": true,
    "detail": {
-    "wsId": "console",
+    "wsId": "scratch",
     "rows": [
+     "scratch",
      "console"
     ],
     "current": [
-     "console"
+     "scratch"
     ],
-    "cName": "Executor",
-    "runs": 1,
-    "tree": [
-     "agent",
-     "bench",
-     "bridge",
-     "browser-adapter"
-    ],
+    "cName": "No folder",
+    "runs": 0,
+    "tree": [],
     "consistent": true
    }
   },
@@ -103,13 +96,14 @@
    "ok": true,
    "detail": {
     "A": {
-     "wsId": "work-test-70a2",
+     "wsId": "work-test-a690",
      "rows": [
-      "work-test-70a2",
+      "scratch",
+      "work-test-a690",
       "console"
      ],
      "current": [
-      "work-test-70a2"
+      "work-test-a690"
      ],
      "cName": "Work test",
      "runs": 0,
@@ -120,45 +114,52 @@
      "consistent": true
     },
     "B": {
-     "wsId": "console",
+     "wsId": "scratch",
      "rows": [
-      "work-test-70a2",
+      "scratch",
+      "work-test-a690",
       "console"
      ],
      "current": [
-      "console"
+      "scratch"
      ],
-     "cName": "Executor",
-     "runs": 1,
-     "tree": [
-      "agent",
-      "bench",
-      "bridge",
-      "browser-adapter"
-     ],
+     "cName": "No folder",
+     "runs": 0,
+     "tree": [],
      "consistent": true
     }
    }
   },
   {
-   "step": "remove everything → empty state; sending is refused politely; adding brings it back",
+   "step": "remove every folder → \"No folder\" remains and is selected; adding brings the folder back",
    "ok": true,
    "detail": {
     "empty": {
-     "wsId": null,
-     "rows": [],
-     "current": [],
-     "cName": "No workspace",
+     "wsId": "scratch",
+     "rows": [
+      "scratch"
+     ],
+     "current": [
+      "scratch"
+     ],
+     "cName": "No folder",
      "runs": 0,
      "tree": [],
      "consistent": true
     },
-    "heading": "No workspace",
-    "notice": "Add a workspace first.",
+    "heading": "No folder",
+    "noRemoveButton": 0,
+    "refused": {
+     "status": 400,
+     "body": {
+      "error": "\"No folder\" is built in and can't be removed."
+     }
+    },
     "runsCreated": 0,
     "restoredA": {
      "wsId": "console",
      "rows": [
+      "scratch",
       "console"
      ],
      "current": [
@@ -175,21 +176,17 @@
      "consistent": true
     },
     "restoredB": {
-     "wsId": "console",
+     "wsId": "scratch",
      "rows": [
+      "scratch",
       "console"
      ],
      "current": [
-      "console"
+      "scratch"
      ],
-     "cName": "Executor",
-     "runs": 1,
-     "tree": [
-      "agent",
-      "bench",
-      "bridge",
-      "browser-adapter"
-     ],
+     "cName": "No folder",
+     "runs": 0,
+     "tree": [],
      "consistent": true
     }
    }

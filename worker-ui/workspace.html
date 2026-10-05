@@ -558,6 +558,8 @@ function renderWorkspaces() {
       <div style="color:var(--t2)">Remove <strong>${esc(x.name)}</strong> from the list?</div><div class="help">The folder and its files stay on disk.${x.id === "console" ? " Executor is this app's own folder: add it again any time to bring it back with its runs." : ""}</div>
       <div class="err" id="rmErr" role="alert"></div>
       <div class="acts"><button class="btn m11" data-rm-cancel>Cancel</button><button class="btn danger m11" data-rm-ok="${esc(x.id)}">Remove</button></div></div></li>`
+    : x.id === "scratch" ? `<li class="wsi"><button class="row ws" data-ws="scratch" aria-current="${x.id === wsId}" title="No project folder: for Figma work and conversation. The worker gets a private scratch folder.">
+      <span class="grow">${x.id === wsId ? '<span class="dot"></span>' : ""}<span class="ell">${esc(x.name)}</span></span><span class="meta">${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button></li>`
     : `<li class="wsi" draggable="true" data-ws-item="${esc(x.id)}"><button class="row ws" data-ws="${esc(x.id)}" aria-current="${x.id === wsId}" title="${esc(x.root)}${x.available ? "" : " (folder not found)"}&#10;Drag, or Alt+↑/↓, to reorder">
       <span class="grow">${x.id === wsId ? '<span class="dot"></span>' : ""}<span class="ell" style="${x.available ? "" : "color:var(--t3)"}">${esc(x.name)}</span></span>
       <span class="meta">${x.branch ? `<span class="m12 ell" style="max-width:80px">${esc(x.branch)}</span>` : ""}${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button><button class="x" data-rm="${esc(x.id)}" aria-label="Remove ${esc(x.name)} from the list">${svgIcon("close", 12, 12)}</button></li>`).join("") || '<li class="empty">No workspaces. Add one to start.</li>';
@@ -568,8 +570,8 @@ function renderWorkspaces() {
   $("cHash").hidden = !w.commit; $("cHash").textContent = w.commit ? `#${w.commit}` : "";
   $("bName").textContent = w.name; $("bBr").textContent = w.branch || ""; $("bSl").hidden = !w.branch;
   $("mName").textContent = modeOf(w);
-  $("footR").textContent = w.profile === "inspect" ? "Inspect: reads and searches only. No edits, no commands" : "Work: can edit files and run commands in this folder";
-  $("input").placeholder = runId ? "Reply to the worker…" : (w.profile === "inspect" ? `Ask the worker to inspect ${w.name}…` : `Ask the worker to inspect or operate on ${w.name}…`);
+  $("footR").textContent = w.id === "scratch" ? "No folder: works in Figma and in chat; scratch files stay private" : w.profile === "inspect" ? "Inspect: reads and searches only. No edits, no commands" : "Work: can edit files and run commands in this folder";
+  $("input").placeholder = runId ? "Reply to the worker…" : w.id === "scratch" ? "Message the worker…" : (w.profile === "inspect" ? `Ask the worker to inspect ${w.name}…` : `Ask the worker to inspect or operate on ${w.name}…`);
 }
 function selectWorkspace(id, { newChat = true } = {}) {
   wsId = id; store.set("ws", id);
@@ -621,7 +623,7 @@ $("wsList").addEventListener("drop", (e) => {
   const after = li.classList.contains("drop-after"), target = li.dataset.wsItem;
   clearDrop();
   if (target === dragId) return;
-  const ids = WS.map((w) => w.id).filter((i) => i !== dragId);
+  const ids = WS.map((w) => w.id).filter((i) => i !== dragId && i !== "scratch");
   ids.splice(ids.indexOf(target) + (after ? 1 : 0), 0, dragId);
   saveOrder(ids);
 });
@@ -629,7 +631,8 @@ $("wsList").addEventListener("dragend", () => { clearDrop(); $("wsList").querySe
 $("wsList").addEventListener("keydown", (e) => {
   const b = e.target.closest("[data-ws]"); if (!b || !e.altKey || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
   e.preventDefault();
-  const ids = WS.map((w) => w.id), i = ids.indexOf(b.dataset.ws), j = i + (e.key === "ArrowUp" ? -1 : 1);
+  if (b.dataset.ws === "scratch") return;
+  const ids = WS.map((w) => w.id).filter((x) => x !== "scratch"), i = ids.indexOf(b.dataset.ws), j = i + (e.key === "ArrowUp" ? -1 : 1);
   if (j < 0 || j >= ids.length) return;
   [ids[i], ids[j]] = [ids[j], ids[i]];
   saveOrder(ids, b.dataset.ws);
@@ -893,7 +896,7 @@ function renderVersions() {
   if (!wsId) { ul.innerHTML = ""; return; }
   if (!g) { ul.innerHTML = '<li class="empty">…</li>'; return; }
   if (g.error) { ul.innerHTML = `<li class="empty">${esc(g.error)}</li>`; return; }
-  if (!g.repo) { ul.innerHTML = '<li class="empty">Not a Git repository</li>'; return; }
+  if (!g.repo) { ul.innerHTML = `<li class="empty">${wsId === "scratch" ? "No project folder" : "Not a Git repository"}</li>`; return; }
   const cur = verOpen?.rev;
   const wc = `<li><button class="row" data-rev="WORKTREE" aria-current="${cur === "WORKTREE"}" title="Uncommitted changes in this folder">
       <span class="grow"><span class="dot ${g.changeCount ? "blue" : ""}"></span><span class="ell">Working copy</span></span>
@@ -1117,8 +1120,8 @@ function renderCanvas() {
   if (!runId) {
     const k = wk();
     c.innerHTML = `<div class="emptyst"><div class="motif">${svgIcon("terminalLg", 20, 16)}</div><h1>${esc(k ? k.name : w.name)}</h1>
-      <p>${k ? `${esc(k.mission || k.specialization || "")} ${k.mission ? "" : ""}<br><span style="color:var(--t3)">in ${esc(w.name)}</span>` : w.profile === "inspect" ? "Ask the worker to inspect this repository: read code, trace an implementation or review a component." : "Ask the worker to inspect your repository, analyze an implementation, debug an issue, or test components."}</p>
-      <div class="tagline m11"><span title="${esc(w.root)}"><span class="dot grey"></span><span class="ell" style="max-width:360px">${esc(w.root)}</span></span><span><span class="dot"></span>${modeOf(w)}</span>${(k?.status || []).map((r) => `<span title="${esc(r.ok ? "" : r.how)}"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)}: ${esc(r.state)}</span>`).join("")}</div></div>`;
+      <p>${k ? `${esc(k.mission || k.specialization || "")}${w.id === "scratch" ? "" : `<br><span style="color:var(--t3)">in ${esc(w.name)}</span>`}` : w.id === "scratch" ? "Chat, or work in Figma, without a project folder." : w.profile === "inspect" ? "Ask the worker to inspect this repository: read code, trace an implementation or review a component." : "Ask the worker to inspect your repository, analyze an implementation, debug an issue, or test components."}</p>
+      <div class="tagline m11"><span title="${esc(w.root)}"><span class="dot grey"></span><span class="ell" style="max-width:360px">${w.id === "scratch" ? "No project folder" : esc(w.root)}</span></span><span><span class="dot"></span>${modeOf(w)}</span>${(k?.status || []).map((r) => `<span title="${esc(r.ok ? "" : r.how)}"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)}: ${esc(r.state)}</span>`).join("")}</div></div>`;
     return;
   }
   const atEnd = c.scrollHeight - c.scrollTop - c.clientHeight < 80;

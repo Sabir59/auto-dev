@@ -37,6 +37,11 @@ const WORKERS = join(DATA, "workers.json");
 const MEMORY = join(DATA, "workers");
 const PORT = Number(process.env.WORKER_CONSOLE_PORT) || 8799;
 mkdirSync(RUNS, { recursive: true });
+// "No folder": work that has no project folder (a Figma design, a conversation) runs in this
+// private, console-owned scratch folder, with the Work profile; the worker's own capabilities
+// still decide its tools. It's always in the list and can't be removed.
+const SCRATCH_WS = { id: "scratch", name: "No folder", root: join(DATA, "scratch"), profile: "full" };
+mkdirSync(SCRATCH_WS.root, { recursive: true });
 if (!existsSync(PROMPTS)) writeFileSync(PROMPTS, "[]\n");
 
 // Tools the worker may use: MCP environments, files, node/curl in the shell, web.
@@ -224,7 +229,7 @@ const norm = (p) => (process.platform === "win32" ? resolve(p).toLowerCase() : r
 const samePath = (a, b) => norm(a) === norm(b);
 function resolveWorkspace(id) {
   const list = existsSync(WORKSPACES) ? JSON.parse(readFileSync(WORKSPACES, "utf8")) : [];
-  const ws = id === "console" ? consoleWs(list) : list.find((w) => w.id === id);
+  const ws = id === "console" ? consoleWs(list) : id === "scratch" ? SCRATCH_WS : list.find((w) => w.id === id);
   if (!ws || ws.hidden) throw new Error(`No workspace "${id}".`);
   if (!PROFILES[ws.profile]) throw new Error(`Workspace "${id}" has an unknown profile "${ws.profile}".`);
   if (!isAbsolute(String(ws.root || ""))) throw new Error(`Workspace "${id}" root must be an absolute path.`);
@@ -257,7 +262,7 @@ function gitInfo(root) {
 }
 function listWorkspaces() {
   const list = readWorkspaces();
-  return withConsole(list).map((w) => (w.id === "console" ? consoleWs(list) : w)).filter((w) => !w.hidden).map((w) => {
+  return [SCRATCH_WS, ...withConsole(list).map((w) => (w.id === "console" ? consoleWs(list) : w))].filter((w) => !w.hidden).map((w) => {
     let root = null; try { root = resolveWorkspace(w.id).root; } catch {}
     return { id: w.id, name: w.name || w.id, root: root || w.root, profile: w.profile, available: !!root, ...(root ? gitInfo(root) : {}) };
   });
@@ -289,6 +294,7 @@ function addWorkspace({ name, path, mode }) {
 // stay in the history but can no longer be resumed or browsed (the binding check refuses them).
 function removeWorkspace(id) {
   const list = readWorkspaces();
+  if (id === "scratch") throw new Error("\"No folder\" is built in and can't be removed.");
   if (!listWorkspaces().some((w) => w.id === id)) throw new Error(`No workspace "${id}".`);
   const busy = active();
   if (busy && (busy.meta.workspace?.id || "console") === id) throw new Error("A worker is running in this workspace. Stop or end it first.");
@@ -297,7 +303,8 @@ function removeWorkspace(id) {
 }
 // New display order: the same workspaces, rearranged.
 function reorderWorkspaces(ids) {
-  const now = listWorkspaces().map((w) => w.id);
+  ids = Array.isArray(ids) ? ids.filter((i) => i !== "scratch") : ids; // "No folder" stays first
+  const now = listWorkspaces().map((w) => w.id).filter((i) => i !== "scratch");
   if (!Array.isArray(ids) || ids.length !== now.length || new Set(ids).size !== ids.length || !ids.every((i) => now.includes(i))) throw new Error("The workspace list changed. Reload and try again.");
   const list = readWorkspaces(), byId = new Map(list.map((w) => [w.id, w]));
   writeWorkspaces([...ids.map((i) => byId.get(i) || { id: i }), ...list.filter((w) => w.hidden)]);
