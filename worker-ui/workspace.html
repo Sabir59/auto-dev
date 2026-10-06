@@ -239,6 +239,15 @@ main { min-width: 0; min-height: 0; padding: 0 16px 32px; display: flex; justify
 .attach { width: 28px; height: 28px; border-radius: 2px; display: flex; align-items: center; justify-content: center; color: var(--t3); flex: none; }
 .attach:hover { background: var(--surf); color: var(--t1); }
 .cbox.drop { box-shadow: 0 2px 4px -2px rgba(0,0,0,.1), 0 4px 6px -1px rgba(0,0,0,.1), 0 0 0 1px var(--pri); }
+/* @ mentions: a small list above the composer, in the menu's surface and type */
+.mpick { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 6px); max-height: 288px; overflow-y: auto; background: var(--surf); border-radius: 8px; padding: 4px; z-index: 6; box-shadow: 0 2px 4px -2px rgba(0,0,0,.1), 0 4px 6px -1px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.35); }
+.mpick .lab { padding: 4px 8px 6px; }
+.mrow { width: 100%; display: flex; align-items: baseline; gap: 8px; padding: 4px 8px; border-radius: 2px; text-align: left; color: var(--t2); }
+.mrow[aria-selected="true"] { background: var(--high); color: var(--t1); }
+.mrow .n { flex: none; } .mrow .d { color: var(--t3); min-width: 0; }
+.mempty { padding: 6px 8px; color: var(--t3); }
+.mention { color: var(--pri); cursor: pointer; } .mention:hover { text-decoration: underline; }
+.mention.gone { color: var(--t3); text-decoration: line-through; cursor: default; }
 .attrow { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 4px 0; }
 .achip { height: 36px; max-width: 220px; display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 4px; background: var(--surf); border-radius: 2px; color: var(--t2); text-decoration: none; }
 .achip img, .achip .ic { width: 28px; height: 28px; border-radius: 2px; flex: none; }
@@ -389,7 +398,8 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
       <div class="cbox">
         <label class="sr" for="input">Message the worker</label>
         <div class="attrow" id="attRow" hidden aria-label="Attached files"></div>
-        <textarea id="input" rows="1"></textarea>
+        <div class="mpick" id="mPick" role="listbox" aria-label="Files in this workspace" hidden></div>
+        <textarea id="input" rows="1" aria-autocomplete="list" aria-controls="mPick"></textarea>
         <div class="urow">
           <div class="l">
             <button class="attach" id="attachBtn" aria-label="Attach files" title="Attach images, PDFs or text files (or paste / drop them here)"><svg class="i" width="11" height="11" data-i="plus11"></svg></button>
@@ -574,7 +584,7 @@ function renderWorkspaces() {
   $("input").placeholder = runId ? "Reply to the worker…" : w.id === "scratch" ? "Message the worker…" : (w.profile === "inspect" ? `Ask the worker to inspect ${w.name}…` : `Ask the worker to inspect or operate on ${w.name}…`);
 }
 function selectWorkspace(id, { newChat = true } = {}) {
-  wsId = id; store.set("ws", id);
+  wsId = id; store.set("ws", id); closePicker();
   renderWorkspaces(); renderRuns(); loadTree(); loadGit(); loadWorkers();
   if (newChat) openNewChat();
   closeMenus();
@@ -1026,7 +1036,7 @@ async function openRun(id) {
 function onEvent(ev) {
   if (!T) return;
   const t = ev.type, at = Date.parse(ev.ts);
-  if (t === "user") { T.items.push({ k: "u", text: ev.summary, atts: ev.attachments || [] }); T.turnStart = at; T.n++; addTurn(ev); }
+  if (t === "user") { T.items.push({ k: "u", text: ev.summary, atts: ev.attachments || [], mentions: ev.mentions || [] }); T.turnStart = at; T.n++; addTurn(ev); }
   else if (t === "reply") T.items.push({ k: "w", text: ev.summary });
   else if (t === "tool") {
     const [verb, arg] = phrase(ev);
@@ -1127,7 +1137,7 @@ function renderCanvas() {
   const atEnd = c.scrollHeight - c.scrollTop - c.clientHeight < 80;
   const working = ["starting", "running"].includes(T.status);
   c.innerHTML = `<div class="thread" role="log" aria-label="Conversation">${T.items.map((it) =>
-    it.k === "u" ? `${it.atts?.length ? `<div class="msg-att">${it.atts.map(attLink).join("")}</div>` : ""}${it.text ? `<div class="msg-u">${esc(it.text)}</div>` : ""}`
+    it.k === "u" ? `${it.atts?.length ? `<div class="msg-att">${it.atts.map(attLink).join("")}</div>` : ""}${it.text ? `<div class="msg-u">${withMentions(it.text, it.mentions)}</div>` : ""}`
     : it.k === "w" ? `<div class="msg-w">${md(it.text)}</div>`
     : `<div class="sys m11 ${it.k === "e" ? "err" : ""}">${esc(it.text)}</div>`).join("")}
     ${working ? `<div class="working m11"><span class="dot pulse"></span><span class="ell">${T.status === "starting" ? "Starting the worker…" : `Working${T.current ? ` · ${esc(T.current)}` : "…"}`}</span></div>` : ""}</div>`;
@@ -1193,6 +1203,76 @@ cbox.addEventListener("dragover", (e) => { if (!hasFiles(e)) return; e.preventDe
 cbox.addEventListener("dragleave", (e) => { if (!cbox.contains(e.relatedTarget)) cbox.classList.remove("drop"); });
 cbox.addEventListener("drop", (e) => { if (!hasFiles(e)) return; e.preventDefault(); cbox.classList.remove("drop"); addFiles([...e.dataTransfer.files]); });
 
+// ---------------- @ file mentions ----------------
+// "@" opens a list of files from the selected workspace only (the server searches its index; the
+// browser never sees anything else). Picking one inserts "@path" and remembers it as a mention,
+// tied to the workspace it was picked in. On send, mentions still in the text go along as
+// references; the worker reads the files itself with its own tools.
+let MENTIONS = [];
+const pick = { open: false, start: -1, items: [], sel: 0, q: null, dismissed: -1, seq: 0 };
+function mentionQuery() {
+  const i = $("input"), before = i.value.slice(0, i.selectionStart);
+  const m = /(^|[\s(\[{"'])@([^\s@]*)$/.exec(before);
+  return m ? { start: before.length - m[2].length - 1, q: m[2] } : null;
+}
+let pickTimer;
+function updatePicker() {
+  const mq = mentionQuery();
+  if (!mq || mq.start === pick.dismissed || view !== "chat" && view !== "file") return closePicker();
+  pick.dismissed = -1; pick.start = mq.start;
+  if (pick.open && mq.q === pick.q) return;
+  pick.q = mq.q;
+  clearTimeout(pickTimer);
+  pickTimer = setTimeout(async () => {
+    const seq = ++pick.seq, forWs = runId ? runWs(meta) : wsId;
+    let r; try { r = await api("GET", `/mentions?workspace=${encodeURIComponent(forWs)}&q=${encodeURIComponent(mq.q)}`); } catch (e) { r = { files: [], error: e.message }; }
+    if (seq !== pick.seq || !mentionQuery()) return;
+    pick.items = r.files; pick.sel = 0; pick.open = true; pick.ws = forWs;
+    renderPicker(r);
+  }, 90);
+}
+function renderPicker(r) {
+  const el = $("mPick"), wsName = (WS.find((w) => w.id === pick.ws) || {}).name || "this workspace";
+  el.hidden = false; el.dataset.q = pick.q;
+  el.innerHTML = `<div class="lab">${pick.q ? "Files" : "Recent files"} · ${esc(wsName)}</div>` + (pick.items.length
+    ? pick.items.map((p, i) => { const k = p.lastIndexOf("/"); return `<button type="button" class="mrow m11" role="option" id="mo${i}" data-i="${i}" aria-selected="${i === pick.sel}"><span class="n">${esc(p.slice(k + 1))}</span><span class="d ell">${esc(k > 0 ? p.slice(0, k) : "")}</span></button>`; }).join("")
+    : `<div class="mempty m11">${r?.error ? esc(r.error) : "No matching files"}</div>`);
+  $("input").setAttribute("aria-activedescendant", pick.items.length ? `mo${pick.sel}` : "");
+  el.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+}
+function closePicker() { pick.open = false; pick.q = null; $("mPick").hidden = true; $("input").removeAttribute("aria-activedescendant"); }
+function choose(i) {
+  const p = pick.items[i]; if (!p) return;
+  const inp = $("input"), end = inp.selectionStart, ins = "@" + p + " ";
+  inp.value = inp.value.slice(0, pick.start) + ins + inp.value.slice(end);
+  const caret = pick.start + ins.length; inp.setSelectionRange(caret, caret);
+  if (!MENTIONS.some((m) => m.path === p && m.ws === pick.ws)) MENTIONS.push({ path: p, ws: pick.ws });
+  closePicker(); autosize(); inp.focus();
+}
+$("input").addEventListener("input", updatePicker);
+$("input").addEventListener("click", updatePicker);
+$("input").addEventListener("keyup", (e) => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) updatePicker(); });
+$("input").addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== $("input")) closePicker(); }, 150));
+$("input").addEventListener("keydown", (e) => {
+  if (!pick.open) return;
+  // the keys the list handles stop here, so Enter picks a file instead of also sending the message
+  if (["ArrowDown", "ArrowUp", "Escape"].includes(e.key) || ["Enter", "Tab"].includes(e.key) && pick.items.length) e.stopImmediatePropagation();
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (pick.items.length) { pick.sel = (pick.sel + (e.key === "ArrowDown" ? 1 : -1) + pick.items.length) % pick.items.length; renderPicker(); } }
+  else if ((e.key === "Enter" || e.key === "Tab") && pick.items.length) { e.preventDefault(); choose(pick.sel); }
+  else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); pick.dismissed = pick.start; closePicker(); }
+});
+$("mPick").addEventListener("mousedown", (e) => { const b = e.target.closest("[data-i]"); if (b) { e.preventDefault(); choose(+b.dataset.i); } });
+// In a sent message, a mention reads as a link to the file (read-only, from that run's workspace).
+function withMentions(text, mentions) {
+  let h = esc(text);
+  for (const m of [...(mentions || [])].sort((a, b) => b.path.length - a.path.length)) {
+    const tok = esc("@" + m.path);
+    h = h.split(tok).join(`<span class="mention${m.exists ? "" : " gone"}" data-mention="${esc(m.path)}" title="${m.exists ? "Open (read-only)" : "Didn't exist when sent"}">${tok}</span>`);
+  }
+  return h;
+}
+$("canvas").addEventListener("click", (e) => { const m = e.target.closest(".mention:not(.gone)"); if (m && runId) openFile({ path: m.dataset.mention, run: runId }); });
+
 // ---------------- sending (nothing runs unless the person sends) ----------------
 async function send() {
   if (!runId && ws().none) { notice("Add a workspace first."); return; }
@@ -1201,6 +1281,12 @@ async function send() {
   const text = $("input").value.trim();
   if (!text && !PENDING.length) return;
   const attachments = PENDING.map(({ name, data }) => ({ name, data }));
+  const target = runId ? runWs(meta) : wsId;
+  const used = MENTIONS.filter((m, i, a) => text.includes("@" + m.path) && a.findIndex((x) => x.path === m.path) === i)
+    .sort((a, b) => text.indexOf("@" + a.path) - text.indexOf("@" + b.path)); // in the order they're written
+  const foreign = used.find((m) => m.ws !== target);
+  if (foreign) { notice(`@${foreign.path} was picked in another workspace. Remove it, or pick it again here.`); return; }
+  const mentions = used.map((m) => ({ type: "file", path: m.path }));
   $("send").disabled = true;
   try {
     if (!runId) {
@@ -1209,16 +1295,16 @@ async function send() {
       // (it can be continued later); a busy one has to be stopped first.
       if (ACTIVE && ACTIVE.status !== "waiting") throw new Error("The worker is busy with another conversation. Open it from Recent runs and stop it first.");
       if (ACTIVE) await endAndWait(ACTIVE.id);
-      const m = await api("POST", "/runs", { prompt: text, workspace: wsId, attachments, ...(wkId ? { worker: wkId } : {}) });
-      $("input").value = ""; autosize(); clearPending();
+      const m = await api("POST", "/runs", { prompt: text, workspace: wsId, attachments, mentions, ...(wkId ? { worker: wkId } : {}) });
+      $("input").value = ""; autosize(); clearPending(); MENTIONS = [];
       await loadRuns(); await openRun(m.id);
     } else {
       if (ACTIVE && ACTIVE.id !== runId) {
         if (ACTIVE.status !== "waiting") throw new Error("The worker is busy with another conversation. Stop it first.");
         await endAndWait(ACTIVE.id);
       }
-      await api("POST", `/runs/${runId}/message`, { text, attachments });
-      $("input").value = ""; autosize(); clearPending(); refreshMeta(); loadRuns();
+      await api("POST", `/runs/${runId}/message`, { text, attachments, mentions });
+      $("input").value = ""; autosize(); clearPending(); MENTIONS = []; refreshMeta(); loadRuns();
     }
   } catch (e) { notice(e.message); }
   finally { $("send").disabled = false; }
@@ -1232,7 +1318,7 @@ $("send").onclick = send;
 $("endBtn").onclick = () => runId && api("POST", `/runs/${runId}/end`).catch(notice);
 const autosize = () => { const i = $("input"); i.style.height = "auto"; i.style.height = Math.min(240, i.scrollHeight) + "px"; };
 $("input").addEventListener("input", autosize);
-$("input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!["starting", "running"].includes(T?.status)) send(); } });
+$("input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !pick.open) { e.preventDefault(); if (!["starting", "running"].includes(T?.status)) send(); } });
 
 // Errors show briefly in the footnote, where the design keeps its small print.
 let noticeTimer;

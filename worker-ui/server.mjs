@@ -18,7 +18,7 @@
 //         | plan | observation | decision | recovery | verification | done | note
 import http from "node:http";
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, lstatSync, realpathSync, renameSync } from "node:fs";
 import { join, dirname, resolve, extname, delimiter, relative, isAbsolute, sep, basename } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -582,16 +582,18 @@ function saveAttachments(run, atts) {
   return atts.map((a, i) => { const file = `${n + i + 1}-${a.name}`; writeFileSync(join(attDir(run), file), a.buf); return { name: a.name, kind: a.kind, size: a.buf.length, file }; });
 }
 
-function sendToWorker(run, text, atts = []) {
+function sendToWorker(run, text, atts = [], mentions = []) {
   run.meta.messages++;
   const saved = saveAttachments(run, atts);
-  emit(run, { type: "user", summary: text, ...(saved.length ? { attachments: saved } : {}) });
+  emit(run, { type: "user", summary: text, ...(saved.length ? { attachments: saved } : {}), ...(mentions.length ? { mentions } : {}) });
   setStatus(run, "running");
-  const content = atts.length ? [...atts.map(attBlock), ...(text ? [{ type: "text", text }] : [])] : text;
+  const safe = (t) => defuseAtRefs(run.meta.workspace.root, t); // what the person sees stays as typed
+  const full = safe(text) + mentionNote(mentions);
+  const content = atts.length ? [...atts.map(attBlock).map((b) => (b.type === "text" ? { ...b, text: safe(b.text) } : b)), ...(full ? [{ type: "text", text: full }] : [])] : full;
   run.child.stdin.write(JSON.stringify({ type: "user", message: { role: "user", content } }) + "\n");
 }
 
-async function newRun(prompt, workspaceId = "console", atts = [], workerId = null) {
+async function newRun(prompt, workspaceId = "console", atts = [], workerId = null, mentions = []) {
   if (active()) throw new Error("A worker is already running. Stop or end it first.");
   const workspace = resolveWorkspace(workspaceId);
   const def = workerId ? readWorkers().find((w) => w.id === workerId) : null;
@@ -618,15 +620,15 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
   }
   emit(run, { type: "status", summary: "starting" });
   spawnWorker(run, { resume: false });
-  sendToWorker(run, prompt, atts);
+  sendToWorker(run, prompt, atts, mentions);
   return run;
 }
 
 // Follow-up: same process if it's waiting; otherwise resume the saved session in a new process.
-function followUp(run, text, atts = []) {
+function followUp(run, text, atts = [], mentions = []) {
   if (alive(run)) {
     if (run.meta.status !== "waiting") throw new Error("The worker is still working on the previous message. Wait for it, or stop it.");
-    return sendToWorker(run, text, atts);
+    return sendToWorker(run, text, atts, mentions);
   }
   if (active()) throw new Error("Another worker is running. Stop or end it first.");
   if (!run.meta.sessionId) throw new Error("This run has no saved session to resume.");
@@ -634,7 +636,7 @@ function followUp(run, text, atts = []) {
   emit(run, { type: "note", summary: "Resuming the saved session in a new worker process. Conversation context is kept; tool processes are new (browser pages and logins are gone, Figma and files are unaffected)." });
   setStatus(run, "starting", "resuming session");
   spawnWorker(run, { resume: true });
-  sendToWorker(run, text, atts);
+  sendToWorker(run, text, atts, mentions);
 }
 
 function loadRun(id) {
@@ -906,6 +908,104 @@ function dirInside(root, requested) {
   return entries.sort((a, b) => (b.dir - a.dir) || a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 
+// ---- @ mentions -------------------------------------------------------------------
+// Typing @ in the composer searches the files of the selected workspace only. The list comes from
+// Git when the folder is a repository (tracked and untracked files, honouring .gitignore), or else
+// from a walk that skips .git and dependency/build folders; every entry passes the same real-path
+// containment as the file viewer (a file or folder that links outside the workspace is left out).
+// It's cached briefly, so typing doesn't rescan.
+const INDEX_TTL = 15000, INDEX_MAX = 20000;
+const WALK_SKIP = new Set([".git", "node_modules", ".next", "dist", "build", "coverage", ".cache", ".turbo", ".venv", "__pycache__"]);
+const indexes = new Map(); // real root -> { at, files: [{ path, mtime }], truncated }
+const inRoot = (realRoot, p) => { const r = relative(realRoot, p); return !!r && !isAbsolute(r) && r !== ".." && !r.startsWith(".." + sep); };
+async function fileIndex(root) {
+  const realRoot = realpathSync.native(root);
+  const hit = indexes.get(realRoot);
+  if (hit && Date.now() - hit.at < INDEX_TTL) return hit;
+  let rels = null;
+  // (-x skips untracked dependency/build folders even when .gitignore forgets them; committed files stay)
+  try { rels = (await git(realRoot, ["ls-files", "-z", "--cached", "--others", "--exclude-standard", ...[...WALK_SKIP].flatMap((d) => ["-x", d + "/"])], { timeout: 15000 })).split("\0").filter(Boolean); } catch {}
+  // Not a repository, or nothing Git would show (a folder the enclosing repo ignores, like "No folder"): walk it.
+  if (!rels?.length) {
+    rels = [];
+    (function walk(dir, rel) {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (rels.length > INDEX_MAX) return;
+        if (WALK_SKIP.has(e.name) || e.isSymbolicLink()) continue; // links (and junctions) aren't followed
+        const r = rel ? `${rel}/${e.name}` : e.name;
+        if (e.isDirectory()) walk(join(dir, e.name), r); else if (e.isFile()) rels.push(r);
+      }
+    })(realRoot, "");
+  }
+  const dirOk = new Map(), files = [];
+  for (const rel of rels) {
+    if (files.length >= INDEX_MAX) break;
+    const d = dirname(rel);
+    if (!dirOk.has(d)) { let ok = false; try { ok = d === "." || inRoot(realRoot, realpathSync.native(join(realRoot, d))); } catch {} dirOk.set(d, ok); }
+    if (!dirOk.get(d)) continue;
+    const abs = join(realRoot, rel);
+    let st; try { st = lstatSync(abs); } catch { continue; } // listed by git but deleted
+    if (st.isSymbolicLink()) { try { const real = realpathSync.native(abs); if (!inRoot(realRoot, real) || !statSync(real).isFile()) continue; st = statSync(real); } catch { continue; } }
+    else if (!st.isFile()) continue;
+    files.push({ path: rel.replace(/\\/g, "/"), mtime: st.mtimeMs });
+  }
+  const idx = { at: Date.now(), files, truncated: rels.length > INDEX_MAX };
+  indexes.set(realRoot, idx);
+  return idx;
+}
+// Empty query: the most recently changed files. "dir/": what's inside that folder. Otherwise
+// paths containing the text, best matches on the file name first.
+async function searchFiles(root, q) {
+  const t0 = Date.now(), idx = await fileIndex(root);
+  q = String(q || "").replace(/\\/g, "/").replace(/^\.\//, "").toLowerCase().slice(0, 200);
+  let hits;
+  if (!q) hits = [...idx.files].sort((a, b) => b.mtime - a.mtime);
+  else if (q.endsWith("/")) { // that folder from the root first, then a folder of that name anywhere
+    const at = (f) => { const p = f.path.toLowerCase(); return p.startsWith(q) ? 0 : p.includes("/" + q) ? 1 : 9; };
+    hits = idx.files.map((f) => [at(f), f]).filter(([k]) => k < 9).sort((a, b) => a[0] - b[0] || a[1].path.localeCompare(b[1].path)).map(([, f]) => f);
+  }
+  else {
+    const score = (f) => { const p = f.path.toLowerCase(), n = p.slice(p.lastIndexOf("/") + 1); return n === q ? 0 : n.startsWith(q) ? 1 : n.includes(q) ? 2 : p.includes(q) ? 3 : 9; };
+    hits = idx.files.map((f) => [score(f), f]).filter(([sc]) => sc < 9).sort((a, b) => a[0] - b[0] || a[1].path.length - b[1].path.length || a[1].path.localeCompare(b[1].path)).map(([, f]) => f);
+  }
+  return { files: hits.slice(0, 30).map((f) => f.path), total: hits.length, indexed: idx.files.length, truncated: idx.truncated, ms: Date.now() - t0 };
+}
+// A mention is a reference, not a copy: a workspace-relative path the worker reads with its own
+// file tools. Each one is checked against the run's workspace before the worker sees it. Absolute,
+// drive, UNC and ".." paths are refused; a path that resolves outside (a link out) is refused; a
+// file that no longer exists is passed on as missing, so the worker can say so.
+function resolveMentions(root, list) {
+  if (list === undefined) return [];
+  if (!Array.isArray(list) || list.length > 20) throw new Error("Mention up to 20 files per message.");
+  const out = [];
+  for (const m of list) {
+    const p = String(m?.path || "").replace(/\\/g, "/");
+    if (m?.type !== "file" || !p || p.includes("\0") || p.startsWith("-") || isAbsolute(p) || /^[a-z]:/i.test(p) || p.startsWith("//") || /(^|\/)\.\.(\/|$)/.test(p)) throw new Error(`@${p} isn't a file in this workspace.`);
+    if (out.some((x) => x.path === p)) continue;
+    if (fileInside(root, p)) { out.push({ path: p, exists: true }); continue; }
+    let real = null; try { real = realpathSync.native(resolve(realpathSync.native(root), p)); } catch {}
+    if (real && !inRoot(realpathSync.native(root), real)) throw new Error(`@${p} resolves outside this workspace.`);
+    if (real) throw new Error(`@${p} is a folder, not a file.`);
+    out.push({ path: p, exists: false });
+  }
+  return out;
+}
+// The runtime turns an "@path" it finds in a message into that file's contents before the worker
+// sees it, and in Work it does so for paths outside the workspace too (tested: an absolute path and
+// a "../" path were both read in). Neither fits here: a mention is a reference the worker reads with
+// its own tools, and nothing outside the workspace may arrive by "@". The runtime only treats an "@"
+// at the start or after a space or punctuation as a file, so every "@token" it could read (a path
+// that exists from the workspace, or any absolute, drive, UNC, home or ".." path) goes to the worker
+// inside backticks. Other "@" text (emails, @media, a package name that isn't a file) is unchanged.
+function defuseAtRefs(root, text) {
+  return text.replace(/(^|[^A-Za-z0-9_`])@("[^"\n]*"|(?:\\ |[^\s`])+)/g, (all, pre, tok) => {
+    const p = tok.replace(/^"|"$/g, "").replace(/\\ /g, " ").replace(/#L?\d+(-\d+)?$/i, "");
+    const risky = [p, p.replace(/[.,;:!?)\]}'"]+$/, "")].some((c) => c && (isAbsolute(c) || /^[a-z]:/i.test(c) || /^[\\/]{2}/.test(c) || c.startsWith("~") || /(^|[\\/])\.\.([\\/]|$)/.test(c) || existsSync(resolve(root, c))));
+    return risky ? `${pre}\`@${tok}\`` : all;
+  });
+}
+const mentionNote = (mentions) => mentions.length ? `\n\n<file_references>\nThe person referenced these files with @. Paths are relative to the workspace folder (your working directory). Read them with your file tools before answering about them.\n${mentions.map((m) => `- ${m.path}${m.exists ? "" : " (did not exist when this message was sent)"}`).join("\n")}\n</file_references>` : "";
+
 // ---- request guard ------------------------------------------------------------
 // Local-only, same-origin-only. The server listens on 127.0.0.1 (not the LAN), every request
 // must name this console as its Host (blocks DNS rebinding), and every state-changing request
@@ -981,6 +1081,7 @@ http.createServer(async (req, res) => {
     }
     if (url.pathname === "/git/commit" && req.method === "POST") { const b = await body(req); return json(res, 200, await gitCommit(String(b.workspace || ""), b.message, b.run)); }
     if (url.pathname === "/git/push" && req.method === "POST") { const b = await body(req); return json(res, 200, await gitPush(String(b.workspace || ""), b.run)); }
+    if (url.pathname === "/mentions" && req.method === "GET") return json(res, 200, { workspace: W, ...(await searchFiles(resolveWorkspace(W).root, url.searchParams.get("q"))) });
     if (url.pathname === "/tree") {
       const entries = dirInside(resolveWorkspace(url.searchParams.get("workspace") || "").root, url.searchParams.get("path") || "");
       return entries ? json(res, 200, entries) : json(res, 404, { error: "not found" });
@@ -993,7 +1094,9 @@ http.createServer(async (req, res) => {
       const { prompt, workspace, attachments } = b;
       const atts = readAttachments(attachments);
       if (!prompt?.trim() && !atts.length) throw new Error("Empty message");
-      return json(res, 200, (await newRun(String(prompt || "").trim(), workspace === undefined ? "console" : String(workspace), atts, b.worker ? String(b.worker) : null)).meta);
+      const wsIdArg = workspace === undefined ? "console" : String(workspace);
+      const mentions = resolveMentions(resolveWorkspace(wsIdArg).root, b.mentions);
+      return json(res, 200, (await newRun(String(prompt || "").trim(), wsIdArg, atts, b.worker ? String(b.worker) : null, mentions)).meta);
     }
     if (parts[0] === "runs" && parts[1]) {
       const run = loadRun(parts[1]);
@@ -1012,10 +1115,11 @@ http.createServer(async (req, res) => {
       // Actions change state, so they're POST-only (a GET would skip the request guard).
       if (action && req.method !== "POST") return json(res, 405, { error: "Use POST" });
       if (action === "message") {
-        const { text, attachments } = await body(req);
+        const { text, attachments, mentions: ms } = await body(req);
         const atts = readAttachments(attachments);
         if (!text?.trim() && !atts.length) throw new Error("Empty message");
-        followUp(run, String(text || "").trim(), atts); return json(res, 200, run.meta);
+        const mentions = resolveMentions(checkBinding(run, { resume: false }).root, ms); // the run's own workspace
+        followUp(run, String(text || "").trim(), atts, mentions); return json(res, 200, run.meta);
       }
       if (action === "stop") { if (alive(run)) { run.stopRequested = true; run.child.kill(); } return json(res, 200, run.meta); }
       if (action === "end") { if (alive(run)) { run.endRequested = true; run.child.stdin.end(); } return json(res, 200, run.meta); }

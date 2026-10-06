@@ -1,0 +1,249 @@
+{
+ "when": "2026-10-06T08:11:26.776Z",
+ "results": [
+  {
+   "step": "typing @ opens a list of this workspace's files (Git's view: no ignored, dependency or linked-out files)",
+   "ok": true,
+   "detail": {
+    "label": "Recent files · Mention app",
+    "rows": [
+     "src/Draft.tsx",
+     ".gitignore",
+     "docs/release notes.md",
+     "README.md",
+     "src/layout/AppLayout.tsx",
+     "src/pages/Header.tsx",
+     "src/layout/Header.tsx",
+     "src/components/Header.tsx"
+    ]
+   }
+  },
+  {
+   "step": "filters by file name and by path; \"dir/\" lists that folder; no match says so",
+   "ok": true,
+   "detail": {
+    "byName": [
+     "src/pages/Header.tsx",
+     "src/layout/Header.tsx",
+     "src/components/Header.tsx"
+    ],
+    "byPath": [
+     "src/layout/AppLayout.tsx"
+    ],
+    "dir": [
+     "src/layout/AppLayout.tsx",
+     "src/layout/Header.tsx"
+    ],
+    "empty": "No matching files"
+   }
+  },
+  {
+   "step": "keyboard: ↓/↑ move the selection, Enter picks it (and doesn't send), Escape closes",
+   "ok": true,
+   "detail": {
+    "picked": "src/layout/Header.tsx",
+    "afterEscape": "stays closed for that @, a new @ reopens",
+    "tabPicked": "src/layout/AppLayout.tsx",
+    "value": "Explain @src/layout/Header.tsx and @Head @src/layout/AppLayout.tsx "
+   }
+  },
+  {
+   "step": "mouse: mid-sentence @ and several mentions; Enter sends once the list is closed",
+   "ok": true,
+   "detail": {
+    "middle": "Look at @src/pages/Header.tsx  please",
+    "value": "What codewords are in @src/components/Header.tsx and @src/layout/AppLayout.tsx ? Reply with just the codewords."
+   }
+  },
+  {
+   "step": "send: the worker gets references (paths, not contents) and reads both files itself",
+   "ok": true,
+   "detail": {
+    "sentMentions": [
+     {
+      "type": "file",
+      "path": "src/components/Header.tsx"
+     },
+     {
+      "type": "file",
+      "path": "src/layout/AppLayout.tsx"
+     }
+    ],
+    "inlinedByRuntime": [],
+    "reply": "CODEWORD-HEADER-ORCHID\nCODEWORD-LAYOUT-CEDAR",
+    "workerToldExcerpt": "<file_references>\\nThe person referenced these files with @. Paths are relative to the workspace folder (your working directory). Read them with your file tools before answering about them.\\n- src/components/Header.tsx\\n- src/layout/AppLayout.tsx\\n</file_references>\"",
+    "toolCalls": [
+     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\mfix\\app\\src\\components\\Header.tsx",
+     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\mfix\\app\\src\\layout\\AppLayout.tsx"
+    ]
+   }
+  },
+  {
+   "step": "in the conversation the mentions read as links; one opens the file (read-only, from the run's workspace)",
+   "ok": true,
+   "detail": {
+    "links": [
+     "@src/components/Header.tsx",
+     "@src/layout/AppLayout.tsx"
+    ],
+    "opened": "src/components/Header.tsx\nread-only view\n1\n2\n3\n4\nexport function Header() {\n  // CODEWORD-HEADER-ORCHID\n  return <header"
+   }
+  },
+  {
+   "step": "a file deleted after it was mentioned: the worker is told it's missing and says so",
+   "ok": true,
+   "detail": {
+    "sent": [
+     {
+      "type": "file",
+      "path": "src/Draft.tsx"
+     }
+    ],
+    "shownAsMissing": 1,
+    "reply": "No"
+   }
+  },
+  {
+   "step": "an attachment and a mention in one message (a path with a space)",
+   "ok": true,
+   "detail": {
+    "attachments": [
+     "notes.txt"
+    ],
+    "mentions": [
+     {
+      "type": "file",
+      "path": "docs/release notes.md"
+     }
+    ],
+    "reply": "MARIGOLD\nCODEWORD-NOTES-JUNIPER"
+   }
+  },
+  {
+   "step": "a hand-typed @path outside the workspace isn't read in (Work), and the message is shown as typed",
+   "ok": true,
+   "detail": {
+    "attachedByRuntime": [],
+    "outsideContentReachedWorker": false,
+    "workerGot": " `@C:\\\\Users\\\\hp\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\\\scratchpad\\\\mfix\\\\outside\\\\Header.tsx` `@../outside/Header.tsx` `@linked/Header.tsx`\"",
+    "shownAsTyped": true
+   }
+  },
+  {
+   "step": "switching workspace: a mention picked in the old one is refused (not re-read in the new one); new @ lists the new one",
+   "ok": true,
+   "detail": {
+    "refused": "@src/components/Header.tsx was picked in another workspace. Remove it, or pick it again here.",
+    "canaryRows": [
+     "evil.html",
+     "scripts/info.js",
+     ".claude/settings.json",
+     "src/index.js",
+     "README.md",
+     ".htpasswd",
+     "package.json",
+     ".env.development",
+     ".env.development.local",
+     ".env",
+     "notes-link.txt"
+    ],
+    "label": "Recent files · Canary"
+   }
+  },
+  {
+   "step": "Inspect workspace: a mention works and the profile is unchanged (no write tools)",
+   "ok": true,
+   "detail": {
+    "profile": "inspect",
+    "builtinTools": [
+     "Glob",
+     "Grep",
+     "Read",
+     "ToolSearch"
+    ],
+    "reply": "DONEHere is the first line of README.md, quoted exactly:\n\n# Canary workspace"
+   }
+  },
+  {
+   "step": "\"No folder\": @ lists its own (empty) folder",
+   "ok": true,
+   "detail": {
+    "label": "Recent files · No folder",
+    "empty": "No matching files"
+   }
+  },
+  {
+   "step": "the server re-checks every mention: outside, absolute, drive, UNC, junction, folder; nothing starts",
+   "ok": true,
+   "detail": {
+    "dotdot": "400 @../outside/Header.tsx isn't a file in this workspace.",
+    "innerDotdot": "400 @src/../../outside/Header.tsx isn't a file in this workspace.",
+    "absolute": "400 @C:/Windows/win.ini isn't a file in this workspace.",
+    "absoluteSlash": "400 @C:/Windows/win.ini isn't a file in this workspace.",
+    "driveRelative": "400 @C:win.ini isn't a file in this workspace.",
+    "unc": "400 @//localhost/c$/Windows/win.ini isn't a file in this workspace.",
+    "uncSlash": "400 @//localhost/c$/Windows/win.ini isn't a file in this workspace.",
+    "rooted": "400 @/Windows/win.ini isn't a file in this workspace.",
+    "junctionOut": "400 @linked/Header.tsx resolves outside this workspace.",
+    "junctionDir": "400 @linked resolves outside this workspace.",
+    "folder": "400 @src is a folder, not a file.",
+    "option": "400 @--help isn't a file in this workspace.",
+    "wrongType": "@README.md isn't a file in this workspace.",
+    "tooMany": "Mention up to 20 files per message.",
+    "followUp": "@../outside/Header.tsx isn't a file in this workspace.",
+    "runsCreated": 0
+   }
+  },
+  {
+   "step": "search never returns anything outside the workspace, and another site can't read it",
+   "ok": true,
+   "detail": {
+    "results": {
+     "../": [],
+     "..\\": [],
+     "../outside": [],
+     "BASALT": [],
+     "C:\\": [],
+     "C:/Windows": [],
+     "//localhost/c$": [],
+     "linked/": [],
+     "node_modules/": [],
+     "dist/": [],
+     ".git/": []
+    },
+    "unknownWorkspace": "No workspace \"nope\".",
+    "crossOrigin": "blocked: Failed to fetch",
+    "foreignHost": 403
+   }
+  },
+  {
+   "step": "performance: indexed once, then each keystroke is served from the index (and a huge folder is capped)",
+   "ok": true,
+   "detail": {
+    "executor": {
+     "indexed": 357,
+     "coldMs": 69,
+     "warmMs": 13
+    },
+    "big": {
+     "onDisk": 21300,
+     "indexed": 20000,
+     "truncated": true,
+     "coldMs": 596,
+     "keystrokeMs": [
+      24,
+      26,
+      9,
+      19,
+      14,
+      15,
+      14,
+      19,
+      17
+     ]
+    }
+   }
+  }
+ ],
+ "pageErrors": []
+}

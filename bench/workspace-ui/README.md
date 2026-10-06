@@ -307,3 +307,66 @@ The definition lives in `workers/senior-uiux-design-engineer.json`. It's created
 The Senior UI/UX Design Engineer in "No folder" gets every capability, including Figma edit.
 
 On the same build: workflow 12/12, attach 10/10, versions 14/14, workers 12/12.
+
+## @ file mentions (2026-10-06)
+
+Type `@` in the composer to pick files from the **selected workspace**. Each pick goes to the worker as a workspace-relative reference: a path, never the file's contents. The worker reads the file itself with its own tools, so its profile (Inspect/Work) still applies.
+
+**Picking:**
+- **Where it searches:** the list comes from the server, so the browser never sees anything outside the workspace.
+  - In a Git repository it uses Git's view: tracked plus untracked files, honouring `.gitignore`. Untracked dependency and build folders (`node_modules`, `dist`, `build`, `.next`, …) are skipped even when `.gitignore` forgets them.
+  - Outside a repository it walks the folder, skipping `.git` and the same folders, and doesn't follow links.
+  - Every entry passes the file viewer's real-path containment, so a file or folder that links out (a junction or symlink) is left out.
+- **What it lists:** an empty `@` shows recent files. Text matches the file name first, then the path. `dir/` lists that folder, from the root or at any depth. No match shows "No matching files".
+- **Keyboard and mouse:** ↑/↓ move, Enter or Tab picks, Escape closes (for that `@`), and a click picks. An `@` works mid-sentence, and a message can carry several mentions.
+- **Speed:** the index is built once and cached for 15 s, so typing doesn't rescan. It's capped at 20,000 files.
+
+**Sending:**
+- The mentions still present in the text go with the message as `mentions: [{type: "file", path}]`, in the order they're written.
+- **The server re-checks each one** against the run's own workspace and refuses:
+  - absolute, drive, UNC and `..` paths, and paths starting with `-`;
+  - anything that resolves outside, such as a junction;
+  - folders;
+  - more than 20 mentions.
+- **Missing files:** a file that no longer exists is passed on as missing. The worker is told, and the conversation strikes the mention through.
+- **What the worker gets:** a `<file_references>` list appended to the message.
+- **Changing workspace:** a mention is tied to the workspace it was picked in. If the workspace changes before sending, it's refused ("picked in another workspace"), never quietly re-read in the new one.
+- **In the conversation:** mentions read as links that open the file read-only, from that run's workspace.
+
+**Found while testing, and fixed:**
+- **What the runtime did:** Claude Code expands `@path` in message text into the file's contents before the model sees it.
+  - That defeated "references, not contents": the worker answered without reading anything.
+  - In a **Work** workspace it also read in files **outside** the workspace. A hand-typed `@C:\…\outside\Header.tsx` or `@../outside/Header.tsx` put the outside canary's contents into the worker's context. Inspect didn't.
+  - The only switch that turns this off (`CLAUDE_CODE_DISABLE_ATTACHMENTS`) is internal and also disables deferred tools and project instructions, so it isn't used.
+- **The console's fix:** before text goes to the worker, every `@token` the runtime could read is wrapped in backticks, which the runtime leaves alone. That means a path that exists from the workspace, or any absolute, drive, UNC, `~` or `..` path.
+  - This covers attached text files too.
+  - Other `@` text is unchanged: emails, `@media`, `@property`, and package names that aren't files.
+  - The person's message is shown exactly as typed.
+
+`mentions-test.mjs`: **15/15 passed** (`mentions-results.json`). It builds its own fixtures: a Git app with three `Header.tsx` files, untracked `node_modules`, an ignored `dist`, and a junction to an outside folder holding a canary. It also uses a 21,300-file plain folder and the Canary Inspect repo.
+1. `@` lists the Mention app's files and nothing ignored, dependency or linked out. (Canary's `jdir/*`, which Git lists through its junction, is also left out.)
+2. Filtering: `Header` → the three `Header.tsx` files; `layout/App` → `AppLayout.tsx`; `src/layout/` → that folder; `zzqx` → "No matching files".
+3. Keyboard: ↓↓↑ selects the second row, Enter inserts it without sending, Escape keeps that `@` closed, a new `@` reopens, and Tab picks.
+4. Mouse, mid-sentence (`Look at @src/pages/Header.tsx  please`), and two mentions in one message.
+5. Send:
+   - the request carries two `{type: "file", path}` references and no contents;
+   - the worker's transcript shows the `<file_references>` block and **no runtime-inlined files**;
+   - the worker made its own `Read` calls for both files and returned both codewords.
+6. Mentions render as links, and one opens the file read-only.
+7. A file deleted after it was picked: sent as missing, struck through, and the worker checked and answered "No".
+8. An attachment plus a mention whose path has a space (`docs/release notes.md`): both codewords came back.
+9. In Work, a hand-typed absolute, `../` and junction `@path` were not read in: no file attachments, and the outside canary never reached the worker. The message is shown as typed.
+10. A mention picked in Mention app, then the workspace switched to Canary: send refused, no run started. A new `@` lists Canary's files.
+11. Inspect: a mention works; the run is `inspect` with built-in tools Glob, Grep, Read and ToolSearch (no Write, Edit or Bash).
+12. "No folder": `@` shows its own empty folder ("No matching files").
+13. The API refuses (400), with no run started and no message reaching a run:
+    - `../`, `src/../../`, `C:\`, `C:/`, `C:win.ini`, `\host\share`, `//host/share`, `/Windows`;
+    - the junction file and the junction folder;
+    - a folder; `--help`; a non-file type; 21 mentions;
+    - a follow-up with `../`.
+14. Search returns nothing outside for `../`, `..\`, `C:\`, UNC, `linked/`, `node_modules/`, `dist/` or `.git/`. Another origin can't read `/mentions` (CORS-blocked), and a foreign Host gets 403.
+15. Performance:
+    - **Executor repo:** about 357 files, about 70 ms cold, about 13 ms warm.
+    - **21,300-file folder:** capped at 20,000 (`truncated: true`), about 600 ms cold, 6–26 ms per keystroke.
+
+**Note:** `@` lists what the Files tree lists, dotfiles included (`.env`, unless `.gitignore` excludes it). The worker could already read those with its own tools in both profiles. A mention gives it no new access.
