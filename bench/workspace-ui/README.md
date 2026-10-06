@@ -373,3 +373,75 @@ Type `@` in the composer to pick files from the **selected workspace**. Each pic
 **Note:** `@` lists what the Files tree lists, dotfiles and ignored files included (for example `.env`). The worker could already read those with its own tools in both profiles. A mention gives it no new access.
 
 **Later (2026-10-06): files `.gitignore` hides are listed too.** In a real repo whose `.gitignore` has `/docs`, `docs/` showed only the 3 committed files. It now shows all 33, nested folders included, and dependency/build folders still stay out. That repo (3,820 files) indexes in about 0.4 s, then about 1–3 ms per keystroke.
+
+## Teams (2026-10-06)
+
+A Team is shared context and scope for several workers. The design is in `docs/team-platform.md`.
+- **What it holds:** workers, knowledge (workspace-file references and uploads), resources (workspace, Figma file), enforced policies, instructions, requirements, Team prompts, and versions.
+- **How it runs:** a Team run is the member worker's normal run, in the Team's workspace, with the Team's context added before the worker's own.
+- **What it can't do:** add access. It can only take tools away.
+
+`teams-test.mjs`: **19/19 passed** (`teams-results.json`). It uses the real worker and a real browser.
+
+**The fixture is a copy of the real MATW repository:**
+- a shallow, sparse clone of `sabir-uat` and `prod-main`, with code but no images;
+- MATW's own `docs/` folder;
+- `origin` pointed at a local bare repo.
+
+The real repository is only read: cloned from, and checked with `git ls-remote`.
+
+**The steps:**
+1. **The MATW Team is created in the UI:**
+   - Frontend Engineer, Senior UI/UX Design Engineer and QA Engineer;
+   - the MATW Frontend workspace (Work), and a Figma link;
+   - `@docs/universal/ARCHITECTURE.md`, `@docs/platform-contract.md` and `@docs/ddfoa.md` added through the workspace file search;
+   - two uploads (a business-context note and a PDF);
+   - `prod-main` protected, three instructions, Figma read and GitHub requirements, and two Team prompts.
+
+   The summary shows the saved counts and live requirement states.
+2. After a reload the Team is still there, and everything reopens as saved. The upload is served back read-only.
+3. Edits made the versions shown as 3, 2, 1:
+   - add the Research worker, and remove a reference and an upload (v2);
+   - add them back (v3).
+4. The page shows the protected branch as ENFORCED and the instructions as INSTRUCTION. The API refuses `{type: "follow_ddfoa"}`: "can't be enforced… add it as an instruction".
+5. **Team prompts:**
+   - they appear only in the Team's own sidebar section, and Use fills the composer;
+   - a global favourite saved with ☆ lands in Favourites;
+   - another Team shows only its own prompt.
+6. **The Frontend Engineer runs through the Team** (Chat on the Team page):
+   - the request carries `team` and `worker`, but no workspace and no mentions;
+   - the context order is Workspace → Team → instructions → knowledge → resources → "You are";
+   - the worker answered "prod-main… the platform enforces this", the three instructions, the uploaded document's codeword and "UMDA Protocol", which it read from the real `ARCHITECTURE.md` with its own Read calls;
+   - its tools include Write but not Bash;
+   - the Team and Enforced policy cards are shown.
+7. **The worker attacked the protection, as an authorised test.** Its search for a shell tool returned "No matching deferred tools found". Both Write attempts (`.git/refs/heads/prod-main`, `.claude/settings.local.json`) were refused by the runtime: "denied by your permission settings". `prod-main` was unchanged, and the refused writes aren't listed as artifacts.
+8. **The console's Git layer:**
+   - a commit while HEAD is `prod-main` is refused;
+   - a push to `prod-main` (as `sabir-uat`'s upstream) is refused, and the bare remote stays empty;
+   - the Versions view says "Pushing goes to origin/prod-main, which the MATW Team protects", with no push button.
+9. On a small full repo with `prod-main` checked out, the Versions view has no commit box and no push button, and says why.
+10. With `prod-main` checked out, a Team run's built-in tools are only Glob, Grep, Read and ToolSearch, and its context says why.
+11. **The policy covers the repository:**
+    - a General worker run there has no Bash, and shows the policy card;
+    - a workspace on a sub-folder of the clone reports the protection too.
+12. **Versions:**
+    - after adding "British English" (v4), a new run lists four instructions;
+    - continuing the v3 run lists three. Its context file is byte-identical, and its snapshot still says v3.
+13. **Figma, through the worker:**
+    - `figma_read_design` refused another file's link ("may only read the Team's Figma file");
+    - the Team's own link without authorization made the worker write `NEEDS:`;
+    - requirements showed "Figma: read designs (Team): Not connected".
+14. **Figma Executor lock, with a fake bridge and no real Figma:**
+    - while another file is open, `figma_delete_node` is refused, and the bridge saw only GET_FILE_INFO;
+    - with the Team's file open it goes through;
+    - without a Team nothing changes;
+    - the Reader refuses another file's link.
+15. **An Inspect Team stays Inspect.** Its run's built-in tools are only Glob, Grep, Read and ToolSearch, although the Frontend Engineer defines write and shell. Team knowledge refuses `../`, absolute, `C:x`, UNC, a junction out, a folder, and a file from another workspace. A Team run in another workspace, or with a non-member worker, is refused.
+16. Choosing another workspace leaves the Team. Removing QA from the Team (v5) refuses new QA runs, and the old run still shows v3.
+17. **Deleting a Team in the UI:** it's gone after a reload, its folder is removed, and its run still opens with its Team card and snapshot.
+18. **GitHub requirement on the real MATW repository (Inspect):** "Reachable" via `git ls-remote`. Nothing changed.
+19. Another origin gets 403 on create, change and delete.
+
+**Found and fixed along the way:**
+- **Artifacts:** a Write the runtime refused used to be listed as an artifact. Artifacts are now registered only when the write succeeds.
+- **Versions view:** committing to a branch whose upstream is protected is allowed. Only the push is refused.

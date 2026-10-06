@@ -248,6 +248,31 @@ main { min-width: 0; min-height: 0; padding: 0 16px 32px; display: flex; justify
 .mempty { padding: 6px 8px; color: var(--t3); }
 .mention { color: var(--pri); cursor: pointer; } .mention:hover { text-decoration: underline; }
 .mention.gone { color: var(--t3); text-decoration: line-through; cursor: default; }
+/* Teams: the Team page, its lists and the enforced / instruction distinction */
+.tag { display: inline-flex; align-items: center; height: 16px; padding: 0 5px; border-radius: 2px; font: 500 10px/14px var(--mono); letter-spacing: .5px; text-transform: uppercase; flex: none; box-shadow: inset 0 0 0 1px currentColor; }
+.tag.enf { color: var(--ok); } .tag.ins { color: var(--star); } .tag.ref { color: var(--pri); } .tag.up { color: var(--t2); }
+.klist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.klist li { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border-radius: 2px; color: var(--t2); min-width: 0; }
+.klist li:hover { background: var(--surf); }
+.klist .kname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; color: var(--t1); }
+.klist a.kname:hover { text-decoration: underline; }
+.klist .d { color: var(--t3); flex: none; }
+.klist .ptext { color: var(--t3); }
+.kmono { font-family: var(--mono); font-size: 11px; }
+.kadd { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; } .kadd.col { flex-direction: column; align-items: stretch; }
+.kadd .btn { height: 28px; flex: none; } .kadd.col .btn { align-self: flex-start; }
+.kadd > .wfield { flex: 1; min-width: 180px; }
+.kpick { position: relative; flex: 1; min-width: 200px; }
+.kpop { top: calc(100% + 4px); bottom: auto; left: 0; right: 0; }
+.trow { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; align-items: center; } .trow .k { color: var(--t3); }
+.tsum { margin: 12px 12px 0; padding: 12px; background: var(--surf); border-radius: 4px; }
+.tsum h2 { margin: 0; font: 500 18px/24px var(--sans); letter-spacing: -.3px; color: var(--t1); } .tsum p { margin: 2px 0 0; color: var(--t2); font: 400 13px/20px var(--sans); }
+.tsum dl { margin: 12px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; }
+.tsum dd { margin: 4px 0 0; color: var(--t2); display: flex; flex-wrap: wrap; gap: 4px; font: 400 12px/18px var(--sans); }
+.tchip { padding: 1px 6px; border-radius: 2px; background: var(--high); color: var(--t1); }
+.cap .tchat { margin-left: auto; height: 22px; align-self: center; }
+.cbadge .tmx { width: 14px; height: 14px; margin-right: -4px; }
+@media (max-width: 760px) { .tsum dl { grid-template-columns: 1fr 1fr; } .trow { grid-template-columns: 1fr; } }
 .attrow { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 4px 0; }
 .achip { height: 36px; max-width: 220px; display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 4px; background: var(--surf); border-radius: 2px; color: var(--t2); text-decoration: none; }
 .achip img, .achip .ic { width: 28px; height: 28px; border-radius: 2px; flex: none; }
@@ -341,6 +366,11 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
       <ul id="wkList"></ul>
       <button class="row add" id="addWk"><svg class="i" width="9" height="9" data-i="plus"></svg><span>New worker</span></button>
     </nav>
+    <nav class="sect" aria-labelledby="lTm">
+      <div class="lab" id="lTm">Teams</div>
+      <ul id="tmList"></ul>
+      <button class="row add" id="addTm"><svg class="i" width="9" height="9" data-i="plus"></svg><span>New team</span></button>
+    </nav>
     <nav class="sect" aria-labelledby="lWs">
       <div class="lab" id="lWs">Workspaces</div>
       <ul id="wsList"></ul>
@@ -361,6 +391,10 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
     <section class="sect" aria-labelledby="lFav">
       <div class="lab" id="lFav">Favourites</div>
       <ul id="favList"></ul>
+    </section>
+    <section class="sect" id="tpSect" aria-labelledby="lTp" hidden>
+      <div class="lab" id="lTp">Team prompts</div>
+      <ul id="tpList"></ul>
     </section>
     <section class="sect" aria-labelledby="lRuns">
       <div class="lab" id="lRuns">Recent runs</div>
@@ -404,7 +438,7 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
           <div class="l">
             <button class="attach" id="attachBtn" aria-label="Attach files" title="Attach images, PDFs or text files (or paste / drop them here)"><svg class="i" width="11" height="11" data-i="plus11"></svg></button>
             <input type="file" id="fileIn" multiple hidden accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/*,.md,.json,.csv,.txt,.log,.xml,.yml,.yaml,.svg,.js,.jsx,.mjs,.ts,.tsx,.css,.scss,.html,.py,.sql,.sh,.env.example">
-            <span class="cbadge m11" title="The worker that answers new chats"><span class="wkdot" aria-hidden="true">◆</span><span class="ell" id="wkName">General</span></span>
+            <span class="cbadge m11" title="The worker that answers new chats"><span class="wkdot" aria-hidden="true">◆</span><span class="ell" id="wkName">General</span><button class="iconbtn tmx" id="tmLeave" hidden aria-label="Leave the Team" title="Leave the Team"><svg class="i" width="9" height="9" data-i="close"></svg></button></span>
             <span class="cbadge m11"><span class="dot" id="bDot"></span><span class="ell" id="bName"></span><span class="sl" id="bSl">/</span><span class="br" id="bBr"></span></span>
             <span class="mtag m11" id="mTag"><svg class="i" width="9" height="11" data-i="bolt"></svg><span id="mName"></span></span>
           </div>
@@ -584,6 +618,7 @@ function renderWorkspaces() {
   $("input").placeholder = runId ? "Reply to the worker…" : w.id === "scratch" ? "Message the worker…" : (w.profile === "inspect" ? `Ask the worker to inspect ${w.name}…` : `Ask the worker to inspect or operate on ${w.name}…`);
 }
 function selectWorkspace(id, { newChat = true } = {}) {
+  if (tm() && teamWs(tm()) !== id) leaveTeam();
   wsId = id; store.set("ws", id); closePicker();
   renderWorkspaces(); renderRuns(); loadTree(); loadGit(); loadWorkers();
   if (newChat) openNewChat();
@@ -774,7 +809,7 @@ async function openFile({ path, workspace, run }) {
   } catch (e) { body.innerHTML = `<div class="vnote m11">${esc(e.message)}</div>`; }
 }
 function closeFile() {
-  wkEdit = null;
+  wkEdit = null; tmEdit = null;
   verOpen = null; renderVersions();
   view = "chat";
   document.querySelectorAll("#tree [aria-selected]").forEach((b) => b.setAttribute("aria-selected", "false"));
@@ -802,12 +837,12 @@ function renderWorkers() {
       <span class="meta m11">${x.general ? "" : missing ? `<span style="color:var(--err)">${missing} missing</span>` : `v${x.version}`}</span></button>
       ${x.general ? "" : `<button class="x" data-wk-edit="${esc(x.id)}" aria-label="Define ${esc(x.name)}">${svgIcon("tune", 12, 12)}</button>`}</li>`;
   }).join("");
-  $("wkName").textContent = wk()?.name || "General";
+  renderComposerWho();
 }
 $("wkList").onclick = (e) => {
   const ed = e.target.closest("[data-wk-edit]"), b = e.target.closest("[data-wk]");
   if (ed) return openWorkerEditor(ed.dataset.wkEdit);
-  if (b) { wkId = b.dataset.wk || null; store.set("worker", wkId || ""); renderWorkers(); openNewChat(); }
+  if (b) { wkId = b.dataset.wk || null; store.set("worker", wkId || ""); if (tm() && !tm().workers.includes(wkId)) leaveTeam(); renderWorkers(); openNewChat(); }
 };
 $("addWk").onclick = () => openWorkerEditor(null);
 const BLANK = { name: "", mission: "", specialization: "", capabilities: ["files.read"], knowledge: "", workflow: [], limitations: [], requirements: [], onMissing: "" };
@@ -888,6 +923,219 @@ async function loadMemory(id) {
   };
 }
 
+// ---------------- teams ----------------
+// A Team is shared context and scope for several workers (docs/team-platform.md). Selecting a Team
+// opens its page; its workers then answer in the Team's workspace, with the Team's context added
+// before their own. Everything on the page reaches the run: the console turns it into the run's
+// context, its Figma lock and its enforced policies.
+let TM = { teams: [], enforceable: [] }, tmId = store.get("team") || null, tmEdit = null;
+const tm = () => TM.teams.find((t) => t.id === tmId) || null;
+const teamWs = (t) => t.workspace || "scratch";
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+async function loadTeams() {
+  try { TM = await api("GET", "/teams"); } catch { return; }
+  if (tmId && !tm()) leaveTeam(false);
+  renderTeams(); renderTeamPrompts(); renderComposerWho();
+  if (view === "chat" && !runId) renderCanvas();
+}
+function renderTeams() {
+  $("tmList").innerHTML = TM.teams.length ? TM.teams.map((t) => {
+    const sel = t.id === tmId, missing = t.status.filter((r) => !r.ok && r.need === "required").length;
+    return `<li class="wsi"><button class="row ws" data-tm="${esc(t.id)}" aria-current="${sel}" title="${esc(t.description || t.name)}"><span class="grow">${sel ? '<span class="dot"></span>' : ""}<span class="ell">${esc(t.name)}</span></span>
+      <span class="meta m11">${missing ? `<span style="color:var(--err)">${missing} missing</span>` : `v${t.version}`}</span></button></li>`;
+  }).join("") : '<li class="empty">No teams yet</li>';
+}
+function renderComposerWho() {
+  const t = tm();
+  $("wkName").textContent = t ? `${t.name} · ${wk()?.name || "choose a worker"}` : wk()?.name || "General";
+  $("tmLeave").hidden = !t;
+}
+function renderTeamPrompts() {
+  const t = tm(); $("tpSect").hidden = !t;
+  if (!t) return;
+  $("lTp").textContent = `${t.name} prompts`;
+  $("tpList").innerHTML = t.prompts.length ? t.prompts.map((p) => `<li class="fav"><div class="row"><button class="grow" data-tp="${esc(p.id)}" title="${esc(p.text)}" style="text-align:left"><span class="star" aria-hidden="true">◆</span><span class="ell">${esc(p.title)}</span></button></div></li>`).join("")
+    : '<li class="empty">Add prompts on the Team page</li>';
+}
+// Entering a Team: its workspace, and one of its workers (the current one if it's a member).
+function enterTeam(id, workerId) {
+  const t = TM.teams.find((x) => x.id === id); if (!t) return;
+  tmId = id; store.set("team", id);
+  if (workerId !== undefined) wkId = workerId;
+  if (!t.workers.includes(wkId)) wkId = t.workers[0] || null;
+  store.set("worker", wkId || "");
+  if (wsId !== teamWs(t)) selectWorkspace(teamWs(t), { newChat: false });
+  renderTeams(); renderWorkers(); renderTeamPrompts(); renderComposerWho();
+}
+function leaveTeam(render = true) {
+  tmId = null; store.set("team", "");
+  if (render) { renderTeams(); renderTeamPrompts(); renderComposerWho(); if (view === "chat" && !runId) renderCanvas(); }
+}
+$("tmList").onclick = (e) => { const b = e.target.closest("[data-tm]"); if (!b) return; enterTeam(b.dataset.tm); openNewChat(); openTeamPage(b.dataset.tm); };
+$("addTm").onclick = () => openTeamPage(null);
+$("tmLeave").onclick = () => leaveTeam();
+$("tpList").onclick = (e) => {
+  const b = e.target.closest("[data-tp]"); if (!b) return;
+  const p = tm()?.prompts.find((x) => x.id === b.dataset.tp); if (!p) return;
+  if (view !== "chat") closeFile();
+  $("input").value = p.text; autosize(); $("input").focus();
+};
+
+const TBLANK = { name: "", description: "", workers: [], workspace: null, figma: null, knowledge: [], policies: [], instructions: [], requirements: [], prompts: [] };
+function teamSummary(t) {
+  const files = t.knowledge.filter((k) => k.type === "workspace_file").length, ups = t.knowledge.length - files, req = t.status || [];
+  const names = t.workers.map((id) => WK.workers.find((w) => w.id === id)?.name).filter(Boolean);
+  const wsName = (WS.find((w) => w.id === teamWs(t)) || {}).name || "Workspace removed";
+  return `<div class="tsum" id="tmSum"><h2>${esc(t.name)}</h2>${t.description ? `<p>${esc(t.description)}</p>` : ""}<dl>
+    <div><dt class="lab">Workers</dt><dd>${names.length ? names.map((n) => `<span class="tchip m11">${esc(n)}</span>`).join("") : "None"}</dd></div>
+    <div><dt class="lab">Resources</dt><dd>${esc(wsName)}${t.figma ? ` · ${esc(t.figma.name || "Figma file")}` : ""}</dd></div>
+    <div><dt class="lab">Knowledge</dt><dd>${plural(files, "workspace reference")} · ${plural(ups, "uploaded document")}</dd></div>
+    <div><dt class="lab">Policies</dt><dd>${t.policies.length} enforced · ${plural(t.instructions.length, "instruction")}</dd></div>
+    <div><dt class="lab">Prompts</dt><dd>${plural(t.prompts.length, "Team prompt")}</dd></div>
+    <div><dt class="lab">Requirements</dt><dd>${req.length ? req.map((r) => `<span class="wstat ${r.ok ? "ok" : "bad"} m11" title="${esc(r.ok ? r.detail || "" : r.how)}"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)} · ${esc(r.need)} · ${esc(r.state)}</span>`).join("") : "None"}</dd></div>
+  </dl></div>`;
+}
+// The Team page: a summary of what's saved, then the whole definition, editable. Every field
+// reaches the Team's runs (docs/team-platform.md).
+function openTeamPage(id, note) {
+  view = "team"; verOpen = null; renderVersions();
+  const d = id ? TM.teams.find((x) => x.id === id) : { ...TBLANK, workspace: wsId };
+  if (!d) return;
+  tmEdit = { id, knowledge: d.knowledge.map((k) => ({ ...k })), policies: d.policies.map((p) => ({ ...p })), prompts: d.prompts.map((p) => ({ ...p })), reqs: d.requirements.map((r) => ({ ...r })), status: d.status || [], confirmDelete: false };
+  const title = id ? `${d.name} · v${d.version}` : "New team";
+  const wsOpts = WS.map((w) => `<option value="${esc(w.id)}" ${teamWs(d) === w.id ? "selected" : ""}>${esc(w.name)}${w.id === "scratch" ? "" : ` · ${modeOf(w)}`}</option>`).join("");
+  const workerRows = WK.workers.length ? WK.workers.map((w) => `<li><label class="cap"><input type="checkbox" data-tw="${esc(w.id)}" ${d.workers.includes(w.id) ? "checked" : ""}><span class="t"><span>${esc(w.name)}</span><span class="d m11">${esc(w.specialization || w.mission || "")}</span></span>${id && d.workers.includes(w.id) ? `<button type="button" class="btn m11 tchat" data-tchat="${esc(w.id)}">Chat</button>` : ""}</label></li>`).join("")
+    : '<li class="sub m11">No workers yet: define them under Workers first.</li>';
+  const plus = `<svg class="i" width="9" height="9" viewBox="${ICONS.plus.vb}"><path d="${ICONS.plus.d[0]}"/></svg>`;
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="${esc(title)}"><div class="vbar m11"><span class="ell">${esc(title)}</span><span class="ro">${id ? "edits apply to new chats" : ""}</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
+    <div class="vbody">${id ? teamSummary(d) : ""}<form class="wform" id="tmForm" novalidate>
+      <div class="wrow2"><label class="wf"><span class="lab">Name</span><input class="wfield" id="tmN" maxlength="60" value="${esc(d.name)}" placeholder="MATW" autocomplete="off"></label>
+        <label class="wf"><span class="lab">Description</span><input class="wfield" id="tmD" maxlength="300" value="${esc(d.description)}" placeholder="Engineering & Design Team" autocomplete="off"></label></div>
+      <div class="wf"><span class="lab">Workers</span><span class="sub m11">Each keeps its own definition, tools and memory; the Team adds shared context. Chat starts a conversation with that worker as a member of this Team.</span><ul class="caps" id="tmW">${workerRows}</ul></div>
+      <div class="wf"><span class="lab">Resources</span>
+        <label class="trow"><span class="m11 k">Workspace</span><select class="wfield" id="tmWs">${wsOpts}</select></label>
+        <label class="trow"><span class="m11 k">Figma file</span><input class="wfield" id="tmFu" maxlength="500" value="${esc(d.figma?.url || "")}" placeholder="https://www.figma.com/design/…" autocomplete="off"></label>
+        <label class="trow"><span class="m11 k">Figma name</span><input class="wfield" id="tmFn" maxlength="80" value="${esc(d.figma?.name || "")}" placeholder="MATW Figma" autocomplete="off"></label>
+        <span class="sub m11">The Team's workers run in this workspace, with its own mode (Inspect or Work). The Figma link grants no access: reading it still needs Figma authorization. In the Team's runs the Figma tools only act on this file.</span></div>
+      <div class="wf"><span class="lab">Knowledge</span><span class="sub m11"><span class="tag ref">Workspace file</span> a reference: workers read the current file. <span class="tag up">Uploaded</span> a document stored with the Team; each run gets its own copy.</span>
+        <ul class="klist" id="tmK"></ul>
+        <div class="kadd"><div class="kpick"><input class="wfield" id="tmKq" placeholder="Add a file from the workspace…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="tmKs" aria-autocomplete="list"><div class="mpick kpop" id="tmKs" role="listbox" hidden></div></div>
+          <button type="button" class="btn m11" id="tmUp">Upload document</button><input type="file" id="tmUpIn" hidden multiple accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/*,.md,.json,.csv,.txt,.yml,.yaml,.xml"></div></div>
+      <div class="wf"><span class="lab">Rules</span>
+        <span class="sub m11"><span class="tag enf">Enforced</span> the platform prevents it, below the model. For a protected branch, in the Team's repository: the console refuses to commit or push to it; runs get no shell commands and can't write .git or .claude; while it's checked out, runs can't change files.</span>
+        <ul class="klist" id="tmP"></ul>
+        <div class="kadd"><input class="wfield" id="tmPb" maxlength="100" placeholder="Branch to protect, e.g. prod-main" autocomplete="off"><button type="button" class="btn m11" id="tmPadd">Protect branch</button></div>
+        <span class="sub m11" style="margin-top:10px"><span class="tag ins">Instruction</span> given to every Team worker as a convention, one per line. Workers are told, not prevented.</span>
+        <textarea class="wtext" id="tmI" rows="4" placeholder="Follow DDFOA.&#10;Use the BFF pattern.">${esc(d.instructions.join("\n"))}</textarea></div>
+      <div class="wf"><span class="lab">Requirements</span><span class="sub m11">Checked when each Team run starts. A requirement isn't access: when one is missing, the worker stops and asks (NEEDS:).</span><div class="reqs" id="tmR"></div><button type="button" class="row add" id="tmRadd" style="width:auto">${plus}<span>Add requirement</span></button></div>
+      <div class="wf"><span class="lab">Team prompts</span><span class="sub m11">Saved prompts for any of this Team's workers. Your Favourites stay separate.</span>
+        <ul class="klist" id="tmQ"></ul>
+        <div class="kadd col"><input class="wfield" id="tmQt" maxlength="80" placeholder="Title" autocomplete="off"><textarea class="wtext" id="tmQx" rows="2" placeholder="Prompt"></textarea><button type="button" class="btn m11" id="tmQadd">Add prompt</button></div></div>
+      ${id ? '<div class="wf"><span class="lab">Versions</span><span class="sub m11">Every save is a version. A run keeps the version it started with, also when you continue it later.</span><ul class="klist" id="tmV"><li class="sub m11">Loading…</li></ul></div>' : ""}
+      <div class="wfoot">${id ? '<button type="button" class="btn danger m11" id="tmDel">Delete</button>' : ""}<span class="msg m11" id="tmMsg" role="status">${esc(note || "")}</span><button type="button" class="btn m11" id="tmCancel">Cancel</button><button type="submit" class="btn pri m11">Save</button></div>
+    </form></div></div>`;
+  wireViewer();
+  renderTeamKnowledge(); renderTeamPolicies(); renderTeamReqs(); renderTeamPromptsEdit();
+  $("tmWs").onchange = renderTeamKnowledge;
+  $("tmCancel").onclick = closeFile;
+  $("tmForm").onsubmit = (e) => { e.preventDefault(); saveTeamPage(); };
+  $("tmW").onclick = (e) => { const b = e.target.closest("[data-tchat]"); if (!b) return; e.preventDefault(); enterTeam(id, b.dataset.tchat); closeFile(); openNewChat(); };
+  $("tmPadd").onclick = () => { const b = $("tmPb").value.trim(); if (!b) return; if (!tmEdit.policies.some((p) => p.branch === b)) tmEdit.policies.push({ type: "protect_branch", branch: b }); $("tmPb").value = ""; renderTeamPolicies(); };
+  $("tmPb").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("tmPadd").click(); } };
+  $("tmRadd").onclick = () => { const r = WK.resources[0]; tmEdit.reqs.push({ resource: r.resource, access: r.access, need: "required" }); renderTeamReqs(); };
+  $("tmQadd").onclick = () => { const text = $("tmQx").value.trim(); if (!text) return $("tmQx").focus(); tmEdit.prompts.push({ title: $("tmQt").value.trim() || text.split("\n")[0].slice(0, 80), text }); $("tmQt").value = ""; $("tmQx").value = ""; renderTeamPromptsEdit(); };
+  $("tmUp").onclick = () => $("tmUpIn").click();
+  $("tmUpIn").onchange = async () => { await addTeamUploads([...$("tmUpIn").files]); $("tmUpIn").value = ""; };
+  wireKnowledgePicker();
+  if (id) { $("tmDel").onclick = () => deleteTeamPage(id); loadTeamVersions(id); }
+  $("tmN").focus();
+}
+function renderTeamKnowledge() {
+  const ws = $("tmWs").value;
+  $("tmK").innerHTML = tmEdit.knowledge.length ? tmEdit.knowledge.map((k, i) => {
+    const other = k.type === "workspace_file" && k.workspaceId && k.workspaceId !== ws;
+    const label = k.type === "upload"
+      ? `${k.id && !k.data ? `<a class="kname" href="/teams/${encodeURIComponent(tmEdit.id)}/knowledge/${encodeURIComponent(k.id)}" target="_blank" rel="noopener">${esc(k.name)}</a>` : `<span class="kname">${esc(k.name)}</span>`}<span class="d m11">${k.kind === "pdf" ? "PDF · " : ""}${fmtSize(k.size)}${k.data ? " · not saved yet" : ""}</span>`
+      : `<span class="kname kmono">@${esc(k.path)}</span>${other ? '<span class="d m11 err">in another workspace</span>' : ""}`;
+    return `<li data-kind="${k.type}"><span class="tag ${k.type === "upload" ? "up" : "ref"}">${k.type === "upload" ? "Uploaded" : "Workspace file"}</span>${label}<button type="button" class="iconbtn" data-kdel="${i}" aria-label="Remove ${esc(k.path || k.name)}">${svgIcon("close", 12, 12)}</button></li>`;
+  }).join("") : '<li class="sub m11">None.</li>';
+  $("tmK").onclick = (e) => { const b = e.target.closest("[data-kdel]"); if (b) { tmEdit.knowledge.splice(+b.dataset.kdel, 1); renderTeamKnowledge(); } };
+}
+// Files from the Team's workspace, through the same search as @ mentions.
+function wireKnowledgePicker() {
+  const q = $("tmKq"), pop = $("tmKs"); let timer, items = [], sel = 0;
+  const close = () => { pop.hidden = true; q.setAttribute("aria-expanded", "false"); };
+  const add = (p) => { const ws = $("tmWs").value; if (!tmEdit.knowledge.some((k) => k.type === "workspace_file" && k.path === p)) tmEdit.knowledge.push({ type: "workspace_file", workspaceId: ws, path: p }); q.value = ""; close(); renderTeamKnowledge(); q.focus(); };
+  const show = () => { pop.hidden = false; q.setAttribute("aria-expanded", "true"); pop.innerHTML = items.length ? items.map((p, i) => { const k = p.lastIndexOf("/"); return `<button type="button" class="mrow m11" role="option" data-kp="${esc(p)}" aria-selected="${i === sel}"><span class="n">${esc(p.slice(k + 1))}</span><span class="d ell">${esc(k > 0 ? p.slice(0, k) : "")}</span></button>`; }).join("") : '<div class="mempty m11">No matching files</div>'; };
+  q.oninput = () => { clearTimeout(timer); timer = setTimeout(async () => { try { items = (await api("GET", `/mentions?workspace=${encodeURIComponent($("tmWs").value)}&q=${encodeURIComponent(q.value.replace(/^@/, ""))}`)).files; } catch { items = []; } sel = 0; show(); }, 90); };
+  q.onfocus = q.oninput;
+  q.onkeydown = (e) => {
+    if (pop.hidden) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (items.length) { sel = (sel + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length; show(); } }
+    else if (e.key === "Enter") { e.preventDefault(); if (items[sel]) add(items[sel]); }
+    else if (e.key === "Escape") { e.preventDefault(); close(); }
+  };
+  q.onblur = () => setTimeout(close, 150);
+  pop.onmousedown = (e) => { const b = e.target.closest("[data-kp]"); if (b) { e.preventDefault(); add(b.dataset.kp); } };
+}
+// Uploads are checked like attachments (type from the bytes, size per type) here and on the server.
+async function addTeamUploads(files) {
+  for (const file of files) {
+    const kind = IMGTYPES.includes(file.type) ? "image" : file.type === "application/pdf" || /\.pdf$/i.test(file.name) ? "pdf" : "text";
+    if (file.size > ALIM[kind]) { $("tmMsg").innerHTML = `<span class="err">${esc(file.name)} is too large (${ALIMTXT[kind]} at most).</span>`; continue; }
+    if (kind === "text" && new Uint8Array(await file.slice(0, 8000).arrayBuffer()).includes(0)) { $("tmMsg").innerHTML = `<span class="err">${esc(file.name)} can't be uploaded: only images, PDFs and text files.</span>`; continue; }
+    tmEdit.knowledge.push({ type: "upload", name: file.name, kind, size: file.size, data: await readB64(file) });
+  }
+  renderTeamKnowledge();
+}
+function renderTeamPolicies() {
+  $("tmP").innerHTML = tmEdit.policies.length ? tmEdit.policies.map((p, i) => `<li><span class="tag enf">Enforced</span><span class="kname">Never modify <span class="kmono">${esc(p.branch)}</span></span><button type="button" class="iconbtn" data-pdel="${i}" aria-label="Stop protecting ${esc(p.branch)}">${svgIcon("close", 12, 12)}</button></li>`).join("") : '<li class="sub m11">None.</li>';
+  $("tmP").onclick = (e) => { const b = e.target.closest("[data-pdel]"); if (b) { tmEdit.policies.splice(+b.dataset.pdel, 1); renderTeamPolicies(); } };
+}
+function renderTeamReqs() {
+  const statusOf = (r) => tmEdit.status.find((x) => x.resource === r.resource && x.access === r.access);
+  $("tmR").innerHTML = tmEdit.reqs.length ? tmEdit.reqs.map((r, i) => {
+    const st = statusOf(r);
+    return `<div class="req"><select data-ri="${i}" data-k="res" aria-label="Resource">${WK.resources.map((x) => `<option value="${esc(x.resource + ":" + x.access)}" ${x.resource === r.resource && x.access === r.access ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select>
+      <select data-ri="${i}" data-k="need" aria-label="Required or optional"><option value="required" ${r.need === "required" ? "selected" : ""}>Required</option><option value="optional" ${r.need === "optional" ? "selected" : ""}>Optional</option></select>
+      <span class="wstat m11 ${st ? (st.ok ? "ok" : "bad") : ""}" title="${esc(st && !st.ok ? st.how : "")}">${st ? `<span class="dot ${st.ok ? "" : "red"}"></span>${esc(st.state)}` : "checked when saved"}</span>
+      <button type="button" class="iconbtn" data-ri-del="${i}" aria-label="Remove requirement">${svgIcon("close", 12, 12)}</button></div>`;
+  }).join("") : '<span class="sub m11">None.</span>';
+  $("tmR").onchange = (e) => { const el = e.target, i = +el.dataset.ri; if (el.dataset.k === "res") { const [res, acc] = el.value.split(":"); tmEdit.reqs[i] = { ...tmEdit.reqs[i], resource: res, access: acc }; } else tmEdit.reqs[i].need = el.value; renderTeamReqs(); };
+  $("tmR").onclick = (e) => { const b = e.target.closest("[data-ri-del]"); if (b) { tmEdit.reqs.splice(+b.dataset.riDel, 1); renderTeamReqs(); } };
+}
+function renderTeamPromptsEdit() {
+  $("tmQ").innerHTML = tmEdit.prompts.length ? tmEdit.prompts.map((p, i) => `<li><span class="star" aria-hidden="true">◆</span><span class="kname" title="${esc(p.text)}">${esc(p.title)} <span class="ptext m11">${esc(p.text.slice(0, 80))}</span></span>${tmEdit.id && p.id ? `<button type="button" class="btn m11" data-quse="${i}">Use</button>` : ""}<button type="button" class="iconbtn" data-qdel="${i}" aria-label="Remove ${esc(p.title)}">${svgIcon("close", 12, 12)}</button></li>`).join("") : '<li class="sub m11">None.</li>';
+  $("tmQ").onclick = (e) => {
+    const d = e.target.closest("[data-qdel]"), u = e.target.closest("[data-quse]");
+    if (d) { tmEdit.prompts.splice(+d.dataset.qdel, 1); renderTeamPromptsEdit(); }
+    if (u) { const p = tmEdit.prompts[+u.dataset.quse], id = tmEdit.id; enterTeam(id); closeFile(); openNewChat(); $("input").value = p.text; autosize(); $("input").focus(); }
+  };
+}
+async function loadTeamVersions(id) {
+  let v; try { v = await api("GET", `/teams/${encodeURIComponent(id)}/versions`); } catch { return; }
+  const ul = $("tmV"); if (!ul) return;
+  ul.innerHTML = v.versions.map((x) => { const r = v.runs.filter((y) => y.version === x.version); return `<li data-ver="${x.version}"><span class="tchip m11">v${x.version}</span><span class="d m11">${esc(new Date(x.updatedAt).toLocaleString())}</span><span class="kname m11">${r.length ? r.map((y) => `<span class="link" data-run="${esc(y.id)}" title="${esc(y.prompt)}">${esc(y.worker || "run")}: ${esc(y.prompt.split("\n")[0].slice(0, 40))}</span>`).join(" · ") : '<span class="ptext">no runs</span>'}</span></li>`; }).join("");
+  ul.onclick = (e) => { const r = e.target.closest("[data-run]"); if (r) openRun(r.dataset.run); };
+}
+async function saveTeamPage() {
+  const ws = $("tmWs").value;
+  const body = { name: $("tmN").value, description: $("tmD").value, workers: [...document.querySelectorAll("[data-tw]")].filter((x) => x.checked).map((x) => x.dataset.tw), workspace: ws,
+    figma: $("tmFu").value.trim() ? { url: $("tmFu").value.trim(), name: $("tmFn").value.trim() } : null,
+    knowledge: tmEdit.knowledge.map((k) => (k.type === "upload" ? (k.data ? { type: "upload", name: k.name, data: k.data } : { id: k.id, type: "upload" }) : { id: k.id, type: "workspace_file", workspaceId: k.workspaceId || ws, path: k.path })),
+    policies: tmEdit.policies, instructions: $("tmI").value, requirements: tmEdit.reqs, prompts: tmEdit.prompts };
+  try {
+    const t = tmEdit.id ? await api("PUT", `/teams/${encodeURIComponent(tmEdit.id)}`, body) : await api("POST", "/teams", body);
+    await loadTeams(); enterTeam(t.id);
+    openTeamPage(t.id, `Saved v${t.version}. New chats use it; earlier runs keep the version they started with.`);
+  } catch (e) { $("tmMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+async function deleteTeamPage(id) {
+  if (!tmEdit.confirmDelete) { tmEdit.confirmDelete = true; $("tmDel").textContent = "Delete: sure?"; $("tmMsg").textContent = "Its runs stay readable and keep the Team version they used."; return; }
+  try { await api("DELETE", `/teams/${encodeURIComponent(id)}`); if (tmId === id) leaveTeam(false); await loadTeams(); closeFile(); }
+  catch (e) { $("tmMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
 // ---------------- versions (the workspace's own Git history) ----------------
 // Versions are the folder's commits plus its uncommitted changes. Everything here is read-only
 // except two buttons in Work workspaces: Commit (your message, your Git identity) and Push.
@@ -933,12 +1181,16 @@ async function openVersion(rev, { keepScroll } = {}) {
     : `<div class="vnote m11" style="padding:8px 0">${wt ? "No uncommitted changes." : "No changes in this folder."}</div>`;
   const res = gitResult[wsId] ? `<div class="vres m11 ${gitResult[wsId].ok ? "ok" : "err"}" role="status">${esc(gitResult[wsId].text)}</div>` : "";
   let head, actions = "";
+  // An enforced branch policy (a Team's): nothing to or from the protected branch here.
+  const onProt = (g.protect || []).find((x) => x.branch === g.branch), toProt = !onProt && (g.protect || []).find((x) => x.branch === g.target);
   if (wt) {
     head = g.pendingRuns?.length ? `<div class="vruns m11">Changes from: ${g.pendingRuns.slice(0, 5).map((r) => `<span class="link" data-run="${esc(r.id)}">${esc(r.prompt.split("\n")[0].slice(0, 60))}</span>`).join(" · ")}</div>` : "";
     if (!g.canWrite) actions = '<div class="vact"><span class="txt m11">Commit and push are available in Work workspaces. This one is Inspect.</span></div>';
+    else if (onProt) actions = `<div class="vact" id="vProtected"><span class="tag enf m11">Enforced</span><span class="txt m11">${esc(onProt.branch)} is protected by the ${esc(onProt.team)}: nothing is committed to it or pushed to it from here. Switch to another branch to commit.</span></div>`;
     else {
       if (v.files.length) actions += `<div class="vact"><label class="sr" for="cMsg">Describe this version</label><input id="cMsg" class="vinput" maxlength="5000" placeholder="Describe this version (commit message)" autocomplete="off"><button class="btn pri m11" id="cBtn">Commit</button></div>`;
-      if (g.detached) actions += '<div class="vact"><span class="txt m11">Not on a branch, so there is nothing to push.</span></div>';
+      if (toProt) actions += `<div class="vact" id="vProtected"><span class="tag enf m11">Enforced</span><span class="txt m11">Pushing goes to ${esc(g.remote)}/${esc(toProt.branch)}, which the ${esc(toProt.team)} protects: nothing is pushed to it from here.</span></div>`;
+      else if (g.detached) actions += '<div class="vact"><span class="txt m11">Not on a branch, so there is nothing to push.</span></div>';
       else if (!g.remote) actions += '<div class="vact"><span class="txt m11">No remote: versions stay on this computer.</span></div>';
       else if (g.ahead) actions += `<div class="vact"><span class="txt m11">↑ ${g.ahead} commit${g.ahead === 1 ? "" : "s"} not on ${g.github ? "GitHub" : esc(g.remote)} · ${esc(g.remote)}/${esc(g.target)}</span><button class="btn pri m11" id="pBtn">Push to ${g.github ? "GitHub" : esc(g.remote)}</button></div>`;
       else if (!v.files.length) actions += `<div class="vact"><span class="txt m11">Nothing to commit. Everything is on ${esc(g.remote)}/${esc(g.target)}.</span></div>`;
@@ -1064,9 +1316,15 @@ function onEvent(ev) {
   } else if (t === "worker") {
     const d = JSON.parse(ev.detail || "{}");
     addCard({ title: "Worker", meta: ev.summary, body: `${esc((d.capabilities || []).join(" · ") || "No tools")}${d.blocked?.length ? `<div class="cx">Not in this workspace: ${esc(d.blocked.join(", "))}</div>` : ""}${d.memory ? `<div class="cx">${d.memory} remembered item${d.memory === 1 ? "" : "s"}</div>` : ""}` });
+  } else if (t === "team") {
+    const d = JSON.parse(ev.detail || "{}"), n = (x, w) => `${x} ${w}${x === 1 ? "" : "s"}`;
+    addCard({ title: "Team", meta: ev.summary, body: `${esc(d.workspace)} · ${n(d.files, "file reference")} · ${n(d.uploads, "upload")} · ${n(d.instructions, "instruction")}${d.figma ? ` · Figma: ${esc(d.figma)}` : ""}${d.enforced?.length ? `<div class="cx"><span class="tag enf">Enforced</span> ${esc(d.enforced.join(", "))}</div>` : ""}` });
+  } else if (t === "policy") {
+    const d = JSON.parse(ev.detail || "{}");
+    addCard({ title: "Enforced policy", meta: ev.summary, metaCls: "ok", body: `${(d.policies || []).map((p) => `<span class="tag enf">Enforced</span> Never modify ${esc(p.branch)}${p.team ? ` (${esc(p.team)})` : ""}`).join("<br>")}<div class="cx">Off in this run: ${esc([...(d.off || []), "writing in .git and .claude"].join(", "))}${d.onProtected ? `. ${esc(d.head)} is checked out, so this run can't change files.` : ""}</div>` });
   } else if (t === "requirements") {
     const list = JSON.parse(ev.detail || "[]");
-    addCard({ title: "Requirements", meta: ev.summary, metaCls: list.some((r) => !r.ok && r.need === "required") ? "bad" : "ok", body: list.length ? list.map((r) => `<div class="wstat ${r.ok ? "ok" : "bad"} m11"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)} · ${esc(r.need)} · ${esc(r.state)}${r.detail ? " " + esc(r.detail) : ""}</div>`).join("") : "None declared" });
+    addCard({ title: "Requirements", meta: ev.summary, metaCls: list.some((r) => !r.ok && r.need === "required") ? "bad" : "ok", body: list.length ? list.map((r) => `<div class="wstat ${r.ok ? "ok" : "bad"} m11"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)}${r.source === "team" ? " (Team)" : ""} · ${esc(r.need)} · ${esc(r.state)}${r.detail ? " " + esc(r.detail) : ""}</div>`).join("") : "None declared" });
   } else if (t === "needs") {
     addCard({ title: "Needs access", meta: "Waiting for you", metaCls: "bad", body: esc(ev.summary) });
     T.items.push({ k: "e", text: `Needs: ${ev.summary}` });
@@ -1125,6 +1383,13 @@ function renderCanvas() {
   if (!runId && w.none) {
     c.innerHTML = `<div class="emptyst"><div class="motif">${svgIcon("terminalLg", 20, 16)}</div><h1>No workspace</h1>
       <p>Add a workspace to start: choose a project folder with “+ Add workspace” and pick Inspect or Work.</p></div>`;
+    return;
+  }
+  if (!runId && tm()) {
+    const t = tm(), k = wk(), files = t.knowledge.filter((x) => x.type === "workspace_file").length;
+    c.innerHTML = `<div class="emptyst" id="teamEmpty"><div class="motif">${svgIcon("terminalLg", 20, 16)}</div><h1>${esc(t.name)}${k ? ` · ${esc(k.name)}` : ""}</h1>
+      <p>${k ? esc(k.mission || k.specialization || "") : "Choose which of the Team's workers should answer: open the Team and pick Chat."}<br><span style="color:var(--t3)">in ${esc(w.name)} · Team v${t.version}</span></p>
+      <div class="tagline m11">${t.policies.map((p) => `<span><span class="tag enf">Enforced</span>Never modify ${esc(p.branch)}</span>`).join("")}<span><span class="dot"></span>${modeOf(w)}</span><span><span class="dot grey"></span>${files} reference${files === 1 ? "" : "s"} · ${t.knowledge.length - files} upload${t.knowledge.length - files === 1 ? "" : "s"} · ${t.instructions.length} instruction${t.instructions.length === 1 ? "" : "s"}</span>${t.figma ? `<span><span class="dot blue"></span>Figma: ${esc(t.figma.name || t.figma.fileKey)}</span>` : ""}</div></div>`;
     return;
   }
   if (!runId) {
@@ -1295,7 +1560,8 @@ async function send() {
       // (it can be continued later); a busy one has to be stopped first.
       if (ACTIVE && ACTIVE.status !== "waiting") throw new Error("The worker is busy with another conversation. Open it from Recent runs and stop it first.");
       if (ACTIVE) await endAndWait(ACTIVE.id);
-      const m = await api("POST", "/runs", { prompt: text, workspace: wsId, attachments, mentions, ...(wkId ? { worker: wkId } : {}) });
+      if (tm() && !tm().workers.includes(wkId)) throw new Error(`Choose which of the ${tm().name} Team's workers should answer (open the Team and pick Chat).`);
+      const m = await api("POST", "/runs", tm() ? { prompt: text, team: tmId, worker: wkId, attachments, mentions } : { prompt: text, workspace: wsId, attachments, mentions, ...(wkId ? { worker: wkId } : {}) });
       $("input").value = ""; autosize(); clearPending(); MENTIONS = [];
       await loadRuns(); await openRun(m.id);
     } else {
@@ -1339,7 +1605,7 @@ $("navToggle").onclick = () => { const on = document.body.classList.toggle("show
   T = freshState();
   try { await loadWorkspaces(); } catch (e) { notice(e); return; }
   await Promise.all([loadPrompts().catch(notice), loadRuns()]);
-  loadTree(); loadGit(); await loadWorkers();
+  loadTree(); loadGit(); await loadWorkers(); await loadTeams();
   if (ACTIVE) openRun(ACTIVE.id); else openNewChat();
   setInterval(() => { if (!document.hidden) { loadRuns(); syncWorkspaces(); } }, 4000);
 })();

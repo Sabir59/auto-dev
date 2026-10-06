@@ -17,7 +17,8 @@ import { parseFigmaUrl, readNodes, readFile, renderNodes, download, outline, api
 const text = (t) => ({ content: [{ type: "text", text: t }] });
 const refuse = (t) => ({ isError: true, content: [{ type: "text", text: t }] });
 const NO_AUTH = "Figma authorization is missing on this computer, so this worker can't read Figma files. Someone with access to the design must connect Figma once (figma-reader/README.md). A Figma link alone does not grant access. Stop and ask for that authorization instead of trying another way.";
-const authorized = () => !!process.env.FIGMA_TOKEN || existsSync(CRED_FILE);
+const ALLOWED_KEYS = (process.env.FIGMA_READER_ALLOWED_KEYS || "").split(",").map((k) => k.trim()).filter(Boolean);
+const authorized = () =>!!process.env.FIGMA_TOKEN || existsSync(CRED_FILE);
 const explain = (e, ref) => e.status === 401 ? "Figma rejected the stored authorization (expired or revoked). Someone with access must connect Figma again. Don't try another way in."
   : e.status === 403 || e.status === 404
   ? `The connected Figma account can't open this file (${e.status}). The file's owner must share it with that account (or a person who can open it must connect their own Figma account). Don't try another way in. File key: ${ref.fileKey}`
@@ -39,6 +40,8 @@ server.registerTool("figma_read_design", {
   inputSchema: { url: z.string().describe("A figma.com design/file link; include ?node-id= to read one frame or layer"), render: z.boolean().optional().describe("Include a PNG render (default true)") },
 }, async ({ url, render = true }) => {
   let ref; try { ref = parseFigmaUrl(url); } catch (e) { return refuse(e.message); }
+  // In a Team's run, only the Team's Figma file (set by the console); checked before anything else.
+  if (ALLOWED_KEYS.length && !ALLOWED_KEYS.includes(ref.fileKey)) return refuse(`Refused: this run may only read the Team's Figma file (${ALLOWED_KEYS.join(", ")}). ${ref.fileKey} is another file.`);
   if (!authorized()) return refuse(NO_AUTH);
   try {
     let target = ref.nodeId;

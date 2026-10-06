@@ -1,5 +1,5 @@
 {
- "when": "2026-10-06T08:45:08.261Z",
+ "when": "2026-10-06T10:06:24.177Z",
  "results": [
   {
    "step": "typing @ opens a list of this workspace's files, including ones .gitignore hides; no dependency or linked-out files",
@@ -163,7 +163,7 @@
      "Read",
      "ToolSearch"
     ],
-    "reply": "The first line of README.md is:\n\n# Canary workspace\n\nDONEQuoted the first line of README.md:1."
+    "reply": "DONEThe first line of README.md is:\n\n# Canary workspace"
    }
   },
   {
@@ -224,25 +224,25 @@
    "ok": true,
    "detail": {
     "executor": {
-     "indexed": 563,
-     "coldMs": 222,
-     "warmMs": 16
+     "indexed": 572,
+     "coldMs": 154,
+     "warmMs": 9
     },
     "big": {
      "onDisk": 21300,
      "indexed": 20000,
      "truncated": true,
-     "coldMs": 998,
+     "coldMs": 637,
      "keystrokeMs": [
-      46,
-      14,
-      26,
-      22,
-      23,
-      12,
+      25,
       18,
-      20,
-      14
+      14,
+      14,
+      18,
+      13,
+      17,
+      10,
+      19
      ]
     }
    }

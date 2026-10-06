@@ -130,3 +130,7 @@ Not all work has a project folder. A Figma design job's target is the Figma file
 - **"No folder":** a built-in workspace (`id: scratch`) that's always present.
 - **How runs use it:** they run in a private, console-owned scratch folder with the Work profile, and the worker's capabilities still narrow its tools.
 - **The rule stays the same:** every run has exactly one bound workspace. That's what keeps resume and the file viewer bound to a real folder.
+
+## 12. Teams (added 2026-10-06)
+
+Teams group workers with shared knowledge, resources, instructions, prompts, requirements and enforced policies. They're built on this platform and add no new runtime. See `docs/team-platform.md`.

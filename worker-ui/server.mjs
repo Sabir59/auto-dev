@@ -18,12 +18,12 @@
 //         | plan | observation | decision | recovery | verification | done | note
 import http from "node:http";
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, lstatSync, realpathSync, renameSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, lstatSync, realpathSync, renameSync, rmSync, copyFileSync } from "node:fs";
 import { join, dirname, resolve, extname, delimiter, relative, isAbsolute, sep, basename } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { randomUUID } from "node:crypto";
-import { api as figmaApi, CRED_FILE as FIGMA_CRED_FILE } from "../figma-reader/reader.mjs";
+import { randomUUID, createHash } from "node:crypto";
+import { api as figmaApi, CRED_FILE as FIGMA_CRED_FILE, parseFigmaUrl } from "../figma-reader/reader.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "..");
@@ -35,6 +35,8 @@ const PROMPTS = join(DATA, "prompts.json");
 const WORKSPACES = join(DATA, "workspaces.json");
 const WORKERS = join(DATA, "workers.json");
 const MEMORY = join(DATA, "workers");
+const TEAMS = join(DATA, "teams.json");
+const TEAMDIR = join(DATA, "teams"); // per team: uploaded knowledge, and every saved version
 const PORT = Number(process.env.WORKER_CONSOLE_PORT) || 8799;
 mkdirSync(RUNS, { recursive: true });
 // "No folder": work that has no project folder (a Figma design, a conversation) runs in this
@@ -100,24 +102,48 @@ const CAPABILITIES = {
   "figma.plugin.read": { label: "Read the open Figma file (plugin)", tools: "figma-executor read tools; the plugin must be running", mcp: "figma-executor", allow: FIGMA_READ_TOOLS, profiles: ["full", "inspect"] },
   "figma.plugin.edit": { label: "Change the open Figma file (plugin)", tools: "figma-executor, all tools; the plugin must be running", mcp: "figma-executor", allow: ["mcp__figma-executor"], profiles: ["full"] },
 };
+// A Team's Figma resource locks the Figma tools of its runs to that one file: the Executor refuses
+// commands while another file is open, and the Reader refuses links to other files.
 const MCP_SERVERS = {
-  "figma-executor": () => ({ command: process.execPath, args: [join(REPO, "mcp", "server.mjs")] }),
-  "figma-reader": () => ({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")] }),
+  "figma-executor": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "server.mjs")], ...(scope.figmaKey ? { env: { FIGMA_EXPECTED_FILE_KEY: scope.figmaKey } } : {}) }),
+  "figma-reader": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")],
+    ...(scope.figmaKey ? { env: { FIGMA_READER_ALLOWED_KEYS: scope.figmaKey, ...(process.env.FIGMA_READER_DIR ? { FIGMA_READER_DIR: process.env.FIGMA_READER_DIR } : {}) } } : {}) }),
   "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser } }),
 };
+// Deny rules are applied by the runtime itself, below the model. Absolute paths are written the
+// runtime's way (//c/Users/...); tested: a Write into such a folder is refused.
+const denyPath = (p) => "//" + resolve(p).replace(/\\/g, "/").replace(/^([A-Za-z]):/, (_, d) => d.toLowerCase());
+const PROTECT_DENY = ["Edit(.git/**)", "Edit(**/.git/**)", "Edit(.claude/**)", "Edit(**/.claude/**)"];
 // What a defined worker gets in a given profile: the context, the tools and the MCP servers.
-function workerRuntime(def, profile) {
-  const usable = def.capabilities.filter((c) => CAPABILITIES[c]?.profiles.includes(profile));
+// scope narrows it further, never widens it:
+//  - protect: branches an enforced policy protects in this workspace. Shell commands are turned
+//    off (node or curl can run git, or write .git, behind the console's back), .git and .claude
+//    can't be written, and project settings are ignored (--restricted: a repo's hooks don't run).
+//  - onProtected: a protected branch is checked out, so file edits are off too.
+//  - knowledgeDir: the run's copy of uploaded Team knowledge, readable and not writable.
+//  - figmaKey: the Team's Figma file (see MCP_SERVERS).
+function workerRuntime(def, profile, scope = {}) {
+  const protect = !!scope.protect?.length;
+  const policyOff = new Set([...(protect ? ["shell"] : []), ...(scope.onProtected ? ["files.write"] : [])]);
+  const allowed = def.capabilities.filter((c) => CAPABILITIES[c]?.profiles.includes(profile));
+  const usable = allowed.filter((c) => !policyOff.has(c));
   const builtins = ["ToolSearch", ...new Set(usable.flatMap((c) => CAPABILITIES[c].builtins || []))];
   const allow = ["ToolSearch", ...usable.flatMap((c) => { const a = CAPABILITIES[c].allow; return Array.isArray(a) ? a : a[profile] || []; })];
   const servers = [...new Set(usable.map((c) => CAPABILITIES[c].mcp).filter(Boolean))];
-  const base = profile === "inspect" ? ["--restricted"] : ["--setting-sources", "project,local"];
+  const base = profile === "inspect" || protect ? ["--restricted"] : ["--setting-sources", "project,local"];
   // Renders the worker makes (figma_export_node, browser_screenshot) land in the adapters' own
   // exports folders; it may read those, and only those, outside its workspace, to look at its work.
   const exportsDirs = [...new Set(usable.flatMap((c) => (c.startsWith("figma.plugin") ? [join(REPO, "exports")] : c === "browser" ? [join(REPO, "browser-adapter", "exports")] : [])))];
-  return { usable, blocked: def.capabilities.filter((c) => !usable.includes(c)), servers, exportsDirs,
-    args: ["--settings", WORKER_SETTINGS, ...base, "--tools", builtins.join(","), "--allowedTools", ...allow, ...(exportsDirs.length ? ["--add-dir", ...exportsDirs] : []), "--permission-prompts", "none"] };
+  const readOnly = scope.knowledgeDir ? [scope.knowledgeDir] : [];
+  const deny = [...(protect ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`)];
+  const settings = deny.length ? JSON.stringify({ ...JSON.parse(WORKER_SETTINGS), permissions: { deny } }) : WORKER_SETTINGS;
+  const dirs = [...exportsDirs, ...readOnly];
+  return { usable, blocked: def.capabilities.filter((c) => !allowed.includes(c)), byPolicy: allowed.filter((c) => policyOff.has(c)), servers, exportsDirs,
+    args: ["--settings", settings, ...base, "--tools", builtins.join(","), "--allowedTools", ...allow, ...(dirs.length ? ["--add-dir", ...dirs] : []), "--permission-prompts", "none"] };
 }
+// The general worker, as a definition: what it gets when a policy means it can't run on the plain
+// profile flags (every capability the profile allows, except the ones the policy turns off).
+const GENERAL = { id: null, name: "General", capabilities: ["files.read", "files.write", "web", "browser", "figma.plugin.read", "figma.plugin.edit"], workflow: [], limitations: [], requirements: [] };
 
 // Requirements are generic {resource, access, need}; this registry knows how to check each one
 // now, without showing any secret. A missing requirement doesn't block the run: the worker is
@@ -146,13 +172,35 @@ const RESOURCES = {
   browser: { label: "Browser", access: {
     use: { label: "open web pages", how: "Install the browser adapter (browser-adapter, npm install).", async check() { return existsSync(join(REPO, "browser-adapter", "node_modules", "playwright")) ? { ok: true, state: "Available" } : { ok: false, state: "Not installed" }; } },
   } },
+  // Whether Git on this computer can reach the workspace's GitHub remote with the person's own
+  // login (git ls-remote: reads refs, changes nothing, never prompts). It can't tell whether a
+  // push would be allowed; GitHub decides that at push time.
+  github: { label: "GitHub", access: {
+    read: { label: "reach the repository", how: "Sign in to GitHub with Git on this computer once (for example, run \"git fetch\" in a terminal in this folder).",
+      async check(ctx) {
+        if (!ctx.root) return { ok: false, state: "No workspace" };
+        const url = safeUrl((await git(ctx.root, ["remote", "get-url", "origin"]).catch(() => "")).trim());
+        if (!/github\.com[:/]/i.test(url)) return { ok: false, state: url ? "Not a GitHub remote" : "No remote" };
+        const hit = githubChecks.get(url);
+        if (hit && Date.now() - hit.at < 300000) return hit.value;
+        let v; try { await git(ctx.root, ["ls-remote", "--heads", "origin"], { timeout: 20000 }); v = { ok: true, state: "Reachable", detail: url }; }
+        catch (e) { v = { ok: false, state: e.timedOut ? "Timed out" : /Authentication|could not read|terminal prompts|403|401/i.test(e.message) ? "Not signed in" : "Can't reach", detail: url }; }
+        githubChecks.set(url, { at: Date.now(), value: v }); return v;
+      } },
+  } },
 };
+const githubChecks = new Map();
 async function requirementStatus(def, ctx) {
   return Promise.all((def.requirements || []).map(async (r) => {
     const a = RESOURCES[r.resource]?.access[r.access];
     const st = a ? await a.check(ctx).catch((e) => ({ ok: false, state: "Check failed", detail: e.message })) : { ok: false, state: "Unknown requirement" };
     return { ...r, label: `${RESOURCES[r.resource]?.label || r.resource}: ${a?.label || r.access}`, how: a?.how || "", ...st };
   }));
+}
+function checkRequirements(list) {
+  const requirements = (list || []).map((r) => ({ resource: String(r.resource || ""), access: String(r.access || ""), need: r.need === "optional" ? "optional" : "required" }));
+  for (const r of requirements) if (!RESOURCES[r.resource]?.access[r.access]) throw new Error(`Unknown requirement "${r.resource} ${r.access}".`);
+  return requirements.filter((r, i) => requirements.findIndex((x) => x.resource === r.resource && x.access === r.access) === i);
 }
 
 const readWorkers = () => (existsSync(WORKERS) ? JSON.parse(readFileSync(WORKERS, "utf8")) : []);
@@ -183,15 +231,17 @@ const SECRETISH = /(figd_|ghp_|github_pat_|sk-[a-z0-9]|xox[bp]-|AKIA[0-9A-Z]{8}|
 // The worker's context for one run: the shared instructions, then this worker, then what was
 // checked at start, then its memory. Written once per run and kept, so the run never changes
 // under an edited definition.
-function workerContext(def, rt, status, memory, profile) {
+function workerContext(def, rt, status, memory, profile, extra = {}) {
   const cap = (c) => `- ${CAPABILITIES[c].label} (${CAPABILITIES[c].tools})`;
   return [readFileSync(join(HERE, "worker-instructions.md"), "utf8").trim(), "",
+    workspaceSection(extra.workspace), teamSection(extra.team),
     `# You are: ${def.name}`, def.mission && `Mission: ${def.mission}`, def.specialization && `Specialization: ${def.specialization}`, "",
     "## What you can use in this run", rt.usable.length ? rt.usable.map(cap).join("\n") : "- Nothing beyond reading this context.",
     rt.blocked.length ? `Not available here (this workspace is ${profile === "inspect" ? "Inspect, read-only" : "Work"}): ${rt.blocked.map((c) => CAPABILITIES[c].label).join(", ")}.` : "",
+    rt.byPolicy?.length ? `Turned off by an enforced policy in this workspace: ${rt.byPolicy.map((c) => CAPABILITIES[c].label).join(", ")}.` : "",
     "Use only these tools. If a task needs something you don't have, say so instead of improvising.", "",
     "## Requirements and access (checked when this run started)",
-    status.length ? status.map((r) => `- ${r.label}: ${r.need.toUpperCase()}, ${r.ok ? "available" : "NOT AVAILABLE"} (${r.state}${r.detail ? ", " + r.detail : ""})${r.ok ? "" : `. To provide it: ${r.how}`}`).join("\n") : "- None declared.",
+    status.length ? status.map((r) => `- ${r.label}${r.source === "team" ? " (Team requirement)" : ""}: ${r.need.toUpperCase()}, ${r.ok ? "available" : "NOT AVAILABLE"} (${r.state}${r.detail ? ", " + r.detail : ""})${r.ok ? "" : `. To provide it: ${r.how}`}`).join("\n") : "- None declared.",
     "A link, a file name or a URL never grants access by itself. Having a tool doesn't mean you may open every resource with it.",
     "If the task needs something that isn't available, don't look for another way in. Stop and write one line per missing thing: \"NEEDS: <resource> <access>: <what the person must do>\", then explain in plain words what you can do once it's provided.", "",
     def.workflow.length ? "## How you work\n" + def.workflow.map((w, i) => `${i + 1}. ${w}`).join("\n") + "\n" : "",
@@ -202,6 +252,155 @@ function workerContext(def, rt, status, memory, profile) {
     memory.length ? "Things you remembered from earlier work (may be outdated; check if it matters):\n" + memory.slice(-40).map((m) => `- ${m.text}`).join("\n") : "Nothing remembered yet.",
     "To remember something useful for later work with this worker (a preference, a convention, a decision), write a line starting \"REMEMBER: \". Never put secrets in memory.",
   ].filter((x) => x !== "" && x !== undefined && x !== null && x !== false).join("\n");
+}
+
+// ---- teams --------------------------------------------------------------------------
+// A Team is shared context and scope for several workers: who's in it, what they share
+// (knowledge, resources, instructions, prompts, requirements) and what is enforced. It runs on the
+// same runtime: a Team worker's run is that worker's run, with the Team's context added before the
+// worker's own, in the Team's workspace. A Team narrows, never widens: its workspace keeps its
+// profile, its Figma resource locks the Figma tools to one file, its enforced policies take tools
+// away. Each save is a version; a run keeps the version it started with (docs/team-platform.md).
+//
+//   teams.json: [{ id, name, description, workers: [workerId], workspace, figma: { url, fileKey, name },
+//     knowledge: [{ id, type: "workspace_file", workspaceId, path, note } | { id, type: "upload", name, kind, size, sha, file, note }],
+//     policies: [{ type: "protect_branch", branch }], instructions: [text], requirements, prompts: [{ id, title, text }],
+//     version, createdAt, updatedAt }]
+//   teams/<id>/knowledge/<file>   uploaded knowledge (content-addressed)
+//   teams/<id>/history/v<N>.json  every saved version
+const readTeams = () => (existsSync(TEAMS) ? JSON.parse(readFileSync(TEAMS, "utf8")) : []);
+const writeTeams = (list) => { writeFileSync(TEAMS + ".tmp", JSON.stringify(list, null, 1)); renameSync(TEAMS + ".tmp", TEAMS); };
+const teamPath = (id, ...p) => join(TEAMDIR, id, ...p);
+// A branch name as Git allows it, kept simple: no "..", no leading "-", no "//", no ".lock" end.
+const BRANCH = /^(?!-)(?!.*\.\.)(?!.*\/\/)(?!.*\.lock$)(?!.*\/$)[\w.\-/]{1,100}$/;
+const ENFORCEABLE = { protect_branch: "Never modify a branch" };
+function normalizeTeam(b, prev) {
+  const name = String(b.name || "").trim();
+  if (!name || name.length > 60) throw new Error("Give the Team a name (up to 60 characters).");
+  const id = prev?.id || `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "team"}-${randomUUID().slice(0, 4)}`;
+  const known = new Set(readWorkers().map((w) => w.id));
+  const workers = [...new Set((b.workers || []).map(String))];
+  for (const w of workers) if (!known.has(w)) throw new Error(`No worker "${w}".`);
+  // Resources. The workspace must exist now; it keeps its own profile (a Team can't change it).
+  const workspace = b.workspace ? String(b.workspace) : null;
+  const root = workspace ? resolveWorkspace(workspace).root : null;
+  let figma = null;
+  if (b.figma?.url) {
+    const url = String(b.figma.url).trim().slice(0, 500);
+    let ref; try { ref = parseFigmaUrl(url); } catch (e) { throw new Error(`Figma link: ${e.message}`); }
+    figma = { url, fileKey: ref.mainFileKey, ...(ref.branchKey ? { branchKey: ref.branchKey } : {}), name: String(b.figma.name || "").trim().slice(0, 80) };
+  }
+  // Knowledge: references to files in the Team's workspace (read fresh by the worker, the same
+  // checks as @ mentions), and uploaded documents (checked like attachments, stored by content).
+  const before = new Map((prev?.knowledge || []).map((k) => [k.id, k]));
+  const knowledge = [];
+  for (const k of (b.knowledge || []).slice(0, 60)) {
+    const note = String(k.note || "").trim().slice(0, 200);
+    if (k.type === "workspace_file") {
+      if (!workspace) throw new Error("Choose the Team's workspace before adding files from it.");
+      if (k.workspaceId && k.workspaceId !== workspace) throw new Error(`@${k.path} is in another workspace. Team knowledge can only reference files in the Team's workspace.`);
+      const [m] = resolveMentions(root, [{ type: "file", path: k.path }]);
+      if (!m.exists) throw new Error(`@${m.path} isn't a file in the Team's workspace.`);
+      if (knowledge.some((x) => x.type === "workspace_file" && x.path === m.path)) continue;
+      knowledge.push({ id: before.has(k.id) ? k.id : randomUUID().slice(0, 8), type: "workspace_file", workspaceId: workspace, path: m.path, note });
+    } else if (k.type === "upload") {
+      const old = before.get(k.id);
+      if (old?.type === "upload" && !k.data) { knowledge.push({ ...old, note }); continue; }
+      const [a] = readAttachments([{ name: k.name, data: k.data }]);
+      const sha = createHash("sha256").update(a.buf).digest("hex"), file = `${sha.slice(0, 16)}-${a.name}`;
+      mkdirSync(teamPath(id, "knowledge"), { recursive: true });
+      if (!existsSync(teamPath(id, "knowledge", file))) writeFileSync(teamPath(id, "knowledge", file), a.buf);
+      knowledge.push({ id: randomUUID().slice(0, 8), type: "upload", name: a.name, kind: a.kind, size: a.buf.length, sha, file, note });
+    } else throw new Error("Unknown kind of Team knowledge.");
+  }
+  if (knowledge.filter((k) => k.type === "upload").length > 20) throw new Error("Upload up to 20 documents per Team.");
+  // Enforced policies: only what the platform can actually enforce. Anything else is an instruction.
+  const policies = [];
+  for (const p of (b.policies || []).slice(0, 10)) {
+    if (!ENFORCEABLE[p?.type]) throw new Error(`"${p?.type}" can't be enforced by this platform. Add it as an instruction instead.`);
+    const branch = String(p.branch || "").trim();
+    if (!BRANCH.test(branch)) throw new Error(`"${branch}" isn't a branch name.`);
+    if (!workspace || workspace === "scratch" || !repoTop(root)) throw new Error("Protecting a branch needs the Team's workspace to be a Git repository.");
+    if (!policies.some((x) => x.branch === branch)) policies.push({ type: "protect_branch", branch });
+  }
+  const prompts = (b.prompts || []).slice(0, 50).map((p) => {
+    const text = String(p.text || "").trim().slice(0, 5000);
+    if (!text) throw new Error("A Team prompt needs its text.");
+    return { id: /^[\w-]{1,40}$/.test(p.id || "") ? p.id : randomUUID().slice(0, 8), title: (String(p.title || "").trim() || text.split("\n")[0]).slice(0, 80), text };
+  });
+  const now = new Date().toISOString();
+  const team = { id, name, description: String(b.description || "").trim().slice(0, 300), workers, workspace, figma, knowledge, policies,
+    instructions: lines(b.instructions, 30, 500), requirements: checkRequirements(b.requirements), prompts,
+    version: (prev?.version || 0) + 1, createdAt: prev?.createdAt || now, updatedAt: now };
+  mkdirSync(teamPath(id, "history"), { recursive: true });
+  writeFileSync(teamPath(id, "history", `v${team.version}.json`), JSON.stringify(team, null, 1));
+  return team;
+}
+function saveTeam(b, id) {
+  const list = readTeams(), i = id ? list.findIndex((t) => t.id === id) : -1;
+  if (id && i < 0) throw new Error(`No Team "${id}".`);
+  const t = normalizeTeam(b, i >= 0 ? list[i] : null);
+  if (i >= 0) list[i] = t; else list.push(t);
+  writeTeams(list);
+  return t;
+}
+// Deleting a Team removes its definition, versions and uploads. Runs keep what they used: their
+// snapshot of the Team and their own copy of its uploaded knowledge.
+function deleteTeam(id) {
+  const list = readTeams(), t = list.find((x) => x.id === id);
+  if (!t) throw new Error(`No Team "${id}".`);
+  if (active()?.meta.team?.id === id) throw new Error("A worker of this Team is running. Stop or end it first.");
+  writeTeams(list.filter((x) => x.id !== id));
+  rmSync(teamPath(id), { recursive: true, force: true });
+  return { deleted: id };
+}
+// The folder holding .git for a path (worktrees: the folder with the .git file), or null.
+function repoTop(root) { for (let d = root; ; d = dirname(d)) { if (existsSync(join(d, ".git"))) return d; if (dirname(d) === d) return null; } }
+// The enforced policies that hold in a workspace now: a branch policy protects the repository, so
+// it holds in every workspace inside the Team's repository, not only in the Team's own workspace.
+function wsPolicies(wsId) {
+  let top; try { top = repoTop(resolveWorkspace(wsId).root); } catch { return []; }
+  if (!top) return [];
+  return readTeams().filter((t) => {
+    if (!t.workspace || !t.policies.length) return false;
+    try { const tt = repoTop(resolveWorkspace(t.workspace).root); return !!tt && samePath(tt, top); } catch { return false; }
+  }).flatMap((t) => t.policies.map((p) => ({ ...p, team: teamLabel(t.name) })));
+}
+// "MATW" -> "MATW Team"; a name that already ends in "team" stays as it is.
+const teamLabel = (name) => (/\bteam$/i.test(name) ? name : `${name} Team`);
+// A run's enforcement scope: what's enforced in its workspace now, plus whatever it started under
+// (resuming never weakens it), the branch checked out now, and the Team's Figma file.
+function runScope(run, ws) {
+  const now = wsPolicies(ws.id), started = run.meta.policy?.protect || [];
+  const protect = [...now, ...started.filter((p) => !now.some((x) => x.branch === p.branch))];
+  const head = gitInfo(ws.root).branch;
+  const team = run.meta.team ? readSnapshot(run.meta.id)?.team : null;
+  return { protect, head, onProtected: !!head && protect.some((p) => p.branch === head), figmaKey: team?.figma ? team.figma.branchKey || team.figma.fileKey : null,
+    knowledgeDir: team?.knowledge.some((k) => k.type === "upload") ? join(RUNS, `${run.meta.id}.team`) : null };
+}
+const readSnapshot = (id) => (existsSync(snapPath(id)) ? JSON.parse(readFileSync(snapPath(id), "utf8")) : null);
+
+function workspaceSection(w) {
+  if (!w) return "";
+  return ["## Workspace", `You work in "${w.name}" (${w.profile === "inspect" ? "Inspect: read-only" : "Work"})${w.head ? `, on branch ${w.head}` : ""}. Your working directory is its folder.`,
+    w.protect.length ? "Enforced by the platform here (these aren't instructions: the console and the runtime enforce them):\n"
+      + w.protect.map((p) => `- Never modify ${p.branch} (${p.team ? `${p.team} policy` : "policy"}): the console refuses to commit to it or push to it.`).join("\n")
+      + "\n- So nothing can change a branch behind the console's back, this run has no shell commands and can't write inside .git or .claude."
+      + (w.onProtected ? `\n- ${w.head} is checked out right now, so this run can't change files at all. To make changes, the person must switch to another branch first.` : "") : "",
+    ""].filter((x) => x !== false).join("\n");
+}
+function teamSection(t) {
+  if (!t) return "";
+  const k = t.def.knowledge;
+  return [`# Team: ${t.def.name} (version ${t.def.version})`, t.def.description, "You work as a member of this Team. Its context applies to every member; your own definition follows it.",
+    t.members.length ? `Members: ${t.members.join(", ")}.` : "", "",
+    "## Team instructions", t.def.instructions.length ? "The Team's conventions. Follow them in your work (they are instructions; the platform doesn't enforce them):\n" + t.def.instructions.map((x) => `- ${x}`).join("\n") : "None.", "",
+    "## Team knowledge", k.length ? "References, not copies: read the ones that matter for the task before you work, and always the current file:\n" + k.map((x) => x.type === "workspace_file"
+      ? `- ${x.path} (a file in the workspace)${x.note ? `: ${x.note}` : ""}`
+      : `- ${x.name} (uploaded to the Team, read-only): ${join(RUNS, `${t.runId}.team`, x.file)}${x.note ? `: ${x.note}` : ""}`).join("\n") : "None.", "",
+    "## Team resources", `- Workspace: ${t.workspaceName}`,
+    t.def.figma ? `- Figma: ${t.def.figma.name || "the Team's file"}: ${t.def.figma.url} (file key ${t.def.figma.fileKey}). In this run the Figma tools only act on this file: the Figma Executor refuses commands while another file is open, and figma_read_design refuses other files. Before Figma work, check which file is open (figma_get_file_info). Reading by link needs Figma authorization: the link doesn't grant access.` : "- Figma: none.",
+    ""].filter((x) => x !== undefined && x !== null && x !== false).join("\n");
 }
 
 // ---- Claude config directory ------------------------------------------------------
@@ -418,8 +617,11 @@ function translate(run, msg) {
     // Check what the worker reports about itself, not only what it was told.
     const ws = run.meta.workspace;
     const extra = ws.profile === "inspect" ? (msg.tools || []).filter((t) => !t.startsWith("mcp__") && !INSPECT_BUILTINS.includes(t)) : [];
+    const off = [...(run.enforced?.noShell ? ["Bash", "PowerShell"] : []), ...(run.enforced?.noWrite ? ["Write", "Edit", "NotebookEdit"] : [])];
+    const kept = (msg.tools || []).filter((t) => off.includes(t));
     const why = !samePath(msg.cwd || "", ws.root) ? `worker reports cwd ${msg.cwd}, not the workspace ${ws.root}`
-      : extra.length ? `inspect worker has tools outside its allow-list: ${extra.join(", ")}` : null;
+      : extra.length ? `inspect worker has tools outside its allow-list: ${extra.join(", ")}`
+      : kept.length ? `an enforced policy turned off ${kept.join(", ")}, but the worker reports having them` : null;
     if (why) { run.bindingError = why; emit(run, { type: "failure", summary: `Stopped the worker: ${why}` }); run.child.kill(); return; }
     if (run.meta.status === "starting") setStatus(run, "running");
     if (!run.initSeen) {
@@ -433,11 +635,11 @@ function translate(run, msg) {
     for (const b of msg.message?.content || []) {
       if (b.type === "tool_use") {
         const env = envOf(b.name);
-        run.toolUses.set(b.id, { name: b.name, env });
+        // A file the worker writes is a deliverable once the write succeeds (see the tool_result).
+        run.toolUses.set(b.id, { name: b.name, env, writes: (b.name === "Write" || b.name === "Edit") && b.input?.file_path ? relTo(run.meta.workspace.root, b.input.file_path) : null });
         if (b.name === "ToolSearch") continue; // loading tool schemas, not work
         run.meta.envs[env] = (run.meta.envs[env] || 0) + 1;
         emit(run, { type: "tool", ref: b.id, env, tool: shortName(b.name), summary: toolSummary(b.name, b.input, run.meta.workspace.root) });
-        if ((b.name === "Write" || b.name === "Edit") && b.input?.file_path) addArtifact(run, relTo(run.meta.workspace.root, b.input.file_path), env);
       } else if (b.type === "text" && b.text.trim()) {
         emit(run, { type: "reply", summary: b.text.trim() });
         for (const raw of b.text.split(/\r?\n/)) {
@@ -464,6 +666,7 @@ function translate(run, msg) {
       if (use.name === "ToolSearch") continue;
       if (b.is_error) run.meta.failures++;
       emit(run, { type: b.is_error ? "failure" : "result", ref: b.tool_use_id, env: use.env, tool: shortName(use.name), summary: clip(resultText(b.content), 220) });
+      if (use.writes && !b.is_error) addArtifact(run, use.writes, use.env);
     }
     return;
   }
@@ -498,14 +701,25 @@ function addArtifact(run, path, env) {
 const snapPath = (id) => join(RUNS, `${id}.worker.json`);
 function spawnWorker(run, { resume }) {
   const ws = checkBinding(run, { resume });
-  // A defined worker runs from the snapshot taken when its run started (definition, context,
-  // tools), so editing the worker later never changes this conversation.
-  const snap = run.meta.worker && existsSync(snapPath(run.meta.id)) ? JSON.parse(readFileSync(snapPath(run.meta.id), "utf8")) : null;
+  // A defined worker runs from the snapshot taken when its run started (definition, Team, context),
+  // so editing the worker or its Team later never changes this conversation. What's enforced is
+  // worked out again at every start (the policies now, plus the ones it started under), so a
+  // resume can't run with less enforcement than the workspace has now.
+  const snap = run.meta.worker ? readSnapshot(run.meta.id) : null;
+  const scope = runScope(run, ws);
   let mcpFile = mcpConfig(ws.profile), promptFile = join(HERE, "worker-instructions.md"), profileArgs = PROFILES[ws.profile].args;
-  if (snap) {
+  const def = snap ? snap.definition : scope.protect.length || scope.figmaKey ? GENERAL : null;
+  run.enforced = null;
+  if (def) {
+    const rt = workerRuntime(def, ws.profile, scope);
     mcpFile = join(RUNS, `${run.meta.id}.mcp.json`);
-    writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(snap.runtime.servers.map((n) => [n, MCP_SERVERS[n](ws.profile)])) }, null, 1));
-    promptFile = join(RUNS, `${run.meta.id}.worker.md`); profileArgs = snap.runtime.args;
+    writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(rt.servers.map((n) => [n, MCP_SERVERS[n](ws.profile, scope)])) }, null, 1));
+    if (existsSync(join(RUNS, `${run.meta.id}.worker.md`))) promptFile = join(RUNS, `${run.meta.id}.worker.md`);
+    profileArgs = rt.args;
+    if (scope.protect.length) {
+      run.enforced = { noShell: true, noWrite: scope.onProtected };
+      emit(run, { type: "policy", summary: `${scope.protect.map((p) => p.branch).join(", ")} protected`, detail: JSON.stringify({ policies: scope.protect, head: scope.head, onProtected: scope.onProtected, off: rt.byPolicy.map((c) => CAPABILITIES[c].label) }) });
+    }
   }
   const args = [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
@@ -593,30 +807,61 @@ function sendToWorker(run, text, atts = [], mentions = []) {
   run.child.stdin.write(JSON.stringify({ type: "user", message: { role: "user", content } }) + "\n");
 }
 
-async function newRun(prompt, workspaceId = "console", atts = [], workerId = null, mentions = []) {
+// A Team run: one of the Team's workers, in the Team's workspace (a request for another workspace
+// is refused), with the Team's context added before the worker's own.
+const teamWorkspace = (t) => t.workspace || "scratch";
+async function newRun(prompt, workspaceId = "console", atts = [], workerId = null, mentions = [], teamId = null) {
   if (active()) throw new Error("A worker is already running. Stop or end it first.");
+  const team = teamId ? readTeams().find((t) => t.id === teamId) : null;
+  if (teamId && !team) throw new Error(`No Team "${teamId}".`);
+  if (team) {
+    if (!workerId) throw new Error(`Choose which of the ${team.name} Team's workers should answer.`);
+    if (!team.workers.includes(workerId)) throw new Error(`That worker isn't in the ${team.name} Team.`);
+    if (workspaceId !== teamWorkspace(team)) throw new Error(`The ${team.name} Team works in its own workspace; it can't run in another one.`);
+  }
   const workspace = resolveWorkspace(workspaceId);
   const def = workerId ? readWorkers().find((w) => w.id === workerId) : null;
   if (workerId && !def) throw new Error(`No worker "${workerId}".`);
+  const id = new Date().toISOString().replace(/[:.]/g, "-");
+  const protect = wsPolicies(workspace.id), head = gitInfo(workspace.root).branch;
+  const scope = { protect, head, onProtected: !!head && protect.some((p) => p.branch === head), figmaKey: team?.figma ? team.figma.branchKey || team.figma.fileKey : null,
+    knowledgeDir: team?.knowledge.some((k) => k.type === "upload") ? join(RUNS, `${id}.team`) : null };
+  const wsInfo = { name: listWorkspaces().find((w) => w.id === workspace.id)?.name || workspace.id, profile: workspace.profile, head, protect, onProtected: scope.onProtected };
   let snap = null;
   if (def) {
-    const runtime = workerRuntime(def, workspace.profile);
-    const status = await requirementStatus(def, { profile: workspace.profile });
-    snap = { definition: def, runtime, status, memory: readMemory(def.id).slice(-40) };
-    snap.context = workerContext(def, runtime, status, snap.memory, workspace.profile);
+    const runtime = workerRuntime(def, workspace.profile, scope);
+    const ctx = { profile: workspace.profile, root: workspace.root };
+    const own = await requirementStatus(def, ctx);
+    const shared = team ? (await requirementStatus(team, ctx)).filter((r) => !own.some((x) => x.resource === r.resource && x.access === r.access)).map((r) => ({ ...r, source: "team" })) : [];
+    const status = [...own, ...shared];
+    snap = { definition: def, runtime, status, memory: readMemory(def.id).slice(-40), scope, ...(team ? { team } : {}) };
+    const workers = readWorkers();
+    const teamCtx = team ? { def: team, members: team.workers.map((w) => workers.find((x) => x.id === w)?.name).filter(Boolean), workspaceName: wsInfo.name, runId: id } : null;
+    snap.context = workerContext(def, runtime, status, snap.memory, workspace.profile, { workspace: protect.length || team ? wsInfo : null, team: teamCtx });
   }
   if (active()) throw new Error("A worker is already running. Stop or end it first.");
-  const id = new Date().toISOString().replace(/[:.]/g, "-");
-  const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, ...(def ? { worker: { id: def.id, name: def.name, version: def.version } } : {}), configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
+  const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, ...(def ? { worker: { id: def.id, name: def.name, version: def.version } } : {}),
+    ...(team ? { team: { id: team.id, name: team.name, version: team.version } } : {}), ...(protect.length ? { policy: { protect, head, onProtected: scope.onProtected } } : {}),
+    configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
   const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
   writeFileSync(run.file, ""); writeFileSync(run.raw, "");
   runs.set(id, run);
   saveMeta(run);
+  // The run's own copy of the Team's uploaded knowledge: it stays with the run if the Team changes.
+  if (scope.knowledgeDir) {
+    mkdirSync(scope.knowledgeDir, { recursive: true });
+    for (const k of team.knowledge) if (k.type === "upload") copyFileSync(teamPath(team.id, "knowledge", k.file), join(scope.knowledgeDir, k.file));
+  }
+  // The general worker under an enforced policy gets a context that says why some tools are off.
+  if (!def && protect.length) writeFileSync(join(RUNS, `${id}.worker.md`), [readFileSync(join(HERE, "worker-instructions.md"), "utf8").trim(), "", workspaceSection(wsInfo)].join("\n"));
   if (snap) {
     writeFileSync(snapPath(id), JSON.stringify(snap, null, 1));
     writeFileSync(join(RUNS, `${id}.worker.md`), snap.context);
+    if (team) emit(run, { type: "team", summary: `${team.name} (v${team.version})`, detail: JSON.stringify({ workspace: wsInfo.name, members: team.workers.length,
+      files: team.knowledge.filter((k) => k.type === "workspace_file").length, uploads: team.knowledge.filter((k) => k.type === "upload").length,
+      enforced: team.policies.map((p) => `Never modify ${p.branch}`), instructions: team.instructions.length, figma: team.figma ? team.figma.name || team.figma.url : null }) });
     emit(run, { type: "worker", summary: `${def.name} (v${def.version})`, detail: JSON.stringify({ capabilities: snap.runtime.usable.map((c) => CAPABILITIES[c].label), blocked: snap.runtime.blocked.map((c) => CAPABILITIES[c].label), memory: snap.memory.length }) });
-    emit(run, { type: "requirements", summary: snap.status.length ? `${snap.status.filter((r) => r.ok).length}/${snap.status.length} available` : "none declared", detail: JSON.stringify(snap.status.map(({ label, need, ok, state, detail }) => ({ label, need, ok, state, detail }))) });
+    emit(run, { type: "requirements", summary: snap.status.length ? `${snap.status.filter((r) => r.ok).length}/${snap.status.length} available` : "none declared", detail: JSON.stringify(snap.status.map(({ label, need, ok, state, detail, source }) => ({ label, need, ok, state, detail, source }))) });
   }
   emit(run, { type: "status", summary: "starting" });
   spawnWorker(run, { resume: false });
@@ -750,7 +995,9 @@ async function gitSummary(wsId) {
   const since = commits[0] ? Date.parse(commits[0].date) : 0;
   const pendingRuns = runs.filter((m) => m.artifacts?.length && !(m.commits || []).length && Date.parse(m.updatedAt || m.createdAt) > since).map((m) => ({ id: m.id, prompt: m.prompt }));
   const { local, ...branch } = b;
-  return { repo: true, canWrite: r.canWrite, prefix: r.prefix, ...branch, changes: changes.slice(0, 300), changeCount: changes.length, commits, pendingRuns };
+  const protect = wsPolicies(wsId).map(({ branch: name, team }) => ({ branch: name, team }));
+  return { repo: true, canWrite: r.canWrite, prefix: r.prefix, ...branch, protect, branchProtected: protect.some((p) => p.branch === branch.branch || p.branch === branch.target),
+    changes: changes.slice(0, 300), changeCount: changes.length, commits, pendingRuns };
 }
 async function gitVersion(wsId, rev) {
   const r = await repoOf(wsId);
@@ -802,6 +1049,9 @@ async function gitCommit(wsId, message, runId) {
   const r = await repoOf(wsId);
   if (!r.repo) throw new Error("This workspace isn't a Git repository.");
   if (!r.canWrite) throw new Error("Commit and push are available in Work workspaces only.");
+  const onBranch = (await git(r.top, ["rev-parse", "--abbrev-ref", "HEAD"]).catch(() => "")).trim();
+  const guard = wsPolicies(wsId).find((p) => p.branch === onBranch);
+  if (guard) throw new Error(`${onBranch} is protected by the ${guard.team}'s enforced policy: nothing is committed to it from here. Switch to another branch to commit.`);
   message = String(message || "").replace(/\r\n/g, "\n").trim();
   if (!message) throw new Error("Write a short description of this version first.");
   if (message.length > 5000) throw new Error("That message is too long.");
@@ -835,6 +1085,8 @@ async function gitPush(wsId, runId) {
   const b = await branchState(r);
   if (b.detached) throw new Error("This folder isn't on a branch (detached HEAD), so there's nothing to push.");
   if (!b.remote) throw new Error("This repository has no remote to push to.");
+  const guard = wsPolicies(wsId).find((p) => p.branch === b.target || p.branch === b.branch);
+  if (guard) throw new Error(`${guard.branch} is protected by the ${guard.team}'s enforced policy: nothing is pushed to it from here.`);
   if (!b.ahead) throw new Error(`Nothing to push: ${b.remote}/${b.target} already has these commits.`);
   const run = runIn(wsId, runId);
   const where = `${b.remote}/${b.target}`;
@@ -1085,7 +1337,42 @@ http.createServer(async (req, res) => {
       }
       if (!parts[2] && req.method === "PUT") { list[i] = normalizeWorker(await body(req), list[i]); writeWorkers(list); return json(res, 200, list[i]); }
       // Its runs keep their snapshots (definition and context), so they stay readable and resumable.
-      if (!parts[2] && req.method === "DELETE") { const [gone] = list.splice(i, 1); writeWorkers(list); if (existsSync(memPath(gone.id))) writeFileSync(memPath(gone.id), "[]"); return json(res, 200, { deleted: gone.id }); }
+      if (!parts[2] && req.method === "DELETE") {
+        const [gone] = list.splice(i, 1); writeWorkers(list); if (existsSync(memPath(gone.id))) writeFileSync(memPath(gone.id), "[]");
+        for (const t of readTeams().filter((x) => x.workers.includes(gone.id))) saveTeam({ ...t, workers: t.workers.filter((w) => w !== gone.id) }, t.id);
+        return json(res, 200, { deleted: gone.id });
+      }
+    }
+
+    // teams: definitions with live requirement status, uploaded knowledge (read-only), versions
+    if (url.pathname === "/teams" && req.method === "GET") {
+      const teams = await Promise.all(readTeams().map(async (t) => {
+        let ctx = { profile: "full", root: null }; try { const w = resolveWorkspace(teamWorkspace(t)); ctx = { profile: w.profile, root: w.root }; } catch {}
+        return { ...t, status: await requirementStatus(t, ctx), profile: ctx.profile, workspaceOk: !!ctx.root };
+      }));
+      return json(res, 200, { teams, enforceable: Object.entries(ENFORCEABLE).map(([type, label]) => ({ type, label })) });
+    }
+    if (url.pathname === "/teams" && req.method === "POST") return json(res, 200, saveTeam(await body(req)));
+    if (parts[0] === "teams" && parts[1]) {
+      const t = readTeams().find((x) => x.id === parts[1]);
+      if (!t) return json(res, 404, { error: "no such Team" });
+      if (parts[2] === "knowledge" && parts[3] && req.method === "GET") {
+        const k = t.knowledge.find((x) => x.id === parts[3] && x.type === "upload");
+        const p = k && fileInside(teamPath(t.id, "knowledge"), k.file);
+        if (!p) { res.writeHead(404); return res.end("not found"); }
+        const buf = readFileSync(p);
+        res.writeHead(200, { "content-type": sniff(buf).mime, "content-security-policy": "sandbox", "x-content-type-options": "nosniff" });
+        return res.end(buf);
+      }
+      if (parts[2] === "versions" && req.method === "GET") {
+        const dir = teamPath(t.id, "history");
+        const versions = existsSync(dir) ? readdirSync(dir).filter((f) => /^v\d+\.json$/.test(f)).map((f) => JSON.parse(readFileSync(join(dir, f), "utf8")))
+          .map(({ version, updatedAt }) => ({ version, updatedAt })).sort((a, b) => b.version - a.version) : [];
+        const used = allMetas().filter((m) => m.team?.id === t.id).map((m) => ({ id: m.id, version: m.team.version, worker: m.worker?.name, prompt: m.prompt, status: m.status }));
+        return json(res, 200, { versions, runs: used });
+      }
+      if (!parts[2] && req.method === "PUT") return json(res, 200, saveTeam(await body(req), t.id));
+      if (!parts[2] && req.method === "DELETE") return json(res, 200, deleteTeam(t.id));
     }
 
     // versions (git)
@@ -1112,9 +1399,12 @@ http.createServer(async (req, res) => {
       const { prompt, workspace, attachments } = b;
       const atts = readAttachments(attachments);
       if (!prompt?.trim() && !atts.length) throw new Error("Empty message");
-      const wsIdArg = workspace === undefined ? "console" : String(workspace);
+      // A Team run happens in the Team's workspace; naming another one is refused (in newRun).
+      const team = b.team ? readTeams().find((t) => t.id === String(b.team)) : null;
+      if (b.team && !team) throw new Error(`No Team "${b.team}".`);
+      const wsIdArg = workspace === undefined ? (team ? teamWorkspace(team) : "console") : String(workspace);
       const mentions = resolveMentions(resolveWorkspace(wsIdArg).root, b.mentions);
-      return json(res, 200, (await newRun(String(prompt || "").trim(), wsIdArg, atts, b.worker ? String(b.worker) : null, mentions)).meta);
+      return json(res, 200, (await newRun(String(prompt || "").trim(), wsIdArg, atts, b.worker ? String(b.worker) : null, mentions, team?.id || null)).meta);
     }
     if (parts[0] === "runs" && parts[1]) {
       const run = loadRun(parts[1]);
@@ -1141,7 +1431,7 @@ http.createServer(async (req, res) => {
       }
       if (action === "stop") { if (alive(run)) { run.stopRequested = true; run.child.kill(); } return json(res, 200, run.meta); }
       if (action === "end") { if (alive(run)) { run.endRequested = true; run.child.stdin.end(); } return json(res, 200, run.meta); }
-      if (action === "restart") return json(res, 200, (await newRun(run.meta.prompt, checkBinding(run, { resume: false }).id, [], run.meta.worker?.id || null)).meta);
+      if (action === "restart") return json(res, 200, (await newRun(run.meta.prompt, checkBinding(run, { resume: false }).id, [], run.meta.worker?.id || null, [], run.meta.team?.id || null)).meta);
     }
     if (url.pathname === "/events") {
       const run = loadRun(url.searchParams.get("run") || "");

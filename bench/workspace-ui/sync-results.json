@@ -1,5 +1,5 @@
 {
- "when": "2026-10-06T08:12:57.889Z",
+ "when": "2026-10-06T10:13:26.914Z",
  "results": [
   {
    "step": "Executor: remove it (it has a run) → off the list, its run hidden",
@@ -10,7 +10,7 @@
      "wsId": "scratch",
      "rows": [
       "scratch",
-      "work-test-3e2c"
+      "work-test-6c31"
      ],
      "current": [
       "scratch"
@@ -35,7 +35,7 @@
     "wsId": "scratch",
     "rows": [
      "scratch",
-     "work-test-3e2c"
+     "work-test-6c31"
     ],
     "current": [
      "scratch"
@@ -55,7 +55,7 @@
      "rows": [
       "scratch",
       "console",
-      "work-test-3e2c"
+      "work-test-6c31"
      ],
      "current": [
       "console"
@@ -96,14 +96,14 @@
    "ok": true,
    "detail": {
     "A": {
-     "wsId": "work-test-6cea",
+     "wsId": "work-test-893b",
      "rows": [
       "scratch",
-      "work-test-6cea",
+      "work-test-893b",
       "console"
      ],
      "current": [
-      "work-test-6cea"
+      "work-test-893b"
      ],
      "cName": "Work test",
      "runs": 0,
@@ -117,7 +117,7 @@
      "wsId": "scratch",
      "rows": [
       "scratch",
-      "work-test-6cea",
+      "work-test-893b",
       "console"
      ],
      "current": [

@@ -14,7 +14,20 @@ import { z } from "zod";
 
 const BRIDGE_URL = process.env.FIGMA_BRIDGE_URL || "http://localhost:8787/command";
 
+// A Team's Figma resource: in the Team's runs the console sets FIGMA_EXPECTED_FILE_KEY, and then
+// every command except checking the connection and which file is open is refused while another
+// file is open (the plugin reports the open file's key). Without it, nothing changes.
+const EXPECTED_FILE_KEY = process.env.FIGMA_EXPECTED_FILE_KEY || "";
+const ANY_FILE = new Set(["PING", "GET_FILE_INFO"]);
 async function callBridge(type, params) {
+  if (EXPECTED_FILE_KEY && !ANY_FILE.has(type)) {
+    const info = await post("GET_FILE_INFO", {});
+    if (!info?.fileKey) throw new Error(`Refused: this run may only work on the Team's Figma file (${EXPECTED_FILE_KEY}), and the open file's key can't be read.`);
+    if (info.fileKey !== EXPECTED_FILE_KEY) throw new Error(`Refused: the open Figma file is "${info.fileName}" (${info.fileKey}), not the Team's file (${EXPECTED_FILE_KEY}). This run may only work on the Team's file: ask the person to open it in Figma and run the plugin there.`);
+  }
+  return post(type, params);
+}
+async function post(type, params) {
   let res;
   try {
     res = await fetch(BRIDGE_URL, {

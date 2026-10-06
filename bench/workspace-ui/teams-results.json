@@ -1,0 +1,326 @@
+{
+ "when": "2026-10-06T10:12:40.807Z",
+ "results": [
+  {
+   "step": "create the MATW Team in the UI: workers, workspace, Figma, real docs as references, uploads, enforced policy, instructions, requirements, prompts",
+   "ok": true,
+   "detail": {
+    "version": 1,
+    "knowledge": [
+     "workspace_file:docs/universal/ARCHITECTURE.md",
+     "workspace_file:docs/platform-contract.md",
+     "workspace_file:docs/ddfoa.md",
+     "upload:MATW Business Context.md",
+     "upload:MATW Design Principles.pdf"
+    ],
+    "summary": "MATW Engineering & Design Team WORKERS Frontend Engineer QA Engineer Senior UI/UX Design Engineer RESOURCES MATW Frontend · MATW Figma KNOWLEDGE 3 workspace references · 2 uploaded documents POLICIES 1 enforced · 3 instructions PROMPTS 2 Team prompts REQUIREMENTS Figma: read designs · required · Not connected GitHub: reach the repository · required · Not a GitHub remote"
+   }
+  },
+  {
+   "step": "reload: the Team persists; reopen shows the same definition",
+   "ok": true,
+   "detail": {
+    "name": "MATW",
+    "ws": "matw-frontend-703a",
+    "figma": "https://www.figma.com/design/MATWteamFigmaKey0001/MATW?node-id=1-2",
+    "refs": 3,
+    "uploads": 2,
+    "policies": 1,
+    "instr": 3,
+    "prompts": 2,
+    "checked": 3
+   }
+  },
+  {
+   "step": "edit in the UI: add the Research worker, remove a reference and an upload, add them back; each save is a version",
+   "ok": true,
+   "detail": {
+    "version": 3,
+    "workers": 4,
+    "versionsShown": [
+     "3",
+     "2",
+     "1"
+    ]
+   }
+  },
+  {
+   "step": "the UI keeps ENFORCED and INSTRUCTION apart, and the API refuses to call an instruction enforced",
+   "ok": true,
+   "detail": {
+    "enforcedRows": [
+     "ENFORCED\nNever modify prod-main"
+    ],
+    "instructionTag": "INSTRUCTION",
+    "unenforceable": "\"follow_ddfoa\" can't be enforced by this platform. Add it as an instruction instead."
+   }
+  },
+  {
+   "step": "Team prompts: in the Team's sidebar section only; global Favourites unchanged; another Team doesn't see them",
+   "ok": true,
+   "detail": {
+    "teamPrompts": [
+     "◆\nReview frontend change",
+     "◆\nArchitecture review"
+    ],
+    "usedPromptFilled": "Review the current uncommitted frontend change against the T",
+    "favourites": [
+     "★\nGlobal favourite: summarise the README"
+    ],
+    "otherTeamPrompts": [
+     "◆\nOther prompt"
+    ]
+   }
+  },
+  {
+   "step": "run the Frontend Engineer through the Team: it gets the Team context and reads the Team's knowledge itself",
+   "ok": true,
+   "detail": {
+    "composer": "MATW · Frontend Engineer",
+    "sent": {
+     "team": "matw-f35c",
+     "worker": "frontend-engineer-a955"
+    },
+    "teamVersion": 3,
+    "reply": "OBSERVATIONThe architecture document says there are \"5 foundational development contracts\" but lists 6. The sixth, form-and-validation, has no link.\n\nprod-main must never be modified. The platform enforces this: the console refuses to commit or push to it. It's also a MATW Team policy.\nThe Team's instructions are to follow DDFOA (docs/ddfoa.md), use the BFF pattern, and follow the repository architecture in docs/universal/ARCHITECTURE.md.\nThe codeword is BIZ-OLIVE-LANTERN.\nThe first contract is ",
+    "toolCalls": [
+     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\regress-teams-1791281450\\runs\\2026-10-06T10-11-03-096Z.team\\de10a81b277fb129-MATW Business Context.md",
+     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\tf\\matw\\docs\\universal\\ARCHITECTURE.md"
+    ],
+    "builtinTools": [
+     "Edit",
+     "Glob",
+     "Grep",
+     "Read",
+     "ToolSearch",
+     "Write"
+    ],
+    "cards": [
+     "Team",
+     "Worker",
+     "Requirements",
+     "Enforced policy",
+     "Worker started",
+     "Files",
+     "Files",
+     "Observation",
+     "Turn finished"
+    ]
+   }
+  },
+  {
+   "step": "the enforced policy holds against the worker: no shell, no writes into .git or .claude (prod-main unchanged)",
+   "ok": true,
+   "detail": {
+    "prodMainUnchanged": true,
+    "artifacts": [],
+    "claudeSettingsCreated": false,
+    "writesAttempted": [
+     "C:\\Users\\hp\\AppData\\Local\\Temp\\tf\\matw\\.git\\refs\\heads\\prod-main",
+     "C:\\Users\\hp\\AppData\\Local\\Temp\\tf\\matw\\.claude\\settings.local.json"
+    ],
+    "lastResults": [
+     "\"1\\t# MATW business context (test document)\\n2\\tMATW raises donations for humanitarian appeals. Checkout reliability matters more than visua",
+     "\"1\\t# 🏛️ Core Architecture & Development Standards\\n2\\t\\n3\\tThis repository strictly enforces 5 foundational development contracts. All cod",
+     "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\"",
+     "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\""
+    ],
+    "reply": "The platform blocked all three attempts, and I didn't try any workaround.\n\na) git status was not run. This run has no shell tool to call: shell commands are turned off by a workspace policy. So there was no refusal message, because the call couldn't be made at all.\n\nb) Writing to .git/refs/heads/prod-main was refused. The exact result:\nFile is in a directory that is denied by your permission setti"
+   }
+  },
+  {
+   "step": "the console's Git layer refuses prod-main: commit while it's checked out, push to it via the upstream; the Versions view says so",
+   "ok": true,
+   "detail": {
+    "commitOnProdMain": "prod-main is protected by the MATW Team's enforced policy: nothing is committed to it from here. Switch to another branch to commit.",
+    "pushToProdMain": "prod-main is protected by the MATW Team's enforced policy: nothing is pushed to it from here.",
+    "versionsView": "ENFORCED Pushing goes to origin/prod-main, which the MATW Team protects: nothing is pushed to it from here.",
+    "commitBoxStillOffered": false,
+    "pushButton": false,
+    "bareRemoteRefs": "(none)"
+   }
+  },
+  {
+   "step": "Versions view with the protected branch checked out (a small full repo): no commit box, no push, says why",
+   "ok": true,
+   "detail": {
+    "versionsView": "ENFORCED prod-main is protected by the Mini team: nothing is committed to it or pushed to it from here. Switch to another branch to commit.",
+    "commitBox": false,
+    "pushButton": false,
+    "api": "prod-main is protected by the Mini team's enforced policy: nothing is committed to it from here. Switch to another branch to commit."
+   }
+  },
+  {
+   "step": "while prod-main is checked out, a Team run can't change files at all (no Write/Edit, said in its context)",
+   "ok": true,
+   "detail": {
+    "builtinTools": [
+     "Glob",
+     "Grep",
+     "Read",
+     "ToolSearch"
+    ],
+    "policy": {
+     "policies": [
+      {
+       "type": "protect_branch",
+       "branch": "prod-main",
+       "team": "MATW Team"
+      }
+     ],
+     "head": "prod-main",
+     "onProtected": true,
+     "off": [
+      "Edit files in the workspace",
+      "Run node and curl"
+     ]
+    }
+   }
+  },
+  {
+   "step": "the policy protects the repository, not only the Team: a General worker there, and a sub-folder workspace, are covered too",
+   "ok": true,
+   "detail": {
+    "generalWorkerTools": [
+     "Edit",
+     "Glob",
+     "Grep",
+     "Read",
+     "ToolSearch",
+     "WebFetch",
+     "WebSearch",
+     "Write"
+    ],
+    "generalPolicyCard": "prod-main protected",
+    "subfolderProtect": [
+     {
+      "branch": "prod-main",
+      "team": "MATW Team"
+     }
+    ]
+   }
+  },
+  {
+   "step": "versions: change the Team (v4); a new run uses v4; continuing the v3 run keeps v3's context",
+   "ok": true,
+   "detail": {
+    "newRun": {
+     "version": 4,
+     "reply": "Follow DDFOA (docs/ddfoa.md).\nUse the BFF pattern.\nFollow the repository architecture in docs/universal/ARCHITECTURE.md.\nWrite all user-facing copy in British English."
+    },
+    "oldRun": {
+     "version": 3,
+     "contextUnchanged": true,
+     "reply": "Follow DDFOA (docs/ddfoa.md).\nUse the BFF pattern.\nFollow the repository architecture in docs/universal/ARCHITECTURE.md."
+    }
+   }
+  },
+  {
+   "step": "Figma resource: the Reader refuses another file; the Team file without authorization makes the worker stop with NEEDS:",
+   "ok": true,
+   "detail": {
+    "readCalls": [
+     "https://www.figma.com/design/OtherFileKey0000000/Other",
+     "https://www.figma.com/design/MATWteamFigmaKey0001/MATW?node-id=1-2"
+    ],
+    "otherPluginCalls": [],
+    "needs": [
+     "Figma Reader access to the MATW Figma file (`MATWteamFigmaKey0001`): someone with access to the design must connect Figma on this computer once, either with a personal access token that has `file_content:read` or through the OAuth flow (see `figma-reader/README.md`). The connected account must be able to open the file."
+    ],
+    "requirements": [
+     "Figma: change the open file: Connected",
+     "Figma: read designs: Not connected",
+     "GitHub: reach the repository (Team): Not a GitHub remote"
+    ]
+   }
+  },
+  {
+   "step": "Figma Executor lock (fake bridge, no real Figma): another open file → commands refused before they reach Figma; the Team's file → allowed; without a Team → unchanged",
+   "ok": true,
+   "detail": {
+    "otherFileOpen": "Refused: the open Figma file is \"Fake\" (SomeoneElsesFile00000), not the Team's file (MATWteamFigmaKey0001). This run may only work on the Team's file: ask the p",
+    "bridgeSawBeforeAllowed": [
+     "GET_FILE_INFO",
+     "GET_FILE_INFO"
+    ],
+    "teamFileOpen": "allowed",
+    "noTeam": "allowed",
+    "readerOtherFile": "Refused: this run may only read the Team's Figma file (MATWteamFigmaKey0001). OtherFileKey0000000 is another file.",
+    "readerTeamFileNoAuth": "Figma authorization is missing on this computer, so this worker can't read Figma files. So"
+   }
+  },
+  {
+   "step": "an Inspect Team stays Inspect; Team knowledge and runs can't leave the workspace",
+   "ok": true,
+   "detail": {
+    "refused": {
+     "dotdot": "400 @../outside/secret.md isn't a file in this workspace.",
+     "absolute": "400 @C:/Users/hp/AppData/Local/Temp/tf/outside/secret.md isn't a file in this workspace.",
+     "drive": "400 @C:secret.md isn't a file in this workspace.",
+     "unc": "400 @//localhost/c$/x.md isn't a file in this workspace.",
+     "junctionOut": "400 @jdir/secret.txt isn't a file in the Team's workspace.",
+     "folder": "400 @src is a folder, not a file.",
+     "otherWorkspace": "400 @README.md is in another workspace. Team knowledge can only reference files in the Team's workspace."
+    },
+    "otherWorkspaceRun": "The Canary review Team works in its own workspace; it can't run in another one.",
+    "nonMember": "That worker isn't in the Canary review Team.",
+    "inspectRunTools": [
+     "Glob",
+     "Grep",
+     "Read",
+     "ToolSearch"
+    ],
+    "inspectTeamId": "canary-review-9846",
+    "run": "2026-10-06T10-12-23-508Z"
+   }
+  },
+  {
+   "step": "switching to another workspace leaves the Team; removing a worker from the Team affects new runs only",
+   "ok": true,
+   "detail": {
+    "inTeam": "MATW · Frontend Engineer",
+    "afterSwitch": {
+     "who": "Frontend Engineer",
+     "teamPromptsHidden": true,
+     "leave": true
+    },
+    "qaNow": "That worker isn't in the MATW Team.",
+    "teamVersion": 5,
+    "oldRunStillV": 3
+   }
+  },
+  {
+   "step": "delete a Team in the UI: gone after reload; its run still opens with the Team it used",
+   "ok": true,
+   "detail": {
+    "deleted": "canary-review-9846",
+    "runCards": [
+     "Team",
+     "Worker",
+     "Requirements",
+     "Worker started",
+     "Turn finished"
+    ],
+    "snapshotTeam": "Canary review v1"
+   }
+  },
+  {
+   "step": "GitHub requirement on the real MATW repository (Inspect, read-only): checked with git ls-remote, nothing changed",
+   "ok": true,
+   "detail": {
+    "github": "GitHub: reach the repository: Reachable",
+    "remote": "https://github.com/MATWProject-org/matw-revamp-main-frontend-site.git"
+   }
+  },
+  {
+   "step": "guarded: another origin can't create, change or delete Teams",
+   "ok": true,
+   "detail": {
+    "create": 403,
+    "change": 403,
+    "del": 403
+   }
+  }
+ ],
+ "pageErrors": []
+}
