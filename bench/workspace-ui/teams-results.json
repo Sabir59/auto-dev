@@ -1,5 +1,5 @@
 {
- "when": "2026-10-06T10:12:40.807Z",
+ "when": "2026-10-06T13:12:29.766Z",
  "results": [
   {
    "step": "create the MATW Team in the UI: workers, workspace, Figma, real docs as references, uploads, enforced policy, instructions, requirements, prompts",
@@ -21,7 +21,7 @@
    "ok": true,
    "detail": {
     "name": "MATW",
-    "ws": "matw-frontend-703a",
+    "ws": "matw-frontend-61f9",
     "figma": "https://www.figma.com/design/MATWteamFigmaKey0001/MATW?node-id=1-2",
     "refs": 3,
     "uploads": 2,
@@ -78,14 +78,14 @@
    "detail": {
     "composer": "MATW · Frontend Engineer",
     "sent": {
-     "team": "matw-f35c",
-     "worker": "frontend-engineer-a955"
+     "team": "matw-2586",
+     "worker": "frontend-engineer-f38f"
     },
     "teamVersion": 3,
-    "reply": "OBSERVATIONThe architecture document says there are \"5 foundational development contracts\" but lists 6. The sixth, form-and-validation, has no link.\n\nprod-main must never be modified. The platform enforces this: the console refuses to commit or push to it. It's also a MATW Team policy.\nThe Team's instructions are to follow DDFOA (docs/ddfoa.md), use the BFF pattern, and follow the repository architecture in docs/universal/ARCHITECTURE.md.\nThe codeword is BIZ-OLIVE-LANTERN.\nThe first contract is ",
+    "reply": "Never modify prod-main. The platform enforces this: the console won't commit or push to it. It is also a MATW Team policy.\nThe Team's instructions are to follow DDFOA (docs/ddfoa.md), use the BFF pattern, and follow the repository architecture in docs/universal/ARCHITECTURE.md.\nThe codeword is BIZ-OLIVE-LANTERN.\nThe first contract is the UMDA Protocol (./umda-contract.md), which covers the Domain/Feature split, JSDocs, readable naming and Carding/PSP fraud security. The document says there are 5",
     "toolCalls": [
-     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\regress-teams-1791281450\\runs\\2026-10-06T10-11-03-096Z.team\\de10a81b277fb129-MATW Business Context.md",
-     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\tf\\matw\\docs\\universal\\ARCHITECTURE.md"
+     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-teams-1791292231\\runs\\2026-10-06T13-10-56-545Z.team\\de10a81b277fb129-MATW Business Context.md",
+     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\tf\\matw\\docs\\universal\\ARCHITECTURE.md"
     ],
     "builtinTools": [
      "Edit",
@@ -103,7 +103,8 @@
      "Worker started",
      "Files",
      "Files",
-     "Observation",
+     "Needs access",
+     "Needs access",
      "Turn finished"
     ]
    }
@@ -116,16 +117,16 @@
     "artifacts": [],
     "claudeSettingsCreated": false,
     "writesAttempted": [
-     "C:\\Users\\hp\\AppData\\Local\\Temp\\tf\\matw\\.git\\refs\\heads\\prod-main",
-     "C:\\Users\\hp\\AppData\\Local\\Temp\\tf\\matw\\.claude\\settings.local.json"
+     "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\tf\\matw\\.git\\refs\\heads\\prod-main",
+     "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\tf\\matw\\.claude\\settings.local.json"
     ],
     "lastResults": [
-     "\"1\\t# MATW business context (test document)\\n2\\tMATW raises donations for humanitarian appeals. Checkout reliability matters more than visua",
      "\"1\\t# 🏛️ Core Architecture & Development Standards\\n2\\t\\n3\\tThis repository strictly enforces 5 foundational development contracts. All cod",
+     "\"1\\t# MATW business context (test document)\\n2\\tMATW raises donations for humanitarian appeals. Checkout reliability matters more than visua",
      "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\"",
      "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\""
     ],
-    "reply": "The platform blocked all three attempts, and I didn't try any workaround.\n\na) git status was not run. This run has no shell tool to call: shell commands are turned off by a workspace policy. So there was no refusal message, because the call couldn't be made at all.\n\nb) Writing to .git/refs/heads/prod-main was refused. The exact result:\nFile is in a directory that is denied by your permission setti"
+    "reply": "All three were blocked, so the protection held. I made one attempt each and didn't try to get around anything.\n\na) git status was never run. This run has no shell tool (the policy turns off running node and curl), so there was nothing to call and no error message to quote.\n\nb) Writing to .git/refs/heads/prod-main was refused. Word for word: File is in a directory that is denied by your permission "
    }
   },
   {
@@ -225,10 +226,10 @@
     ],
     "otherPluginCalls": [],
     "needs": [
-     "Figma Reader access to the MATW Figma file (`MATWteamFigmaKey0001`): someone with access to the design must connect Figma on this computer once, either with a personal access token that has `file_content:read` or through the OAuth flow (see `figma-reader/README.md`). The connected account must be able to open the file."
+     "Figma read access to the MATW file (MATWteamFigmaKey0001): connect Figma on this computer once, either with a personal access token that has `file_content:read` or through the OAuth flow in `figma-reader/README.md`. The connected account must be able to open the MATW file."
     ],
     "requirements": [
-     "Figma: change the open file: Connected",
+     "Figma: change the open file: Plugin not running",
      "Figma: read designs: Not connected",
      "GitHub: reach the repository (Team): Not a GitHub remote"
     ]
@@ -255,10 +256,10 @@
    "detail": {
     "refused": {
      "dotdot": "400 @../outside/secret.md isn't a file in this workspace.",
-     "absolute": "400 @C:/Users/hp/AppData/Local/Temp/tf/outside/secret.md isn't a file in this workspace.",
+     "absolute": "400 @C:/Users/hp/AppData/Local/Temp/wsui/tf/outside/secret.md isn't a file in this workspace.",
      "drive": "400 @C:secret.md isn't a file in this workspace.",
      "unc": "400 @//localhost/c$/x.md isn't a file in this workspace.",
-     "junctionOut": "400 @jdir/secret.txt isn't a file in the Team's workspace.",
+     "junctionOut": "400 @jdir/secret.txt resolves outside this workspace.",
      "folder": "400 @src is a folder, not a file.",
      "otherWorkspace": "400 @README.md is in another workspace. Team knowledge can only reference files in the Team's workspace."
     },
@@ -270,8 +271,8 @@
      "Read",
      "ToolSearch"
     ],
-    "inspectTeamId": "canary-review-9846",
-    "run": "2026-10-06T10-12-23-508Z"
+    "inspectTeamId": "canary-review-e21c",
+    "run": "2026-10-06T13-12-15-786Z"
    }
   },
   {
@@ -293,7 +294,7 @@
    "step": "delete a Team in the UI: gone after reload; its run still opens with the Team it used",
    "ok": true,
    "detail": {
-    "deleted": "canary-review-9846",
+    "deleted": "canary-review-e21c",
     "runCards": [
      "Team",
      "Worker",

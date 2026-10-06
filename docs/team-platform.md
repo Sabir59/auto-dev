@@ -1,5 +1,7 @@
 # Teams (2026-10-06)
 
+> Project overview and current status: `docs/PROJECT_HANDOFF.md` (canonical). This file is the Team design.
+
 A Team is shared context and scope for several workers: who's in it, what they share, and what is enforced for them. It's built on the existing worker platform (`docs/worker-platform.md`), and it adds nothing to the runtime itself:
 - no second runtime;
 - no second file system;

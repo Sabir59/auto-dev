@@ -1,10 +1,10 @@
 {
- "when": "2026-10-06T10:09:03.356Z",
+ "when": "2026-10-06T13:09:19.173Z",
  "results": [
   {
    "step": "add an Inspect workspace through the form",
    "ok": true,
-   "seconds": 0.3,
+   "seconds": 0.2,
    "detail": {
     "selected": "Canary",
     "mode": "Inspect",
@@ -23,7 +23,7 @@
   {
    "step": "add a Work workspace",
    "ok": true,
-   "seconds": 0.3,
+   "seconds": 0.2,
    "detail": {
     "workspaces": [
      "No folder",
@@ -70,23 +70,23 @@
   {
    "step": "start a run, see live activity, get the result (Inspect)",
    "ok": true,
-   "seconds": 8.6,
+   "seconds": 7.2,
    "detail": {
     "liveSeen": true,
     "sendIsStop": "Stop the worker",
     "cards": [
      "Worker started",
-     "Files Success · 59ms",
+     "Files Success · 68ms",
      "Done Complete",
-     "Turn finished 5s"
+     "Turn finished 4s"
     ],
-    "reply": "DONEThe README says this is a \"Canary workspace\", a throwaway repo used for testing."
+    "reply": "DONEThe README says this folder is a disposable test repo called \"Canary workspace.\""
    }
   },
   {
    "step": "follow-up in the same worker process",
    "ok": true,
-   "seconds": 2,
+   "seconds": 2.2,
    "detail": {
     "reply": "README.md",
     "workerStartedCards": 1,
@@ -96,7 +96,7 @@
   {
    "step": "save the prompt as a favourite, use it, remove it",
    "ok": true,
-   "seconds": 0.4,
+   "seconds": 0.5,
    "detail": {
     "saved": "★\nList the files in src and say what each one does.",
     "composerAfterClick": "List the files in src and say what each one does.",
@@ -106,7 +106,7 @@
   {
    "step": "End run, then it appears in Recent runs as finished",
    "ok": true,
-   "seconds": 1.4,
+   "seconds": 1.3,
    "detail": {
     "recent": [
      "Read README.md in this folder and summarise it in one sentence. just now"
@@ -116,17 +116,17 @@
   {
    "step": "reload, open the run from Recent runs, continue it (resume)",
    "ok": true,
-   "seconds": 7.5,
+   "seconds": 7,
    "detail": {
     "replayedMessages": 4,
     "resumedCard": 1,
-    "reply": "You first asked me to read README.md in this folder and sum it up in one sentence."
+    "reply": "You first asked me to read README.md in this folder and summarise it in one sentence."
    }
   },
   {
    "step": "Stop a busy run with the send button",
    "ok": true,
-   "seconds": 0.5,
+   "seconds": 0.3,
    "detail": {
     "status": "Stopped",
     "thread": [
@@ -137,7 +137,7 @@
   {
    "step": "Work workspace: the worker writes a file, it shows as an artifact, it opens in the viewer",
    "ok": true,
-   "seconds": 10.2,
+   "seconds": 8.5,
    "detail": {
     "artifact": "notes/summary.md",
     "content": "Workspace artifact test",

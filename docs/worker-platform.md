@@ -1,5 +1,7 @@
 # Worker platform: design (2026-10-02)
 
+> Project overview and current status: `docs/PROJECT_HANDOFF.md` (canonical). This file is the Worker design.
+
 ## 1. What exists today
 
 **Worker runtime.** `worker-ui/server.mjs` starts one headless `claude.exe` per run (stream-json in and out, so one process takes follow-ups), resumes a saved session in a new process, and turns the worker's output into the event log the page shows. Every run gets the same `worker-instructions.md` and the same tools, decided only by the workspace's profile.

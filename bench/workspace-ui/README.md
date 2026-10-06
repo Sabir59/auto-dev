@@ -1,5 +1,13 @@
 # Workspace UI: workflow and fidelity check (2026-10-01)
 
+**Running the suites:** `bash bench/workspace-ui/run-suite.sh <workflow|manage|sync|attach|versions|mentions|workers|designer|teams>` (Git Bash on Windows).
+- It starts its own test console on port 8797 with a fresh data dir and an empty Figma Reader dir.
+- It builds the disposable fixtures with `fixtures.mjs` under `%TEMP%wsui`. They use canary values only; no real secrets.
+- The Teams suite reads the real MATW repository (`MATW_SRC`) to make a local clone. Nothing is ever written to the real repository.
+- The real worker runs, so suites take minutes and use the Claude subscription.
+
+Project overview: `docs/PROJECT_HANDOFF.md`.
+
 The Workspace page (`worker-ui/workspace.html`, served at `/` by `worker-ui/server.mjs`) is the Stitch design from the Figma file "Test Scripter" (page Main, frame `12038:273`), built as a working front end for the existing Worker Console. The old console page is still at `/console`.
 
 ## What the page does, and what it's connected to

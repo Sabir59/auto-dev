@@ -1,5 +1,7 @@
 # Worker Console — local chat front-end for the AI worker
 
+> Current product overview: `docs/PROJECT_HANDOFF.md`. This README documents the original Worker Console (still served at `/console`). The current UI is `workspace.html` at `/`.
+
 ```
 User → Worker Console (this folder) → existing Claude Code worker (headless) → existing MCP + built-in tools → Figma / Browser / Files / Web
 ```

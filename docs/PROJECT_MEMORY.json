@@ -1,0 +1,197 @@
+{
+  "_about": "Machine-readable project memory. Canonical prose: docs/PROJECT_HANDOFF.md. Verification markers: VERIFIED (checked against repo/git/tests on 2026-10-06), INFERRED, OPEN, CONVERSATION_ONLY (decided with the owner, not in the repo before 2026-10-06). The code wins over this file.",
+  "written": "2026-10-06",
+  "project": {
+    "name": "AI Workspace (repo: figma-ai-executor; GitHub: Sabir59/auto-dev)",
+    "path": "C:\\Users\\hp\\Desktop\\millionaire\\auto-dev\\figma-ai-executor",
+    "owner_git_identity": "Sabir Nawaz <69711644+Sabir59@users.noreply.github.com>",
+    "platform": "Windows 11, Node 22.23.2, Claude Code CLI 2.1.283 (claude.exe)",
+    "one_line": "A local AI workforce platform: specialized Workers, grouped into Teams, operate inside real Workspaces (files, Git, Figma, browser) under limits enforced below the model, with every action observable and every result reviewable."
+  },
+  "mission": {
+    "problem": "Chat assistants talk about work; organizations need AI that does real work inside their real systems, safely and accountably.",
+    "for_whom_now": "The owner and the MATW frontend team (first real environment).",
+    "for_whom_intended": "Organizations hiring specialized AI workers/teams.",
+    "vs_chatbot": "Acts through real tools on real resources; enforced boundaries; NEEDS instead of workarounds; recorded, resumable runs with snapshots.",
+    "vs_claude_code": "The runtime IS Claude Code (claude.exe). The product is the layer around it: workspaces with security profiles and run binding, worker definitions computing tools/context, Teams with shared context and enforced policies, adapters with their own enforcement, activity log, Git versions/explicit push, safe attachments and @ mentions.",
+    "evolution": ["Original AI worker idea (CONVERSATION_ONLY, owner called it Grok-like)", "Figma Executor POC executor-poc-v0.1 (2026-09-29)", "MCP adapter", "Browser adapter", "Benchmarks B1-B6", "Worker Console", "Security hardening", "Workspace UI (Stitch design)", "Figma Reader", "Worker definitions + memory", "Senior UI/UX worker", "No folder", "@ mentions", "Teams (e44501c)"]
+  },
+  "current_state": {
+    "head_before_handoff_commit": "e44501c",
+    "github_main": "b666f98 (VERIFIED via git ls-remote 2026-10-06)",
+    "unpushed_local_commits": ["3e9f064 Senior UI/UX Design Engineer worker", "151055c No folder", "813e1e0 @ file mentions", "14f5bb2 @ lists .gitignore-hidden files", "e44501c Teams", "handoff commit (docs + test tooling)"],
+    "teams_commit_note": "e44501c committed locally, no co-author trailer, NOT pushed",
+    "uncommitted_working_tree": {
+      "plugin/code.js + docs/capabilities-log.md": "MODIFY_NODE fills/copyFillsFrom written by the Senior UI/UX worker during the 2026-10-05 'trekking hiking' run; not reviewed; NOT exposed in mcp/server.mjs schema (OPEN decision)",
+      "worker-ui/prompts.json": "emptied by app use",
+      "worker-ui/runs/*": "untracked run logs (not gitignored)"
+    },
+    "owner_live_console_data": "Senior UI/UX Design Engineer v2 with memory; workspace matw-revamp-main-frontend-site (Inspect); Executor hidden; no Teams yet (VERIFIED)"
+  },
+  "architecture": {
+    "flow": "Browser (worker-ui/workspace.html) -> Worker Console (worker-ui/server.mjs, 127.0.0.1:8799) -> claude.exe -p stream-json (cwd = workspace real root) -> built-in tools + MCP (figma-executor -> bridge :8787 -> plugin; figma-reader -> Figma REST; browser-executor -> Playwright)",
+    "platform_files": ["worker-ui/server.mjs", "mcp/server.mjs", "mcp/reader-server.mjs", "bridge/server.js", "plugin/code.js", "plugin/ui.html", "browser-adapter/server.mjs", "figma-reader/reader.mjs", "worker-ui/worker-instructions.md"],
+    "ui_files": ["worker-ui/workspace.html (vanilla JS, Stitch design)", "worker-ui/index.html (old console at /console)"],
+    "data_dir": "worker-ui/ by default or WORKER_CONSOLE_DATA",
+    "storage": {
+      "workspaces.json": "registry (gitignored)",
+      "workers.json": "worker definitions (gitignored)",
+      "workers/<id>.memory.json": "worker memory (gitignored)",
+      "teams.json": "Team definitions (gitignored)",
+      "teams/<id>/history/vN.json": "every Team version",
+      "teams/<id>/knowledge/<sha16>-<name>": "uploaded Team knowledge",
+      "prompts.json": "global Favourites (tracked)",
+      "runs/<id>.meta.json|.jsonl|.raw.jsonl": "run history (NOT gitignored)",
+      "runs/<id>.worker.json|.worker.md|.mcp.json|.att/|.team/": "snapshot, context, per-run MCP config, attachments, Team upload copies (gitignored)",
+      "scratch/": "No folder workspace",
+      "~/.figma-reader/credentials.json": "Figma Reader credential (outside repo)",
+      "~/.claude/projects/": "Claude Code session transcripts"
+    },
+    "api_routes": ["/workspaces GET POST DELETE /order", "/pick-folder", "/workers GET POST PUT DELETE /memory", "/teams GET POST PUT DELETE /knowledge/:kid /versions", "/runs GET POST, /runs/:id GET, /runs/:id/message|stop|end|restart POST, /runs/:id/att/:file", "/events (SSE)", "/git /git/version /git/diff /git/file /git/commit /git/push", "/mentions", "/tree", "/file", "/prompts"],
+    "event_types": ["user", "reply", "status", "start", "tool", "result", "failure", "artifact", "completed", "team", "worker", "requirements", "policy", "needs", "memory", "commit", "push", "note", "plan", "observation", "decision", "verification", "recovery", "done"],
+    "env_vars": {"WORKER_CONSOLE_PORT": "console port (8799)", "WORKER_CONSOLE_DATA": "data dir", "WORKER_CONSOLE_CLAUDE_CONFIG_DIR": "Claude config dir for workers (default ~/.claude)", "CLAUDE_BIN": "claude binary override", "FIGMA_READER_DIR": "Figma Reader credential dir", "BROWSER_EXECUTOR_PROFILE": "full|inspect (default inspect)", "FIGMA_BRIDGE_URL": "bridge URL for mcp/server.mjs", "FIGMA_EXPECTED_FILE_KEY": "Team Figma lock (Executor)", "FIGMA_READER_ALLOWED_KEYS": "Team Figma lock (Reader)"},
+    "ports": {"8799": "console", "8797": "test console", "8787": "Figma bridge (loopback only)", "3007": "Figma OAuth callback", "8790": "B5 benchmark expense portal"}
+  },
+  "runtime": {
+    "current": "claude.exe (Claude Code CLI) on the owner's subscription, spawned per run with stream-json I/O; NOT the Anthropic API",
+    "worker_settings": "{\"includeCoAuthoredBy\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\"}}",
+    "env": "inherited CLAUDE*/AI_AGENT*/WORKER_CONSOLE_*/FIGMA_* dropped (except FIGMA_READER_DIR); CLAUDE_CONFIG_DIR=~/.claude",
+    "model": "Claude Code default (observed claude-opus-5-5); not set explicitly (OPEN)",
+    "verified_runtime_facts": ["--restricted keeps Write/Edit when listed in --tools, removes shell, ignores project settings/hooks/CLAUDE.md", "permissions.deny via --settings enforced, incl. absolute Edit(//c/...)", "Claude Code expands @path in message text into file contents, outside the workspace too in Work; the console defuses it", "CLAUDE_CODE_DISABLE_ATTACHMENTS is internal and too broad; not used", "resumed sessions run in whatever cwd they are started in (console must bind)", "sessions are bound to the config dir"],
+    "future_commercial": "Customer -> SaaS -> orchestration (Workers/Teams) -> Claude API / OpenAI / Gemini (CONVERSATION_ONLY, NOT BUILT)"
+  },
+  "workspace": {
+    "definition": "A registered folder + profile; the fundamental resource and security boundary",
+    "profiles": {
+      "inspect": "--restricted --tools Read,Glob,Grep,ToolSearch; allow-list of 12 read-only Figma tools + browser_navigate/get_dom_state; --permission-prompts none; repo settings/hooks/CLAUDE.md not loaded",
+      "full (Work)": "Read/Write/Edit/Glob/Grep, Bash(node:*), Bash(curl:*), WebFetch, WebSearch, full Figma Executor, full browser; --setting-sources project,local (repo hooks run); full trust"
+    },
+    "built_in": {"scratch": "No folder: private <data>/scratch, Work profile", "console": "Executor: this repo; can be hidden"},
+    "binding": "run records real root/profile/config dir; checked before resume/restart/file view; init.cwd and Inspect tools checked",
+    "features": ["Files tree + read-only viewer (realpath containment, CSP sandbox)", "Git versions/diff/commit/push", "attachments (in the message, never written to the workspace)", "@ mentions (references; worker reads itself; @path defused)", "artifacts (successful writes only)", "runs: follow-up same process, resume new process, one active run"]
+  },
+  "workers": {
+    "definition_fields": ["id", "name", "mission", "specialization", "capabilities", "workflow", "knowledge", "limitations", "requirements", "onMissing", "version", "createdAt", "updatedAt"],
+    "capabilities": {"files.read": "Read,Glob,Grep (both)", "files.write": "Write,Edit (Work)", "shell": "Bash(node:*),Bash(curl:*) (Work)", "web": "WebFetch,WebSearch (Work)", "browser": "browser-executor (Inspect: navigate+DOM)", "figma.read": "figma-reader REST (both)", "figma.plugin.read": "figma-executor read tools (both)", "figma.plugin.edit": "figma-executor all (Work)"},
+    "requirement_resources": {"figma.read": "credential exists and /v1/me accepts it", "figma.edit": "plugin answers PING via bridge", "workspace.read": "always", "workspace.write": "Work profile", "browser.use": "Playwright installed", "github.read": "git ls-remote origin succeeds (GitHub remote)"},
+    "rules": ["capabilities only turn tools on; effective = capabilities ∩ profile", "requirements are checked, not granted; missing -> NEEDS:", "REMEMBER: lines -> memory (secret-like refused), separate from definition", "each save bumps version; runs snapshot definition/runtime/status/memory/context"],
+    "repo_definitions": ["workers/senior-uiux-design-engineer.json", "workers/frontend-engineer.json", "workers/qa-engineer.json", "workers/research-worker.json"],
+    "general_worker": "no definition; plain profile flags, except under an enforced policy (GENERAL definition minus policy-removed tools)"
+  },
+  "teams": {
+    "concept": "Worker = specialist; Team = operational environment / shared context. A Team run IS the member worker's normal run; no second runtime.",
+    "commit": "e44501c",
+    "data_model": {"id": "", "name": "", "description": "", "workers": "[workerId]", "workspace": "workspaceId|null", "figma": "{url,fileKey,branchKey?,name}|null", "knowledge": "[{id,type:'workspace_file',workspaceId,path,note}|{id,type:'upload',name,kind,size,sha,file,note}]", "policies": "[{type:'protect_branch',branch}]", "instructions": "[text] (<=30x500)", "requirements": "[{resource,access,need}]", "prompts": "[{id,title,text}] (<=50)", "version": "int"},
+    "context_order": ["worker-instructions.md (platform)", "## Workspace (+ ENFORCED policies)", "# Team: <name> (version N)", "## Team instructions (INSTRUCTION)", "## Team knowledge", "## Team resources (workspace, Figma + lock)", "# You are: <worker> (definition, requirements incl. Team, memory)", "person's message"],
+    "run_rules": ["worker must be a member", "workspace forced to the Team's; other workspace refused", "requirements = worker's + Team's (dedup, marked Team)", "uploads copied to runs/<id>.team/ (read via --add-dir, write-denied)", "snapshot includes whole Team at that version", "resume keeps context/snapshot; enforcement recomputed (now ∪ started-under)"],
+    "deletion": "removes definition, history, uploads; refused while a Team run is active; runs keep snapshots and upload copies; removing/deleting a worker saves a new Team version",
+    "ui": ["Sidebar Teams; selecting = Team context for new chats", "Composer 'Team · worker' with leave ×", "Team page: summary + full editor (workers w/ Chat, resources, knowledge WORKSPACE FILE/UPLOADED, rules ENFORCED/INSTRUCTION, requirements, prompts, versions with runs, delete)", "Sidebar '<Team> prompts' only while active", "Versions view shows protection"]
+  },
+  "tools": {
+    "figma_executor": {
+      "path": "Claude Code -> mcp/server.mjs (MCP) -> HTTP POST /command -> bridge/server.js (:8787 loopback) -> WS -> plugin/ui.html -> postMessage -> plugin/code.js -> Figma Plugin API",
+      "commands": ["PING", "GET_FILE_INFO", "LIST_PAGES", "SWITCH_PAGE", "CREATE_PAGE", "RENAME_PAGE", "GET_SELECTION", "SEARCH_NODES", "GET_DOCUMENT_STATE", "GET_VARIABLES", "GET_STYLES", "GET_ICON_COMPONENTS", "GET_COMPONENT_TREE", "GET_SCREEN_TREE", "GET_PROTOTYPE", "CREATE_FRAME", "CREATE_COMPONENT", "CREATE_TEXT", "CREATE_VECTOR", "CREATE_ELLIPSE", "CREATE_INSTANCE", "COMBINE_AS_VARIANTS", "SET_AUTO_LAYOUT", "MODIFY_NODE", "DETACH_INSTANCE", "SET_INSTANCE_PROPERTIES", "DELETE_NODE", "BIND_VARIABLE_TO_FILL", "IMPORT_COMPONENT_BY_KEY", "EXPORT_NODE"],
+      "mcp_tools": 30,
+      "setup": "cd bridge && npm start; Figma desktop: Plugins > Development > Import plugin from plugin/manifest.json > Run",
+      "file_lock": "FIGMA_EXPECTED_FILE_KEY: every command except PING/GET_FILE_INFO refused unless plugin's figma.fileKey matches (plugin reports fileKey: VERIFIED)",
+      "limitations": ["human must launch plugin", "Figma may kill the plugin iframe", "page-load failures needing a human tab click", "dynamic-page requires async APIs", "vector paths M/L/C/Z only", "resize doesn't keep ratio", "instances can't take children", "Inspect relies on allow-list (adapter has no read-only mode)"]
+    },
+    "figma_reader": {"files": ["figma-reader/reader.mjs", "figma-reader/read.mjs", "figma-reader/oauth.mjs", "mcp/reader-server.mjs"], "tools": ["figma_read_design", "figma_access_status"], "auth": "PAT or OAuth in ~/.figma-reader/credentials.json; never passed to workers", "authorized_path_proven": false, "lock": "FIGMA_READER_ALLOWED_KEYS", "limits": "Tier-1 rate limits very low on Starter/View seats"},
+    "official_figma_mcp": "CONVERSATION_ONLY: remote mcp.figma.com needs OAuth (owner's expired); desktop 127.0.0.1:3845 refused (needs paid Dev Mode seat); not used",
+    "browser": {"file": "browser-adapter/server.mjs", "tools": ["browser_navigate", "browser_get_dom_state", "browser_click", "browser_fill", "browser_screenshot (full only)"], "profiles": "full = any URL + screenshots; anything else = inspect: http(s) only (parsed), reset to about:blank on leaving, no downloads, no screenshot", "proven": ["B4 SauceDemo order", "B5 recovery", "B6 render/geometry", "D1-D3 32 URL tricks"]},
+    "files": "worker file tools confined by Claude Code to cwd + --add-dir; console endpoints realpath-contained; attachments in message; @ mentions as references",
+    "git": {"read": "/git summary, versions, diff, file-at-version; fsmonitor off, no ext diff/textconv, no prompts, hex revs, relative paths", "commit": "Work only; workspace folder pathspec; person's message and identity; no trailer", "push": "Work only; explicit refspec HEAD:refs/heads/<target>; never force, never -u; never prompts", "protected": "commit refused on protected branch; push refused if branch or upstream target protected; Versions view explains", "limits": ["stages everything not ignored", "repo hooks run", "no pull/merge/branch switch in UI", "pushing MATW pipeline branches deploys"]}
+  },
+  "security": {
+    "effective_access": "worker capabilities ∩ workspace mode ∩ Team scope ∩ platform security",
+    "principles": ["Team narrows, never widens", "capabilities are not authorization", "requirements are not credentials", "missing access -> NEEDS:", "enforce below the model", "no fake enforced rules"],
+    "enforced": ["console on 127.0.0.1 + Host check", "CSRF guard: exact Origin, Sec-Fetch-Site same-origin, X-Worker-Console: 1, JSON content type; no CORS; POST-only actions", "bridge loopback only", "run<->workspace binding (real root, profile, config dir, transcript cwds, init.cwd)", "realpath containment (files, tree, mentions, Team knowledge); absolute/drive/UNC/../junction refused", "Inspect allow-list + --restricted", "browser Inspect URL scheme check", "served files CSP sandbox + nosniff", "@path defusal", "branch policy: console Git refusal + no shell + deny .git/.claude + --restricted (+ no Write/Edit while checked out), per repository", "Figma lock (Executor + Reader)", "integration tokens never reach workers", "no co-author trailers"],
+    "evidence": ["bench/workspace-security/README.md", "bench/workspace-ui/README.md", "bench/workspace-ui/*-results.json"]
+  },
+  "testing": {
+    "runner": "bash bench/workspace-ui/run-suite.sh <workflow|manage|sync|attach|versions|mentions|workers|designer|teams> (Git Bash; test console 8797; fixtures via bench/workspace-ui/fixtures.mjs under %TEMP%\\wsui)",
+    "latest_results": {"teams": "19/19", "workflow": "12/12", "manage": "7/7", "sync": "6/6", "attach": "10/10", "versions": "14/14", "mentions": "15/15", "workers": "12/12", "designer": "4/4", "browse": "9/9 (2026-10-01, manual: real Windows dialogs)"},
+    "runner_verified_2026_10_06": "manage 7/7, attach 10/10, workflow 12/12, mentions 15/15, teams 19/19 run through run-suite.sh with freshly built fixtures",
+    "flaky": "sync-test step 6: list re-render during click (failed 1 of 3 runs); not product code",
+    "bugs_found_by_tests_and_fixed": ["refused writes appeared as artifacts", "Versions view hid commit when only push target was protected", "@ picker Enter picked and sent", "dir/ matched only from root", "mentions sent in pick order", "Claude Code @path inlining (incl. outside workspace in Work)", "gitignored docs not mentionable", "'X team Team' label"],
+    "teams_suite_proves": ["lifecycle create/reload/edit/version/delete", "membership", "knowledge refs + uploads", "ENFORCED vs INSTRUCTION; unenforceable policy refused", "Team prompt scoping; global favourites intact", "real Frontend Engineer run on a MATW copy reading real ARCHITECTURE.md itself", "escape attempt: no shell, .git/.claude writes denied, prod-main unchanged", "Git refusals commit/push; Versions view", "prod-main checked out -> read-only tools", "repository-wide policy (General worker, sub-folder workspace)", "version pinning v3 vs v4", "Figma Reader lock + NEEDS; Executor lock with fake bridge", "Inspect Team stays Inspect; escape refusals", "leave Team on workspace switch; member removal", "delete keeps run snapshot", "GitHub requirement Reachable on real MATW", "origin guard 403"]
+  },
+  "matw": {
+    "repo_path": "C:\\Users\\hp\\Desktop\\MATW\\matw-revamp-main-frontend-site",
+    "remote": "github.com/MATWProject-org/matw-revamp-main-frontend-site",
+    "package": "matw-checkout",
+    "owner_branch": "sabir-uat",
+    "stack": "React 18, CRA (react-scripts 5), Tailwind, Redux Toolkit, TanStack Query, Builder.io, Adyen/Stripe/PayPal, Datadog RUM, Cloudflare Wrangler",
+    "pipelines": {"prod": "manual workflow_dispatch from prod-main", "auto_deploy_on_push": ["preprod-main", "uat-main", "dev-main", "sabir-uat", "other personal branches"]},
+    "docs_gitignored": true,
+    "conventions_in_repo": {"DDFOA": "docs/ddfoa.md: Domain-Driven Feature-Oriented Architecture, 'Dumb Features, Smart Domains' (domains = business logic/PSP; features = dumb views/intents); cart via useCart; API via @api/services+queries; payments in @domains/payments; Tailwind only, flex/gap, no sibling margins", "One Cart Rule": "docs/platform-contract.md: every basket write via useCart(); basketStates single source of truth; analytics/checkout metadata never bypassed", "ARCHITECTURE.md": "docs/universal/ARCHITECTURE.md: UMDA, state, shadcn, layout, monorepo, forms contracts"},
+    "not_found_in_repo": ["BFF pattern (owner instruction, CONVERSATION_ONLY)", "'Domains cannot depend on UI' wording (CONVERSATION_ONLY)", "MATW Figma URL (OPEN: owner to add)"],
+    "test_usage": "never written by tests; Teams suite uses a shallow sparse local clone with origin pointed at a local bare repo"
+  },
+  "git": {
+    "branch": "main",
+    "remote": "https://github.com/Sabir59/auto-dev.git",
+    "github_main": "b666f98",
+    "local_tags_not_on_remote": ["executor-poc-v0.1", "figma-adapter-v0.2", "figma-adapter-v0.2.1", "figma-adapter-v0.2.2"],
+    "backup_refs": ["refs/backup/main-before-full-rewrite", "refs/backup/main-before-trailer-rewrite", "refs/backup/tags/*"],
+    "history_note": "History rewritten 2026-10-02 to remove Claude co-author trailers; force-pushed with owner approval",
+    "push_policy": "Never push without explicit owner instruction",
+    "commit_policy": "Never add Claude/AI Co-authored-by trailers; preserve owner's git identity"
+  },
+  "design_principles": ["Build everything on pain. When we discover what is missing, build it.", "No beautiful UI with fake functionality; every control has a real purpose", "No placeholder features or invented capabilities", "Prove capability through real execution: inspect -> test -> prove -> integrate", "Security enforced below the model; the model is not the security boundary", "Don't call anything secure/sandboxed/isolated/read-only unless a test demonstrates it", "Workers specialize; Teams provide operational context; Workspace is the resource/security boundary", "Capabilities narrow access; requirements are not authorization; missing access -> NEEDS", "Historical runs reproducible via snapshots", "Reference shared knowledge, don't duplicate it", "Don't build future infrastructure before current pain requires it", "Report honestly: proven vs unproven vs failed"],
+  "ux_principles": ["Make obvious: what exists, what can be done, active worker/team/workspace/mode, resources, what the AI is doing, what happened, what failed, what access is missing", "No decorative controls, meaningless filters, fake buttons, inactive icons, empty sections", "Keep the Stitch visual language (Geist/Geist Mono dark tokens)", "Truthful labels: ENFORCED vs INSTRUCTION, WORKSPACE FILE vs UPLOADED, read-only view"],
+  "architectural_decisions": [
+    {"decision": "Team is not a second runtime; a Team run is the member worker's normal run", "why": "one execution path to secure and test"},
+    {"decision": "Worker remains the execution unit; Team adds context and scope", "why": "specialization and accountability per worker"},
+    {"decision": "Team cannot widen workspace permissions", "why": "workspace is the security boundary"},
+    {"decision": "Worker capabilities are not authorization", "why": "access is decided by workspace, credentials, resource owner"},
+    {"decision": "Requirements != credentials; checked, never granted", "why": "no fake access, no new credential system yet"},
+    {"decision": "Missing access produces NEEDS:", "why": "honest workers; future stakeholder hook"},
+    {"decision": "Historical runs use snapshots; resume never weakens enforcement", "why": "reproducibility, no silent rule changes"},
+    {"decision": "Shared knowledge references workspace files", "why": "no stale duplicates"},
+    {"decision": "Security below the model", "why": "model is not a boundary"},
+    {"decision": "No fake enforced rules; only protect_branch is enforceable", "why": "platform credibility"},
+    {"decision": "Branch policies hold per repository", "why": "sub-folder workspaces must not escape"},
+    {"decision": "Under a branch policy: no shell, --restricted, deny .git/.claude", "why": "shell can run git; repo hooks/settings could re-enable it"},
+    {"decision": "Figma lock in the adapters, set per Team run", "why": "enforce where the action happens"},
+    {"decision": "Local runtime is claude.exe on the owner's subscription", "why": "reuses Claude Code permissions, MCP, sessions"},
+    {"decision": "The UI is not the platform", "why": "platform is server.mjs + adapters; UI replaceable later"},
+    {"decision": "No Next.js migration during the 20-day window without a concrete reason", "why": "launch first"},
+    {"decision": "Do not push without explicit instruction", "why": "owner controls publication"},
+    {"decision": "Never add Claude/AI co-author trailers", "why": "owner's explicit rule"},
+    {"decision": "Bind runs to real root/profile/config dir; check init.cwd", "why": "Claude Code resumes in any cwd"},
+    {"decision": "Inspect is an allow-list", "why": "fails closed for new tools"},
+    {"decision": "Attachments and mentions never written into the workspace; @path defused", "why": "contents and outside files must not sneak in"},
+    {"decision": "Commit/push are explicit person actions", "why": "human review before changes leave the machine"},
+    {"decision": "Console and bridge loopback-only with same-origin guard", "why": "no LAN/web-page control"},
+    {"decision": "Integration tokens never reach workers", "why": "keep secrets out of contexts/logs"}
+  ],
+  "known_limitations": ["Shell in any Work workspace = user's OS rights; no OS/container isolation; can run git on any repo", "Branch policy covers only runs inside the protected repo + console Git; GitHub protection is the real backstop", "Branch switched outside the console mid-run: run keeps Write/Edit until restart (commits still refused)", "Protected repos cannot run commands/builds/tests", "Credentials per integration on this machine, not per Team/worker", "Secrets inside a workspace readable by workers (Inspect and Work); hardlinks/copies defeat path rules", "Outbound channels: Inspect browser_navigate to any http(s) host; Work WebSearch/WebFetch/curl", "Work profile is full trust: repo .claude hooks/settings run; Git hooks run on commit/push", "Commit stages everything not ignored (e.g. a new .env)", "Pushing MATW pipeline branches deploys", "Run logs not gitignored; 3 proof runs tracked", "Figma: human plugin launch, iframe teardown, page-load clicks, Reader rate limits, Reader authorized path unproven, no platform-level undo", "Symlink escapes never demonstrated blocked (junctions only)", "File viewer TOCTOU if something can write in the workspace", "One active run; single local user; no auth", "Teams created elsewhere appear after reload", "Large pasted instructions enter every run's context", "Flaky sync test", "Model/effort not set explicitly", "Windows-only in practice", "Teams suite needs the real MATW repo path (read-only)"],
+  "launch_constraints": {
+    "deadline": "20 days from 2026-10-06 (~2026-10-26; exact date OPEN)",
+    "priority": "LAUNCH > architecture perfection",
+    "do_not_without_launch_blocker": ["Next.js/React/TS migration", "frontend rewrite", "architecture rebuild", "remote workspaces", "WhatsApp", "billing", "enterprise account management", "multi-agent orchestration", "new credential system", "unnecessary abstractions"],
+    "post_launch_ui": "Next.js + React + TypeScript; current vanilla JS UI is not throwaway",
+    "launch_loop": ["create a Team", "add specialized Workers", "attach a real Workspace", "attach knowledge/resources", "configure legitimate requirements/access", "define rules/instructions", "give the Team a real task", "Worker operates with real tools", "observe the work", "receive a useful result", "review changes", "commit/push where allowed", "understand failures and missing access"],
+    "launch_loop_status": "every step exists and is tested locally; the whole loop in the owner's real console on a real MATW task is not yet proven"
+  },
+  "future_vision": {
+    "org_model": "Organization -> Teams -> Workers -> Resources -> Knowledge -> Policies -> Runs (NOT BUILT)",
+    "workers_envisioned": ["Frontend Engineer (defined)", "QA Engineer (defined)", "Figma/Design (built: Senior UI/UX)", "Research Worker (defined)", "Visa Worker (FUTURE: design artefacts only)", "other domain workers"],
+    "channels": ["WhatsApp", "others (NEEDS: event is the hook)"],
+    "workspace_providers": ["Local (built)", "GitHub", "Server/remote"],
+    "model_providers": ["Claude via Claude Code (built)", "Claude API", "OpenAI", "Gemini"],
+    "other": ["multi-worker orchestration", "credential store / per-Team credentials / OAuth in UI", "OS/container isolation; sandboxed command runner", "browser host allow-list", "SaaS billing/metering", "Next.js UI", "GitHub/document resources", "richer memory"],
+    "commercial": "Organizations pay for specialized workers/teams (specialization, tools, access, knowledge, memory, workflows, responsibility, real execution, org context). SaaS: subscription -> platform -> execution -> model providers. API costs, infra, limits and terms must be validated; subscription runtime is not a commercial basis. No revenue forecasts."
+  },
+  "next_steps": [
+    "Confirm the launch date and launch-critical scope with the owner",
+    "Run the launch loop end to end in the owner's real console (restart it first) with a real MATW Team; add the real MATW Figma link; create a Figma Reader token if Figma-by-link is needed",
+    "Decide on the uncommitted MODIFY_NODE fills/copyFillsFrom change (review, expose in MCP schema, commit or drop)",
+    "Decide whether launch needs builds/tests in protected repos (sandboxed command runner) or 'review and run yourself'",
+    "Warn or protect pushes to MATW deploy branches",
+    "Gitignore run logs; set model/effort explicitly; fix sync-test flake",
+    "Truthful first-run onboarding (bridge, plugin, Figma token) and a one-command start",
+    "Do not push until the owner says so"
+  ]
+}
