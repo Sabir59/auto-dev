@@ -910,12 +910,12 @@ function dirInside(root, requested) {
 
 // ---- @ mentions -------------------------------------------------------------------
 // Typing @ in the composer searches the files of the selected workspace only. The list comes from
-// Git when the folder is a repository (tracked and untracked files, honouring .gitignore), or else
-// from a walk that skips .git and dependency/build folders; every entry passes the same real-path
+// Git when the folder is a repository (tracked and untracked files first, then the files .gitignore
+// hides), or else from a walk; dependency/build folders and .git are always left out; every entry passes the same real-path
 // containment as the file viewer (a file or folder that links outside the workspace is left out).
 // It's cached briefly, so typing doesn't rescan.
 const INDEX_TTL = 15000, INDEX_MAX = 20000;
-const WALK_SKIP = new Set([".git", "node_modules", ".next", "dist", "build", "coverage", ".cache", ".turbo", ".venv", "__pycache__"]);
+const WALK_SKIP = new Set([".git", "node_modules", ".next", ".nuxt", ".svelte-kit", ".output", ".vercel", ".netlify", "dist", "build", "out", "target", "coverage", ".cache", ".parcel-cache", ".turbo", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".gradle"]);
 const indexes = new Map(); // real root -> { at, files: [{ path, mtime }], truncated }
 const inRoot = (realRoot, p) => { const r = relative(realRoot, p); return !!r && !isAbsolute(r) && r !== ".." && !r.startsWith(".." + sep); };
 async function fileIndex(root) {
@@ -925,17 +925,35 @@ async function fileIndex(root) {
   let rels = null;
   // (-x skips untracked dependency/build folders even when .gitignore forgets them; committed files stay)
   try { rels = (await git(realRoot, ["ls-files", "-z", "--cached", "--others", "--exclude-standard", ...[...WALK_SKIP].flatMap((d) => ["-x", d + "/"])], { timeout: 15000 })).split("\0").filter(Boolean); } catch {}
+  const walk = (dir, rel, out) => {
+    let entries; try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (out.length > INDEX_MAX) return;
+      if (WALK_SKIP.has(e.name) || e.isSymbolicLink()) continue; // links (and junctions) aren't followed
+      const r = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) walk(join(dir, e.name), r, out); else if (e.isFile()) out.push(r);
+    }
+  };
   // Not a repository, or nothing Git would show (a folder the enclosing repo ignores, like "No folder"): walk it.
-  if (!rels?.length) {
-    rels = [];
-    (function walk(dir, rel) {
-      for (const e of readdirSync(dir, { withFileTypes: true })) {
-        if (rels.length > INDEX_MAX) return;
-        if (WALK_SKIP.has(e.name) || e.isSymbolicLink()) continue; // links (and junctions) aren't followed
-        const r = rel ? `${rel}/${e.name}` : e.name;
-        if (e.isDirectory()) walk(join(dir, e.name), r); else if (e.isFile()) rels.push(r);
+  if (!rels?.length) { rels = []; walk(realRoot, "", rels); }
+  else {
+    // Files .gitignore hides are still the person's files (notes, docs kept out of the repo), so
+    // they're listed too, after the rest. Only dependency/build folders stay out, and a hidden
+    // folder is walked only if it's a real folder inside the workspace (not a link out).
+    const hidden = [];
+    try {
+      const out = (await git(realRoot, ["ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory"], { timeout: 15000 })).split("\0").filter(Boolean);
+      for (const e of out) {
+        const p = e.replace(/\/$/, "");
+        if (p.split("/").some((seg) => WALK_SKIP.has(seg))) continue;
+        if (!e.endsWith("/")) { hidden.push(p); continue; }
+        const abs = join(realRoot, p);
+        try { if (lstatSync(abs).isSymbolicLink() || !inRoot(realRoot, realpathSync.native(abs))) continue; } catch { continue; }
+        walk(abs, p, hidden);
+        if (hidden.length > INDEX_MAX) break;
       }
-    })(realRoot, "");
+    } catch {}
+    rels = [...rels, ...hidden];
   }
   const dirOk = new Map(), files = [];
   for (const rel of rels) {

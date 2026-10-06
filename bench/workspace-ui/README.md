@@ -314,7 +314,8 @@ Type `@` in the composer to pick files from the **selected workspace**. Each pic
 
 **Picking:**
 - **Where it searches:** the list comes from the server, so the browser never sees anything outside the workspace.
-  - In a Git repository it uses Git's view: tracked plus untracked files, honouring `.gitignore`. Untracked dependency and build folders (`node_modules`, `dist`, `build`, `.next`, …) are skipped even when `.gitignore` forgets them.
+  - In a Git repository it starts from Git's view (tracked plus untracked files), then adds the files `.gitignore` hides, such as a `docs/` folder kept out of the repo. They're still the person's files.
+  - Dependency and build folders (`node_modules`, `dist`, `build`, `out`, `.next`, `.vercel`, …) are always left out, ignored or not.
   - Outside a repository it walks the folder, skipping `.git` and the same folders, and doesn't follow links.
   - Every entry passes the file viewer's real-path containment, so a file or folder that links out (a junction or symlink) is left out.
 - **What it lists:** an empty `@` shows recent files. Text matches the file name first, then the path. `dir/` lists that folder, from the root or at any depth. No match shows "No matching files".
@@ -344,7 +345,7 @@ Type `@` in the composer to pick files from the **selected workspace**. Each pic
   - The person's message is shown exactly as typed.
 
 `mentions-test.mjs`: **15/15 passed** (`mentions-results.json`). It builds its own fixtures: a Git app with three `Header.tsx` files, untracked `node_modules`, an ignored `dist`, and a junction to an outside folder holding a canary. It also uses a 21,300-file plain folder and the Canary Inspect repo.
-1. `@` lists the Mention app's files and nothing ignored, dependency or linked out. (Canary's `jdir/*`, which Git lists through its junction, is also left out.)
+1. `@` lists the Mention app's files, including `notes/plan.md` and `notes/deep/idea.md`, which `.gitignore` hides. Nothing from `node_modules`, `dist` or a junction out is listed, including a junction that `.gitignore` hides. (Canary's `jdir/*`, which Git lists through its junction, is also left out.)
 2. Filtering: `Header` → the three `Header.tsx` files; `layout/App` → `AppLayout.tsx`; `src/layout/` → that folder; `zzqx` → "No matching files".
 3. Keyboard: ↓↓↑ selects the second row, Enter inserts it without sending, Escape keeps that `@` closed, a new `@` reopens, and Tab picks.
 4. Mouse, mid-sentence (`Look at @src/pages/Header.tsx  please`), and two mentions in one message.
@@ -369,4 +370,6 @@ Type `@` in the composer to pick files from the **selected workspace**. Each pic
     - **Executor repo:** about 357 files, about 70 ms cold, about 13 ms warm.
     - **21,300-file folder:** capped at 20,000 (`truncated: true`), about 600 ms cold, 6–26 ms per keystroke.
 
-**Note:** `@` lists what the Files tree lists, dotfiles included (`.env`, unless `.gitignore` excludes it). The worker could already read those with its own tools in both profiles. A mention gives it no new access.
+**Note:** `@` lists what the Files tree lists, dotfiles and ignored files included (for example `.env`). The worker could already read those with its own tools in both profiles. A mention gives it no new access.
+
+**Later (2026-10-06): files `.gitignore` hides are listed too.** In a real repo whose `.gitignore` has `/docs`, `docs/` showed only the 3 committed files. It now shows all 33, nested folders included, and dependency/build folders still stay out. That repo (3,820 files) indexes in about 0.4 s, then about 1–3 ms per keystroke.

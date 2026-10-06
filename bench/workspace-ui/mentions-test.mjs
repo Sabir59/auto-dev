@@ -31,13 +31,16 @@ put(join(APP, "src/pages/Header.tsx"), "export default function HeaderPage() { r
 put(join(APP, "src/layout/AppLayout.tsx"), 'import { Header } from "../components/Header";\n// CODEWORD-LAYOUT-CEDAR\nexport function AppLayout({ children }) { return <><Header />{children}</>; }\n');
 put(join(APP, "README.md"), "# Mention app\nA fixture for @ mentions.\n");
 put(join(APP, "docs/release notes.md"), "Release notes. CODEWORD-NOTES-JUNIPER\n");
-put(join(APP, ".gitignore"), "dist/\n");
+put(join(APP, ".gitignore"), "dist/\n/notes\n/linked-hidden\n");
 const g = (...a) => execFileSync("git", ["-c", "user.name=fixture", "-c", "user.email=fixture@example.invalid", ...a], { cwd: APP, stdio: "pipe" });
 g("init", "-q"); g("add", "-A"); g("commit", "-qm", "fixture");
 put(join(APP, "node_modules/lib/Header.js"), 'module.exports = "dependency header";\n'); // untracked, and .gitignore forgets it
 put(join(APP, "dist/Header.js"), "built header\n");                                     // ignored
 put(join(APP, "src/Draft.tsx"), "export const draft = 1;\n");                            // untracked, not ignored
+put(join(APP, "notes/plan.md"), "Plan.\n");                                              // hidden by .gitignore: still the person's
+put(join(APP, "notes/deep/idea.md"), "Idea.\n");
 execFileSync("cmd", ["/c", "mklink", "/J", join(APP, "linked"), OUT], { stdio: "pipe" });
+execFileSync("cmd", ["/c", "mklink", "/J", join(APP, "linked-hidden"), OUT], { stdio: "pipe" }); // hidden by .gitignore and links out
 for (let d = 0; d < 105; d++) for (let f = 0; f < 200; f++) put(join(BIG, `pkg${d}`, `sub${f % 4}`, `file-${d * 200 + f}.txt`), "x");
 for (let f = 0; f < 300; f++) put(join(BIG, "node_modules", `dep${f}.js`), "x");
 
@@ -69,13 +72,14 @@ const big = (await call("POST", "/workspaces", { name: "Big", path: BIG, mode: "
 await page.goto(BASE, { waitUntil: "networkidle" });
 await page.click(`#wsList [data-ws="${app.id}"]`);
 
-await step("typing @ opens a list of this workspace's files (Git's view: no ignored, dependency or linked-out files)", async () => {
+await step("typing @ opens a list of this workspace's files, including ones .gitignore hides; no dependency or linked-out files", async () => {
   await page.click("#input"); await page.keyboard.type("@");
   const rows = await listFor("");
   const label = await page.locator("#mPick .lab").textContent();
   await page.screenshot({ path: join(HERE, "shots", "mentions-picker.png") });
   must(label.includes("Mention app"), `label: ${label}`);
   must(rows.includes("src/components/Header.tsx") && rows.includes("src/Draft.tsx") && rows.includes("docs/release notes.md"), `rows: ${rows}`);
+  must(rows.includes("notes/plan.md") && rows.includes("notes/deep/idea.md"), `files .gitignore hides are missing: ${rows}`);
   const bad = rows.filter((r) => /node_modules|dist\/|linked|jdir|\.git\//.test(r));
   must(!bad.length, `should be left out: ${bad}`);
   return { label, rows };
@@ -281,7 +285,7 @@ await step("the server re-checks every mention: outside, absolute, drive, UNC, j
   return { ...out, wrongType: wrongType.body.error, tooMany: tooMany.body.error, followUp: followUp.body.error, runsCreated: (await runsCount()) - before };
 });
 await step("search never returns anything outside the workspace, and another site can't read it", async () => {
-  const qs = ["../", "..\\", "../outside", "BASALT", "C:\\", "C:/Windows", "//localhost/c$", "linked/", "node_modules/", "dist/", ".git/"];
+  const qs = ["../", "..\\", "../outside", "BASALT", "C:\\", "C:/Windows", "//localhost/c$", "linked/", "linked-hidden/", "node_modules/", "dist/", ".git/"];
   const out = {};
   for (const q of qs) {
     const r = (await call("GET", `/mentions?workspace=${app.id}&q=${encodeURIComponent(q)}`)).body;

@@ -1,12 +1,14 @@
 {
- "when": "2026-10-06T08:11:26.776Z",
+ "when": "2026-10-06T08:45:08.261Z",
  "results": [
   {
-   "step": "typing @ opens a list of this workspace's files (Git's view: no ignored, dependency or linked-out files)",
+   "step": "typing @ opens a list of this workspace's files, including ones .gitignore hides; no dependency or linked-out files",
    "ok": true,
    "detail": {
     "label": "Recent files · Mention app",
     "rows": [
+     "notes/deep/idea.md",
+     "notes/plan.md",
      "src/Draft.tsx",
      ".gitignore",
      "docs/release notes.md",
@@ -161,7 +163,7 @@
      "Read",
      "ToolSearch"
     ],
-    "reply": "DONEHere is the first line of README.md, quoted exactly:\n\n# Canary workspace"
+    "reply": "The first line of README.md is:\n\n# Canary workspace\n\nDONEQuoted the first line of README.md:1."
    }
   },
   {
@@ -207,6 +209,7 @@
      "C:/Windows": [],
      "//localhost/c$": [],
      "linked/": [],
+     "linked-hidden/": [],
      "node_modules/": [],
      "dist/": [],
      ".git/": []
@@ -221,25 +224,25 @@
    "ok": true,
    "detail": {
     "executor": {
-     "indexed": 357,
-     "coldMs": 69,
-     "warmMs": 13
+     "indexed": 563,
+     "coldMs": 222,
+     "warmMs": 16
     },
     "big": {
      "onDisk": 21300,
      "indexed": 20000,
      "truncated": true,
-     "coldMs": 596,
+     "coldMs": 998,
      "keystrokeMs": [
-      24,
+      46,
+      14,
       26,
-      9,
-      19,
-      14,
-      15,
-      14,
-      19,
-      17
+      22,
+      23,
+      12,
+      18,
+      20,
+      14
      ]
     }
    }
