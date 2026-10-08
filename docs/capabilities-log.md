@@ -119,3 +119,13 @@ All 4 fixes are in the shared `describeVisuals`/`describeLayout` used by both `G
 - `ui.html` (the plugin's iframe) does **not** hot-reload when `code.js` changes — only a full plugin relaunch (Plugins → Development → re-run) picks up a `ui.html` edit. `code.js`-only edits (all the capabilities above) took effect automatically; this one needed the human to explicitly re-run the plugin, not just click a page tab.
 
 **Status:** PROVEN. `design/` is now fully covered: tokens, typography, icons, components, screens, prototype, screenshots, illustrations.
+
+## MODIFY_NODE `fills` + `copyFillsFrom`
+
+**What:** `MODIFY_NODE` accepts `props.fills` (raw Figma paints — gradients, multiple layers) and `props.copyFillsFrom` (another node's id; its fills are copied, IMAGE paints set to `scaleMode: "FILL"`). The source node is only read.
+
+**Why:** `fill` only ever produced a single solid paint, so a redesign could neither reuse a file's existing photography (an IMAGE paint's `imageHash` isn't reachable through any other command) nor draw a legibility scrim over a photo.
+
+**Verified against:** the live "trekking hiking" file — copied the IMAGE fill of five photo frames on the original Home page into new frames on "Home — Redesign" and applied linear-gradient scrims over the hero; exported both and checked visually. The source frames were unchanged afterwards.
+
+**Status:** PROVEN.

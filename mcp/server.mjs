@@ -372,6 +372,16 @@ server.registerTool(
           layoutSizingHorizontal: z.enum(["FIXED", "HUG", "FILL"]).optional(),
           layoutSizingVertical: z.enum(["FIXED", "HUG", "FILL"]).optional(),
           characters: z.string().optional().describe("TEXT nodes only."),
+          fills: z
+            .array(z.record(z.string(), z.any()))
+            .optional()
+            .describe(
+              "Raw Figma Paint array (gradients, multiple layers, IMAGE paints) for when `fill` (single solid colour) isn't enough. Replaces every existing fill. Each entry is a Figma Paint object as the plugin API expects it, e.g. {type:\"GRADIENT_LINEAR\", gradientStops:[...], gradientTransform:[...]} or {type:\"IMAGE\", scaleMode, imageHash}. There's no tool to create a fresh imageHash — to reuse a photo already in the file, use copyFillsFrom instead."
+            ),
+          copyFillsFrom: z
+            .string()
+            .optional()
+            .describe("Id of another node to copy fills from (e.g. to reuse an existing photo's IMAGE paint, whose imageHash isn't otherwise reachable). The source node is only read, never modified. Any IMAGE paint copied this way is set to scaleMode FILL."),
           ...BoxParams,
           ...TextParams,
         })

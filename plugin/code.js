@@ -1112,6 +1112,21 @@ const handlers = {
     }
     applyBoxParams(node, props, applied);
 
+    // Raw Figma paints (gradients, multiple layers) — applyBoxParams only
+    // knows a single solid colour.
+    if (props.fills !== undefined && "fills" in node) {
+      node.fills = props.fills;
+      applied.fills = props.fills.length;
+    }
+    // Reuse another node's fills (e.g. an existing photo's IMAGE paint, whose
+    // imageHash isn't otherwise reachable). The source is only read.
+    if (props.copyFillsFrom !== undefined && "fills" in node) {
+      const src = await getNode(props.copyFillsFrom);
+      if (!src || !("fills" in src) || src.fills === figma.mixed) throw new Error(`copyFillsFrom ${props.copyFillsFrom} has no copyable fills`);
+      node.fills = src.fills.map((f) => (f.type === "IMAGE" ? Object.assign({}, f, { scaleMode: "FILL" }) : f));
+      applied.copyFillsFrom = src.id;
+    }
+
     if (node.type === "TEXT") {
       await applyTextParams(node, props);
       Object.assign(applied, {
