@@ -11,7 +11,9 @@ const fs = require("fs");
 const path = require("path");
 const { WebSocketServer } = require("ws");
 
-const PORT = 8787;
+// FIGMA_BRIDGE_PORT exists so the dev-control daemon (worker-ui/devctl.mjs) and its tests can run
+// an isolated bridge instance without touching the real one on 8787.
+const PORT = Number(process.env.FIGMA_BRIDGE_PORT) || 8787;
 const REQUEST_TIMEOUT_MS = 30000;
 const EXPORTS_DIR = path.join(__dirname, "..", "exports");
 fs.mkdirSync(EXPORTS_DIR, { recursive: true });
@@ -87,6 +89,15 @@ const server = http.createServer((req, res) => {
   if (req.method === "GET" && req.url === "/status") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ pluginConnected: !!pluginSocket }));
+    return;
+  }
+
+  // Graceful self-stop for the dashboard's Figma Bridge dev-control toggle (worker-ui/devctl.mjs).
+  // Responds first so the caller sees success, then exits once the response has flushed.
+  if (req.method === "POST" && req.url === "/shutdown") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+    setTimeout(() => process.exit(0), 150);
     return;
   }
 

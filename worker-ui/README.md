@@ -8,6 +8,8 @@ User → Worker Console (this folder) → existing Claude Code worker (headless)
 
 Run `node worker-ui/server.mjs`, then open http://localhost:8799. The terminal is only needed to start the server.
 
+**Optional, local dev convenience:** `node worker-ui/devctl.mjs` (then open http://localhost:8796) runs a tiny separate always-on daemon that lets the dashboard's "Worker server" / "Figma bridge" switches (bottom-left, in `workspace.html`) start and stop those two processes for you — handy when you're restarting the console a lot during development. It's unrelated to the worker runtime, the Figma adapter or the bridge protocol; it only starts/stops the two processes by probing their real ports and calling a graceful shutdown route on each. Without it running, the switches just show "unknown" and do nothing. See the comment at the top of `devctl.mjs`.
+
 ## What it is, and isn't
 The console is a **control surface and observer**. It never plans, never calls Figma or the browser, and duplicates no MCP logic. Every action on screen is the worker's own, taken from the worker's own output stream. Nothing under `plugin/`, `bridge/`, `mcp/`, `browser-adapter/`, `.mcp.json` or `worker/` changed.
 

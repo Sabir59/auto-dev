@@ -1,0 +1,153 @@
+{
+ "when": "2026-10-08T11:47:11.038Z",
+ "results": [
+  {
+   "step": "devctl status: both targets start out stopped",
+   "ok": true,
+   "detail": {
+    "worker": {
+     "label": "Worker Server",
+     "port": 8797,
+     "running": false,
+     "startedBy": null,
+     "pending": null,
+     "lastError": null
+    },
+    "bridge": {
+     "label": "Figma Bridge",
+     "port": 8788,
+     "running": false,
+     "startedBy": null,
+     "pending": null,
+     "lastError": null
+    }
+   }
+  },
+  {
+   "step": "devctl starts the worker server directly",
+   "ok": true,
+   "detail": {
+    "ok": true
+   }
+  },
+  {
+   "step": "dashboard: Worker Server switch shows ON for the already-running server",
+   "ok": true,
+   "detail": {
+    "checked": "true"
+   }
+  },
+  {
+   "step": "toggle OFF: the Worker Server switch actually stops the process",
+   "ok": true,
+   "detail": {
+    "reachable": false
+   }
+  },
+  {
+   "step": "toggle ON: the same page (still open while the server was down) starts it again",
+   "ok": true,
+   "detail": {
+    "reachable": true
+   }
+  },
+  {
+   "step": "already-running, started outside devctl: dashboard detects it (worker)",
+   "ok": true,
+   "detail": {
+    "label": "Worker Server",
+    "port": 8797,
+    "running": true,
+    "startedBy": "external",
+    "pending": null,
+    "lastError": null
+   }
+  },
+  {
+   "step": "stop still works gracefully on a process devctl didn't spawn (worker)",
+   "ok": true,
+   "detail": {
+    "reachable": false
+   }
+  },
+  {
+   "step": "startup failure: a port already occupied by something else is reported honestly, not as ON",
+   "ok": true,
+   "detail": {
+    "reportedError": "exited with code 1 — last output: er.setupListenHandle [as _listen2] (node:net:1941:16)\r\n    at listenInCluster (node:net:1998:12)\r\n    at node:net:2207:7\r\n    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)\r\nEmitted 'error' event on Server instance at:\r\n    at emitErrorNT (node:net:1977:8)\r\n    at process.processTicksAndRejections (node:internal/process/task_queues:89:21) {\r\n  code: 'EADDRINUSE',\r\n  errno: -4091,\r\n  syscall: 'listen',\r\n  address: '127.0.0.1',\r\n  port: 8797\r\n}\r\n\r\nNode.js v22.23.2"
+   }
+  },
+  {
+   "step": "recovery: starting it again after the blocker is gone works normally",
+   "ok": true,
+   "detail": {
+    "reachable": true
+   }
+  },
+  {
+   "step": "dashboard: Figma Bridge starts out OFF",
+   "ok": true,
+   "detail": {
+    "checked": "false",
+    "state": "Stopped"
+   }
+  },
+  {
+   "step": "toggle ON: the Figma Bridge switch actually starts the bridge",
+   "ok": true,
+   "detail": {
+    "reachable": true,
+    "state": "Running"
+   }
+  },
+  {
+   "step": "toggle OFF: the Figma Bridge switch actually stops the bridge",
+   "ok": true,
+   "detail": {
+    "reachable": false
+   }
+  },
+  {
+   "step": "already-running, started outside devctl: dashboard detects it (bridge)",
+   "ok": true,
+   "detail": {
+    "label": "Figma Bridge",
+    "port": 8788,
+    "running": true,
+    "startedBy": "external",
+    "pending": null,
+    "lastError": null
+   }
+  },
+  {
+   "step": "stop still works gracefully on a bridge devctl didn't spawn",
+   "ok": true,
+   "detail": {
+    "reachable": false
+   }
+  },
+  {
+   "step": "both operate independently: starting one leaves the other's state untouched",
+   "ok": true,
+   "detail": {
+    "worker": {
+     "label": "Worker Server",
+     "port": 8797,
+     "running": false,
+     "startedBy": null,
+     "pending": null,
+     "lastError": null
+    },
+    "bridge": {
+     "label": "Figma Bridge",
+     "port": 8788,
+     "running": true,
+     "startedBy": "devctl",
+     "pending": null,
+     "lastError": null
+    }
+   }
+  }
+ ],
+ "pageErrors": []
+}

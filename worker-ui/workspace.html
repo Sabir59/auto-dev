@@ -129,6 +129,13 @@ aside.left { background: var(--low); display: flex; flex-direction: column; min-
 .lfoot { background: var(--surf); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
 .lfoot .r1 { height: 22px; display: flex; align-items: center; justify-content: space-between; color: var(--t3); }
 .lfoot .r1 .dot { width: 8px; height: 8px; margin-right: 4px; }
+.lfoot .r1r { display: flex; align-items: center; gap: 6px; }
+/* Local dev-only ON/OFF switches for the Worker Server and Figma Bridge processes (worker-ui/devctl.mjs). */
+.swbtn { width: 24px; height: 14px; border-radius: 14px; background: var(--low); border: none; flex: none; padding: 0; position: relative; cursor: pointer; }
+.swbtn::after { content: ""; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--t3); transition: transform .12s, background .12s; }
+.swbtn[aria-checked="true"] { background: var(--ok); }
+.swbtn[aria-checked="true"]::after { transform: translateX(10px); background: #06241a; }
+.swbtn:disabled { opacity: .5; cursor: default; }
 .addform { display: flex; flex-direction: column; gap: 6px; padding: 8px; background: var(--surf); border-radius: 2px; }
 .addform label { color: var(--t3); display: flex; flex-direction: column; gap: 2px; }
 .addform input { width: 100%; background: var(--low); color: var(--t1); border: 0; border-radius: 2px; padding: 4px 6px; font: 400 12px/20px var(--sans); }
@@ -410,7 +417,12 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
     </section>
   </div>
   <div class="lfoot">
-    <div class="r1"><span style="display:flex;align-items:center"><span class="dot" id="srvDot"></span><span class="m12">Local console</span></span><span class="m11" id="srvPort"></span></div>
+    <div class="r1"><span style="display:flex;align-items:center"><span class="dot" id="srvDot"></span><span class="m12">Local console</span></span>
+      <span class="r1r"><span class="m11" id="srvPort"></span><button class="swbtn" id="devWorkerSw" role="switch" aria-checked="false" aria-label="Worker server" title="Start or stop this console's own server process (local dev only)"></button></span>
+    </div>
+    <div class="r1"><span style="display:flex;align-items:center"><span class="dot" id="devBridgeDot"></span><span class="m12">Figma bridge</span></span>
+      <span class="r1r"><span class="m11" id="devBridgeState"></span><button class="swbtn" id="devBridgeSw" role="switch" aria-checked="false" aria-label="Figma bridge" title="Start or stop the local Figma bridge process (local dev only)"></button></span>
+    </div>
   </div>
 </aside>
 
@@ -1599,6 +1611,67 @@ const setFootL = () => { $("footL").textContent = ""; }; // only notices go here
 $("actToggle").onclick = () => { const on = document.body.classList.toggle("show-act"); $("actToggle").setAttribute("aria-expanded", on); };
 $("navToggle").onclick = () => { const on = document.body.classList.toggle("show-nav"); $("navToggle").setAttribute("aria-expanded", on); };
 
+// ---------------- dev server controls (local dev convenience only) ----------------
+// Worker Server and Figma Bridge are real processes this page doesn't run — this page IS the
+// Worker Server's own output. So their ON/OFF switches talk to a separate always-on daemon
+// (worker-ui/devctl.mjs, default localhost:8796), not to this page's own server. That's a
+// genuine cross-origin call (different port = different origin), unlike every other `api()`
+// call on this page. ?devctlPort=<port> (persisted) lets tests point this at an isolated daemon.
+(() => {
+  const qp = new URL(location.href).searchParams.get("devctlPort");
+  if (qp) store.set("devctlPort", qp);
+})();
+const DEVCTL = `http://127.0.0.1:${store.get("devctlPort") || 8796}`;
+const devctlApi = async (method, path) => {
+  const r = await fetch(DEVCTL + path, { method, headers: { "content-type": "application/json", "x-worker-console": "1" } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok && !("ok" in j)) throw new Error(j.error || r.statusText);
+  return j;
+};
+const devBusy = { worker: false, bridge: false };
+function paintDevSwitch(key, sw, dotEl, stateEl, st, daemonUp) {
+  if (!sw.dataset.baseTitle) sw.dataset.baseTitle = sw.title; // captured once, so an error tooltip can later be reverted
+  if (devBusy[key]) return; // an action for this one is in flight; its own handler repaints when done
+  if (!daemonUp) {
+    sw.disabled = true; sw.setAttribute("aria-checked", "false"); sw.title = sw.dataset.baseTitle;
+    if (dotEl) setDot(dotEl, "grey");
+    if (stateEl) { stateEl.textContent = ""; stateEl.title = ""; }
+    return;
+  }
+  sw.disabled = false;
+  sw.setAttribute("aria-checked", String(!!st.running));
+  sw.title = st.lastError || sw.dataset.baseTitle;
+  if (dotEl) setDot(dotEl, st.running ? "" : "red");
+  if (stateEl) {
+    stateEl.textContent = st.running ? (st.startedBy === "external" ? "Running (started outside this dashboard)" : "Running") : st.lastError ? "Stopped — error" : "Stopped";
+    stateEl.title = st.lastError || "";
+  }
+}
+async function pollDevServers() {
+  try {
+    const st = await devctlApi("GET", "/status");
+    paintDevSwitch("worker", $("devWorkerSw"), null, null, st.worker, true);
+    paintDevSwitch("bridge", $("devBridgeSw"), $("devBridgeDot"), $("devBridgeState"), st.bridge, true);
+  } catch {
+    // The dev-control daemon itself isn't reachable — show "unknown", never a guessed ON/OFF.
+    paintDevSwitch("worker", $("devWorkerSw"), null, null, {}, false);
+    paintDevSwitch("bridge", $("devBridgeSw"), $("devBridgeDot"), $("devBridgeState"), {}, false);
+  }
+}
+async function toggleDevServer(key, sw) {
+  if (devBusy[key] || sw.disabled) return;
+  const turnOn = sw.getAttribute("aria-checked") !== "true";
+  devBusy[key] = true; sw.disabled = true;
+  try {
+    const r = await devctlApi("POST", `/${key}/${turnOn ? "start" : "stop"}`);
+    if (!r.ok) notice(new Error(r.error || `Could not ${turnOn ? "start" : "stop"} it.`));
+  } catch (e) { notice(e); }
+  devBusy[key] = false;
+  await pollDevServers();
+}
+$("devWorkerSw").onclick = () => toggleDevServer("worker", $("devWorkerSw"));
+$("devBridgeSw").onclick = () => toggleDevServer("bridge", $("devBridgeSw"));
+
 // ---------------- start ----------------
 (async () => {
   setFootL(); $("srvPort").textContent = `:${location.port || 80}`;
@@ -1607,7 +1680,8 @@ $("navToggle").onclick = () => { const on = document.body.classList.toggle("show
   await Promise.all([loadPrompts().catch(notice), loadRuns()]);
   loadTree(); loadGit(); await loadWorkers(); await loadTeams();
   if (ACTIVE) openRun(ACTIVE.id); else openNewChat();
-  setInterval(() => { if (!document.hidden) { loadRuns(); syncWorkspaces(); } }, 4000);
+  pollDevServers();
+  setInterval(() => { if (!document.hidden) { loadRuns(); syncWorkspaces(); pollDevServers(); } }, 4000);
 })();
 </script>
 </body>

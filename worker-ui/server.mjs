@@ -1312,6 +1312,15 @@ http.createServer(async (req, res) => {
       res.writeHead(200, { "content-type": TYPES[extname(parts[1]).toLowerCase()] || "application/octet-stream" }); return res.end(readFileSync(join(HERE, "assets", parts[1])));
     }
 
+    // Graceful self-stop for the dashboard's Worker Server dev-control toggle (worker-ui/devctl.mjs).
+    // Goes through the same guard as every other state-changing route above. Responds first so the
+    // caller sees success, then exits once the response has flushed.
+    if (url.pathname === "/__control/shutdown" && req.method === "POST") {
+      json(res, 200, { ok: true });
+      setTimeout(() => process.exit(0), 150);
+      return;
+    }
+
     // workspaces
     if (url.pathname === "/workspaces" && req.method === "GET") return json(res, 200, listWorkspaces());
     if (url.pathname === "/workspaces" && req.method === "POST") return json(res, 200, addWorkspace(await body(req)));

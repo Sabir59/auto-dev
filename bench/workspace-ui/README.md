@@ -1,10 +1,11 @@
 # Workspace UI: workflow and fidelity check (2026-10-01)
 
-**Running the suites:** `bash bench/workspace-ui/run-suite.sh <workflow|manage|sync|attach|versions|mentions|workers|designer|teams>` (Git Bash on Windows).
+**Running the suites:** `bash bench/workspace-ui/run-suite.sh <workflow|manage|sync|attach|versions|mentions|workers|designer|teams|devctl>` (Git Bash on Windows).
 - It starts its own test console on port 8797 with a fresh data dir and an empty Figma Reader dir.
 - It builds the disposable fixtures with `fixtures.mjs` under `%TEMP%wsui`. They use canary values only; no real secrets.
 - The Teams suite reads the real MATW repository (`MATW_SRC`) to make a local clone. Nothing is ever written to the real repository.
 - The real worker runs, so suites take minutes and use the Claude subscription.
+- The **devctl** suite is the one exception: it doesn't use the generic pre-started console above (it's testing that very start/stop), and doesn't run the real worker — it drives `worker-ui/devctl.mjs` directly, on an isolated devctl port (8795) and bridge port (8788), so it never touches a real console on 8799 or a real bridge on 8787.
 
 Project overview: `docs/PROJECT_HANDOFF.md`.
 
@@ -453,3 +454,18 @@ The real repository is only read: cloned from, and checked with `git ls-remote`.
 **Found and fixed along the way:**
 - **Artifacts:** a Write the runtime refused used to be listed as an artifact. Artifacts are now registered only when the write succeeds.
 - **Versions view:** committing to a branch whose upstream is protected is allowed. Only the push is refused.
+
+## Dev-control daemon: Worker Server / Figma Bridge ON/OFF switches (2026-10-08)
+
+`worker-ui/devctl.mjs` is a small, separate, always-on daemon (default `localhost:8796`) that starts and stops the Worker Console (8799) and the Figma bridge (8787) processes, for the dashboard's two switches in `workspace.html`'s sidebar footer. It exists because the Worker Console IS the process serving the dashboard page — nothing else was ever running to answer "start it again" once it stopped. It never touches the worker runtime, the Figma adapter or the bridge protocol: it only probes real ports (never trusts a cached PID) and calls a graceful shutdown route added to each target (`POST /__control/shutdown` on the console, `POST /shutdown` on the bridge) — never an OS-level kill by PID, except as a last resort on a child it spawned itself and still holds a handle to. Full design rationale is in the comment at the top of `devctl.mjs`.
+
+`devctl-test.mjs`: **15/15 passed** (`devctl-results.json`). Unlike the other suites, it owns its own console/bridge lifecycle (that's what it's testing) on isolated ports (8797 console, 8788 bridge, 8795 devctl), so it doesn't touch a real console on 8799 or a real bridge on 8787. It proves, through a real browser clicking the real switches:
+1. Both switches start out accurately reporting stopped.
+2. Toggling the Worker Server switch OFF actually stops the process (the port stops answering, not just the UI).
+3. Toggling it ON again — from the same already-open tab, which keeps working because its HTML/JS were already loaded before the server stopped — actually starts it again.
+4. A worker server started directly (bypassing devctl entirely) is detected as already running (`startedBy: "external"`), and the switch reflects it without a page reload.
+5. Stopping that externally-started process still works gracefully, through the same shutdown route.
+6. A startup failure (the target port already occupied by something else) is reported as a real error — in the switch's tooltip — never shown as ON.
+7. Recovery: starting it again once the blocker is gone works normally.
+8. The Figma Bridge switch goes through the identical lifecycle (start/stop/detect-external/stop-external) independently.
+9. Toggling one has no effect on the other's state.

@@ -2,7 +2,7 @@
 # Runs one Workspace UI suite against its own fresh test console: port 8797, a new data dir, an
 # empty Figma Reader dir. Your own console (8799) and its data are not touched.
 #   bash bench/workspace-ui/run-suite.sh <suite>
-#   suite: workflow | manage | sync | attach | versions | mentions | workers | designer | teams
+#   suite: workflow | manage | sync | attach | versions | mentions | workers | designer | teams | devctl
 # Windows + Git Bash (uses cygpath and mklink). Fixtures live under $FIXROOT (default %TEMP%\wsui,
 # kept short because the Teams suite clones MATW, whose paths are long); fixtures.mjs builds them
 # on first use. The real worker runs, so most suites take minutes and use your Claude subscription.
@@ -15,6 +15,16 @@ mkdir -p "$FIXROOT"
 [ -d "$FIXROOT/canary/ws/.git" ] || node "$R/bench/workspace-ui/fixtures.mjs" "$(cygpath -w "$FIXROOT")"
 D="$FIXROOT/data-$suite-$(date +%s)"; mkdir -p "$D"
 cd "$R"
+
+if [ "$suite" = devctl ]; then
+  # This suite tests starting/stopping the console and bridge themselves, so it manages its own
+  # test console (8797) and a dedicated test bridge port (8788) through devctl — it does not use
+  # the generic pre-started console below, and nothing it starts needs cleaning up by $CPID.
+  if curl -s -o /dev/null http://127.0.0.1:8797/; then echo "port 8797 is in use: stop that process first"; exit 1; fi
+  node bench/workspace-ui/devctl-test.mjs 8797 8788 "$(cygpath -w "$D")" 2>&1 | grep -E "^(PASS|FAIL)|passed" | cut -c1-160
+  exit $?
+fi
+
 if curl -s -o /dev/null http://127.0.0.1:8797/; then echo "port 8797 is in use: stop that process first"; exit 1; fi
 FIGMA_READER_DIR="$(cygpath -w "$D/figma-reader")" WORKER_CONSOLE_PORT=8797 WORKER_CONSOLE_DATA="$(cygpath -w "$D")" node worker-ui/server.mjs > "$D/console.log" 2>&1 &
 CPID=$!
