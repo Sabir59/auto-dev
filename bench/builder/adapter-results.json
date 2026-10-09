@@ -1,0 +1,198 @@
+{
+ "when": "2026-10-09T13:22:04.954Z",
+ "note": "Mocked Builder API: proves the adapter's requests and guards, not Builder's behaviour.",
+ "results": [
+  {
+   "step": "missing credentials → explicit NEEDS, nothing sent to Builder",
+   "ok": true,
+   "detail": {
+    "status": false,
+    "error": "NEEDS: builder read: Builder API credentials for the target "
+   }
+  },
+  {
+   "step": "invalid key → 401 explained, key never echoed",
+   "ok": true,
+   "detail": {
+    "why": "Builder rejected the key (401): Unauthorized"
+   }
+  },
+  {
+   "step": "access status and models with a working test-space key",
+   "ok": true,
+   "detail": {
+    "status": {
+     "connected": true,
+     "label": "Mock test space",
+     "environment": "test",
+     "writes": "allowed (test space)",
+     "models": 2
+    },
+    "models": 2
+   }
+  },
+  {
+   "step": "list content: drafts included by default, live-only on request, always cache-busted",
+   "ok": true,
+   "detail": {
+    "all": [
+     "Live page:published",
+     "Existing draft:draft"
+    ],
+    "live": [
+     "Live page"
+    ]
+   }
+  },
+  {
+   "step": "get content: by id with data; wrong id, wrong model and malformed id handled",
+   "ok": true,
+   "detail": {
+    "got": "Existing draft",
+    "missing": {
+     "found": false,
+     "why": "No entry doesnotexist1 in page that this key can read."
+    },
+    "wrongModel": "Builder says this doesn't exist (404): Model nosuchmodel not"
+   }
+  },
+  {
+   "step": "create draft: POST with published:\"draft\" and urlPath targeting",
+   "ok": true,
+   "detail": {
+    "created": {
+     "id": "created00000001",
+     "name": "Adapter test page",
+     "published": "draft"
+    },
+    "request": {
+     "method": "POST",
+     "published": "draft"
+    }
+   }
+  },
+  {
+   "step": "duplicate prevention: same name or same url → refused, no POST sent",
+   "ok": true,
+   "detail": {
+    "byName": "Not created: \"Adapter test page\" (created00000001, draft) already exists in page. Update t"
+   }
+  },
+  {
+   "step": "update draft: PATCH by id, never POST, publication state untouched",
+   "ok": true,
+   "detail": {
+    "after": {
+     "title": "v2",
+     "state": "draft"
+    }
+   }
+  },
+  {
+   "step": "update: unknown id or wrong model → refused before any write",
+   "ok": true,
+   "detail": {
+    "a": "No entry doesnotexist1 in model page (checked before writing, so nothing was cre"
+   }
+  },
+  {
+   "step": "update a PUBLISHED entry: refused without live:true (it goes live), allowed with it",
+   "ok": true,
+   "detail": {
+    "refused": "Not changed: \"Live page\" is published, and an update to it is live imm",
+    "allowed": {
+     "id": "seedpublished01",
+     "model": "page",
+     "updated": [
+      "data"
+     ],
+     "wasPublished": "published"
+    }
+   }
+  },
+  {
+   "step": "publish: PATCH published:\"published\", then independent reads confirm it's live",
+   "ok": true,
+   "detail": {
+    "id": "created00000001",
+    "model": "page",
+    "before": "draft",
+    "apiSaid": "published",
+    "verification": {
+     "exists": true,
+     "state": "published",
+     "servedAsLive": true,
+     "url": "/adapter-test",
+     "lastUpdated": 1791552122568,
+     "firstPublished": 1791552122568
+    }
+   }
+  },
+  {
+   "step": "publish where the API says OK but nothing changed → verification says NOT live",
+   "ok": true,
+   "detail": {
+    "apiSaid": "published",
+    "verification": {
+     "exists": true,
+     "state": "draft",
+     "servedAsLive": false,
+     "url": "/ignored",
+     "lastUpdated": 1791552122619,
+     "firstPublished": null
+    }
+   }
+  },
+  {
+   "step": "publish refused by Builder (403) → real error reported",
+   "ok": true,
+   "detail": {
+    "error": "Builder refused this operation for this key (403): Publishing is not allowed for this key"
+   }
+  },
+  {
+   "step": "production space (or unmarked) → every write refused, nothing sent to the Write API",
+   "ok": true,
+   "detail": {
+    "refused": 6
+   }
+  },
+  {
+   "step": "read profile (Inspect, or no builder.write): write tools don't exist",
+   "ok": true,
+   "detail": {
+    "read": [
+     "builder_access_status",
+     "builder_list_models",
+     "builder_list_content",
+     "builder_get_content",
+     "builder_verify_content"
+    ],
+    "full": [
+     "builder_access_status",
+     "builder_list_models",
+     "builder_list_content",
+     "builder_get_content",
+     "builder_verify_content",
+     "builder_create_draft",
+     "builder_update_content",
+     "builder_publish_content"
+    ]
+   }
+  },
+  {
+   "step": "base URL override to a non-local host is refused (the key is never sent there)",
+   "ok": true,
+   "detail": {
+    "error": "BUILDER_ADMIN_BASE may only point at a local test server (http://127.0.0.1:<port>)."
+   }
+  },
+  {
+   "step": "no key ever appears in any tool output",
+   "ok": true,
+   "detail": {
+    "outputsChecked": 35
+   }
+  }
+ ]
+}

@@ -24,6 +24,7 @@ import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { randomUUID, createHash } from "node:crypto";
 import { api as figmaApi, CRED_FILE as FIGMA_CRED_FILE, parseFigmaUrl } from "../figma-reader/reader.mjs";
+import * as builderApi from "../builder-adapter/builder.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "..");
@@ -92,6 +93,7 @@ const mcpConfig = (profile) => {
 //
 // Capabilities name real tools. A capability turns tools on; it grants access to nothing.
 const FIGMA_READ_TOOLS = INSPECT_MCP.filter((t) => t.startsWith("mcp__figma-executor__"));
+const BUILDER_READ_TOOLS = ["access_status", "list_models", "list_content", "get_content", "verify_content"].map((t) => `mcp__builder__builder_${t}`);
 const CAPABILITIES = {
   "files.read": { label: "Read files in the workspace", tools: "Read, Glob, Grep", builtins: ["Read", "Glob", "Grep"], allow: ["Read", "Glob", "Grep"], profiles: ["full", "inspect"] },
   "files.write": { label: "Edit files in the workspace", tools: "Write, Edit", builtins: ["Write", "Edit"], allow: ["Write", "Edit"], profiles: ["full"] },
@@ -101,6 +103,8 @@ const CAPABILITIES = {
   "figma.read": { label: "Read Figma designs from a link", tools: "figma-reader: figma_read_design, figma_access_status (REST API)", mcp: "figma-reader", allow: ["mcp__figma-reader"], profiles: ["full", "inspect"] },
   "figma.plugin.read": { label: "Read the open Figma file (plugin)", tools: "figma-executor read tools; the plugin must be running", mcp: "figma-executor", allow: FIGMA_READ_TOOLS, profiles: ["full", "inspect"] },
   "figma.plugin.edit": { label: "Change the open Figma file (plugin)", tools: "figma-executor, all tools; the plugin must be running", mcp: "figma-executor", allow: ["mcp__figma-executor"], profiles: ["full"] },
+  "builder.read": { label: "Read Builder.io content", tools: "builder: access status, models, content, verify (Builder APIs)", mcp: "builder", allow: BUILDER_READ_TOOLS, profiles: ["full", "inspect"] },
+  "builder.write": { label: "Create, change and publish Builder.io content (test spaces only)", tools: "builder: create draft, update, publish", mcp: "builder", allow: ["mcp__builder"], profiles: ["full"] },
 };
 // A Team's Figma resource locks the Figma tools of its runs to that one file: the Executor refuses
 // commands while another file is open, and the Reader refuses links to other files.
@@ -109,6 +113,10 @@ const MCP_SERVERS = {
   "figma-reader": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")],
     ...(scope.figmaKey ? { env: { FIGMA_READER_ALLOWED_KEYS: scope.figmaKey, ...(process.env.FIGMA_READER_DIR ? { FIGMA_READER_DIR: process.env.FIGMA_READER_DIR } : {}) } } : {}) }),
   "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser } }),
+  // The write tools are registered only when the worker may write here (builder.write usable);
+  // otherwise the server itself is read-only, not just its allow list.
+  builder: (profile, scope = {}, usable = []) => ({ command: process.execPath, args: [join(REPO, "mcp", "builder-server.mjs")],
+    env: { BUILDER_ADAPTER_PROFILE: profile === "full" && usable.includes("builder.write") ? "full" : "read", ...(process.env.BUILDER_ADAPTER_DIR ? { BUILDER_ADAPTER_DIR: process.env.BUILDER_ADAPTER_DIR } : {}) } }),
 };
 // Deny rules are applied by the runtime itself, below the model. Absolute paths are written the
 // runtime's way (//c/Users/...); tested: a Write into such a folder is refused.
@@ -148,7 +156,7 @@ const GENERAL = { id: null, name: "General", capabilities: ["files.read", "files
 // Requirements are generic {resource, access, need}; this registry knows how to check each one
 // now, without showing any secret. A missing requirement doesn't block the run: the worker is
 // told, and the tools themselves refuse without access.
-let figmaCheck = { at: 0, value: null };
+let figmaCheck = { at: 0, value: null }, builderCheck = { at: 0, value: null };
 const RESOURCES = {
   figma: { label: "Figma", access: {
     read: { label: "read designs", how: "Connect Figma on this computer once: a Figma personal access token with file_content:read, or the OAuth flow (figma-reader/README.md). The connected account must be able to open the file.",
@@ -171,6 +179,22 @@ const RESOURCES = {
   } },
   browser: { label: "Browser", access: {
     use: { label: "open web pages", how: "Install the browser adapter (browser-adapter, npm install).", async check() { return existsSync(join(REPO, "browser-adapter", "node_modules", "playwright")) ? { ok: true, state: "Available" } : { ok: false, state: "Not installed" }; } },
+  } },
+  builder: { label: "Builder.io", access: {
+    read: { label: "read content", how: "Add the Builder space's keys once on this computer (builder-adapter/README.md). A Builder link alone grants nothing.",
+      async check() {
+        if (!builderApi.credentialsPresent()) return { ok: false, state: "Not connected" };
+        if (Date.now() - builderCheck.at < 300000 && builderCheck.value) return builderCheck.value;
+        let v; try { const s = builderApi.accessSummary(); await builderApi.listModels(); v = { ok: true, state: "Connected", detail: `${s.label} (${s.environment})` }; }
+        catch (e) { v = { ok: false, state: e.status === 401 || e.status === 403 ? "Key rejected" : "Can't verify", detail: clip(e.message, 120) }; }
+        builderCheck = { at: Date.now(), value: v }; return v;
+      } },
+    write: { label: "change content", how: "Builder writes are only allowed in a space marked as a test space in builder-adapter's credentials; production spaces are never written by this adapter.",
+      async check() {
+        if (!builderApi.credentialsPresent()) return { ok: false, state: "Not connected" };
+        try { const s = builderApi.accessSummary(); return s.environment === "test" ? { ok: true, state: "Test space", detail: s.label } : { ok: false, state: "Production space: writes refused", detail: s.label }; }
+        catch (e) { return { ok: false, state: "Can't verify", detail: clip(e.message, 120) }; }
+      } },
   } },
   // Whether Git on this computer can reach the workspace's GitHub remote with the person's own
   // login (git ls-remote: reads refs, changes nothing, never prompts). It can't tell whether a
@@ -411,8 +435,8 @@ function teamSection(t) {
 // point) are dropped, so sessions never land in, or resume from, another tool's directory.
 const CONFIG_DIR = resolve(process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR || join(homedir(), ".claude"));
 const workerEnv = () => {
-  // Integration tokens (FIGMA_TOKEN, ...) never reach workers; FIGMA_READER_DIR is only a path.
-  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k === "FIGMA_READER_DIR" || !/^(CLAUDE|AI_AGENT|WORKER_CONSOLE_|FIGMA_)/i.test(k)));
+  // Integration tokens (FIGMA_TOKEN, BUILDER_*, ...) never reach workers; the *_DIR ones are only paths.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k === "FIGMA_READER_DIR" || k === "BUILDER_ADAPTER_DIR" || !/^(CLAUDE|AI_AGENT|WORKER_CONSOLE_|FIGMA_|BUILDER_)/i.test(k)));
   return { ...env, CLAUDE_CONFIG_DIR: CONFIG_DIR };
 };
 
@@ -575,6 +599,7 @@ const CLAUDE = claudeCommand();
 const envOf = (tool) =>
   tool.startsWith("mcp__figma-executor") || tool.startsWith("mcp__figma-reader") ? "Figma"
   : tool.startsWith("mcp__browser-executor") ? "Browser"
+  : tool.startsWith("mcp__builder") ? "Builder"
   : ["Read", "Write", "Edit", "Glob", "Grep", "NotebookEdit"].includes(tool) ? "Files"
   : tool === "Bash" || tool === "PowerShell" ? "Shell"
   : tool === "WebFetch" || tool === "WebSearch" ? "Web"
@@ -713,7 +738,7 @@ function spawnWorker(run, { resume }) {
   if (def) {
     const rt = workerRuntime(def, ws.profile, scope);
     mcpFile = join(RUNS, `${run.meta.id}.mcp.json`);
-    writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(rt.servers.map((n) => [n, MCP_SERVERS[n](ws.profile, scope)])) }, null, 1));
+    writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(rt.servers.map((n) => [n, MCP_SERVERS[n](ws.profile, scope, rt.usable)])) }, null, 1));
     if (existsSync(join(RUNS, `${run.meta.id}.worker.md`))) promptFile = join(RUNS, `${run.meta.id}.worker.md`);
     profileArgs = rt.args;
     if (scope.protect.length) {

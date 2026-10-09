@@ -1,0 +1,144 @@
+{
+ "when": "2026-10-09T13:23:38.651Z",
+ "results": [
+  {
+   "step": "the catalogue offers builder.read (both modes) and builder.write (Work only)",
+   "ok": true,
+   "detail": [
+    {
+     "id": "builder.read",
+     "label": "Read Builder.io content",
+     "tools": "builder: access status, models, content, verify (Builder APIs)",
+     "profiles": [
+      "full",
+      "inspect"
+     ]
+    },
+    {
+     "id": "builder.write",
+     "label": "Create, change and publish Builder.io content (test spaces only)",
+     "tools": "builder: create draft, update, publish",
+     "profiles": [
+      "full"
+     ]
+    }
+   ]
+  },
+  {
+   "step": "requirements: no credentials → both Not connected",
+   "ok": true,
+   "detail": [
+    "read:Not connected",
+    "write:Not connected"
+   ]
+  },
+  {
+   "step": "requirements: a production space → read Connected, write refused",
+   "ok": true,
+   "detail": [
+    "read:Connected",
+    "write:Production space: writes refused"
+   ]
+  },
+  {
+   "step": "requirements: a test space → write available",
+   "ok": true,
+   "detail": [
+    "read:Connected",
+    "write:Test space"
+   ]
+  },
+  {
+   "step": "Inspect workspace: the editor's run gets only the read tools; its server is read-only",
+   "ok": true,
+   "detail": {
+    "id": "2026-10-09T13-23-20-781Z",
+    "tools": [
+     "builder_access_status",
+     "builder_get_content",
+     "builder_list_content",
+     "builder_list_models",
+     "builder_verify_content"
+    ],
+    "mcp": {
+     "command": "C:\\nvm4w\\nodejs\\node.exe",
+     "args": [
+      "C:\\Users\\hp\\Desktop\\millionaire\\auto-dev\\figma-ai-executor\\mcp\\builder-server.mjs"
+     ],
+     "env": {
+      "BUILDER_ADAPTER_PROFILE": "read",
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791552197\\builder"
+     }
+    }
+   }
+  },
+  {
+   "step": "Work workspace: the editor's run gets the write tools too",
+   "ok": true,
+   "detail": {
+    "id": "2026-10-09T13-23-25-035Z",
+    "tools": [
+     "builder_access_status",
+     "builder_create_draft",
+     "builder_get_content",
+     "builder_list_content",
+     "builder_list_models",
+     "builder_publish_content",
+     "builder_update_content",
+     "builder_verify_content"
+    ],
+    "mcp": {
+     "command": "C:\\nvm4w\\nodejs\\node.exe",
+     "args": [
+      "C:\\Users\\hp\\Desktop\\millionaire\\auto-dev\\figma-ai-executor\\mcp\\builder-server.mjs"
+     ],
+     "env": {
+      "BUILDER_ADAPTER_PROFILE": "full",
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791552197\\builder"
+     }
+    }
+   }
+  },
+  {
+   "step": "Work workspace, read-only worker: no write tools (capabilities narrow, never widen)",
+   "ok": true,
+   "detail": {
+    "id": "2026-10-09T13-23-28-210Z",
+    "tools": [
+     "builder_access_status",
+     "builder_get_content",
+     "builder_list_content",
+     "builder_list_models",
+     "builder_verify_content"
+    ],
+    "mcp": {
+     "command": "C:\\nvm4w\\nodejs\\node.exe",
+     "args": [
+      "C:\\Users\\hp\\Desktop\\millionaire\\auto-dev\\figma-ai-executor\\mcp\\builder-server.mjs"
+     ],
+     "env": {
+      "BUILDER_ADAPTER_PROFILE": "read",
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791552197\\builder"
+     }
+    }
+   }
+  },
+  {
+   "step": "no Builder key or API base reaches the worker: only a profile and a folder path",
+   "ok": true,
+   "detail": {
+    "env": [
+     "BUILDER_ADAPTER_DIR",
+     "BUILDER_ADAPTER_PROFILE"
+    ]
+   }
+  },
+  {
+   "step": "a General worker (no definition) gets no Builder tools",
+   "ok": true,
+   "detail": {
+    "builderTools": 0
+   }
+  }
+ ]
+}
