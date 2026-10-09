@@ -1,5 +1,5 @@
 {
- "when": "2026-10-09T12:40:47.863Z",
+ "when": "2026-10-09T12:42:07.203Z",
  "results": [
   {
    "step": "devctl status: both targets start out stopped",
@@ -88,16 +88,14 @@
    "step": "dashboard: Figma Bridge starts out OFF",
    "ok": true,
    "detail": {
-    "checked": "false",
-    "state": "Stopped"
+    "checked": "false"
    }
   },
   {
    "step": "toggle ON: the Figma Bridge switch actually starts the bridge",
    "ok": true,
    "detail": {
-    "reachable": true,
-    "state": "Running"
+    "reachable": true
    }
   },
   {

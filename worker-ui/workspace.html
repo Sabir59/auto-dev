@@ -418,10 +418,10 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
   </div>
   <div class="lfoot">
     <div class="r1"><span style="display:flex;align-items:center"><span class="dot" id="srvDot"></span><span class="m12">Local console</span></span>
-      <span class="r1r"><span class="m11" id="srvPort"></span><button class="swbtn" id="devWorkerSw" role="switch" aria-checked="false" aria-label="Worker server" title="Start or stop this console's own server process (local dev only)"></button></span>
+      <span class="r1r"><button class="swbtn" id="devWorkerSw" role="switch" aria-checked="false" aria-label="Worker server" title="Start or stop this console's own server process (local dev only)"></button></span>
     </div>
     <div class="r1"><span style="display:flex;align-items:center"><span class="dot" id="devBridgeDot"></span><span class="m12">Figma bridge</span></span>
-      <span class="r1r"><span class="m11" id="devBridgeState"></span><button class="swbtn" id="devBridgeSw" role="switch" aria-checked="false" aria-label="Figma bridge" title="Start or stop the local Figma bridge process (local dev only)"></button></span>
+      <span class="r1r"><button class="swbtn" id="devBridgeSw" role="switch" aria-checked="false" aria-label="Figma bridge" title="Start or stop the local Figma bridge process (local dev only)"></button></span>
     </div>
   </div>
 </aside>
@@ -1629,33 +1629,28 @@ const devctlApi = async (method, path) => {
   return j;
 };
 const devBusy = { worker: false, bridge: false };
-function paintDevSwitch(key, sw, dotEl, stateEl, st, daemonUp) {
+function paintDevSwitch(key, sw, dotEl, st, daemonUp) {
   if (!sw.dataset.baseTitle) sw.dataset.baseTitle = sw.title; // captured once, so an error tooltip can later be reverted
   if (devBusy[key]) return; // an action for this one is in flight; its own handler repaints when done
   if (!daemonUp) {
     sw.disabled = true; sw.setAttribute("aria-checked", "false"); sw.title = sw.dataset.baseTitle;
     if (dotEl) setDot(dotEl, "grey");
-    if (stateEl) { stateEl.textContent = ""; stateEl.title = ""; }
     return;
   }
   sw.disabled = false;
   sw.setAttribute("aria-checked", String(!!st.running));
   sw.title = st.lastError || sw.dataset.baseTitle;
   if (dotEl) setDot(dotEl, st.running ? "" : "red");
-  if (stateEl) {
-    stateEl.textContent = st.running ? "Running" : st.lastError ? "Error" : "Stopped";
-    stateEl.title = st.lastError || (st.running && st.startedBy === "external" ? "Started outside this dashboard" : "");
-  }
 }
 async function pollDevServers() {
   try {
     const st = await devctlApi("GET", "/status");
-    paintDevSwitch("worker", $("devWorkerSw"), null, null, st.worker, true);
-    paintDevSwitch("bridge", $("devBridgeSw"), $("devBridgeDot"), $("devBridgeState"), st.bridge, true);
+    paintDevSwitch("worker", $("devWorkerSw"), null, st.worker, true);
+    paintDevSwitch("bridge", $("devBridgeSw"), $("devBridgeDot"), st.bridge, true);
   } catch {
     // The dev-control daemon itself isn't reachable — show "unknown", never a guessed ON/OFF.
-    paintDevSwitch("worker", $("devWorkerSw"), null, null, {}, false);
-    paintDevSwitch("bridge", $("devBridgeSw"), $("devBridgeDot"), $("devBridgeState"), {}, false);
+    paintDevSwitch("worker", $("devWorkerSw"), null, {}, false);
+    paintDevSwitch("bridge", $("devBridgeSw"), $("devBridgeDot"), {}, false);
   }
 }
 async function toggleDevServer(key, sw) {
@@ -1674,7 +1669,7 @@ $("devBridgeSw").onclick = () => toggleDevServer("bridge", $("devBridgeSw"));
 
 // ---------------- start ----------------
 (async () => {
-  setFootL(); $("srvPort").textContent = `:${location.port || 80}`;
+  setFootL();
   T = freshState();
   try { await loadWorkspaces(); } catch (e) { notice(e); return; }
   await Promise.all([loadPrompts().catch(notice), loadRuns()]);

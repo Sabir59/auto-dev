@@ -138,7 +138,7 @@ try {
   // ---- Figma bridge: same lifecycle, through its own row in the dashboard ----
   await step("dashboard: Figma Bridge starts out OFF", async () => {
     await page.waitForFunction(() => document.getElementById("devBridgeSw").getAttribute("aria-checked") === "false", null, { timeout: 5000 });
-    return { checked: await page.locator("#devBridgeSw").getAttribute("aria-checked"), state: await page.locator("#devBridgeState").innerText() };
+    return { checked: await page.locator("#devBridgeSw").getAttribute("aria-checked") };
   });
 
   await step("toggle ON: the Figma Bridge switch actually starts the bridge", async () => {
@@ -146,7 +146,7 @@ try {
     await page.waitForFunction(() => document.getElementById("devBridgeSw").getAttribute("aria-checked") === "true", null, { timeout: 8000 });
     const up = await reach(`http://127.0.0.1:${bridgePort}/status`);
     if (!up) throw new Error("switch shows ON but the bridge port isn't reachable");
-    return { reachable: up, state: await page.locator("#devBridgeState").innerText() };
+    return { reachable: up };
   });
 
   await step("toggle OFF: the Figma Bridge switch actually stops the bridge", async () => {
