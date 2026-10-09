@@ -26,16 +26,22 @@ let c;
 try { c = B.readCredentials(); } catch (e) { console.log(`Not run: ${e.message} See builder-adapter/README.md.`); process.exit(1); }
 if (c.environment !== "test") { console.log(`Refused: "${c.label}" isn't marked as a test space.`); process.exit(1); }
 if (!MODEL) { console.log("Set BUILDER_TEST_MODEL (a model in the test space)."); process.exit(1); }
-// Independent read: plain Content API request, made here, not by the adapter.
-const rawRead = async (id, { drafts }) => {
+// Independent reads: plain Content API requests, made here, not by the adapter.
+// Real Builder returns an entry to a by-id query even when it's a draft (observed 2026-10-09), so
+// "live" is decided by its published field and by a lookup by url path, the way a site finds a page.
+const cdn = async (params) => {
   const u = new URL(`https://cdn.builder.io/api/v3/content/${encodeURIComponent(MODEL)}`);
-  u.searchParams.set("apiKey", c.publicKey); u.searchParams.set("query.id", id); u.searchParams.set("cachebust", "true"); u.searchParams.set("limit", "1");
-  if (drafts) u.searchParams.set("includeUnpublished", "true");
+  u.searchParams.set("apiKey", c.publicKey); u.searchParams.set("cachebust", "true"); u.searchParams.set("limit", "1");
+  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
   const r = await fetch(u); const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`independent read failed: ${r.status} ${JSON.stringify(j).slice(0, 200)}`);
-  const e = (j.results || []).find((x) => x.id === id);
-  return e ? { id: e.id, published: e.published, title: e.data?.title, lastUpdated: e.lastUpdated, firstPublished: e.firstPublished } : null;
+  return j.results || [];
 };
+const rawRead = async (id) => {
+  const e = (await cdn({ "query.id": id, includeUnpublished: "true" })).find((x) => x.id === id);
+  return e ? { id: e.id, published: e.published, title: e.data?.title, url: e.data?.url, lastUpdated: e.lastUpdated, firstPublished: e.firstPublished } : null;
+};
+const rawLiveAt = async (url) => (await cdn({ "userAttributes.urlPath": url }))[0]?.id ?? null;
 const tag = `adapter-proof-${Date.now()}`;
 let created;
 
@@ -49,43 +55,62 @@ await step("access: the key works and the model exists", async () => {
 if (EXISTING) await step("read the existing test entry", async () => {
   const e = await B.getContent(MODEL, EXISTING, { includeData: false });
   assert(e, "not found (drafts included)");
-  return { adapter: e, independent: await rawRead(EXISTING, { drafts: true }) };
+  return { adapter: e, independent: await rawRead(EXISTING) };
 });
 
 created = await step("create a draft", async () => {
   const kind = (await B.listModels()).find((x) => x.name === MODEL)?.kind;
-  const r = await B.createDraft(MODEL, { name: tag, data: { title: "v1" }, ...(kind === "page" ? { url: `/${tag}` } : {}) });
-  const ind = await rawRead(r.id, { drafts: true });
+  const r = await B.createDraft(MODEL, { name: tag, data: { title: `${tag} v1` }, ...(kind === "page" ? { url: `/${tag}` } : {}) });
+  const ind = await rawRead(r.id);
   assert(ind && ind.published === "draft", `independent read: ${JSON.stringify(ind)}`);
-  assert(!(await rawRead(r.id, { drafts: false })), "a draft must not be served as live content");
-  return { created: r, independent: ind };
+  const liveAt = ind.url ? await rawLiveAt(ind.url) : null;
+  assert(liveAt !== r.id, "a draft must not be served at its url");
+  return { created: r, independent: ind, servedAtUrl: liveAt === r.id };
 });
 
 if (created) await step("update the draft (no duplicate, still a draft)", async () => {
-  await B.updateContent(MODEL, created.created.id, { data: { title: "v2" } });
-  const ind = await rawRead(created.created.id, { drafts: true });
-  assert(ind.title === "v2" && ind.published === "draft", JSON.stringify(ind));
+  await B.updateContent(MODEL, created.created.id, { data: { title: `${tag} v2` } });
+  const ind = await rawRead(created.created.id);
+  assert(ind.title === `${tag} v2` && ind.published === "draft", JSON.stringify(ind));
   const same = (await B.listContent(MODEL, { limit: 100 })).filter((e) => e.name === tag);
   assert(same.length === 1, `${same.length} entries named ${tag}`);
   return { independent: ind };
 });
 
+// The site renders only PUBLISHED content at a path and 404s otherwise, so it's a real check.
+// Builder's CDN may take a moment to serve a fresh publish, so the "after" check retries.
+const page = async (path) => { const r = await fetch(new URL(path, SITE), { headers: { "cache-control": "no-cache" } }); return { status: r.status, html: await r.text() }; };
+const pageAfterPublish = async (path, marker) => {
+  let last;
+  for (let i = 0; i < 12; i++) { last = await page(path); if (last.status === 200 && (!marker || last.html.includes(marker))) break; await new Promise((ok) => setTimeout(ok, 5000)); }
+  return { path, status: last.status, containsMarker: marker ? last.html.includes(marker) : null };
+};
+const siteBefore = {};
+if (SITE) await step("public site BEFORE publishing: the draft pages aren't served (baseline)", async () => {
+  if (created) siteBefore.created = (await page(`/${tag}`)).status;
+  if (EXISTING) { const e = await B.getContent(MODEL, EXISTING, { includeData: false }); siteBefore.existingPath = e?.url; if (e?.url) siteBefore.existing = (await page(e.url)).status; }
+  assert(Object.entries(siteBefore).filter(([k]) => k !== "existingPath").every(([, s]) => s === 404), JSON.stringify(siteBefore));
+  return siteBefore;
+});
+
 const publishProof = async (id, label) => step(`publish ${label}, then verify independently`, async () => {
   const r = await B.publishContent(MODEL, id);
-  const live = await rawRead(id, { drafts: false }), withDrafts = await rawRead(id, { drafts: true });
-  const out = { apiSaid: r.apiSaid, adapterVerification: r.verification, independentLive: live, independentState: withDrafts };
-  assert(withDrafts?.published === "published", `state after publish: ${JSON.stringify(withDrafts)}`);
-  assert(live, "the public Content API doesn't serve it as live content");
+  const state = await rawRead(id);
+  const liveAt = state?.url ? await rawLiveAt(state.url) : null;
+  const out = { apiSaid: r.apiSaid, adapterVerification: r.verification, independentState: state, independentServedAtUrl: liveAt === id };
+  assert(state?.published === "published", `state after publish: ${JSON.stringify(state)}`);
+  if (state.url) assert(liveAt === id, `a lookup by ${state.url} returns ${liveAt}, not this entry`);
+  assert(r.verification.servedAsLive === true, "the adapter's own verification disagrees");
   return out;
 });
 if (created) await publishProof(created.created.id, "the adapter-created entry");
 if (EXISTING) await publishProof(EXISTING, "the EXISTING entry (made in Builder's editor)");
 
-if (created && SITE) await step("public page shows the published content", async () => {
-  const url = new URL(`/${tag}`, SITE);
-  const r = await fetch(url, { headers: { "cache-control": "no-cache" } });
-  const html = await r.text();
-  return { url: String(url), status: r.status, containsTitle: html.includes("v2") };
+if (SITE) await step("public site AFTER publishing: the pages are served, with the updated content", async () => {
+  const out = {};
+  if (created) { out.created = await pageAfterPublish(`/${tag}`, `${tag} v2`); assert(out.created.status === 200 && out.created.containsMarker, JSON.stringify(out.created)); }
+  if (EXISTING && siteBefore.existingPath) { out.existing = await pageAfterPublish(siteBefore.existingPath); assert(out.existing.status === 200, JSON.stringify(out.existing)); }
+  return out;
 });
 else results.push({ step: "public page", ok: null, detail: "not checked: set BUILDER_TEST_SITE to a site that renders this test space" });
 

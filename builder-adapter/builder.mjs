@@ -157,16 +157,17 @@ export async function publishContent(model, id) {
   return { id, model, before: e.published, apiSaid: response.published ?? null, verification: await verifyContent(model, id) };
 }
 
-// Two independent reads, both bypassing the CDN cache: with drafts (what the entry's state is) and
-// without (whether the public Content API actually serves it as live content).
+// Independent, cache-busted reads. Observed against real Builder (2026-10-09): a Content API query
+// that names an id returns the entry even when it's a draft, with or without includeUnpublished.
+// So "returned by id" never means live. What does: its own published field, and, for an entry with
+// a url, that a lookup by that url path (how a site resolves its pages) returns this entry.
 export async function verifyContent(model, id) {
   const c = readCredentials();
-  const [withDrafts, liveOnly] = await Promise.all([
-    query(model, { "query.id": checkId(id), limit: 1 }, c, { includeUnpublished: true }),
-    query(model, { "query.id": id, limit: 1 }, c, { includeUnpublished: false }),
-  ]);
-  const e = withDrafts.find((x) => x.id === id), live = liveOnly.find((x) => x.id === id);
-  return { exists: !!e, state: e?.published ?? null, servedAsLive: !!live, url: e ? summarize(e).url : null, lastUpdated: e?.lastUpdated ?? null, firstPublished: e?.firstPublished ?? null };
+  const e = (await query(model, { "query.id": checkId(id), limit: 1 }, c, { includeUnpublished: true })).find((x) => x.id === id);
+  const url = e ? summarize(e).url : null;
+  const servedAtUrl = url ? (await query(model, { "userAttributes.urlPath": url, limit: 1 }, c, { includeUnpublished: false }))[0]?.id === id : null;
+  const published = e?.published === "published";
+  return { exists: !!e, state: e?.published ?? null, servedAsLive: published && servedAtUrl !== false, url, servedAtUrl, lastUpdated: e?.lastUpdated ?? null, firstPublished: e?.firstPublished ?? null };
 }
 
 export function accessSummary() {

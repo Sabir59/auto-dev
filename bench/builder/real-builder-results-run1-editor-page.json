@@ -1,0 +1,93 @@
+{
+ "when": "2026-10-09T14:59:12.497Z",
+ "space": "MATW dev space (matw-next-application)",
+ "model": "matw-next-application",
+ "createdEntry": null,
+ "existingEntry": "de5d576a9404479baae0fd401a12c80c",
+ "results": [
+  {
+   "step": "access: the key works and the model exists",
+   "ok": true,
+   "detail": {
+    "space": "MATW dev space (matw-next-application)",
+    "model": {
+     "id": "236607f9855449bb991b1b2efbca0a29",
+     "name": "matw-next-application",
+     "kind": "page"
+    }
+   }
+  },
+  {
+   "step": "read the existing test entry",
+   "ok": true,
+   "detail": {
+    "adapter": {
+     "id": "de5d576a9404479baae0fd401a12c80c",
+     "name": "/test-adapter",
+     "published": "draft",
+     "url": "/test-adapter",
+     "lastUpdated": 1791557457641,
+     "firstPublished": null,
+     "createdDate": 1791557445790
+    },
+    "independent": {
+     "id": "de5d576a9404479baae0fd401a12c80c",
+     "published": "draft",
+     "title": "/test-adapter",
+     "lastUpdated": 1791557457641
+    }
+   }
+  },
+  {
+   "step": "create a draft",
+   "ok": false,
+   "error": "a draft must not be served as live content"
+  },
+  {
+   "step": "public site BEFORE publishing: the draft pages aren't served (baseline)",
+   "ok": true,
+   "detail": {
+    "existingPath": "/test-adapter",
+    "existing": 404
+   }
+  },
+  {
+   "step": "publish the EXISTING entry (made in Builder's editor), then verify independently",
+   "ok": true,
+   "detail": {
+    "apiSaid": "published",
+    "adapterVerification": {
+     "exists": true,
+     "state": "published",
+     "servedAsLive": true,
+     "url": "/test-adapter",
+     "lastUpdated": 1791557910709,
+     "firstPublished": null
+    },
+    "independentLive": {
+     "id": "de5d576a9404479baae0fd401a12c80c",
+     "published": "published",
+     "title": "/test-adapter",
+     "lastUpdated": 1791557910709
+    },
+    "independentState": {
+     "id": "de5d576a9404479baae0fd401a12c80c",
+     "published": "published",
+     "title": "/test-adapter",
+     "lastUpdated": 1791557910709
+    }
+   }
+  },
+  {
+   "step": "public site AFTER publishing: the pages are served, with the updated content",
+   "ok": true,
+   "detail": {
+    "existing": {
+     "path": "/test-adapter",
+     "status": 200,
+     "containsMarker": null
+    }
+   }
+  }
+ ]
+}

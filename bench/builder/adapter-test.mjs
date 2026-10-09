@@ -161,6 +161,14 @@ await step("publish: PATCH published:\"published\", then independent reads confi
   return r.json;
 });
 
+await step("verify never calls a draft live, although Builder returns drafts to a by-id query", async () => {
+  const v = await A.call("builder_verify_content", { model: "page", id: "seeddraft00001" });
+  const byId = mock.log.filter((r) => r.search["query.id"] === "seeddraft00001").at(-1);
+  assert(v.json.state === "draft" && v.json.servedAsLive === false, JSON.stringify(v.json));
+  assert(byId, "the by-id read happened (and, like real Builder, returned the draft)");
+  return v.json;
+});
+
 await step("publish where the API says OK but nothing changed → verification says NOT live", async () => {
   const d = await A.call("builder_create_draft", { model: "page", name: "Ignored publish", url: "/ignored" });
   mock.fault.publishIgnored = true;

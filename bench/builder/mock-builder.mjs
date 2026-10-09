@@ -33,10 +33,13 @@ export function startMock({ port = 0 } = {}) {
       if (m && req.method === "GET") {
         if (u.searchParams.get("apiKey") !== KEYS.public) return send(401, { message: "Invalid apiKey" });
         if (!models.some((x) => x.name === m[1])) return send(404, { message: `Model ${m[1]} not found` });
+        // Mirrors real Builder (observed 2026-10-09): a query by id returns the entry whatever its
+        // state; otherwise drafts only with includeUnpublished; a urlPath lookup finds live pages only.
         const incl = u.searchParams.get("includeUnpublished") === "true";
-        let rows = [...entries.values()].filter((e) => e.modelName === m[1] && (incl ? e.published !== "archived" : e.published === "published"));
-        const qid = u.searchParams.get("query.id");
+        const qid = u.searchParams.get("query.id"), path = u.searchParams.get("userAttributes.urlPath");
+        let rows = [...entries.values()].filter((e) => e.modelName === m[1] && e.published !== "archived" && (qid || incl || e.published === "published"));
         if (qid) rows = rows.filter((e) => e.id === qid);
+        if (path) rows = rows.filter((e) => e.published === "published" && (e.query || []).some((q) => q.property === "urlPath" && q.value === path));
         const off = Number(u.searchParams.get("offset") || 0), lim = Number(u.searchParams.get("limit") || 30);
         return send(200, { results: rows.slice(off, off + lim).map(({ modelName, ...e }) => e) });
       }

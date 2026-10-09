@@ -1,5 +1,5 @@
 {
- "when": "2026-10-09T13:22:04.954Z",
+ "when": "2026-10-09T15:01:07.717Z",
  "note": "Mocked Builder API: proves the adapter's requests and guards, not Builder's behaviour.",
  "results": [
   {
@@ -123,9 +123,23 @@
      "state": "published",
      "servedAsLive": true,
      "url": "/adapter-test",
-     "lastUpdated": 1791552122568,
-     "firstPublished": 1791552122568
+     "servedAtUrl": true,
+     "lastUpdated": 1791558064093,
+     "firstPublished": 1791558064093
     }
+   }
+  },
+  {
+   "step": "verify never calls a draft live, although Builder returns drafts to a by-id query",
+   "ok": true,
+   "detail": {
+    "exists": true,
+    "state": "draft",
+    "servedAsLive": false,
+    "url": "/draft",
+    "servedAtUrl": false,
+    "lastUpdated": 1791558061866,
+    "firstPublished": null
    }
   },
   {
@@ -138,7 +152,8 @@
      "state": "draft",
      "servedAsLive": false,
      "url": "/ignored",
-     "lastUpdated": 1791552122619,
+     "servedAtUrl": false,
+     "lastUpdated": 1791558064219,
      "firstPublished": null
     }
    }
@@ -191,7 +206,7 @@
    "step": "no key ever appears in any tool output",
    "ok": true,
    "detail": {
-    "outputsChecked": 35
+    "outputsChecked": 36
    }
   }
  ]

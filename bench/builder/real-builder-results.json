@@ -1,0 +1,95 @@
+{
+ "when": "2026-10-09T15:02:39.371Z",
+ "space": "MATW dev space (matw-next-application)",
+ "model": "matw-next-application",
+ "createdEntry": "9c0cc877aeb84f04a5f70c5afdad6cea",
+ "existingEntry": null,
+ "results": [
+  {
+   "step": "access: the key works and the model exists",
+   "ok": true,
+   "detail": {
+    "space": "MATW dev space (matw-next-application)",
+    "model": {
+     "id": "236607f9855449bb991b1b2efbca0a29",
+     "name": "matw-next-application",
+     "kind": "page"
+    }
+   }
+  },
+  {
+   "step": "create a draft",
+   "ok": true,
+   "detail": {
+    "created": {
+     "id": "9c0cc877aeb84f04a5f70c5afdad6cea",
+     "name": "adapter-proof-1791558085081",
+     "published": "draft"
+    },
+    "independent": {
+     "id": "9c0cc877aeb84f04a5f70c5afdad6cea",
+     "published": "draft",
+     "title": "adapter-proof-1791558085081 v1",
+     "url": "/adapter-proof-1791558085081",
+     "lastUpdated": 1791558088525
+    },
+    "servedAtUrl": false
+   }
+  },
+  {
+   "step": "update the draft (no duplicate, still a draft)",
+   "ok": true,
+   "detail": {
+    "independent": {
+     "id": "9c0cc877aeb84f04a5f70c5afdad6cea",
+     "published": "draft",
+     "title": "adapter-proof-1791558085081 v2",
+     "url": "/adapter-proof-1791558085081",
+     "lastUpdated": 1791558090451
+    }
+   }
+  },
+  {
+   "step": "public site BEFORE publishing: the draft pages aren't served (baseline)",
+   "ok": true,
+   "detail": {
+    "created": 404
+   }
+  },
+  {
+   "step": "publish the adapter-created entry, then verify independently",
+   "ok": true,
+   "detail": {
+    "apiSaid": "published",
+    "adapterVerification": {
+     "exists": true,
+     "state": "published",
+     "servedAsLive": true,
+     "url": "/adapter-proof-1791558085081",
+     "servedAtUrl": true,
+     "lastUpdated": 1791558093323,
+     "firstPublished": null
+    },
+    "independentState": {
+     "id": "9c0cc877aeb84f04a5f70c5afdad6cea",
+     "published": "published",
+     "title": "adapter-proof-1791558085081 v2",
+     "url": "/adapter-proof-1791558085081",
+     "lastUpdated": 1791558093323
+    },
+    "independentServedAtUrl": true
+   }
+  },
+  {
+   "step": "public site AFTER publishing: the pages are served, with the updated content",
+   "ok": true,
+   "detail": {
+    "created": {
+     "path": "/adapter-proof-1791558085081",
+     "status": 200,
+     "containsMarker": true
+    }
+   }
+  }
+ ]
+}

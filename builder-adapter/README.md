@@ -44,7 +44,13 @@ These come from Builder's docs and a Builder staff answer on Builder's forum (ch
 - A `PATCH` or `PUT` on a **published** entry is live immediately. `?autoSaveOnly=true` stores an autosave instead: nothing changes live, and the editor shows "Publish update". The adapter doesn't use autosave. This is a likely reason earlier experiments "wrote but didn't publish", but that's an inference, not a proven cause.
 - The docs don't document a separate "publish" endpoint, how autosaved editor changes get published through the API, or exactly how the Content API returns drafts.
 
-**Proven so far: only against the local mock** (`bench/builder/adapter-test.mjs`). That proves the adapter's requests and guards, not Builder's behaviour. Real publishing is proven only by `bench/builder/real-builder-test.mjs` against a real test space.
+**Proven against real Builder (2026-10-09)** with MATW's dev space (non-production, confirmed by the owner), model `matw-next-application`, and a local `shopmaze` (Next.js, `@builder.io/sdk-react`). That site serves only published entries at their path and 404s otherwise. Evidence: `bench/builder/real-builder-results*.json`.
+- **An existing page made in Builder's visual editor can be published through the API.** For `/test-adapter`, `PATCH published: "published"` changed its state from draft to published, a lookup by URL path returned it, and the site went from 404 to 200 (`real-builder-results-run1-editor-page.json`).
+- **The adapter's own flow works end to end.** It created a draft, updated it (still one entry, still a draft, site 404), published it (state published, served at its URL), and the site returned 200 with the updated content (`real-builder-results.json`).
+- **Builder returns drafts to a query by id**, with or without `includeUnpublished`, and even with `query.published=published`. So "returned by id" never means live. `builder_verify_content` decides "live" from the entry's `published` field plus a lookup by URL path, the way a site resolves pages. The real test caught this; the first version of the adapter and of the mock got it wrong.
+- Content API reads with the public key and `includeUnpublished=true` do return drafts.
+
+**Not proven yet:** a real worker calling these tools. The worker runtime's Claude login had expired. The worker does get the right tools, per the access suite.
 
 ## Tests
 
