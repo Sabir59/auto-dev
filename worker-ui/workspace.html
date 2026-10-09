@@ -126,8 +126,8 @@ aside.left { background: var(--low); display: flex; flex-direction: column; min-
 .tree .tw svg { transition: transform .12s; } .tree [aria-expanded="true"] .tw svg { transform: rotate(90deg); }
 .tree .ficon { color: var(--t3); }
 .tree .row[aria-selected="true"] { background: var(--surf); color: var(--t1); }
-.lfoot { background: var(--surf); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
-.lfoot .r1 { height: 22px; display: flex; align-items: center; justify-content: space-between; color: var(--t3); }
+.lfoot { background: var(--surf); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.lfoot .r1 { height: 22px; display: flex; align-items: center; justify-content: space-between; color: var(--t3); white-space: nowrap; }
 .lfoot .r1 .dot { width: 8px; height: 8px; margin-right: 4px; }
 .lfoot .r1r { display: flex; align-items: center; gap: 6px; }
 /* Local dev-only ON/OFF switches for the Worker Server and Figma Bridge processes (worker-ui/devctl.mjs). */
@@ -1643,8 +1643,8 @@ function paintDevSwitch(key, sw, dotEl, stateEl, st, daemonUp) {
   sw.title = st.lastError || sw.dataset.baseTitle;
   if (dotEl) setDot(dotEl, st.running ? "" : "red");
   if (stateEl) {
-    stateEl.textContent = st.running ? (st.startedBy === "external" ? "Running (started outside this dashboard)" : "Running") : st.lastError ? "Stopped — error" : "Stopped";
-    stateEl.title = st.lastError || "";
+    stateEl.textContent = st.running ? "Running" : st.lastError ? "Error" : "Stopped";
+    stateEl.title = st.lastError || (st.running && st.startedBy === "external" ? "Started outside this dashboard" : "");
   }
 }
 async function pollDevServers() {
