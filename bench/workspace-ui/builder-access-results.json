@@ -1,5 +1,5 @@
 {
- "when": "2026-10-09T13:23:38.651Z",
+ "when": "2026-10-09T15:20:37.006Z",
  "results": [
   {
    "step": "the catalogue offers builder.read (both modes) and builder.write (Work only)",
@@ -52,7 +52,7 @@
    "step": "Inspect workspace: the editor's run gets only the read tools; its server is read-only",
    "ok": true,
    "detail": {
-    "id": "2026-10-09T13-23-20-781Z",
+    "id": "2026-10-09T15-19-59-515Z",
     "tools": [
      "builder_access_status",
      "builder_get_content",
@@ -67,7 +67,7 @@
      ],
      "env": {
       "BUILDER_ADAPTER_PROFILE": "read",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791552197\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791559195\\builder"
      }
     }
    }
@@ -76,7 +76,7 @@
    "step": "Work workspace: the editor's run gets the write tools too",
    "ok": true,
    "detail": {
-    "id": "2026-10-09T13-23-25-035Z",
+    "id": "2026-10-09T15-20-06-877Z",
     "tools": [
      "builder_access_status",
      "builder_create_draft",
@@ -94,7 +94,7 @@
      ],
      "env": {
       "BUILDER_ADAPTER_PROFILE": "full",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791552197\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791559195\\builder"
      }
     }
    }
@@ -103,7 +103,7 @@
    "step": "Work workspace, read-only worker: no write tools (capabilities narrow, never widen)",
    "ok": true,
    "detail": {
-    "id": "2026-10-09T13-23-28-210Z",
+    "id": "2026-10-09T15-20-13-162Z",
     "tools": [
      "builder_access_status",
      "builder_get_content",
@@ -118,7 +118,7 @@
      ],
      "env": {
       "BUILDER_ADAPTER_PROFILE": "read",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791552197\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791559195\\builder"
      }
     }
    }

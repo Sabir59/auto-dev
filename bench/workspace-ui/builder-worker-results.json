@@ -1,0 +1,421 @@
+{
+ "when": "2026-10-09T15:18:42.770Z",
+ "note": "REAL worker, REAL Builder dev space, REAL site; keys redacted by construction (never written here).",
+ "evidence": {
+  "name": "worker-proof-1791559054675",
+  "url": "/worker-proof-1791559054675",
+  "siteBefore": 404,
+  "createdId": "e25ffea69d344406ba4ca4e5832c24f4",
+  "builder": {
+   "id": "e25ffea69d344406ba4ca4e5832c24f4",
+   "state": "published",
+   "title": "worker-proof-1791559054675 v2",
+   "entriesWithThisName": 1,
+   "servedAtUrl": true
+  },
+  "siteAfter": {
+   "url": "http://localhost:3000/worker-proof-1791559054675",
+   "status": 200,
+   "hasMarker": true
+  }
+ },
+ "toolCalls": [
+  {
+   "tool": "ToolSearch",
+   "input": {
+    "query": "select:mcp__builder__builder_access_status,mcp__builder__builder_list_models,mcp__builder__builder_list_content,mcp__builder__builder_get_content",
+    "max_results": 6
+   },
+   "isError": false,
+   "result": ""
+  },
+  {
+   "tool": "ToolSearch",
+   "input": {
+    "query": "select:mcp__builder__builder_create_draft,mcp__builder__builder_update_content,mcp__builder__builder_publish_content,mcp__builder__builder_verify_content",
+    "max_results": 6
+   },
+   "isError": false,
+   "result": ""
+  },
+  {
+   "tool": "builder_access_status",
+   "input": {},
+   "isError": false,
+   "result": {
+    "connected": true,
+    "label": "MATW dev space (matw-next-application)",
+    "environment": "test",
+    "writes": "allowed (test space)",
+    "models": 4
+   }
+  },
+  {
+   "tool": "builder_list_models",
+   "input": {},
+   "isError": false,
+   "result": [
+    {
+     "id": "236607f9855449bb991b1b2efbca0a29",
+     "name": "matw-next-application",
+     "kind": "page"
+    },
+    {
+     "id": "7d9cffea26af44d1a1b79b6f18cdbab2",
+     "name": "page",
+     "kind": "page"
+    },
+    {
+     "id": "87205ddf13e44594903ad86b18e7b7d2",
+     "name": "ecom-storefront",
+     "kind": "page"
+    },
+    {
+     "id": "f1eecda6b992404a85795554f15579b5",
+     "name": "matw-playground",
+     "kind": "page"
+    }
+   ]
+  },
+  {
+   "tool": "builder_list_content",
+   "input": {
+    "model": "matw-next-application",
+    "includeUnpublished": true,
+    "limit": 100
+   },
+   "isError": false,
+   "result": [
+    {
+     "id": "9c0cc877aeb84f04a5f70c5afdad6cea",
+     "name": "adapter-proof-1791558085081",
+     "published": "published",
+     "url": "/adapter-proof-1791558085081",
+     "lastUpdated": 1791558093323,
+     "firstPublished": null,
+     "createdDate": 1791558088547
+    },
+    {
+     "id": "6d946049fd6b45258bbea6eb3a438473",
+     "name": "adapter-proof-1791557902213",
+     "published": "draft",
+     "url": "/adapter-proof-1791557902213",
+     "lastUpdated": 1791557906980,
+     "firstPublished": null,
+     "createdDate": 1791557907006
+    },
+    {
+     "id": "de5d576a9404479baae0fd401a12c80c",
+     "name": "/test-adapter",
+     "published": "published",
+     "url": "/test-adapter",
+     "lastUpdated": 1791557910709,
+     "firstPublished": null,
+     "createdDate": 1791557445790
+    },
+    {
+     "id": "56d34112bd2748d9b41819d37dea3b0a",
+     "name": "Homepage Sections Test",
+     "published": "draft",
+     "url": "/test-mcp",
+     "lastUpdated": 1782574342043,
+     "firstPublished": null,
+     "createdDate": 1782573946954
+    },
+    {
+     "id": "7363861913544b22850dbf53f3de8410",
+     "name": "Test",
+     "published": "draft",
+     "url": "/test-mcp",
+     "lastUpdated": 1782646058137,
+     "firstPublished": 1782573749548,
+     "createdDate": 1782573749548
+    },
+    {
+     "id": "386958ad34dd4f2a9860978670e4787a",
+     "name": "Home Page",
+     "published": "published",
+     "url": "/",
+     "lastUpdated": 1782572410647,
+     "firstPublished": 1780512975412,
+     "createdDate": 1780426350286
+    },
+    {
+     "id": "2e57c99f0d544cd7bcee0cb8de2fdf1d",
+     "name": "csr-example",
+     "published": "published",
+     "url": "/csr-example",
+     "lastUpdated": 1780513905349,
+     "firstPublished": 1780513905282,
+     "createdDate": 1780513885513
+    }
+   ]
+  },
+  {
+   "tool": "builder_create_draft",
+   "input": {
+    "model": "matw-next-application",
+    "name": "worker-proof-1791559054675",
+    "url": "/worker-proof-1791559054675",
+    "data": {
+     "title": "worker-proof-1791559054675 v1"
+    }
+   },
+   "isError": false,
+   "result": {
+    "id": "e25ffea69d344406ba4ca4e5832c24f4",
+    "name": "worker-proof-1791559054675",
+    "published": "draft"
+   }
+  },
+  {
+   "tool": "builder_verify_content",
+   "input": {
+    "model": "matw-next-application",
+    "id": "e25ffea69d344406ba4ca4e5832c24f4"
+   },
+   "isError": false,
+   "result": {
+    "exists": true,
+    "state": "draft",
+    "servedAsLive": false,
+    "url": "/worker-proof-1791559054675",
+    "servedAtUrl": false,
+    "lastUpdated": 1791559087921,
+    "firstPublished": null
+   }
+  },
+  {
+   "tool": "builder_verify_content",
+   "input": {
+    "model": "matw-next-application",
+    "id": "6d946049fd6b45258bbea6eb3a438473"
+   },
+   "isError": false,
+   "result": {
+    "exists": true,
+    "state": "draft",
+    "servedAsLive": false,
+    "url": "/adapter-proof-1791557902213",
+    "servedAtUrl": false,
+    "lastUpdated": 1791557906980,
+    "firstPublished": null
+   }
+  },
+  {
+   "tool": "builder_update_content",
+   "input": {
+    "model": "matw-next-application",
+    "id": "e25ffea69d344406ba4ca4e5832c24f4",
+    "data": {
+     "title": "worker-proof-1791559054675 v2"
+    }
+   },
+   "isError": false,
+   "result": {
+    "id": "e25ffea69d344406ba4ca4e5832c24f4",
+    "model": "matw-next-application",
+    "updated": [
+     "data"
+    ],
+    "wasPublished": "draft"
+   }
+  },
+  {
+   "tool": "builder_publish_content",
+   "input": {
+    "model": "matw-next-application",
+    "id": "e25ffea69d344406ba4ca4e5832c24f4"
+   },
+   "isError": false,
+   "result": {
+    "id": "e25ffea69d344406ba4ca4e5832c24f4",
+    "model": "matw-next-application",
+    "before": "draft",
+    "apiSaid": "published",
+    "verification": {
+     "exists": true,
+     "state": "published",
+     "servedAsLive": true,
+     "url": "/worker-proof-1791559054675",
+     "servedAtUrl": true,
+     "lastUpdated": 1791559105066,
+     "firstPublished": null
+    }
+   }
+  },
+  {
+   "tool": "builder_verify_content",
+   "input": {
+    "model": "matw-next-application",
+    "id": "e25ffea69d344406ba4ca4e5832c24f4"
+   },
+   "isError": false,
+   "result": {
+    "exists": true,
+    "state": "published",
+    "servedAsLive": true,
+    "url": "/worker-proof-1791559054675",
+    "servedAtUrl": true,
+    "lastUpdated": 1791559105066,
+    "firstPublished": null
+   }
+  }
+ ],
+ "results": [
+  {
+   "step": "before: inspect existing entries (no leftover with this name; earlier worker-proof entries noted)",
+   "ok": true,
+   "detail": {
+    "entries": 7,
+    "priorWorkerProofEntries": [],
+    "siteBefore": 404
+   }
+  },
+  {
+   "step": "the worker, in the UI, gets the Builder tools and its requirements are met",
+   "ok": true,
+   "detail": {
+    "requirements": [
+     "read:Connected",
+     "write:Test space"
+    ]
+   }
+  },
+  {
+   "step": "the worker runs the workflow (prompt typed in the composer)",
+   "ok": true,
+   "detail": {
+    "runId": "2026-10-09T15-17-44-110Z",
+    "state": "Waiting for you",
+    "toolCalls": [
+     "ToolSearch",
+     "ToolSearch",
+     "builder_access_status",
+     "builder_list_models",
+     "builder_list_content",
+     "builder_create_draft",
+     "builder_verify_content",
+     "builder_verify_content",
+     "builder_update_content",
+     "builder_publish_content",
+     "builder_verify_content"
+    ]
+   }
+  },
+  {
+   "step": "its tool calls cover the workflow, in order, through the native adapter",
+   "ok": true,
+   "detail": {
+    "order": [
+     "ToolSearch",
+     "ToolSearch",
+     "builder_access_status",
+     "builder_list_models",
+     "builder_list_content",
+     "builder_create_draft",
+     "builder_verify_content",
+     "builder_verify_content",
+     "builder_update_content",
+     "builder_publish_content",
+     "builder_verify_content"
+    ],
+    "createdId": "e25ffea69d344406ba4ca4e5832c24f4"
+   }
+  },
+  {
+   "step": "it read /test-adapter and reported a published editor page",
+   "ok": true,
+   "detail": {
+    "readCalls": 1
+   }
+  },
+  {
+   "step": "drafts are never reported as live (its own draft, and an existing draft)",
+   "ok": true,
+   "detail": {
+    "ownDraft": {
+     "exists": true,
+     "state": "draft",
+     "servedAsLive": false,
+     "url": "/worker-proof-1791559054675",
+     "servedAtUrl": false,
+     "lastUpdated": 1791559087921,
+     "firstPublished": null
+    },
+    "existingDraft": {
+     "exists": true,
+     "state": "draft",
+     "servedAsLive": false,
+     "url": "/adapter-proof-1791557902213",
+     "servedAtUrl": false,
+     "lastUpdated": 1791557906980,
+     "firstPublished": null
+    },
+    "independentExistingDraft": {
+     "state": "draft",
+     "servedAtUrl": false,
+     "site": 404
+    }
+   }
+  },
+  {
+   "step": "its final verification says published and live",
+   "ok": true,
+   "detail": {
+    "publish": {
+     "id": "e25ffea69d344406ba4ca4e5832c24f4",
+     "model": "matw-next-application",
+     "before": "draft",
+     "apiSaid": "published",
+     "verification": {
+      "exists": true,
+      "state": "published",
+      "servedAsLive": true,
+      "url": "/worker-proof-1791559054675",
+      "servedAtUrl": true,
+      "lastUpdated": 1791559105066,
+      "firstPublished": null
+     }
+    },
+    "lastVerify": {
+     "exists": true,
+     "state": "published",
+     "servedAsLive": true,
+     "url": "/worker-proof-1791559054675",
+     "servedAtUrl": true,
+     "lastUpdated": 1791559105066,
+     "firstPublished": null
+    }
+   }
+  },
+  {
+   "step": "INDEPENDENT Builder check: one entry, published, v2 content, served at its url",
+   "ok": true,
+   "detail": {
+    "id": "e25ffea69d344406ba4ca4e5832c24f4",
+    "state": "published",
+    "title": "worker-proof-1791559054675 v2",
+    "entriesWithThisName": 1,
+    "servedAtUrl": true
+   }
+  },
+  {
+   "step": "INDEPENDENT live page: the site serves it with the v2 content",
+   "ok": true,
+   "detail": {
+    "url": "http://localhost:3000/worker-proof-1791559054675",
+    "status": 200,
+    "hasMarker": true
+   }
+  },
+  {
+   "step": "no credential appears in the transcript, events, context or UI",
+   "ok": true,
+   "detail": {
+    "filesChecked": 6
+   }
+  }
+ ],
+ "pageErrors": []
+}

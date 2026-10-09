@@ -1,5 +1,5 @@
 {
- "when": "2026-10-09T15:01:07.717Z",
+ "when": "2026-10-09T15:11:45.464Z",
  "note": "Mocked Builder API: proves the adapter's requests and guards, not Builder's behaviour.",
  "results": [
   {
@@ -124,8 +124,8 @@
      "servedAsLive": true,
      "url": "/adapter-test",
      "servedAtUrl": true,
-     "lastUpdated": 1791558064093,
-     "firstPublished": 1791558064093
+     "lastUpdated": 1791558701923,
+     "firstPublished": 1791558701923
     }
    }
   },
@@ -138,7 +138,7 @@
     "servedAsLive": false,
     "url": "/draft",
     "servedAtUrl": false,
-    "lastUpdated": 1791558061866,
+    "lastUpdated": 1791558699668,
     "firstPublished": null
    }
   },
@@ -153,7 +153,7 @@
      "servedAsLive": false,
      "url": "/ignored",
      "servedAtUrl": false,
-     "lastUpdated": 1791558064219,
+     "lastUpdated": 1791558701995,
      "firstPublished": null
     }
    }
