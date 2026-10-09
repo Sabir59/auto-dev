@@ -1,5 +1,5 @@
 {
- "when": "2026-10-09T15:20:37.006Z",
+ "when": "2026-10-09T20:38:16.005Z",
  "results": [
   {
    "step": "the catalogue offers builder.read (both modes) and builder.write (Work only)",
@@ -52,7 +52,7 @@
    "step": "Inspect workspace: the editor's run gets only the read tools; its server is read-only",
    "ok": true,
    "detail": {
-    "id": "2026-10-09T15-19-59-515Z",
+    "id": "2026-10-09T20-37-53-007Z",
     "tools": [
      "builder_access_status",
      "builder_get_content",
@@ -67,7 +67,7 @@
      ],
      "env": {
       "BUILDER_ADAPTER_PROFILE": "read",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791559195\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791578269\\builder"
      }
     }
    }
@@ -76,7 +76,7 @@
    "step": "Work workspace: the editor's run gets the write tools too",
    "ok": true,
    "detail": {
-    "id": "2026-10-09T15-20-06-877Z",
+    "id": "2026-10-09T20-37-57-347Z",
     "tools": [
      "builder_access_status",
      "builder_create_draft",
@@ -85,6 +85,7 @@
      "builder_list_models",
      "builder_publish_content",
      "builder_update_content",
+     "builder_upload_asset",
      "builder_verify_content"
     ],
     "mcp": {
@@ -94,7 +95,8 @@
      ],
      "env": {
       "BUILDER_ADAPTER_PROFILE": "full",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791559195\\builder"
+      "BUILDER_UPLOAD_ROOT": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\work",
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791578269\\builder"
      }
     }
    }
@@ -103,7 +105,7 @@
    "step": "Work workspace, read-only worker: no write tools (capabilities narrow, never widen)",
    "ok": true,
    "detail": {
-    "id": "2026-10-09T15-20-13-162Z",
+    "id": "2026-10-09T20-38-01-547Z",
     "tools": [
      "builder_access_status",
      "builder_get_content",
@@ -118,18 +120,19 @@
      ],
      "env": {
       "BUILDER_ADAPTER_PROFILE": "read",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791559195\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791578269\\builder"
      }
     }
    }
   },
   {
-   "step": "no Builder key or API base reaches the worker: only a profile and a folder path",
+   "step": "no Builder key or API base reaches the worker: a profile, the credentials folder, and its own workspace as the only upload root",
    "ok": true,
    "detail": {
     "env": [
      "BUILDER_ADAPTER_DIR",
-     "BUILDER_ADAPTER_PROFILE"
+     "BUILDER_ADAPTER_PROFILE",
+     "BUILDER_UPLOAD_ROOT"
     ]
    }
   },

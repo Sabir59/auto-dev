@@ -67,13 +67,22 @@ const server = new McpServer({ name: "browser-executor", version: "0.1.0" });
 
 server.registerTool(
   "browser_navigate",
-  { description: "Navigate to a URL (launches the browser on first call).", inputSchema: { url: z.string().url() } },
-  async ({ url }) => {
+  {
+    description: "Navigate to a URL (launches the browser on first call). viewport sets the page size first (it stays for later calls), e.g. 1440x900 or 390x844, to see a layout at a given screen size. waitUntil 'networkidle' also waits for images and fonts, for screenshots that compare renders.",
+    inputSchema: {
+      url: z.string().url(),
+      viewport: z.object({ width: z.number().int().min(200).max(3840), height: z.number().int().min(200).max(4000) }).optional(),
+      waitUntil: z.enum(["domcontentloaded", "load", "networkidle"]).optional().describe("Default domcontentloaded"),
+    },
+  },
+  async ({ url, viewport, waitUntil = "domcontentloaded" }) => {
     const target = PROFILE === "full" ? url : inspectUrl(url);
     const p = await getPage();
-    await p.goto(target, { waitUntil: "domcontentloaded" });
+    if (viewport) await p.setViewportSize(viewport);
+    await p.goto(target, { waitUntil });
+    if (waitUntil !== "domcontentloaded") await p.evaluate(() => document.fonts.ready).catch(() => {});
     await assertOnWeb(p);
-    return toolResult({ url: p.url(), title: await p.title() });
+    return toolResult({ url: p.url(), title: await p.title(), viewport: p.viewportSize() });
   }
 );
 
@@ -134,17 +143,16 @@ server.registerTool(
 if (PROFILE === "full") server.registerTool(
   "browser_screenshot",
   {
-    description: "Screenshot the page (or one element). Returns a local file path — read that file to see the result, same pattern as figma_export_node.",
-    inputSchema: { selector: z.string().optional() },
+    description: "Screenshot the page (or one element). fullPage:true captures the whole scrollable page, not just the viewport. Returns a local file path and the image size — read that file to see the result, same pattern as figma_export_node.",
+    inputSchema: { selector: z.string().optional(), fullPage: z.boolean().optional().describe("Whole page, top to bottom (ignored with a selector)") },
   },
-  async ({ selector }) => {
+  async ({ selector, fullPage = false }) => {
     const p = await getPage();
-    const target = selector ? p.locator(selector).first() : p;
-    const bytes = await target.screenshot();
+    const bytes = selector ? await p.locator(selector).first().screenshot() : await p.screenshot({ fullPage });
     const fileName = `${Date.now()}.png`;
     const filePath = join(EXPORTS_DIR, fileName);
     writeFileSync(filePath, bytes);
-    return toolResult({ path: filePath });
+    return toolResult({ path: filePath, width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) });
   }
 );
 

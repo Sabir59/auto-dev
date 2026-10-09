@@ -114,9 +114,14 @@ const MCP_SERVERS = {
     ...(scope.figmaKey ? { env: { FIGMA_READER_ALLOWED_KEYS: scope.figmaKey, ...(process.env.FIGMA_READER_DIR ? { FIGMA_READER_DIR: process.env.FIGMA_READER_DIR } : {}) } } : {}) }),
   "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser } }),
   // The write tools are registered only when the worker may write here (builder.write usable);
-  // otherwise the server itself is read-only, not just its allow list.
-  builder: (profile, scope = {}, usable = []) => ({ command: process.execPath, args: [join(REPO, "mcp", "builder-server.mjs")],
-    env: { BUILDER_ADAPTER_PROFILE: profile === "full" && usable.includes("builder.write") ? "full" : "read", ...(process.env.BUILDER_ADAPTER_DIR ? { BUILDER_ADAPTER_DIR: process.env.BUILDER_ADAPTER_DIR } : {}) } }),
+  // otherwise the server itself is read-only, not just its allow list. Local files it may read
+  // (uploads, page data) are confined to the run's workspace (BUILDER_UPLOAD_ROOT), and only when
+  // it may write.
+  builder: (profile, scope = {}, usable = [], root = null) => {
+    const write = profile === "full" && usable.includes("builder.write");
+    return { command: process.execPath, args: [join(REPO, "mcp", "builder-server.mjs")],
+      env: { BUILDER_ADAPTER_PROFILE: write ? "full" : "read", ...(write && root ? { BUILDER_UPLOAD_ROOT: root } : {}), ...(process.env.BUILDER_ADAPTER_DIR ? { BUILDER_ADAPTER_DIR: process.env.BUILDER_ADAPTER_DIR } : {}) } };
+  },
 };
 // Deny rules are applied by the runtime itself, below the model. Absolute paths are written the
 // runtime's way (//c/Users/...); tested: a Write into such a folder is refused.
@@ -738,7 +743,7 @@ function spawnWorker(run, { resume }) {
   if (def) {
     const rt = workerRuntime(def, ws.profile, scope);
     mcpFile = join(RUNS, `${run.meta.id}.mcp.json`);
-    writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(rt.servers.map((n) => [n, MCP_SERVERS[n](ws.profile, scope, rt.usable)])) }, null, 1));
+    writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(rt.servers.map((n) => [n, MCP_SERVERS[n](ws.profile, scope, rt.usable, ws.root)])) }, null, 1));
     if (existsSync(join(RUNS, `${run.meta.id}.worker.md`))) promptFile = join(RUNS, `${run.meta.id}.worker.md`);
     profileArgs = rt.args;
     if (scope.protect.length) {

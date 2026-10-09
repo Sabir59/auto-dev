@@ -1,0 +1,102 @@
+{
+ "when": "2026-10-09T20:36:53.844Z",
+ "model": "matw-next-application",
+ "entry": "9c0cc877aeb84f04a5f70c5afdad6cea",
+ "results": [
+  {
+   "step": "draft update of a published entry (blocks + breakpoints): saved as a pending draft",
+   "ok": true,
+   "detail": {
+    "id": "9c0cc877aeb84f04a5f70c5afdad6cea",
+    "model": "matw-next-application",
+    "updated": [
+     "data",
+     "breakpoints"
+    ],
+    "breakpoints": {
+     "small": 700,
+     "medium": 1050
+    },
+    "mode": "draft: saved as a pending draft, the live page is unchanged",
+    "wasPublished": "published",
+    "previewUrl": "/adapter-proof-1791558085081?builder.preview=matw-next-application&builder.cachebust=true&builder.overrides.matw-next-application=9c0cc877aeb84f04a5f70c5afdad6cea"
+   }
+  },
+  {
+   "step": "INDEPENDENT: the live page is unchanged (API and site); the preview URL renders the draft",
+   "ok": true,
+   "detail": {
+    "storedHasMarker": false,
+    "draftHasMarker": true,
+    "draftBreakpoints": {
+     "small": 700,
+     "medium": 1050
+    },
+    "siteLiveShowsIt": false,
+    "sitePreviewShowsIt": true
+   }
+  },
+  {
+   "step": "verify reports the pending draft and the preview URL",
+   "ok": true,
+   "detail": {
+    "exists": true,
+    "state": "published",
+    "servedAsLive": true,
+    "url": "/adapter-proof-1791558085081",
+    "servedAtUrl": true,
+    "pendingDraft": true,
+    "previewUrl": "/adapter-proof-1791558085081?builder.preview=matw-next-application&builder.cachebust=true&builder.overrides.matw-next-application=9c0cc877aeb84f04a5f70c5afdad6cea",
+    "lastUpdated": 1791578085940,
+    "firstPublished": null
+   }
+  },
+  {
+   "step": "publish: the DRAFT's content goes live (API and site)",
+   "ok": true,
+   "detail": {
+    "publishedPendingDraft": true,
+    "deliveredBreakpoints": {
+     "medium": 1050,
+     "small": 700
+    },
+    "siteLiveShowsIt": true,
+    "verification": {
+     "exists": true,
+     "state": "published",
+     "servedAsLive": true,
+     "url": "/adapter-proof-1791558085081",
+     "servedAtUrl": true,
+     "pendingDraft": false,
+     "previewUrl": "/adapter-proof-1791558085081?builder.preview=matw-next-application&builder.cachebust=true&builder.overrides.matw-next-application=9c0cc877aeb84f04a5f70c5afdad6cea",
+     "lastUpdated": 1791578118887,
+     "firstPublished": null
+    }
+   }
+  },
+  {
+   "step": "a later write keeps the breakpoints; restore the disposable entry (live)",
+   "ok": true,
+   "detail": {
+    "restoredBlocks": 0,
+    "breakpointsKeptByTheLaterWrite": {
+     "small": 700,
+     "medium": 1050
+    },
+    "siteUpdated": true
+   }
+  },
+  {
+   "step": "upload WorkSans-Regular.ttf for real; its CDN url serves it",
+   "ok": true,
+   "detail": {
+    "url": "https://cdn.builder.io/api/v1/file/assets%2F9c75cbb7f61d45e78e163a81e699cdf1%2F1d09e826ccf841fa8e421ce2df9316e1",
+    "sentType": "font/ttf",
+    "served": 200,
+    "servedType": "font/ttf",
+    "sentBytes": 219484,
+    "servedBytes": 219484
+   }
+  }
+ ]
+}

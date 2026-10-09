@@ -72,27 +72,29 @@ await step("requirements: a test space → write available", async () => {
 await step("Inspect workspace: the editor's run gets only the read tools; its server is read-only", async () => {
   const r = await runOnce(canary.id, editor.id);
   assert(r.tools.join() === "builder_access_status,builder_get_content,builder_list_content,builder_list_models,builder_verify_content", r.tools.join());
-  assert(r.mcp.env.BUILDER_ADAPTER_PROFILE === "read", JSON.stringify(r.mcp.env));
+  assert(r.mcp.env.BUILDER_ADAPTER_PROFILE === "read" && !("BUILDER_UPLOAD_ROOT" in r.mcp.env), JSON.stringify(r.mcp.env));
   return r;
 });
 
 await step("Work workspace: the editor's run gets the write tools too", async () => {
   const r = await runOnce(work.id, editor.id);
-  for (const t of ["builder_create_draft", "builder_update_content", "builder_publish_content"]) assert(r.tools.includes(t), r.tools.join());
+  for (const t of ["builder_create_draft", "builder_update_content", "builder_publish_content", "builder_upload_asset"]) assert(r.tools.includes(t), r.tools.join());
   assert(r.mcp.env.BUILDER_ADAPTER_PROFILE === "full", JSON.stringify(r.mcp.env));
   return r;
 });
 
 await step("Work workspace, read-only worker: no write tools (capabilities narrow, never widen)", async () => {
   const r = await runOnce(work.id, reader.id);
-  assert(!r.tools.some((t) => /create_draft|update_content|publish_content/.test(t)) && r.tools.includes("builder_get_content"), r.tools.join());
+  assert(!r.tools.some((t) => /create_draft|update_content|publish_content|upload_asset/.test(t)) && r.tools.includes("builder_get_content"), r.tools.join());
+  assert(!("BUILDER_UPLOAD_ROOT" in r.mcp.env), "a read-only worker gets no file access");
   return r;
 });
 
-await step("no Builder key or API base reaches the worker: only a profile and a folder path", async () => {
+await step("no Builder key or API base reaches the worker: a profile, the credentials folder, and its own workspace as the only upload root", async () => {
   const r = await runOnce(work.id, editor.id);
   const keys = Object.keys(r.mcp.env).sort();
-  assert(keys.join() === "BUILDER_ADAPTER_DIR,BUILDER_ADAPTER_PROFILE", keys.join());
+  assert(keys.join() === "BUILDER_ADAPTER_DIR,BUILDER_ADAPTER_PROFILE,BUILDER_UPLOAD_ROOT", keys.join());
+  assert(r.mcp.env.BUILDER_UPLOAD_ROOT.toLowerCase() === process.env.WORK.toLowerCase(), `${r.mcp.env.BUILDER_UPLOAD_ROOT} vs ${process.env.WORK}`);
   const rawText = readFileSync(join(DATA, "runs", `${r.id}.raw.jsonl`), "utf8") + readFileSync(join(DATA, "runs", `${r.id}.worker.md`), "utf8");
   assert(!rawText.includes(KEYS.private) && !rawText.includes(KEYS.public), "a key appears in the run's transcript or context");
   return { env: keys };

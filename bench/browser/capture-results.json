@@ -1,0 +1,60 @@
+{
+ "when": "2026-10-09T20:28:48.134Z",
+ "results": [
+  {
+   "step": "mobile viewport (390x844) + networkidle: the page is laid out at that size",
+   "ok": true,
+   "detail": {
+    "viewport": {
+     "width": 390,
+     "height": 844
+    },
+    "pageSaw": "390x844"
+   }
+  },
+  {
+   "step": "fullPage screenshot: the whole 2000px page at 390 wide; plain screenshot: the viewport only",
+   "ok": true,
+   "detail": {
+    "fullPage": {
+     "w": 390,
+     "h": 2050
+    },
+    "viewportOnly": {
+     "w": 390,
+     "h": 844
+    }
+   }
+  },
+  {
+   "step": "the viewport is kept for later navigations; a new one replaces it (1440x900)",
+   "ok": true,
+   "detail": {
+    "kept": "390x844",
+    "desktopFullPage": {
+     "w": 1440,
+     "h": 2050
+    }
+   }
+  },
+  {
+   "step": "invalid viewport sizes are refused",
+   "ok": true,
+   "detail": {
+    "refused": "MCP error -32602: Input validation error: Invalid arguments for tool browser_nav"
+   }
+  },
+  {
+   "step": "inspect profile: viewport works, but there is still no screenshot tool",
+   "ok": true,
+   "detail": {
+    "tools": [
+     "browser_navigate",
+     "browser_get_dom_state",
+     "browser_click",
+     "browser_fill"
+    ]
+   }
+  }
+ ]
+}

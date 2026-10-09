@@ -1,5 +1,5 @@
 {
- "when": "2026-10-09T15:11:45.464Z",
+ "when": "2026-10-09T20:32:39.264Z",
  "note": "Mocked Builder API: proves the adapter's requests and guards, not Builder's behaviour.",
  "results": [
   {
@@ -99,14 +99,17 @@
    "step": "update a PUBLISHED entry: refused without live:true (it goes live), allowed with it",
    "ok": true,
    "detail": {
-    "refused": "Not changed: \"Live page\" is published, and an update to it is live imm",
+    "refused": "Not changed: \"Live page\" is published, so a normal update would be liv",
     "allowed": {
      "id": "seedpublished01",
      "model": "page",
      "updated": [
       "data"
      ],
-     "wasPublished": "published"
+     "breakpoints": null,
+     "mode": "live: the change is live now",
+     "wasPublished": "published",
+     "previewUrl": "/live?builder.preview=page&builder.cachebust=true&builder.overrides.page=seedpublished01"
     }
    }
   },
@@ -117,6 +120,7 @@
     "id": "created00000001",
     "model": "page",
     "before": "draft",
+    "publishedPendingDraft": false,
     "apiSaid": "published",
     "verification": {
      "exists": true,
@@ -124,8 +128,10 @@
      "servedAsLive": true,
      "url": "/adapter-test",
      "servedAtUrl": true,
-     "lastUpdated": 1791558701923,
-     "firstPublished": 1791558701923
+     "pendingDraft": false,
+     "previewUrl": "/adapter-test?builder.preview=page&builder.cachebust=true&builder.overrides.page=created00000001",
+     "lastUpdated": 1791577955740,
+     "firstPublished": 1791577955740
     }
    }
   },
@@ -138,7 +144,9 @@
     "servedAsLive": false,
     "url": "/draft",
     "servedAtUrl": false,
-    "lastUpdated": 1791558699668,
+    "pendingDraft": false,
+    "previewUrl": "/draft?builder.preview=page&builder.cachebust=true&builder.overrides.page=seeddraft00001",
+    "lastUpdated": 1791577954366,
     "firstPublished": null
    }
   },
@@ -153,7 +161,9 @@
      "servedAsLive": false,
      "url": "/ignored",
      "servedAtUrl": false,
-     "lastUpdated": 1791558701995,
+     "pendingDraft": false,
+     "previewUrl": "/ignored?builder.preview=page&builder.cachebust=true&builder.overrides.page=created00000002",
+     "lastUpdated": 1791577955900,
      "firstPublished": null
     }
    }
@@ -191,7 +201,8 @@
      "builder_verify_content",
      "builder_create_draft",
      "builder_update_content",
-     "builder_publish_content"
+     "builder_publish_content",
+     "builder_upload_asset"
     ]
    }
   },
@@ -203,10 +214,119 @@
    }
   },
   {
+   "step": "draft update of a PUBLISHED entry: autoSaveOnly, live page unchanged, draft readable, verify shows it pending",
+   "ok": true,
+   "detail": {
+    "mode": "draft: saved as a pending draft, the live page is unchanged",
+    "stored": "Live v2",
+    "latest": "Live DRAFT v3",
+    "pendingDraft": true
+   }
+  },
+  {
+   "step": "publish with a pending draft: the DRAFT's content goes live (a bare flag would discard it)",
+   "ok": true,
+   "detail": {
+    "publishedPendingDraft": true,
+    "nowLive": "Live DRAFT v3"
+   }
+  },
+  {
+   "step": "update a PUBLISHED entry with neither draft nor live → refused, nothing sent; both → refused",
+   "ok": true,
+   "detail": {
+    "none": "Not changed: \"Live page\" is published, so a normal update would be live immediately. Pass "
+   }
+  },
+  {
+   "step": "dataFile: page data read from a JSON file in the workspace, with breakpoints as meta",
+   "ok": true,
+   "detail": {
+    "updated": [
+     "data",
+     "breakpoints"
+    ],
+    "breakpoints": {
+     "small": 700,
+     "medium": 1050
+    }
+   }
+  },
+  {
+   "step": "breakpoints survive later writes (a write without meta clears them in Builder): draft, publish, live",
+   "ok": true,
+   "detail": {
+    "sentWithEachWrite": [
+     {
+      "small": 700,
+      "medium": 1050
+     },
+     {
+      "small": 700,
+      "medium": 1050
+     },
+     {
+      "small": 700,
+      "medium": 1050
+     }
+    ],
+    "stored": {
+     "small": 700,
+     "medium": 1050
+    }
+   }
+  },
+  {
+   "step": "delivery's injected tracking pixel is never shown, compared or written back",
+   "ok": true,
+   "detail": {
+    "blocksShown": 1,
+    "pendingDraft": false
+   }
+  },
+  {
+   "step": "dataFile refusals: outside the workspace, not an object, invalid JSON, bad breakpoints; nothing sent",
+   "ok": true,
+   "detail": {
+    "refused": 5
+   }
+  },
+  {
+   "step": "upload: an image and a font from the workspace → CDN url, sent with its type and the private key",
+   "ok": true,
+   "detail": {
+    "image": {
+     "url": "https://cdn.builder.io/api/v1/image/assets%2Fmock%2Flogo.png",
+     "name": "logo.png",
+     "type": "image/png",
+     "bytes": 29
+    },
+    "font": {
+     "url": "https://cdn.builder.io/api/v1/image/assets%2Fmock%2FHeading.ttf",
+     "name": "Heading.ttf",
+     "type": "font/ttf",
+     "bytes": 2048
+    }
+   }
+  },
+  {
+   "step": "upload refusals: outside the workspace (absolute and ../), a non-asset type, no workspace, production; nothing sent",
+   "ok": true,
+   "detail": {
+    "refused": [
+     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\bld-out-Bh",
+     "Refused: ../bld-out-BhP4QN/secret.png is outside t",
+     "Only images and fonts can be uploaded (.png, .jpg,",
+     "Reading local files isn't available in this run (n",
+     "Refused: the connected Builder space (\"Mock test s"
+    ]
+   }
+  },
+  {
    "step": "no key ever appears in any tool output",
    "ok": true,
    "detail": {
-    "outputsChecked": 36
+    "outputsChecked": 65
    }
   }
  ]

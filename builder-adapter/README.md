@@ -32,8 +32,9 @@ Create `~/.builder-adapter/credentials.json`, outside the repo. Never commit it 
 | `builder_get_content` | One entry by id: its state and data | Inspect + Work |
 | `builder_verify_content` | Two independent fresh reads: the entry's state, and whether the public Content API serves it live. It also returns the entry's URL so the page itself can be checked with the browser tools | Inspect + Work |
 | `builder_create_draft` | A new entry with `published: "draft"`. Refused if an entry with the same name or URL already exists | Work, `builder.write`, test space |
-| `builder_update_content` | PATCH by id (name and/or data). It never creates an entry and never changes publication state. If the entry is **published**, the change goes live immediately, so it's refused without `live: true` | Work, `builder.write`, test space |
-| `builder_publish_content` | PATCH `published: "published"`, followed by independent reads. The result reports what those reads show, not only what Builder's response said | Work, `builder.write`, test space |
+| `builder_update_content` | PATCH by id: name, top-level data fields, and/or `breakpoints`. Data can come from a JSON file in the workspace (`dataFile`). It never creates an entry and never changes publication state. On a **published** entry it needs `draft: true` (an autosave: the live page is unchanged, preview it at the returned `previewUrl`) or `live: true`. The current breakpoints go along with every write | Work, `builder.write`, test space |
+| `builder_publish_content` | Publishes the **latest saved version**, including a pending draft, then checks it with independent reads. The result reports what those reads show, not only what Builder's response said | Work, `builder.write`, test space |
+| `builder_upload_asset` | Uploads an image or font from the workspace (and only from there) to the space's asset library, and returns its CDN URL | Work, `builder.write`, test space |
 
 Worker capabilities: `builder.read` (read tools, both modes) and `builder.write` (write tools, Work only). Requirements: `builder read` and `builder write`. With no credentials, the tools answer `NEEDS: builder read: …`.
 
@@ -49,6 +50,17 @@ These come from Builder's docs and a Builder staff answer on Builder's forum (ch
 - **The adapter's own flow works end to end.** It created a draft, updated it (still one entry, still a draft, site 404), published it (state published, served at its URL), and the site returned 200 with the updated content (`real-builder-results.json`).
 - **Builder returns drafts to a query by id**, with or without `includeUnpublished`, and even with `query.published=published`. So "returned by id" never means live. `builder_verify_content` decides "live" from the entry's `published` field plus a lookup by URL path, the way a site resolves pages. The real test caught this; the first version of the adapter and of the mock got it wrong.
 - Content API reads with the public key and `includeUnpublished=true` do return drafts.
+
+**The draft workflow (proven 2026-10-10, `bench/builder/real-draft-test.mjs`, 6/6):**
+- `PATCH ?autoSaveOnly=true` on a published entry leaves the live page unchanged, both through the API and on the site.
+- `preview=true` reads return the pending draft.
+- A site using the Builder SDK renders the draft at its URL with `?builder.preview=<model>&builder.cachebust=true&builder.overrides.<model>=<id>`.
+- **A bare `published: "published"` write discards a pending draft.** That's why `builder_publish_content` writes the draft's content back along with the flag.
+- **A write without `meta` clears `meta.breakpoints`**, so every adapter write re-sends the current breakpoints.
+- The site delivery returns the breakpoints, so the SDK uses them.
+- **Delivery reads inject a tracking-pixel block** (`builder-pixel-…`) into `data.blocks`. The adapter strips it before any data is shown, compared or written back. The true stored content is the `preview=true` read.
+- The site reads published content through Builder's CDN, which can lag a change by about 35 seconds. Preview URLs bypass the cache.
+- Uploads work for images and **fonts**. A `.ttf` is served back byte for byte as `font/ttf` from `cdn.builder.io/api/v1/file/…`.
 
 **Not proven yet:** a real worker calling these tools. The worker runtime's Claude login had expired. The worker does get the right tools, per the access suite.
 
