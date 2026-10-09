@@ -1621,7 +1621,10 @@ $("navToggle").onclick = () => { const on = document.body.classList.toggle("show
   const qp = new URL(location.href).searchParams.get("devctlPort");
   if (qp) store.set("devctlPort", qp);
 })();
-const DEVCTL = `http://127.0.0.1:${store.get("devctlPort") || 8796}`;
+// The default daemon manages the default console (8799) only; any other console (a test one, say)
+// has no daemon unless one is named explicitly, so it never polls, or acts on, the real one.
+const devctlPort = store.get("devctlPort") || (location.port === "8799" ? "8796" : null);
+const DEVCTL = devctlPort ? `http://127.0.0.1:${devctlPort}` : null;
 const devctlApi = async (method, path) => {
   const r = await fetch(DEVCTL + path, { method, headers: { "content-type": "application/json", "x-worker-console": "1" } });
   const j = await r.json().catch(() => ({}));
@@ -1644,6 +1647,7 @@ function paintDevSwitch(key, sw, dotEl, st, daemonUp) {
 }
 async function pollDevServers() {
   try {
+    if (!DEVCTL) throw new Error("no dev-control daemon for this console");
     const st = await devctlApi("GET", "/status");
     paintDevSwitch("worker", $("devWorkerSw"), null, st.worker, true);
     paintDevSwitch("bridge", $("devBridgeSw"), $("devBridgeDot"), st.bridge, true);
@@ -1654,7 +1658,7 @@ async function pollDevServers() {
   }
 }
 async function toggleDevServer(key, sw) {
-  if (devBusy[key] || sw.disabled) return;
+  if (devBusy[key] || sw.disabled || !DEVCTL) return;
   const turnOn = sw.getAttribute("aria-checked") !== "true";
   devBusy[key] = true; sw.disabled = true;
   try {
