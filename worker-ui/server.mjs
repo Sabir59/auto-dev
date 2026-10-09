@@ -104,7 +104,7 @@ const CAPABILITIES = {
   "figma.plugin.read": { label: "Read the open Figma file (plugin)", tools: "figma-executor read tools; the plugin must be running", mcp: "figma-executor", allow: FIGMA_READ_TOOLS, profiles: ["full", "inspect"] },
   "figma.plugin.edit": { label: "Change the open Figma file (plugin)", tools: "figma-executor, all tools; the plugin must be running", mcp: "figma-executor", allow: ["mcp__figma-executor"], profiles: ["full"] },
   "builder.read": { label: "Read Builder.io content", tools: "builder: access status, models, content, verify (Builder APIs)", mcp: "builder", allow: BUILDER_READ_TOOLS, profiles: ["full", "inspect"] },
-  "builder.write": { label: "Create, change and publish Builder.io content (test spaces only)", tools: "builder: create draft, update, publish", mcp: "builder", allow: ["mcp__builder"], profiles: ["full"] },
+  "builder.write": { label: "Create, change and publish Builder.io content (test spaces only)", tools: "builder: create draft, update (as a draft or live, inline or from a file), publish, upload assets", mcp: "builder", allow: ["mcp__builder"], profiles: ["full"] },
 };
 // A Team's Figma resource locks the Figma tools of its runs to that one file: the Executor refuses
 // commands while another file is open, and the Reader refuses links to other files.
