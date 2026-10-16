@@ -1,0 +1,68 @@
+{
+ "when": "2026-10-15T08:44:56.144Z",
+ "results": [
+  {
+   "step": "the account icon is in the top bar; the popup opens and shows the Claude login the workers use",
+   "ok": true,
+   "detail": {
+    "email": "s***@gmail.com",
+    "plan": "pro",
+    "authMethod": "claude.ai"
+   }
+  },
+  {
+   "step": "usage is live from Claude Code (its own usage query, no model request): both windows and today's totals",
+   "ok": true,
+   "detail": {
+    "five": "Session (5hr) 89% Resets in 2h 35m",
+    "week": "Weekly (7 day) 36% Resets in 4d 17h",
+    "source": "runtime",
+    "workerRunsStarted": 0
+   }
+  },
+  {
+   "step": "closes with Escape and with a click outside; Escape doesn't close anything else",
+   "ok": true,
+   "detail": {
+    "afterEsc": true,
+    "focusBack": "acctBtn",
+    "afterOutside": true,
+    "insideStays": true
+   }
+  },
+  {
+   "step": "a reading from before its window reset isn't shown as current: no %, no limit warning",
+   "ok": true,
+   "detail": {
+    "five": "Session (5hr) — Reset Thu 1:34 PM; no reading since",
+    "limitWarning": false
+   }
+  },
+  {
+   "step": "a reported limit shows the warning, a full bar and the reset time",
+   "ok": true,
+   "detail": {
+    "five": "Session (5hr) 100% Resets in 2h 15m",
+    "week": "Weekly (7 day) 59% Resets in 3d 4h",
+    "limit": "Limit reached (5-hour session): workers can't continue until it resets."
+   }
+  },
+  {
+   "step": "the route is read-only and carries no secrets",
+   "ok": true,
+   "detail": {
+    "accountFields": [
+     "loggedIn",
+     "email",
+     "orgName",
+     "plan",
+     "authMethod",
+     "apiProvider",
+     "configDir"
+    ],
+    "post": 404
+   }
+  }
+ ],
+ "pageErrors": []
+}

@@ -1,0 +1,123 @@
+{
+ "when": "2026-10-15T08:38:56.405Z",
+ "file": "trekking hiking",
+ "results": [
+  {
+   "step": "a temporary page is created (the current page stays as it was)",
+   "ok": true,
+   "detail": {
+    "page": "14057:936",
+    "filePage": "Home — Redesign"
+   }
+  },
+  {
+   "step": "one batch builds a real section: an auto-layout frame, a card inside it, texts in both",
+   "ok": true,
+   "detail": {
+    "ops": 8,
+    "ok": 8,
+    "created": {
+     "section": "14057:937",
+     "title": "14057:938",
+     "card": "14057:939",
+     "price": "14057:940"
+    },
+    "ms": 168,
+    "modelCalls": 1
+   }
+  },
+  {
+   "step": "the result is in Figma: a compact read of the section shows the structure the batch made",
+   "ok": true,
+   "detail": {
+    "compactChars": 2045,
+    "fullChars": 3653,
+    "children": [
+     "Plans built in one call",
+     "Card — Starter"
+    ]
+   }
+  },
+  {
+   "step": "a partial failure in a real batch: the bad op is reported, the good ones run",
+   "ok": true,
+   "detail": {
+    "failed": "Figma failed to look up 999999:999999 (Unable to establish connection to Figma after 10 seconds. Please check your inter",
+    "thenOk": "ok"
+   }
+  },
+  {
+   "step": "dependency skipping in a real batch: a failed create skips only the ops that use its ref",
+   "ok": true,
+   "detail": {
+    "statuses": [
+     "failed",
+     "skipped",
+     "skipped",
+     "ok"
+    ],
+    "skippedReason": "depends on $box, which failed",
+    "sectionChildren": 4
+   }
+  },
+  {
+   "step": "retry: re-sending only the failed part (corrected) completes it, with nothing duplicated",
+   "ok": true,
+   "detail": {
+    "ok": 3,
+    "sectionChildren": [
+     "Plans built in one call",
+     "Card — Starter",
+     "Added after a failure",
+     "Independent of the box",
+     "Retry box"
+    ]
+   }
+  },
+  {
+   "step": "stopOnError in a real batch: nothing after the failure runs",
+   "ok": true,
+   "detail": {
+    "statuses": [
+     "failed",
+     "skipped"
+    ],
+    "sectionChildren": 5
+   }
+  },
+  {
+   "step": "document-state cache: an identical read says unchanged; an edit through the tools resets it",
+   "ok": true,
+   "detail": {
+    "first": "full",
+    "second": "unchanged",
+    "afterEdit": "Card — edited by batch"
+   }
+  },
+  {
+   "step": "external edit: a change made outside this run (another process, straight to the bridge) is seen, not answered as unchanged",
+   "ok": true,
+   "detail": {
+    "before": "Card — edited by batch",
+    "repeat": "unchanged",
+    "afterExternalEdit": "Card — edited outside"
+   }
+  },
+  {
+   "step": "visual verification is a separate, explicit step: the section exports to an image",
+   "ok": true,
+   "detail": {
+    "export": "C:\\Users\\hp\\Desktop\\millionaire\\auto-dev\\figma-ai-executor\\exports\\14057_937.png",
+    "bytes": 10843
+   }
+  },
+  {
+   "step": "cleanup: the temporary page is deleted; the person's current page never changed",
+   "ok": true,
+   "detail": {
+    "pageRemoved": true,
+    "currentPage": "Home — Redesign"
+   }
+  }
+ ]
+}

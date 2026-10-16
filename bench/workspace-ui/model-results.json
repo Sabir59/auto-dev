@@ -1,0 +1,96 @@
+{
+ "when": "2026-10-15T08:39:52.700Z",
+ "results": [
+  {
+   "step": "the chip opens the models this account can use, as the runtime lists them; Default is selected",
+   "ok": true,
+   "detail": {
+    "models": 13,
+    "first": [
+     "Default (recommended)",
+     "Opus 5.5",
+     "Fable 5.1",
+     "Haiku 4.5"
+    ],
+    "selected": "Default (recommended)"
+   }
+  },
+  {
+   "step": "Haiku takes no effort level (the menu says so); Sonnet 5 + Low for new chats is remembered across a reload",
+   "ok": true,
+   "detail": {
+    "haiku": "Effort (not available for Haiku 4.5)",
+    "chip": "Sonnet 5 Low"
+   }
+  },
+  {
+   "step": "a new chat starts on the chosen model and effort (the runtime reports Sonnet 5)",
+   "ok": true,
+   "detail": {
+    "sent": {
+     "model": "sonnet",
+     "effort": "low"
+    },
+    "runtimeReported": {
+     "init": "claude-sonnet-5",
+     "replies": [
+      "claude-sonnet-5"
+     ]
+    },
+    "chip": "Sonnet 5 Low"
+   }
+  },
+  {
+   "step": "switch the live worker to Haiku 4.5: the next turn runs on Haiku (the runtime's own report)",
+   "ok": true,
+   "detail": {
+    "card": "Model Haiku 4.5 Switched for the worker's next step.",
+    "runtimeReported": {
+     "init": "claude-haiku-4-5-20251001",
+     "replies": [
+      "claude-haiku-4-5-20251001",
+      "claude-haiku-4-5-20251001"
+     ]
+    },
+    "chip": "Haiku 4.5"
+   }
+  },
+  {
+   "step": "the server refuses what the account or model can't do; another site can't switch a run",
+   "ok": true,
+   "detail": {
+    "haikuWithEffort": "Haiku 4.5 doesn't take an effort level.",
+    "unknownModel": "\"gpt-5\" isn't a model this account can use.",
+    "badEffort": "Effort must be one of low, medium, high, xhigh, max.",
+    "foreignOrigin": 403,
+    "newRunUnknownModel": "\"nope\" isn't a model this account can use."
+   }
+  },
+  {
+   "step": "on an ended run the choice applies when it continues: the resumed worker starts on Sonnet 5 at Medium",
+   "ok": true,
+   "detail": {
+    "note": "Applies when this conversation continues.",
+    "runtimeReported": {
+     "init": "claude-sonnet-5",
+     "replies": [
+      "claude-sonnet-5"
+     ]
+    },
+    "turnsByModel": [
+     "claude-sonnet-5",
+     "claude-haiku-4-5-20251001",
+     "claude-sonnet-5"
+    ]
+   }
+  },
+  {
+   "step": "a new chat after that still uses the new-chat choice, not the run's",
+   "ok": true,
+   "detail": {
+    "chip": "Sonnet 5 Low"
+   }
+  }
+ ],
+ "pageErrors": []
+}

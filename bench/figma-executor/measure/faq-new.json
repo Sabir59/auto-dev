@@ -1,0 +1,82 @@
+{
+ "task": "faq",
+ "variant": "new",
+ "when": "2026-10-15T11:36:36.387Z",
+ "status": "waiting",
+ "seconds": 431,
+ "model": "claude-sonnet-5",
+ "done": "Built and visually verified a 1200px hiking-tour FAQ section (header, 6-item accordion with one expanded, contact card) on new page `zz-measure-faq-new`; fixed an unintended white-fill bug found during review.",
+ "costUsdListEstimate": 1.03,
+ "modelRequests": 20,
+ "turns": 1,
+ "context": {
+  "last": 108790,
+  "max": 108790,
+  "window": 1000000
+ },
+ "tokens": {
+  "input": 40,
+  "output": 38064,
+  "cacheRead": 1220051,
+  "cacheWrite": 101768
+ },
+ "tools": {
+  "total": 16,
+  "figma": 13,
+  "docStateReads": 0,
+  "docStateChars": 0,
+  "batches": 3,
+  "batchOps": 93,
+  "visualChecks": 3,
+  "byTool": {
+   "figma_ping": {
+    "calls": 1,
+    "ms": 181
+   },
+   "figma_get_file_info": {
+    "calls": 1,
+    "ms": 49
+   },
+   "figma_list_pages": {
+    "calls": 1,
+    "ms": 42
+   },
+   "figma_create_page": {
+    "calls": 1,
+    "ms": 34
+   },
+   "figma_get_styles": {
+    "calls": 1,
+    "ms": 104
+   },
+   "figma_get_variables": {
+    "calls": 1,
+    "ms": 304
+   },
+   "figma_get_icon_components": {
+    "calls": 1,
+    "ms": 67
+   },
+   "figma_batch": {
+    "calls": 3,
+    "ms": 2723
+   },
+   "figma_export_node": {
+    "calls": 3,
+    "ms": 5545
+   },
+   "Read": {
+    "calls": 3,
+    "ms": 2377
+   }
+  }
+ },
+ "failures": {
+  "toolErrors": 0,
+  "batchOpsFailed": 0
+ },
+ "pageFound": true,
+ "image": "C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\iso\\bench\\figma-executor\\measure\\faq-new.png",
+ "run": "2026-10-15T11-29-21-950Z",
+ "data": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\measure-faq-new-1792063761541"
+}

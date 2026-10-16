@@ -156,6 +156,28 @@ await step("Work workspace: the worker writes a file, it shows as an artifact, i
   await page.click("#endBtn"); await waitStatus(["Finished"], 60000);
   return { artifact: art, content, onDisk: existsSync(join(process.env.WORK, "notes", "summary.md")) && readFileSync(join(process.env.WORK, "notes", "summary.md"), "utf8").trim() };
 });
+await step("a worker that moves into a sub-folder of its workspace (cd) keeps working on the next message, and after a resume", async () => {
+  await page.click('#wsList [data-ws]:has-text("Work test")'); // a fresh chat in the Work workspace
+  await page.fill("#input", 'Run exactly this one shell command and nothing else: cd src && node -e "console.log(process.cwd())" . Then reply with the folder it printed.');
+  await page.click("#send");
+  await waitStatus(["Waiting for you"]);
+  const id = await page.evaluate(() => runId);
+  // the same process takes the next message: its shell is now in src/, and the runtime reports that
+  await page.fill("#input", "Reply with the single word NEXT.");
+  await page.click("#send");
+  await waitStatus(["Working"], 30000); await waitStatus(["Waiting for you", "Failed"]);
+  const sameProcess = await text("#rState"), reply1 = await page.locator(".msg-w").last().innerText();
+  await page.click("#endBtn"); await waitStatus(["Finished"], 60000);
+  // a resume starts a new process on the same session, whose transcript now records src/ too
+  await page.fill("#input", "Reply with the single word AGAIN.");
+  await page.click("#send");
+  await waitStatus(["Working"], 60000); await waitStatus(["Waiting for you", "Failed"]);
+  const resumed = await text("#rState"), reply2 = await page.locator(".msg-w").last().innerText();
+  const inits = readFileSync(join(process.env.DATA, "runs", `${id}.raw.jsonl`), "utf8").split("\n").filter((l) => l.includes('"subtype":"init"')).map((l) => JSON.parse(l).cwd);
+  await page.click("#endBtn"); await waitStatus(["Finished"], 60000);
+  if (sameProcess !== "Waiting for you" || resumed !== "Waiting for you" || !/NEXT/.test(reply1) || !/AGAIN/.test(reply2)) throw new Error(JSON.stringify({ sameProcess, resumed, reply1, reply2, inits }));
+  return { reportedCwds: inits.map((c) => c.split(/[\\/]/).slice(-2).join("/")), nextMessage: sameProcess, afterResume: resumed };
+});
 writeFileSync(join(HERE, "results.json"), JSON.stringify({ when: new Date().toISOString(), results, pageErrors: errors }, null, 1));
 console.log(`\n${results.filter((r) => r.ok).length}/${results.length} passed; page errors: ${errors.length ? errors.join(" | ") : "none"}`);
 await b.close();

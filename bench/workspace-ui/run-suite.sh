@@ -48,6 +48,9 @@ case $suite in
   designer) node bench/workspace-ui/designer-worker-test.mjs 8797 ;;
   teams) TFIX="$(cygpath -w "$FIXROOT/tf")" node bench/workspace-ui/teams-test.mjs 8797 ;;
   builder) node bench/workspace-ui/builder-access-test.mjs 8797 ;;
+  account) node bench/workspace-ui/account-test.mjs 8797 ;;
+  model) node bench/workspace-ui/model-test.mjs 8797 ;;
+  context) node bench/workspace-ui/context-test.mjs 8797 ;;
   builder-real) BUILDER_ADAPTER_DIR="$BDIR" SITE="${SITE:-http://localhost:3000}" node bench/workspace-ui/builder-worker-test.mjs 8797 ;;
   *) echo "unknown suite: $suite" ;;
 esac 2>&1 | grep -E "^(PASS|FAIL)|passed" | cut -c1-160

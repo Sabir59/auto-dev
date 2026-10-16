@@ -18,7 +18,7 @@
 //         | plan | observation | decision | recovery | verification | done | note
 import http from "node:http";
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, lstatSync, realpathSync, renameSync, rmSync, copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, lstatSync, realpathSync, renameSync, rmSync, copyFileSync, openSync, readSync, closeSync } from "node:fs";
 import { join, dirname, resolve, extname, delimiter, relative, isAbsolute, sep, basename } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -39,6 +39,12 @@ const MEMORY = join(DATA, "workers");
 const TEAMS = join(DATA, "teams.json");
 const TEAMDIR = join(DATA, "teams"); // per team: uploaded knowledge, and every saved version
 const PORT = Number(process.env.WORKER_CONSOLE_PORT) || 8799;
+// WORKER_FIGMA_LEGACY=1: the Figma tools as they were before batches and compact reads (comparison runs).
+const FIGMA_LEGACY = process.env.WORKER_FIGMA_LEGACY === "1";
+// The platform rules every worker gets: the reporting convention, plus the efficiency rules (left
+// out in legacy mode, so a comparison run gets exactly the earlier instructions).
+const platformInstructions = () => [readFileSync(join(HERE, "worker-instructions.md"), "utf8").trim(), ...(FIGMA_LEGACY ? [] : ["", readFileSync(join(HERE, "worker-efficiency.md"), "utf8").trim()])].join("\n");
+function platformInstructionsFile() { const f = join(DATA, "instructions.effective.md"); writeFileSync(f, platformInstructions() + "\n"); return f; }
 mkdirSync(RUNS, { recursive: true });
 // "No folder": work that has no project folder (a Figma design, a conversation) runs in this
 // private, console-owned scratch folder, with the Work profile; the worker's own capabilities
@@ -78,7 +84,7 @@ const PROFILES = {
 const mcpConfig = (profile) => {
   const file = join(DATA, `mcp.${profile}.json`);
   writeFileSync(file, JSON.stringify({ mcpServers: {
-    "figma-executor": { command: process.execPath, args: [join(REPO, "mcp", "server.mjs")] },
+    "figma-executor": { command: process.execPath, args: [join(REPO, "mcp", "server.mjs")], ...(FIGMA_LEGACY ? { env: { FIGMA_EXECUTOR_LEGACY: "1" } } : {}) },
     "browser-executor": { command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser } },
   } }, null, 1));
   return file;
@@ -109,7 +115,7 @@ const CAPABILITIES = {
 // A Team's Figma resource locks the Figma tools of its runs to that one file: the Executor refuses
 // commands while another file is open, and the Reader refuses links to other files.
 const MCP_SERVERS = {
-  "figma-executor": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "server.mjs")], ...(scope.figmaKey ? { env: { FIGMA_EXPECTED_FILE_KEY: scope.figmaKey } } : {}) }),
+  "figma-executor": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "server.mjs")], ...(scope.figmaKey || FIGMA_LEGACY ? { env: { ...(scope.figmaKey ? { FIGMA_EXPECTED_FILE_KEY: scope.figmaKey } : {}), ...(FIGMA_LEGACY ? { FIGMA_EXECUTOR_LEGACY: "1" } : {}) } } : {}) }),
   "figma-reader": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")],
     ...(scope.figmaKey ? { env: { FIGMA_READER_ALLOWED_KEYS: scope.figmaKey, ...(process.env.FIGMA_READER_DIR ? { FIGMA_READER_DIR: process.env.FIGMA_READER_DIR } : {}) } } : {}) }),
   "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser } }),
@@ -262,7 +268,7 @@ const SECRETISH = /(figd_|ghp_|github_pat_|sk-[a-z0-9]|xox[bp]-|AKIA[0-9A-Z]{8}|
 // under an edited definition.
 function workerContext(def, rt, status, memory, profile, extra = {}) {
   const cap = (c) => `- ${CAPABILITIES[c].label} (${CAPABILITIES[c].tools})`;
-  return [readFileSync(join(HERE, "worker-instructions.md"), "utf8").trim(), "",
+  return [platformInstructions(), "",
     workspaceSection(extra.workspace), teamSection(extra.team),
     `# You are: ${def.name}`, def.mission && `Mission: ${def.mission}`, def.specialization && `Specialization: ${def.specialization}`, "",
     "## What you can use in this run", rt.usable.length ? rt.usable.map(cap).join("\n") : "- Nothing beyond reading this context.",
@@ -445,6 +451,116 @@ const workerEnv = () => {
   return { ...env, CLAUDE_CONFIG_DIR: CONFIG_DIR };
 };
 
+// ---- account & usage ----------------------------------------------------------------
+// Which Claude account the workers run as, and how much of its plan is used. The account comes
+// from the runtime itself (`claude auth status`, run with the workers' own environment, so it
+// answers for the same config dir); the console never reads the login token. Usage is what the
+// runtime reports to its workers (rate_limit_event: the 5-hour and 7-day windows), so it's as
+// fresh as the last worker message: kept live while workers run, read from the newest run logs
+// at startup.
+let account = { at: 0, value: null }, usage = null, usageError = null, lastModel = null;
+function authStatus() {
+  return new Promise((ok) => {
+    let out = "", p;
+    try { p = spawn(CLAUDE.cmd, ["auth", "status", "--json"], { shell: CLAUDE.shell, env: workerEnv(), windowsHide: true }); } catch { return ok(null); }
+    const timer = setTimeout(() => p.kill(), 20000);
+    p.stdout.on("data", (d) => (out += d));
+    p.on("error", () => {});
+    p.on("close", () => { clearTimeout(timer); try { ok(JSON.parse(out)); } catch { ok(null); } });
+  });
+}
+// The last rate_limit_event (and model) in the newest run logs; only each log's tail is read.
+function usageFromLogs() {
+  const files = readdirSync(RUNS).filter((f) => f.endsWith(".raw.jsonl")).map((f) => ({ f, t: statSync(join(RUNS, f)).mtimeMs })).sort((a, b) => b.t - a.t).slice(0, 5);
+  for (const { f, t } of files) {
+    const p = join(RUNS, f), size = statSync(p).size, n = Math.min(size, 1 << 20), buf = Buffer.alloc(n), fd = openSync(p, "r");
+    try { readSync(fd, buf, 0, n, size - n); } finally { closeSync(fd); }
+    const lines = buf.toString("utf8").split("\n");
+    if (!lastModel) for (let i = lines.length - 1; i >= 0; i--) if (lines[i].includes('"subtype":"init"')) { try { lastModel = JSON.parse(lines[i]).model || null; } catch {} if (lastModel) break; }
+    for (let i = lines.length - 1; i >= 0; i--) if (lines[i].includes('"rate_limit_event"')) { try { return { info: JSON.parse(lines[i]).rate_limit_info, at: t, run: f.replace(".raw.jsonl", "") }; } catch {} }
+  }
+  return null;
+}
+// Questions the runtime answers without the model: the models this account can use (list_models)
+// and the plan's usage (get_usage). A short-lived claude.exe with no tools and no MCP servers, in
+// the console's private scratch folder, answers them on its stream-json control channel. No
+// message is sent, so nothing reaches the model and nothing is used up.
+function runtimeQuery(requests, timeoutMs = 30000) {
+  return new Promise((ok, fail) => {
+    let p, buf = "", settled = false; const answers = {};
+    const finish = (err) => { if (settled) return; settled = true; clearTimeout(timer); try { p.stdin.end(); } catch {} setTimeout(() => { try { p.kill(); } catch {} }, 3000); err ? fail(err) : ok(answers); };
+    try { p = spawn(CLAUDE.cmd, ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--mcp-config", JSON.stringify({ mcpServers: {} }), "--tools", "", "--settings", WORKER_SETTINGS], { cwd: SCRATCH_WS.root, shell: CLAUDE.shell, env: workerEnv(), windowsHide: true }); }
+    catch (e) { return fail(e); }
+    const timer = setTimeout(() => finish(new Error("The Claude runtime didn't answer in time.")), timeoutMs);
+    p.stdout.on("data", (d) => {
+      buf += d; let i;
+      while ((i = buf.indexOf("\n")) >= 0) {
+        const l = buf.slice(0, i); buf = buf.slice(i + 1); let m; try { m = JSON.parse(l); } catch { continue; }
+        if (m.type !== "control_response") continue;
+        answers[m.response?.request_id] = m.response?.subtype === "success" ? m.response.response : { error: m.response?.error || "refused" };
+        if (Object.keys(answers).length === requests.length) finish();
+      }
+    });
+    p.on("error", (e) => finish(e));
+    p.on("close", () => finish(Object.keys(answers).length === requests.length ? null : new Error("The Claude runtime exited without answering.")));
+    requests.forEach((r, i) => p.stdin.write(JSON.stringify({ type: "control_request", request_id: String(i), request: r }) + "\n"));
+  });
+}
+// The plan's usage, live (get_usage): percentages and reset times of the 5-hour and weekly windows.
+let usageAsk = null;
+function refreshUsage() {
+  return (usageAsk ||= runtimeQuery([{ subtype: "get_usage" }]).then((a) => {
+    const r = a["0"];
+    if (!r || r.error || !r.rate_limits) throw new Error(r?.error ? `The runtime refused the usage query: ${r.error}` : "The runtime didn't report usage for this account.");
+    const win = (w) => (w ? { utilization: (w.utilization ?? 0) / 100, resetsAt: w.resets_at ? Math.floor(Date.parse(w.resets_at) / 1000) : null } : null);
+    const five = win(r.rate_limits.five_hour), week = win(r.rate_limits.seven_day);
+    const full = week?.utilization >= 1 ? "seven_day" : five?.utilization >= 1 ? "five_hour" : null;
+    usage = { info: { status: full ? "rejected" : "allowed", rateLimitType: full || "five_hour", unifiedWindows: { five_hour: five, seven_day: week } }, at: Date.now(), run: null, source: "runtime" };
+  }).finally(() => { usageAsk = null; }));
+}
+// The models this account can use, as the runtime lists them (cached ten minutes), and the
+// effort levels each one takes.
+const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
+let models = { at: 0, list: null };
+async function modelCatalogue(refresh) {
+  if (!refresh && models.list && Date.now() - models.at < 600000) return models.list;
+  const r = (await runtimeQuery([{ subtype: "list_models" }]))["0"];
+  if (!r?.models?.length) throw new Error("The Claude runtime didn't list its models.");
+  models = { at: Date.now(), list: r.models.map((m) => ({ value: m.value, resolvedModel: m.resolvedModel || m.value, displayName: m.displayName || m.value, description: m.description || "", efforts: m.supportsEffort ? (m.supportedEffortLevels || []).filter((e) => EFFORTS.includes(e)) : [] })) };
+  return models.list;
+}
+// A run's model and effort, checked against the catalogue. "default" means the runtime's default.
+async function checkRunSettings(b, currentModel) {
+  const out = {}, list = await modelCatalogue();
+  if (b.model !== undefined && b.model !== null) {
+    if (!list.some((m) => m.value === String(b.model))) throw new Error(`"${b.model}" isn't a model this account can use.`);
+    out.model = String(b.model);
+  }
+  if (b.effort !== undefined && b.effort !== null) {
+    if (!EFFORTS.includes(String(b.effort))) throw new Error(`Effort must be one of ${EFFORTS.join(", ")}.`);
+    const m = list.find((x) => x.value === (out.model || currentModel || "default"));
+    if (m && !m.efforts.includes(String(b.effort))) throw new Error(m.efforts.length ? `${m.displayName} takes effort ${m.efforts.join(", ")}.` : `${m.displayName} doesn't take an effort level.`);
+    out.effort = String(b.effort);
+  }
+  return out;
+}
+async function accountReport(refresh) {
+  if (refresh || !account.value || Date.now() - account.at > 60000) {
+    const s = await authStatus();
+    account = { at: Date.now(), value: s ? { loggedIn: !!s.loggedIn, email: s.email || null, orgName: s.orgName || null, plan: s.subscriptionType || null, authMethod: s.authMethod || null, apiProvider: s.apiProvider || null, configDir: s.configDirectory || CONFIG_DIR } : { error: "The Claude runtime didn't report its sign-in status." } };
+  }
+  // Live from the runtime (free); the last reading seen in a run is the fallback.
+  if (refresh || !usage || usage.source !== "runtime" || Date.now() - usage.at > 20000) { try { await refreshUsage(); usageError = null; } catch (e) { usageError = e.message; } }
+  if (!usage) usage = usageFromLogs();
+  const metas = allMetas(), today = new Date().toDateString(), live = active()?.meta || null;
+  const sum = (list) => Math.round(list.reduce((s, m) => s + (m.costUsd || 0), 0) * 100) / 100;
+  const ofToday = metas.filter((m) => new Date(m.createdAt).toDateString() === today);
+  return { account: account.value, checkedAt: new Date(account.at).toISOString(), model: lastModel,
+    usage: usage ? { status: usage.info.status, limitType: usage.info.rateLimitType, fiveHour: usage.info.unifiedWindows?.five_hour || null, sevenDay: usage.info.unifiedWindows?.seven_day || null, overage: usage.info.isUsingOverage ? "in use" : usage.info.overageStatus || null, at: new Date(usage.at).toISOString(), run: usage.run, source: usage.source || "run" } : null, usageError,
+    totals: { runs: metas.length, costUsd: sum(metas), todayRuns: ofToday.length, todayCostUsd: sum(ofToday),
+      active: live ? { id: live.id, status: live.status, worker: live.worker?.name || "General", messages: live.messages, costUsd: Math.round((live.costUsd || 0) * 100) / 100 } : null } };
+}
+
 // ---- workspaces ----------------------------------------------------------------
 // "console" is this repo with the full profile: what every run used before workspaces existed.
 // Others live in workspaces.json, added by the person through the Workspace page (POST /workspaces,
@@ -569,6 +685,13 @@ function sessionCwds(sessionId) {
   }
   return [...cwds];
 }
+// A worker may move into a sub-folder of its own workspace (a `cd` in its shell persists between
+// turns, and the runtime then reports that folder), so "in the workspace" means the bound real root
+// or anywhere under it. Anything outside it is still refused.
+function inWorkspace(root, p) {
+  let r; try { r = realpathSync.native(p); } catch { r = p; }
+  return samePath(r, root) || inRoot(root, r);
+}
 function checkBinding(run, { resume }) {
   // Runs from before workspaces were all created in this repo with the full profile.
   const bound = run.meta.workspace || { id: "console", root: realpathSync.native(REPO), profile: "full" };
@@ -579,8 +702,7 @@ function checkBinding(run, { resume }) {
     if (run.meta.configDir && !samePath(run.meta.configDir, CONFIG_DIR)) throw new Error(`This run's session lives in Claude config dir ${run.meta.configDir}; this console uses ${CONFIG_DIR}.`);
     const cwds = sessionCwds(run.meta.sessionId);
     if (!cwds) throw new Error(`Session ${run.meta.sessionId} isn't in this console's Claude config dir (${CONFIG_DIR}), so it can't be resumed here.`);
-    const real = (p) => { try { return realpathSync.native(p); } catch { return p; } };
-    const elsewhere = cwds.find((c) => !samePath(real(c), bound.root));
+    const elsewhere = cwds.find((c) => !inWorkspace(bound.root, c));
     if (elsewhere) throw new Error(`Session ${run.meta.sessionId} has worked in ${elsewhere}, outside this run's workspace ${bound.root}. It won't be resumed here.`);
   }
   if (!run.meta.workspace) { run.meta.workspace = bound; saveMeta(run); }
@@ -643,13 +765,19 @@ const active = () => [...runs.values()].find(alive);
 
 function translate(run, msg) {
   if (msg.session_id && run.meta.sessionId !== msg.session_id) { run.meta.sessionId = msg.session_id; saveMeta(run); }
+  // The plan's usage as the runtime reports it (for the account panel); not a worker action.
+  if (msg.type === "rate_limit_event") { if (msg.rate_limit_info) usage = { info: msg.rate_limit_info, at: Date.now(), run: run.meta.id }; return; }
+  // The model the runtime reports at each turn: what a model switch actually did.
+  if (msg.type === "system" && msg.subtype === "init" && msg.model) { lastModel = msg.model; if (run.meta.modelUsed !== msg.model) { run.meta.modelUsed = msg.model; saveMeta(run); } }
+  if (msg.type === "control_response") { if (msg.response?.subtype !== "success") emit(run, { type: "failure", summary: `The runtime refused a model or effort change: ${msg.response?.error || "no reason given"}` }); return; }
+  if (msg.type === "system" && msg.subtype === "compact_boundary") { observeCompaction(run, msg); saveMeta(run); return; }
   if (msg.type === "system" && msg.subtype === "init") {
     // Check what the worker reports about itself, not only what it was told.
     const ws = run.meta.workspace;
     const extra = ws.profile === "inspect" ? (msg.tools || []).filter((t) => !t.startsWith("mcp__") && !INSPECT_BUILTINS.includes(t)) : [];
     const off = [...(run.enforced?.noShell ? ["Bash", "PowerShell"] : []), ...(run.enforced?.noWrite ? ["Write", "Edit", "NotebookEdit"] : [])];
     const kept = (msg.tools || []).filter((t) => off.includes(t));
-    const why = !samePath(msg.cwd || "", ws.root) ? `worker reports cwd ${msg.cwd}, not the workspace ${ws.root}`
+    const why = !inWorkspace(ws.root, msg.cwd || "") ? `worker reports cwd ${msg.cwd}, outside the workspace ${ws.root}`
       : extra.length ? `inspect worker has tools outside its allow-list: ${extra.join(", ")}`
       : kept.length ? `an enforced policy turned off ${kept.join(", ")}, but the worker reports having them` : null;
     if (why) { run.bindingError = why; emit(run, { type: "failure", summary: `Stopped the worker: ${why}` }); run.child.kill(); return; }
@@ -662,16 +790,19 @@ function translate(run, msg) {
     return;
   }
   if (msg.type === "assistant") {
+    observeRequest(run, msg);
     for (const b of msg.message?.content || []) {
       if (b.type === "tool_use") {
         const env = envOf(b.name);
         // A file the worker writes is a deliverable once the write succeeds (see the tool_result).
-        run.toolUses.set(b.id, { name: b.name, env, writes: (b.name === "Write" || b.name === "Edit") && b.input?.file_path ? relTo(run.meta.workspace.root, b.input.file_path) : null });
+        run.toolUses.set(b.id, { name: b.name, env, at: Date.now(), input: b.input, writes: (b.name === "Write" || b.name === "Edit") && b.input?.file_path ? relTo(run.meta.workspace.root, b.input.file_path) : null });
         if (b.name === "ToolSearch") continue; // loading tool schemas, not work
+        observeToolUse(run, b);
         run.meta.envs[env] = (run.meta.envs[env] || 0) + 1;
         emit(run, { type: "tool", ref: b.id, env, tool: shortName(b.name), summary: toolSummary(b.name, b.input, run.meta.workspace.root) });
       } else if (b.type === "text" && b.text.trim()) {
         emit(run, { type: "reply", summary: b.text.trim() });
+        if (run.awaitingHandoff) run.handoffText += b.text + "\n";
         for (const raw of b.text.split(/\r?\n/)) {
           const line = raw.replace(/^[\s*>•-]+/, "").replace(/\*\*/g, "").trim();
           const tag = Object.keys(TAGS).find((t) => line.toUpperCase().startsWith(t));
@@ -681,6 +812,8 @@ function translate(run, msg) {
           else if (TAGS[tag] === "remember") remember(run, text);
           else emit(run, { type: TAGS[tag], summary: text });
           if (TAGS[tag] === "needs") run.meta.needs = [...(run.meta.needs || []), text];
+          if (["plan", "decision", "verification", "done"].includes(TAGS[tag])) pushMax(stateOf(run).milestones, { at: new Date().toISOString(), tag: TAGS[tag], text: clip(text, 300) }, 40);
+          if (["failure", "needs"].includes(TAGS[tag])) pushMax(stateOf(run).errors, { at: new Date().toISOString(), tool: TAGS[tag], error: clip(text, 300) }, 15);
           if (TAGS[tag] === "done") { run.meta.done = text; }
           if (TAGS[tag] === "failure") run.meta.failures++;
         }
@@ -694,6 +827,7 @@ function translate(run, msg) {
       if (b.type !== "tool_result") continue;
       const use = run.toolUses.get(b.tool_use_id) || { name: "?", env: "Internal" };
       if (use.name === "ToolSearch") continue;
+      observeToolResult(run, use, b);
       if (b.is_error) run.meta.failures++;
       emit(run, { type: b.is_error ? "failure" : "result", ref: b.tool_use_id, env: use.env, tool: shortName(use.name), summary: clip(resultText(b.content), 220) });
       if (use.writes && !b.is_error) addArtifact(run, use.writes, use.env);
@@ -701,14 +835,21 @@ function translate(run, msg) {
     return;
   }
   if (msg.type === "result") {
-    run.meta.costUsd = (run.meta.costUsd || 0) + (msg.total_cost_usd || 0);
+    // total_cost_usd is a running total for this worker process: add only what this turn added.
+    // (Adding the running total each turn, as before 2026-10-15, over-counted: one 12-turn run
+    // showed $126 for a $48.58 list-price estimate.)
+    const procCost = msg.total_cost_usd || 0;
+    run.meta.costUsd = (run.meta.costUsd || 0) + Math.max(0, procCost - (run.procCost || 0));
+    run.procCost = procCost;
     emit(run, {
       type: "completed",
       summary: msg.is_error ? `Turn ended with an error (${msg.subtype})` : "Turn finished",
       detail: JSON.stringify({ turns: msg.num_turns, seconds: Math.round((msg.duration_ms || 0) / 1000), costUsd: msg.total_cost_usd }),
     });
     if (msg.is_error) run.meta.lastError = msg.subtype;
+    observeTurn(run, msg);
     setStatus(run, "waiting", "ready for a follow-up");
+    if (run.awaitingHandoff && run.pendingContinue) finishContinue(run, run.handoffText.trim());
   }
 }
 // A path relative to the workspace root when it's inside it (the worker writes absolute paths).
@@ -737,7 +878,7 @@ function spawnWorker(run, { resume }) {
   // resume can't run with less enforcement than the workspace has now.
   const snap = run.meta.worker ? readSnapshot(run.meta.id) : null;
   const scope = runScope(run, ws);
-  let mcpFile = mcpConfig(ws.profile), promptFile = join(HERE, "worker-instructions.md"), profileArgs = PROFILES[ws.profile].args;
+  let mcpFile = mcpConfig(ws.profile), promptFile = platformInstructionsFile(), profileArgs = PROFILES[ws.profile].args;
   const def = snap ? snap.definition : scope.protect.length || scope.figmaKey ? GENERAL : null;
   run.enforced = null;
   if (def) {
@@ -756,8 +897,11 @@ function spawnWorker(run, { resume }) {
     "--mcp-config", mcpFile, "--strict-mcp-config",
     "--append-system-prompt-file", promptFile,
     ...profileArgs,
+    // the model and effort chosen for this run (none: the runtime's defaults)
+    ...(run.meta.model && run.meta.model !== "default" ? ["--model", run.meta.model] : []), ...(run.meta.effort ? ["--effort", run.meta.effort] : []),
     ...(resume ? ["--resume", run.meta.sessionId] : []),
   ];
+  telOf(run).processes++; run.procUsage = null; run.procCost = 0; // the runtime's usage counters restart with each process
   const child = spawn(CLAUDE.cmd, CLAUDE.shell ? args.map((a) => (/[\s*()|&,]/.test(a) ? `"${a}"` : a)) : args, { cwd: ws.root, shell: CLAUDE.shell, env: workerEnv() });
   run.child = child;
   run.initSeen = false;
@@ -826,10 +970,142 @@ function saveAttachments(run, atts) {
   return atts.map((a, i) => { const file = `${n + i + 1}-${a.name}`; writeFileSync(join(attDir(run), file), a.buf); return { name: a.name, kind: a.kind, size: a.buf.length, file }; });
 }
 
-function sendToWorker(run, text, atts = [], mentions = []) {
+// ---- run telemetry & task state -----------------------------------------------------------
+// What a run uses and where it stands, read from the worker's own stream (no extra model calls):
+//  - telemetry (meta.telemetry): model requests and the context each one carried, and tokens per
+//    turn (the runtime's own usage numbers); tool calls by kind and their durations, measured here;
+//    document-state reads and their size in CHARACTERS (measured; not tokens); batches; visual
+//    checks (exports); compactions; worker processes.
+//  - task state (runs/<id>.state.json): a short ledger of where the work stands: objective, Figma
+//    file, nodes made, batches, milestones, errors, visual checks, sessions. References to the
+//    evidence, not a transcript; it's what a fresh session is handed (see "continue").
+// Warning thresholds are configurable in <data>/console-settings.json.
+const SETTINGS_FILE = join(DATA, "console-settings.json");
+const DEFAULT_SETTINGS = { contextWarnTokens: 250000, contextWarnFraction: 0.4, docStateWarnChars: 150000 };
+const consoleSettings = () => { try { return { ...DEFAULT_SETTINGS, ...JSON.parse(readFileSync(SETTINGS_FILE, "utf8")) }; } catch { return { ...DEFAULT_SETTINGS }; } };
+const newTelemetry = () => ({ modelRequests: 0, context: { last: 0, max: 0, window: null }, tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, turns: 0,
+  tools: { total: 0, figma: 0, docStateReads: 0, docStateChars: 0, batches: 0, batchOps: 0, visualChecks: 0, slowest: null, byTool: {} }, compactions: [], processes: 0, warnings: [] });
+const telOf = (run) => (run.meta.telemetry ||= newTelemetry());
+const statePath = (id) => join(RUNS, `${id}.state.json`);
+const readTaskState = (id) => (existsSync(statePath(id)) ? JSON.parse(readFileSync(statePath(id), "utf8")) : null);
+const stateOf = (run) => (run.state ||= readTaskState(run.meta.id) || { runId: run.meta.id, objective: String(run.meta.prompt || "").slice(0, 4000), requests: [], figma: null, created: [], batches: [], milestones: [], errors: [], visualChecks: [], sessions: [], compactions: 0, ...(run.meta.continuedFrom ? { continuedFrom: run.meta.continuedFrom } : {}) });
+const saveTaskState = (run) => { if (run.state) writeFileSync(statePath(run.meta.id), JSON.stringify(run.state, null, 1)); };
+const pushMax = (list, item, max) => { list.push(item); if (list.length > max) list.splice(0, list.length - max); };
+const kTok = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n));
+const parseJson = (s) => { try { return JSON.parse(s); } catch { return null; } };
+// The context of one model request, as the runtime reports it: new input + read from cache + written to cache.
+function observeRequest(run, msg) {
+  run.seenRequests ||= new Set();
+  if (!msg.message?.id || run.seenRequests.has(msg.message.id)) return;
+  run.seenRequests.add(msg.message.id);
+  const u = msg.message.usage || {}, t = telOf(run), ctx = (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
+  t.modelRequests++; t.context.last = ctx; t.context.max = Math.max(t.context.max, ctx);
+  checkContext(run);
+}
+function checkContext(run) {
+  const t = telOf(run), s = consoleSettings();
+  const limit = Math.min(s.contextWarnTokens, t.context.window ? t.context.window * s.contextWarnFraction : Infinity);
+  const level = limit > 0 ? Math.floor(t.context.last / limit) : 0;
+  if (level >= 1 && level > (run.meta.contextWarnLevel || 0)) {
+    run.meta.contextWarnLevel = level;
+    const w = { at: new Date().toISOString(), tokens: t.context.last, limit: Math.round(limit), window: t.context.window };
+    pushMax(t.warnings, w, 20);
+    emit(run, { type: "context", summary: `Context is ${kTok(t.context.last)} tokens per request (warning at ${kTok(limit)})`, detail: JSON.stringify(w) });
+  }
+  if (t.tools.docStateChars >= s.docStateWarnChars && !run.meta.docStateWarned) {
+    run.meta.docStateWarned = true;
+    emit(run, { type: "context", summary: `Document reads have returned ${kTok(t.tools.docStateChars)} characters this run`, detail: JSON.stringify({ docStateChars: t.tools.docStateChars, limit: s.docStateWarnChars }) });
+  }
+}
+function observeToolUse(run, b) {
+  const t = telOf(run), name = b.name;
+  t.tools.total++;
+  if (name.startsWith("mcp__figma-executor__")) t.tools.figma++;
+  if (name.endsWith("figma_get_document_state")) t.tools.docStateReads++;
+  if (name.endsWith("figma_batch")) { t.tools.batches++; t.tools.batchOps += Array.isArray(b.input?.ops) ? b.input.ops.length : 0; }
+}
+function observeToolResult(run, use, b) {
+  const t = telOf(run), st = stateOf(run), name = use.name, text = resultText(b.content), ms = use.at ? Date.now() - use.at : null, short = shortName(name);
+  const bt = (t.tools.byTool[short] ||= { calls: 0, ms: 0 }); bt.calls++; if (ms != null) { bt.ms += ms; if (!t.tools.slowest || ms > t.tools.slowest.ms) t.tools.slowest = { tool: short, ms }; }
+  if (name.endsWith("figma_get_document_state")) t.tools.docStateChars += text.length;
+  if (b.is_error) { pushMax(st.errors, { at: new Date().toISOString(), tool: short, error: clip(text, 200) }, 15); return; }
+  const r = parseJson(text);
+  if (name.endsWith("figma_get_file_info") && r?.fileKey) st.figma = { file: r.fileName, fileKey: r.fileKey, page: r.currentPage };
+  else if (name.endsWith("figma_switch_page") && r?.id) st.figma = { ...(st.figma || {}), page: { id: r.id, name: r.name } };
+  else if (/figma_create_(frame|text|component|ellipse|vector|instance|page)$/.test(name) && r?.id) pushMax(st.created, { id: r.id, name: r.name || "" }, 200);
+  else if (name.endsWith("figma_batch") && r?.results) {
+    pushMax(st.batches, { at: new Date().toISOString(), ops: r.ops, ok: r.ok, failed: r.failed, skipped: r.skipped }, 20);
+    for (const [ref, id] of Object.entries(r.created || {})) pushMax(st.created, { id, name: ref, ref }, 200);
+    for (const x of r.results.filter((x) => x.status === "failed")) pushMax(st.errors, { at: new Date().toISOString(), tool: `batch op ${x.i} (${x.tool})`, error: clip(x.error, 200) }, 15);
+  } else if (name.endsWith("figma_export_node")) { t.tools.visualChecks++; pushMax(st.visualChecks, { at: new Date().toISOString(), nodeId: use.input?.id || null, file: r?.path || r?.file || null }, 20); }
+}
+function observeTurn(run, msg) {
+  const t = telOf(run), st = stateOf(run);
+  // modelUsage is cumulative for one worker process: add what this turn added.
+  const now = Object.values(msg.modelUsage || {}).reduce((a, m) => ({ input: a.input + (m.inputTokens || 0), output: a.output + (m.outputTokens || 0), cacheRead: a.cacheRead + (m.cacheReadInputTokens || 0), cacheWrite: a.cacheWrite + (m.cacheCreationInputTokens || 0), window: m.contextWindow || a.window }), { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, window: null });
+  const prev = run.procUsage || { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+  for (const k of ["input", "output", "cacheRead", "cacheWrite"]) t.tokens[k] += Math.max(0, now[k] - prev[k]);
+  run.procUsage = now; t.turns++;
+  if (now.window) t.context.window = now.window;
+  if (run.meta.sessionId && !st.sessions.includes(run.meta.sessionId)) st.sessions.push(run.meta.sessionId);
+  checkContext(run); saveTaskState(run);
+  emit(run, { type: "telemetry", summary: `context ${kTok(t.context.last)} · ${t.modelRequests} requests · ${t.tools.total} tool calls`, detail: JSON.stringify(t) });
+}
+function observeCompaction(run, msg) {
+  const t = telOf(run), m = msg.compact_metadata || {}, c = { at: new Date().toISOString(), trigger: m.trigger || null, pre: m.pre_tokens ?? null, post: m.post_tokens ?? null };
+  pushMax(t.compactions, c, 20); stateOf(run).compactions++;
+  if (c.post != null) { t.context.last = c.post; run.meta.contextWarnLevel = 0; }
+  emit(run, { type: "compacted", summary: c.pre != null ? `Conversation compacted: ${kTok(c.pre)} → ${kTok(c.post)} tokens` : "Conversation compacted", detail: JSON.stringify(c) });
+}
+
+// ---- compaction and fresh-session continuation ------------------------------------------------
+// Compact: Claude Code's own /compact (verified headless), with instructions to keep what this work
+// depends on. Continue: a new run, in the same workspace with the same worker, Team, model and
+// effort, whose first message is a handoff (the task state above plus, by default, the worker's
+// own handoff summary). The old run and its full history stay for audit; the new session gets the
+// handoff, not the transcript. Neither starts while the worker is in the middle of a step.
+const COMPACT_KEEP = "Keep exactly: the original objective and every constraint the person gave; approved design decisions; conventions in use; the Figma file, page and frame/node ids in use and what each is; work done and work outstanding, in order; open errors and questions; how the result must be verified.";
+const HANDOFF_PROMPT = "Stop here and write a handoff for a fresh session that will continue this work without this conversation's history. Don't call any tools. Use exactly these headings: Objective and constraints (verbatim where it matters); Approved decisions; Conventions in use; Done so far (with Figma node ids); Current Figma file, page and frame ids; Outstanding work, in order; Known errors and open questions; How to verify the result. Be concise and complete.";
+const waitExit = (child, ms) => new Promise((ok) => { if (!child || child.exitCode !== null) return ok(); const t = setTimeout(ok, ms); child.once("exit", () => { clearTimeout(t); ok(); }); });
+function handoffMessage(run, st, summary, instruction) {
+  const list = (items, f) => (items.length ? items.map(f).join("\n") : "- none recorded");
+  return clip0([
+    `# Continuing earlier work (handoff from run ${run.meta.id})`,
+    "This conversation continues work from an earlier session. Its full history stays in that run for audit; it isn't repeated here. Inspect the current state of anything you change before changing it.", "",
+    "## Original objective (as the person wrote it)", st.objective, "",
+    st.requests.length ? `## Later requests from the person\n${st.requests.map((r) => `- ${r.text}`).join("\n")}\n` : "",
+    "## Figma", st.figma ? `File "${st.figma.file}" (key ${st.figma.fileKey})${st.figma.page ? `, page "${st.figma.page.name}" (${st.figma.page.id})` : ""}.` : "- not recorded", "",
+    "## Nodes made so far (most recent last)", list(st.created.slice(-60), (c) => `- ${c.id} ${c.name}`), "",
+    st.batches.length ? `## Recent batches\n${st.batches.slice(-8).map((b) => `- ${b.ops} ops: ${b.ok} ok, ${b.failed} failed, ${b.skipped} skipped`).join("\n")}\n` : "",
+    "## Milestones and decisions", list(st.milestones.slice(-25), (m) => `- ${m.tag.toUpperCase()}: ${m.text}`), "",
+    "## Visual checks done", list(st.visualChecks.slice(-10), (v) => `- export of ${v.nodeId || "?"} (${v.at})`), "",
+    "## Open errors and questions", list(st.errors.slice(-10), (e) => `- ${e.tool}: ${e.error}`), "",
+    summary ? `## The previous session's own handoff\n${summary}\n` : "",
+    "## Next", instruction || "Carry on with the outstanding work above.",
+  ].filter((x) => x !== "").join("\n"), 24000);
+}
+const clip0 = (s, n) => (s.length > n ? s.slice(0, n - 40) + "\n…(handoff cut to fit; see the earlier run)" : s);
+async function finishContinue(run, summary) {
+  const pc = run.pendingContinue; run.pendingContinue = null; run.awaitingHandoff = false;
+  const st = stateOf(run);
+  st.handoff = summary ? summary.slice(0, 12000) : null; saveTaskState(run);
+  try {
+    if (alive(run)) { run.endRequested = true; run.child.stdin.end(); await waitExit(run.child, 30000); }
+    const text = handoffMessage(run, st, st.handoff, pc.instruction);
+    const next = await newRun(text, run.meta.workspace.id, [], run.meta.worker?.id || null, [], run.meta.team?.id || null, { model: run.meta.model, effort: run.meta.effort }, { continuedFrom: run.meta.id, handoff: true });
+    writeFileSync(join(RUNS, `${next.meta.id}.handoff.json`), JSON.stringify({ from: run.meta.id, at: new Date().toISOString(), state: st, workerSummary: st.handoff, instruction: pc.instruction || null }, null, 1));
+    run.meta.continuedIn = next.meta.id; saveMeta(run);
+    emit(run, { type: "continued", summary: "Continued in a fresh session", detail: JSON.stringify({ run: next.meta.id }) });
+  } catch (e) { emit(run, { type: "failure", summary: `Couldn't continue in a fresh session: ${e.message}` }); }
+}
+
+function sendToWorker(run, text, atts = [], mentions = [], opts = {}) {
   run.meta.messages++;
   const saved = saveAttachments(run, atts);
-  emit(run, { type: "user", summary: text, ...(saved.length ? { attachments: saved } : {}), ...(mentions.length ? { mentions } : {}) });
+  // A compaction or handoff request is the console's, not the person's: logged as such, not as a chat message.
+  if (opts.as) emit(run, { type: opts.as === "compact" ? "compacting" : "handoff", summary: opts.as === "compact" ? "Compacting the conversation" : "Asking the worker for a handoff summary" });
+  else { emit(run, { type: "user", summary: text, ...(saved.length ? { attachments: saved } : {}), ...(mentions.length ? { mentions } : {}) }); if (run.meta.messages > 1) pushMax(stateOf(run).requests, { at: new Date().toISOString(), text: clip(text, 300) }, 10); }
+  if (opts.as === "handoff") { run.awaitingHandoff = true; run.handoffText = ""; }
   setStatus(run, "running");
   const safe = (t) => defuseAtRefs(run.meta.workspace.root, t); // what the person sees stays as typed
   const full = safe(text) + mentionNote(mentions);
@@ -840,7 +1116,7 @@ function sendToWorker(run, text, atts = [], mentions = []) {
 // A Team run: one of the Team's workers, in the Team's workspace (a request for another workspace
 // is refused), with the Team's context added before the worker's own.
 const teamWorkspace = (t) => t.workspace || "scratch";
-async function newRun(prompt, workspaceId = "console", atts = [], workerId = null, mentions = [], teamId = null) {
+async function newRun(prompt, workspaceId = "console", atts = [], workerId = null, mentions = [], teamId = null, settings = {}, extra = {}) {
   if (active()) throw new Error("A worker is already running. Stop or end it first.");
   const team = teamId ? readTeams().find((t) => t.id === teamId) : null;
   if (teamId && !team) throw new Error(`No Team "${teamId}".`);
@@ -870,20 +1146,21 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
     snap.context = workerContext(def, runtime, status, snap.memory, workspace.profile, { workspace: protect.length || team ? wsInfo : null, team: teamCtx });
   }
   if (active()) throw new Error("A worker is already running. Stop or end it first.");
-  const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, ...(def ? { worker: { id: def.id, name: def.name, version: def.version } } : {}),
+  const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, ...(extra.continuedFrom ? { continuedFrom: extra.continuedFrom } : {}), ...(settings.model ? { model: settings.model } : {}), ...(settings.effort ? { effort: settings.effort } : {}), ...(def ? { worker: { id: def.id, name: def.name, version: def.version } } : {}),
     ...(team ? { team: { id: team.id, name: team.name, version: team.version } } : {}), ...(protect.length ? { policy: { protect, head, onProtected: scope.onProtected } } : {}),
     configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
   const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
   writeFileSync(run.file, ""); writeFileSync(run.raw, "");
   runs.set(id, run);
   saveMeta(run);
+  stateOf(run); saveTaskState(run); // the task state exists from the start (objective, continuedFrom)
   // The run's own copy of the Team's uploaded knowledge: it stays with the run if the Team changes.
   if (scope.knowledgeDir) {
     mkdirSync(scope.knowledgeDir, { recursive: true });
     for (const k of team.knowledge) if (k.type === "upload") copyFileSync(teamPath(team.id, "knowledge", k.file), join(scope.knowledgeDir, k.file));
   }
   // The general worker under an enforced policy gets a context that says why some tools are off.
-  if (!def && protect.length) writeFileSync(join(RUNS, `${id}.worker.md`), [readFileSync(join(HERE, "worker-instructions.md"), "utf8").trim(), "", workspaceSection(wsInfo)].join("\n"));
+  if (!def && protect.length) writeFileSync(join(RUNS, `${id}.worker.md`), [platformInstructions(), "", workspaceSection(wsInfo)].join("\n"));
   if (snap) {
     writeFileSync(snapPath(id), JSON.stringify(snap, null, 1));
     writeFileSync(join(RUNS, `${id}.worker.md`), snap.context);
@@ -900,10 +1177,10 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
 }
 
 // Follow-up: same process if it's waiting; otherwise resume the saved session in a new process.
-function followUp(run, text, atts = [], mentions = []) {
+function followUp(run, text, atts = [], mentions = [], opts = {}) {
   if (alive(run)) {
     if (run.meta.status !== "waiting") throw new Error("The worker is still working on the previous message. Wait for it, or stop it.");
-    return sendToWorker(run, text, atts, mentions);
+    return sendToWorker(run, text, atts, mentions, opts);
   }
   if (active()) throw new Error("Another worker is running. Stop or end it first.");
   if (!run.meta.sessionId) throw new Error("This run has no saved session to resume.");
@@ -911,7 +1188,7 @@ function followUp(run, text, atts = [], mentions = []) {
   emit(run, { type: "note", summary: "Resuming the saved session in a new worker process. Conversation context is kept; tool processes are new (browser pages and logins are gone, Figma and files are unaffected)." });
   setStatus(run, "starting", "resuming session");
   spawnWorker(run, { resume: true });
-  sendToWorker(run, text, atts, mentions);
+  sendToWorker(run, text, atts, mentions, opts);
 }
 
 function loadRun(id) {
@@ -1358,6 +1635,11 @@ http.createServer(async (req, res) => {
     if (parts[0] === "workspaces" && parts[1] && parts.length === 2 && req.method === "DELETE") return json(res, 200, removeWorkspace(decodeURIComponent(parts[1])));
     if (url.pathname === "/pick-folder" && req.method === "POST") return json(res, 200, await pickFolder());
 
+    // the Claude account the workers use, and its usage (read-only)
+    if (url.pathname === "/account" && req.method === "GET") return json(res, 200, await accountReport(url.searchParams.get("refresh") === "1"));
+    // the models this account can use, with the effort levels each takes (read-only)
+    if (url.pathname === "/models" && req.method === "GET") return json(res, 200, { models: await modelCatalogue(url.searchParams.get("refresh") === "1"), efforts: EFFORTS });
+
     // workers: definitions (with live requirement status for a workspace) and their memory
     if (url.pathname === "/workers" && req.method === "GET") {
       let profile = "full"; try { profile = resolveWorkspace(url.searchParams.get("workspace") || "console").profile; } catch {}
@@ -1443,13 +1725,15 @@ http.createServer(async (req, res) => {
       if (b.team && !team) throw new Error(`No Team "${b.team}".`);
       const wsIdArg = workspace === undefined ? (team ? teamWorkspace(team) : "console") : String(workspace);
       const mentions = resolveMentions(resolveWorkspace(wsIdArg).root, b.mentions);
-      return json(res, 200, (await newRun(String(prompt || "").trim(), wsIdArg, atts, b.worker ? String(b.worker) : null, mentions, team?.id || null)).meta);
+      const settings = b.model != null || b.effort != null ? await checkRunSettings({ model: b.model, effort: b.effort }) : {};
+      return json(res, 200, (await newRun(String(prompt || "").trim(), wsIdArg, atts, b.worker ? String(b.worker) : null, mentions, team?.id || null, settings)).meta);
     }
     if (parts[0] === "runs" && parts[1]) {
       const run = loadRun(parts[1]);
       if (!run) return json(res, 404, { error: "no such run" });
       const action = parts[2];
       if (!action && req.method === "GET") return json(res, 200, run.meta);
+      if (action === "state" && req.method === "GET") return json(res, 200, run.state || readTaskState(run.meta.id) || null);
       // An attachment of this run, shown back in the conversation: read-only, never run.
       if (action === "att" && req.method === "GET") {
         const name = decodeURIComponent(parts[3] || "");
@@ -1461,6 +1745,36 @@ http.createServer(async (req, res) => {
       }
       // Actions change state, so they're POST-only (a GET would skip the request guard).
       if (action && req.method !== "POST") return json(res, 405, { error: "Use POST" });
+      // Switch the model or effort of this run. A live worker switches at once (the runtime's own
+      // set_model / effort setting); either way the run keeps the choice, so a resume starts with it.
+      if (action === "settings") {
+        const b = await body(req);
+        const s = await checkRunSettings({ model: b.model, effort: b.effort }, run.meta.model);
+        if (!Object.keys(s).length) throw new Error("Choose a model or an effort level.");
+        const live = alive(run);
+        if (live && s.model) run.child.stdin.write(JSON.stringify({ type: "control_request", request_id: `model-${Date.now()}`, request: { subtype: "set_model", model: s.model } }) + "\n");
+        if (live && s.effort) run.child.stdin.write(JSON.stringify({ type: "control_request", request_id: `effort-${Date.now()}`, request: { subtype: "apply_flag_settings", settings: { effortLevel: s.effort } } }) + "\n");
+        Object.assign(run.meta, s);
+        // a model that doesn't take the run's effort level (Haiku takes none) drops it
+        const now = (models.list || []).find((m) => m.value === (run.meta.model || "default"));
+        if (now && run.meta.effort && !now.efforts.includes(run.meta.effort)) delete run.meta.effort;
+        saveMeta(run);
+        const name = now?.displayName || run.meta.model || "Default";
+        emit(run, { type: "settings", summary: `${name}${run.meta.effort ? ` · effort ${run.meta.effort}` : ""}`, detail: JSON.stringify({ ...s, live }) });
+        return json(res, 200, run.meta);
+      }
+      // Compact this conversation (Claude Code's /compact) or continue the work in a fresh session.
+      if (action === "compact" || action === "continue") {
+        if (["starting", "running"].includes(run.meta.status)) throw new Error("The worker is in the middle of a step. Wait until it's waiting for you, or stop it first.");
+        if (run.pendingContinue) throw new Error("A continuation is already being prepared.");
+        if (run.meta.continuedIn) throw new Error(`This work already continues in run ${run.meta.continuedIn}.`);
+        const b = await body(req);
+        if (action === "compact") { followUp(run, `/compact ${COMPACT_KEEP}${b.instructions ? " Also: " + clip(String(b.instructions), 500) : ""}`, [], [], { as: "compact" }); return json(res, 200, run.meta); }
+        run.pendingContinue = { instruction: b.instruction ? String(b.instruction).slice(0, 4000) : "" };
+        if (b.summary === false) { await finishContinue(run, null); return json(res, 200, run.meta); }
+        try { followUp(run, HANDOFF_PROMPT, [], [], { as: "handoff" }); } catch (e) { run.pendingContinue = null; throw e; }
+        return json(res, 200, run.meta);
+      }
       if (action === "message") {
         const { text, attachments, mentions: ms } = await body(req);
         const atts = readAttachments(attachments);
@@ -1470,7 +1784,7 @@ http.createServer(async (req, res) => {
       }
       if (action === "stop") { if (alive(run)) { run.stopRequested = true; run.child.kill(); } return json(res, 200, run.meta); }
       if (action === "end") { if (alive(run)) { run.endRequested = true; run.child.stdin.end(); } return json(res, 200, run.meta); }
-      if (action === "restart") return json(res, 200, (await newRun(run.meta.prompt, checkBinding(run, { resume: false }).id, [], run.meta.worker?.id || null, [], run.meta.team?.id || null)).meta);
+      if (action === "restart") return json(res, 200, (await newRun(run.meta.prompt, checkBinding(run, { resume: false }).id, [], run.meta.worker?.id || null, [], run.meta.team?.id || null, { model: run.meta.model, effort: run.meta.effort })).meta);
     }
     if (url.pathname === "/events") {
       const run = loadRun(url.searchParams.get("run") || "");

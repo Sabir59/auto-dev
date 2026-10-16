@@ -1,0 +1,69 @@
+{
+ "variant": "new",
+ "when": "2026-10-15T07:44:08.961Z",
+ "status": "waiting",
+ "seconds": 775,
+ "model": "claude-sonnet-5",
+ "done": "Pricing section for the hiking-tour company built on page `zz-measure-new`, exported and visually verified, with one contrast issue found and fixed.",
+ "costUsdListEstimate": 1.23,
+ "modelRequests": 18,
+ "turns": 1,
+ "context": {
+  "last": 119361,
+  "max": 119361,
+  "window": 1000000
+ },
+ "tokens": {
+  "input": 36,
+  "output": 52321,
+  "cacheRead": 1267834,
+  "cacheWrite": 112339
+ },
+ "tools": {
+  "total": 17,
+  "figma": 14,
+  "docStateReads": 0,
+  "docStateChars": 0,
+  "batches": 6,
+  "batchOps": 157,
+  "visualChecks": 3,
+  "byTool": {
+   "figma_ping": {
+    "calls": 1,
+    "ms": 13833
+   },
+   "figma_get_file_info": {
+    "calls": 1,
+    "ms": 10936
+   },
+   "figma_create_page": {
+    "calls": 1,
+    "ms": 6182
+   },
+   "figma_get_styles": {
+    "calls": 1,
+    "ms": 503
+   },
+   "figma_get_variables": {
+    "calls": 1,
+    "ms": 1664
+   },
+   "figma_batch": {
+    "calls": 6,
+    "ms": 4904
+   },
+   "figma_export_node": {
+    "calls": 3,
+    "ms": 5966
+   },
+   "Read": {
+    "calls": 3,
+    "ms": 1872
+   }
+  }
+ },
+ "pageFound": true,
+ "image": "C:\\Users\\hp\\Desktop\\millionaire\\auto-dev\\figma-ai-executor\\bench\\figma-executor\\measure\\new.png",
+ "run": "2026-10-15T07-31-10-569Z",
+ "data": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\measure-new-1792049468850"
+}

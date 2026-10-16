@@ -1,0 +1,74 @@
+{
+ "task": "guides",
+ "variant": "new",
+ "when": "2026-10-15T11:42:54.673Z",
+ "status": "waiting",
+ "seconds": 366,
+ "model": "claude-sonnet-5",
+ "done": "Built the \"Meet our guides\" section on page zz-measure-guides-new (frame id 14060:1026), reusing the file's existing type/color/spacing tokens for consistency with the rest of the product.",
+ "costUsdListEstimate": 0.92,
+ "modelRequests": 14,
+ "turns": 1,
+ "context": {
+  "last": 104665,
+  "max": 104665,
+  "window": 1000000
+ },
+ "tokens": {
+  "input": 28,
+  "output": 37279,
+  "cacheRead": 778666,
+  "cacheWrite": 97643
+ },
+ "tools": {
+  "total": 12,
+  "figma": 10,
+  "docStateReads": 0,
+  "docStateChars": 0,
+  "batches": 3,
+  "batchOps": 107,
+  "visualChecks": 2,
+  "byTool": {
+   "figma_ping": {
+    "calls": 1,
+    "ms": 149
+   },
+   "figma_get_file_info": {
+    "calls": 1,
+    "ms": 131
+   },
+   "figma_create_page": {
+    "calls": 1,
+    "ms": 31
+   },
+   "figma_get_styles": {
+    "calls": 1,
+    "ms": 82
+   },
+   "figma_get_variables": {
+    "calls": 1,
+    "ms": 176
+   },
+   "figma_batch": {
+    "calls": 3,
+    "ms": 3313
+   },
+   "figma_export_node": {
+    "calls": 2,
+    "ms": 3142
+   },
+   "Read": {
+    "calls": 2,
+    "ms": 230
+   }
+  }
+ },
+ "failures": {
+  "toolErrors": 0,
+  "batchOpsFailed": 0
+ },
+ "pageFound": true,
+ "image": "C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\iso\\bench\\figma-executor\\measure\\guides-new.png",
+ "run": "2026-10-15T11-36-42-840Z",
+ "data": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\measure-guides-new-1792064202457"
+}

@@ -1,0 +1,137 @@
+{
+ "when": "2026-10-15T08:38:22.456Z",
+ "results": [
+  {
+   "step": "1. one batch creates dependent elements: a frame, then children that use its ref",
+   "ok": true,
+   "detail": {
+    "created": {
+     "section": "1:100",
+     "card": "1:102",
+     "price": "1:103"
+    },
+    "bridgeCalls": 5,
+    "modelCalls": 1
+   }
+  },
+  {
+   "step": "2. operation order is preserved exactly",
+   "ok": true,
+   "detail": {
+    "order": "F0,F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11"
+   }
+  },
+  {
+   "step": "3. partial failure: the failed op says why, its dependants are skipped, the rest still run; stopOnError stops",
+   "ok": true,
+   "detail": {
+    "statuses": [
+     "ok",
+     "failed",
+     "failed",
+     "skipped",
+     "ok"
+    ],
+    "failedError": "Node not found: 9:999",
+    "skipped": "depends on $bad, which failed",
+    "stopOnError": "stopped after op 0 failed"
+   }
+  },
+  {
+   "step": "4. invalid batches are refused before anything runs: unknown/forbidden tools, bad args, refs used early or twice",
+   "ok": true,
+   "detail": {
+    "unknownTool": "\"eval\" can't be batched. Batchable: create_frame, create_component, create_text, create_ve",
+    "readTool": "\"get_document_state\" can't be batched. Batchable: create_frame, create_component, create_t",
+    "exportTool": "\"export_node\" can't be batched. Batchable: create_frame, create_component, create_text, cr",
+    "badArgs": "figma_create_frame arguments: width Invalid input: expected number, received string",
+    "refBeforeDefined": "$later is used before an earlier op defines ref \"later\".",
+    "duplicateRef": "ref \"a\" is defined twice.",
+    "mixedValidAndInvalid": "figma_create_frame arguments: height Invalid input: expected number, received string"
+   }
+  },
+  {
+   "step": "5. batches are bounded: more than 100 ops, or an oversized payload, are refused",
+   "ok": true,
+   "detail": {
+    "over100": "MCP error -32602: Input validation error: Invalid arguments for tool figma_batch: Too big: expected ",
+    "oversized": "Refused: the batch is larger than 200000 characters. Split it into smaller batches."
+   }
+  },
+  {
+   "step": "6. a node read is compact by default; fields ask for exactly the groups wanted; omissions are listed",
+   "ok": true,
+   "detail": {
+    "compactKeys": [
+     "id",
+     "name",
+     "type",
+     "x",
+     "y",
+     "width",
+     "height",
+     "absX",
+     "absY",
+     "visible",
+     "opacity",
+     "layoutMode",
+     "itemSpacing",
+     "padding",
+     "fill",
+     "children"
+    ],
+    "omitted": [
+     "cornerRadius",
+     "effects",
+     "fills",
+     "strokeWeight",
+     "strokes"
+    ],
+    "compactChars": 1335,
+    "fullChars": 1991
+   }
+  },
+  {
+   "step": "7. full detail stays available, and big answers are bounded with the cut stated",
+   "ok": true,
+   "detail": {
+    "truncated": {
+     "maxChars": 3000,
+     "keptDepth": 0,
+     "note": "Children below depth 0 are summarised as childCount/childIds. Inspect a child by id for its details."
+    },
+    "childCount": 42,
+    "chars": 961
+   }
+  },
+  {
+   "step": "8. a repeated read says 'unchanged'; after an edit (or a change made in Figma) it returns the new state",
+   "ok": true,
+   "detail": {
+    "repeated": {
+     "unchanged": true,
+     "readAt": "2026-10-15T08:38:21.774Z",
+     "note": "Identical to what you were given at readAt (checked against a fresh read). Pass fresh:true if you no longer have it."
+    },
+    "afterEdit": "Pricing v2",
+    "afterExternalChange": "Renamed in Figma by a person",
+    "freshForced": true
+   }
+  },
+  {
+   "step": "9. a batch report is a confirmation, not visual verification (it says so)",
+   "ok": true,
+   "detail": {
+    "verification": "Not visually verified: these are Figma's confirmations of each edit. Export the section and look at it to verify."
+   }
+  },
+  {
+   "step": "LEGACY=1 restores the old behaviour (no batch tool, full dumps), for comparison runs",
+   "ok": true,
+   "detail": {
+    "legacyHasBatch": false,
+    "legacyFullDump": true
+   }
+  }
+ ]
+}

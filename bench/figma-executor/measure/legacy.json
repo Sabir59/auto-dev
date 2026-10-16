@@ -1,0 +1,97 @@
+{
+ "variant": "legacy",
+ "when": "2026-10-15T07:30:19.374Z",
+ "status": "waiting",
+ "seconds": 1088,
+ "model": "claude-sonnet-5",
+ "done": "Built a 1200px pricing section (page `zz-measure-legacy`, frame \"Pricing Section\") with heading, subheading, and three equal-height auto-layout plan cards (Trailhead $89, Summit $149 — recommended, Basecamp $320), each with name, price/person, one-line description, 4 checked features, and a CTA button; exported and fixed a broken checkmark glyph found on inspection.",
+ "costUsdListEstimate": 2.38,
+ "modelRequests": 55,
+ "turns": 1,
+ "context": {
+  "last": 156903,
+  "max": 156903,
+  "window": 1000000
+ },
+ "tokens": {
+  "input": 110,
+  "output": 65051,
+  "cacheRead": 5483801,
+  "cacheWrite": 156901
+ },
+ "tools": {
+  "total": 201,
+  "figma": 195,
+  "docStateReads": 2,
+  "docStateChars": 2650,
+  "batches": 0,
+  "batchOps": 0,
+  "visualChecks": 6,
+  "byTool": {
+   "figma_ping": {
+    "calls": 1,
+    "ms": 256
+   },
+   "figma_get_file_info": {
+    "calls": 1,
+    "ms": 47
+   },
+   "figma_get_styles": {
+    "calls": 1,
+    "ms": 1185
+   },
+   "figma_list_pages": {
+    "calls": 1,
+    "ms": 1208
+   },
+   "figma_get_variables": {
+    "calls": 1,
+    "ms": 137
+   },
+   "figma_get_icon_components": {
+    "calls": 3,
+    "ms": 6830
+   },
+   "figma_create_page": {
+    "calls": 1,
+    "ms": 64
+   },
+   "figma_create_frame": {
+    "calls": 46,
+    "ms": 2040
+   },
+   "figma_set_auto_layout": {
+    "calls": 42,
+    "ms": 1453
+   },
+   "figma_create_text": {
+    "calls": 43,
+    "ms": 3857
+   },
+   "figma_modify_node": {
+    "calls": 46,
+    "ms": 4294
+   },
+   "figma_export_node": {
+    "calls": 6,
+    "ms": 6907
+   },
+   "Read": {
+    "calls": 6,
+    "ms": 1468
+   },
+   "figma_get_document_state": {
+    "calls": 2,
+    "ms": 114
+   },
+   "figma_delete_node": {
+    "calls": 1,
+    "ms": 40
+   }
+  }
+ },
+ "pageFound": true,
+ "image": "C:\\Users\\hp\\Desktop\\millionaire\\auto-dev\\figma-ai-executor\\bench\\figma-executor\\measure\\legacy.png",
+ "run": "2026-10-15T07-11-56-022Z",
+ "data": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\measure-legacy-1792048315707"
+}

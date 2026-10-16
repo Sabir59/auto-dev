@@ -17,3 +17,4 @@ worker-ui/teams.json
 worker-ui/teams/
 worker-ui/runs/*.team/
 worker-ui/devctl-logs/
+worker-ui/instructions.effective.md
