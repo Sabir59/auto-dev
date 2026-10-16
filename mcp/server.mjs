@@ -94,8 +94,10 @@ const BoxParams = {
   cornerRadius: z.number().optional(),
   strokeColor: Color.optional(),
   strokeWeight: z.number().optional().describe("Only applied if strokeColor is set; default 1"),
+  dashPattern: z.array(z.number()).optional().describe("e.g. [4,4] for a dashed stroke. Only visible once strokeColor is also set (same call or a prior one)."),
   dropShadow: DropShadow.optional(),
   opacity: z.number().min(0).max(1).optional(),
+  clipsContent: z.boolean().optional().describe("Whether this frame/component clips children that overflow its bounds (e.g. an absolutely-positioned decorative child bleeding past a rounded corner)."),
 };
 
 const TextParams = {
@@ -295,6 +297,55 @@ server.registerTool(
   tool("BIND_VARIABLE_TO_FILL")
 );
 
+const VariableValue = z.union([
+  Color,
+  z.number(),
+  z.string(),
+  z.boolean(),
+  z.object({ aliasOf: z.string().describe("Another variable's id — makes this mode's value an alias instead of a literal") }),
+]);
+
+server.registerTool(
+  "figma_create_variable",
+  {
+    description:
+      "Create a new Variable (design token) in an existing collection. Optionally set its value per mode in the same call via valuesByMode (literal, or {aliasOf: variableId} to alias another variable) — same effect as figma_set_variable_value per mode, just in one round trip.",
+    inputSchema: {
+      collectionId: z.string(),
+      name: z.string(),
+      type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]),
+      description: z.string().optional(),
+      codeSyntaxWeb: z.string().optional().describe('e.g. "var(--book-band)"'),
+      valuesByMode: z.record(z.string(), VariableValue).optional().describe("Keyed by mode NAME or modeId. COLOR values use {r,g,b,a} 0–1."),
+    },
+  },
+  tool("CREATE_VARIABLE")
+);
+
+server.registerTool(
+  "figma_set_variable_value",
+  {
+    description: "Set an existing Variable's value for one mode — a literal, or an alias to another variable (params.aliasOf).",
+    inputSchema: {
+      variableId: z.string(),
+      mode: z.string().optional().describe("Mode name or modeId. Defaults to the collection's default mode."),
+      value: VariableValue.optional().describe("Literal value — omit if using aliasOf."),
+      aliasOf: z.string().optional().describe("Another variable's id — sets this mode's value to alias it instead of a literal."),
+    },
+  },
+  tool("SET_VARIABLE_VALUE")
+);
+
+server.registerTool(
+  "figma_add_variable_mode",
+  {
+    description:
+      'Add a new mode (e.g. "Dark") to an existing Variable collection. Figma gives every existing variable in the collection a copy of the default mode\'s value as a starting point — follow up with figma_set_variable_value per variable to actually diverge it.',
+    inputSchema: { collectionId: z.string(), name: z.string() },
+  },
+  tool("ADD_VARIABLE_MODE")
+);
+
 server.registerTool(
   "figma_import_component_by_key",
   {
@@ -450,12 +501,12 @@ server.registerTool(
             .array(z.record(z.string(), z.any()))
             .optional()
             .describe(
-              "Raw Figma Paint array (gradients, multiple layers, IMAGE paints) for when `fill` (single solid colour) isn't enough. Replaces every existing fill. Each entry is a Figma Paint object as the plugin API expects it, e.g. {type:\"GRADIENT_LINEAR\", gradientStops:[...], gradientTransform:[...]} or {type:\"IMAGE\", scaleMode, imageHash}. There's no tool to create a fresh imageHash — to reuse a photo already in the file, use copyFillsFrom instead."
+              "Raw Figma Paint array (gradients, multiple layers, IMAGE paints) for when `fill` (single solid colour) isn't enough. Replaces every existing fill. Each entry is a Figma Paint object as the plugin API expects it, e.g. {type:\"GRADIENT_LINEAR\", gradientStops:[...], gradientTransform:[...]} or {type:\"IMAGE\", scaleMode, imageHash}. To get a fresh imageHash from a URL, use figma_import_image instead of building this by hand; to reuse a photo already in the file, use copyFillsFrom."
             ),
           copyFillsFrom: z
             .string()
             .optional()
-            .describe("Id of another node to copy fills from (e.g. to reuse an existing photo's IMAGE paint, whose imageHash isn't otherwise reachable). The source node is only read, never modified. Any IMAGE paint copied this way is set to scaleMode FILL."),
+            .describe("Id of another node to copy fills from (e.g. to reuse an existing photo's IMAGE paint, whose imageHash isn't otherwise reachable). The source node is only read, never modified. Any IMAGE paint copied this way is set to scaleMode FILL. For a brand-new photo from a URL, use figma_import_image instead."),
           ...BoxParams,
           ...TextParams,
         })
@@ -497,6 +548,20 @@ server.registerTool(
     },
   },
   tool("EXPORT_NODE")
+);
+
+server.registerTool(
+  "figma_import_image",
+  {
+    description:
+      "Fetch an image from a URL (e.g. a direct Unsplash photo URL — https://images.unsplash.com/... or a photo page's own direct-download link) and bring it into the file as a real IMAGE fill. If targetId is given, applies it as that node's fill directly; otherwise just returns the new imageHash to use later in figma_modify_node's raw `fills` array. This is the actual capability behind \"use the Unsplash plugin\" — there is no API to drive another Figma plugin's UI from here, but this does the same job without it. Mind Unsplash's attribution/license terms for anything beyond a mockup.",
+    inputSchema: {
+      url: z.string().describe("Direct image URL. Must be reachable without auth (no API key is sent)."),
+      targetId: z.string().optional().describe("Node to apply the image to as a fill. Omit to just import and get back an imageHash."),
+      scaleMode: z.enum(["FILL", "FIT", "CROP", "TILE"]).optional().describe("Default FILL."),
+    },
+  },
+  tool("IMPORT_IMAGE")
 );
 
 // --- Batches ------------------------------------------------------------------

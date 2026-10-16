@@ -67,8 +67,44 @@
           return;
         }
         log("-> sandbox: " + msg.type + " (" + msg.id + ")");
+
+        // IMPORT_IMAGE needs bytes fetched over the network — the one thing
+        // code.js (the plugin sandbox) can never do itself (see its own
+        // top-of-file note). Fetch here, hand the bytes to the sandbox
+        // alongside the original params, and let IMPORT_IMAGE's own handler
+        // take it from there. Every other command still forwards untouched.
+        if (msg.type === "IMPORT_IMAGE") {
+          importImage(msg);
+          return;
+        }
+
         parent.postMessage({ pluginMessage: msg }, "*");
       };
+
+      // Fetches params.url (any domain — see manifest's networkAccess) and
+      // forwards the raw bytes into the sandbox as params.bytes. On failure,
+      // replies with the same {id, ok:false, error} shape code.js itself
+      // would produce, so the bridge/MCP caller sees one consistent error
+      // contract either way.
+      async function importImage(msg) {
+        const { id, params } = msg;
+        const url = params && params.url;
+        if (!url) {
+          ws.send(JSON.stringify({ id, ok: false, error: "IMPORT_IMAGE requires params.url" }));
+          return;
+        }
+        try {
+          const resp = await fetch(url);
+          if (!resp.ok) throw new Error("Fetch failed: " + resp.status + " " + resp.statusText);
+          const buf = await resp.arrayBuffer();
+          const bytes = Array.from(new Uint8Array(buf));
+          log("fetched " + bytes.length + " bytes from " + url);
+          parent.postMessage({ pluginMessage: { id: id, type: "IMPORT_IMAGE", params: Object.assign({}, params, { bytes: bytes }) } }, "*");
+        } catch (err) {
+          log("image fetch failed: " + (err && err.message));
+          ws.send(JSON.stringify({ id, ok: false, error: "IMPORT_IMAGE fetch failed: " + String((err && err.message) || err) }));
+        }
+      }
     }
 
     // Uint8Array -> base64, chunked to avoid call-stack blowups on apply().

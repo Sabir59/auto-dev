@@ -101,6 +101,12 @@ function applyBoxParams(node, p, applied) {
     node.strokeWeight = p.strokeWeight !== undefined ? Number(p.strokeWeight) : 1;
     applied.stroke = true;
   }
+  // dashPattern only has a visible effect alongside a stroke (set above, in
+  // this same call or a prior one) — Figma ignores it on an unstroked node.
+  if (p.dashPattern !== undefined && "dashPattern" in node) {
+    node.dashPattern = p.dashPattern.map(Number);
+    applied.dashPattern = node.dashPattern;
+  }
   if (p.dropShadow !== undefined && "effects" in node) {
     if (!p.dropShadow) {
       node.effects = [];
@@ -124,6 +130,16 @@ function applyBoxParams(node, p, applied) {
   if (p.opacity !== undefined && "opacity" in node) {
     node.opacity = Number(p.opacity);
     applied.opacity = node.opacity;
+  }
+  // Frames/components default to clipping their contents in Figma's own UI,
+  // but a node created through this API doesn't reliably start there —
+  // an absolutely-positioned decorative child (a corner pattern, say) can
+  // silently bleed past the frame's own rounded-rect bounds on canvas even
+  // though figma_export_node (which crops to the target node's box
+  // regardless of true overflow) won't show it, hiding the bug from screenshots.
+  if (p.clipsContent !== undefined && "clipsContent" in node) {
+    node.clipsContent = !!p.clipsContent;
+    applied.clipsContent = node.clipsContent;
   }
 }
 
@@ -190,6 +206,17 @@ async function resolveVariableValue(rawValue, modeName, depth) {
 // complete typography — not just geometry.
 async function serializeDeep(node, depth) {
   const out = serializeShallow(node);
+
+  // Canvas-space position, distinct from the x/y above (which is relative
+  // to the immediate parent). Needed for anything that must line up two
+  // nodes buried at different depths/parents — e.g. a connector line drawn
+  // between a bullet in one auto-layout column and a note in a sibling
+  // column — where local x/y alone can't be summed reliably through nested
+  // auto-layout offsets.
+  if ("absoluteBoundingBox" in node && node.absoluteBoundingBox) {
+    out.absX = node.absoluteBoundingBox.x;
+    out.absY = node.absoluteBoundingBox.y;
+  }
 
   if ("fills" in node && Array.isArray(node.fills) && node.fills.length) {
     out.fills = node.fills
@@ -263,6 +290,65 @@ async function serializeDeep(node, depth) {
   }
   if (depth > 0 && "children" in node) {
     out.children = await Promise.all(node.children.map((c) => serializeDeep(c, depth - 1)));
+  }
+  return out;
+}
+
+// --- Variable write helpers -------------------------------------------
+// Shared by CREATE_VARIABLE/SET_VARIABLE_VALUE/ADD_VARIABLE_MODE. These are
+// the write-side counterpart to GET_VARIABLES (read-only) and
+// BIND_VARIABLE_TO_FILL (binds a node to a variable that already has a
+// value) — together they let a caller create a brand-new token, give it
+// values per mode (literal or aliasing another variable), and add new
+// modes to a collection, none of which the file could do before.
+
+function resolveModeId(collection, mode) {
+  if (!mode) return collection.defaultModeId;
+  const byId = collection.modes.find((m) => m.modeId === mode);
+  if (byId) return byId.modeId;
+  const byName = collection.modes.find((m) => m.name === mode);
+  if (byName) return byName.modeId;
+  throw new Error(`Collection "${collection.name}" has no mode "${mode}" (modes: ${collection.modes.map((m) => m.name).join(", ")})`);
+}
+
+function modeNameFor(collection, modeId) {
+  const m = collection.modes.find((mm) => mm.modeId === modeId);
+  return m ? m.name : modeId;
+}
+
+// COLOR values travel as {r,g,b,a} (0–1 floats, same shape as every other
+// color param in this file) rather than Figma's RGBA object type name, so
+// callers don't need to know Figma's internal type tags for the common case.
+function coerceValue(resolvedType, value) {
+  if (resolvedType === "COLOR") {
+    if (!value || typeof value !== "object") throw new Error(`COLOR variable value must be {r,g,b,a?} (0-1), got ${JSON.stringify(value)}`);
+    return { r: value.r, g: value.g, b: value.b, a: value.a !== undefined ? value.a : 1 };
+  }
+  if (resolvedType === "FLOAT") return Number(value);
+  if (resolvedType === "STRING") return String(value);
+  if (resolvedType === "BOOLEAN") return !!value;
+  return value;
+}
+
+// valuesByMode is keyed by mode NAME or modeId, each entry either a literal
+// (shape depends on resolvedType) or {aliasOf: variableId} to make that
+// mode's value a VARIABLE_ALIAS instead — mirrors how Theme vars in this
+// file already alias Primitives.
+async function applyValuesByMode(variable, collection, valuesByMode) {
+  if (!valuesByMode) return {};
+  const out = {};
+  for (const [modeKey, raw] of Object.entries(valuesByMode)) {
+    const modeId = resolveModeId(collection, modeKey);
+    let value;
+    if (raw && typeof raw === "object" && raw.aliasOf) {
+      const target = await figma.variables.getVariableByIdAsync(raw.aliasOf);
+      if (!target) throw new Error(`aliasOf variable ${raw.aliasOf} not found`);
+      value = { type: "VARIABLE_ALIAS", id: target.id };
+    } else {
+      value = coerceValue(variable.resolvedType, raw);
+    }
+    variable.setValueForMode(modeId, value);
+    out[modeNameFor(collection, modeId)] = raw;
   }
   return out;
 }
@@ -485,15 +571,118 @@ const handlers = {
     if (!variable) throw new Error(`Variable ${variableId} not found or not accessible from this file`);
 
     const idx = fillIndex || 0;
-    const fills = node.fills.map((f, i) => (i === idx ? figma.variables.setBoundVariableForPaint(f, "color", variable) : f));
-    node.fills = fills;
+    // A freshly-created COMPONENT starts with an EMPTY fills array (unlike
+    // createFrame()'s default white) — mapping over it was a silent no-op
+    // that still reported SUCCESS, so a component built via CREATE_COMPONENT
+    // and immediately bound here looked tokenized but rendered with no fill
+    // at all. Pad with an opaque white placeholder paint up to idx so
+    // there's always something there to actually bind.
+    const existing = Array.isArray(node.fills) ? node.fills.slice() : [];
+    const hadFillAtIndex = existing.length > idx;
+    while (existing.length <= idx) existing.push({ type: "SOLID", color: { r: 1, g: 1, b: 1 } });
+    // Force-show: binding a variable is a request to make this fill a live
+    // token, which should never leave it sitting hidden behind visible:false
+    // (observed on at least one freshly-created COMPONENT's default paint —
+    // the bind silently "succeeded" onto an invisible paint, so nothing
+    // rendered and reads filtered it back out as if fills were empty).
+    const target = Object.assign({}, existing[idx], { visible: true });
+    existing[idx] = figma.variables.setBoundVariableForPaint(target, "color", variable);
+    node.fills = existing;
 
     return {
       variableName: variable.name,
       variableId: variable.id,
       collectionId: variable.variableCollectionId,
-      summary: `SUCCESS: Bound fill[${idx}] of ${id} to variable "${variable.name}"`,
+      createdFillSlot: !hadFillAtIndex,
+      summary: hadFillAtIndex
+        ? `SUCCESS: Bound fill[${idx}] of ${id} to variable "${variable.name}"`
+        : `SUCCESS: fill[${idx}] of ${id} didn't exist — created it bound to variable "${variable.name}"`,
     };
+  },
+
+  // Creates a brand-new Variable (design token) in an existing collection.
+  // Was previously impossible from outside Figma's own UI — GET_VARIABLES
+  // could only read what a human had already created there. valuesByMode
+  // (optional) sets its value per mode in the same call, literal or
+  // aliasing another variable — see applyValuesByMode above.
+  CREATE_VARIABLE: async (params) => {
+    const { collectionId, name, type, description, valuesByMode, codeSyntaxWeb } = params || {};
+    if (!collectionId) throw new Error("CREATE_VARIABLE requires params.collectionId");
+    if (!name) throw new Error("CREATE_VARIABLE requires params.name");
+    const resolvedType = String(type || "COLOR").toUpperCase();
+    if (!["COLOR", "FLOAT", "STRING", "BOOLEAN"].includes(resolvedType)) {
+      throw new Error(`CREATE_VARIABLE: type must be COLOR, FLOAT, STRING or BOOLEAN (got "${type}")`);
+    }
+    const collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+    if (!collection) throw new Error(`Variable collection ${collectionId} not found`);
+
+    const variable = figma.variables.createVariable(name, collection, resolvedType);
+    if (description) variable.description = description;
+    if (codeSyntaxWeb) variable.setVariableCodeSyntax("WEB", codeSyntaxWeb);
+
+    const valuesSet = await applyValuesByMode(variable, collection, valuesByMode);
+
+    return {
+      id: variable.id,
+      key: variable.key,
+      name: variable.name,
+      collectionId: collection.id,
+      collectionName: collection.name,
+      type: variable.resolvedType,
+      valuesSet,
+      summary: `SUCCESS: Created variable "${variable.name}" (${variable.resolvedType}) in collection "${collection.name}"`,
+    };
+  },
+
+  // Sets (or overwrites) an existing variable's value for one mode — a
+  // literal, or an alias to another variable via params.aliasOf. The
+  // write-side counterpart BIND_VARIABLE_TO_FILL needed but didn't have:
+  // that tool assumes the variable already has a usable value; this is how
+  // it gets one (e.g. giving every existing Theme role a Dark-mode value
+  // after ADD_VARIABLE_MODE creates the mode).
+  SET_VARIABLE_VALUE: async (params) => {
+    const { variableId, mode, value, aliasOf } = params || {};
+    if (!variableId) throw new Error("SET_VARIABLE_VALUE requires params.variableId");
+    const variable = await figma.variables.getVariableByIdAsync(variableId);
+    if (!variable) throw new Error(`Variable ${variableId} not found`);
+    const collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
+    if (!collection) throw new Error(`Collection ${variable.variableCollectionId} not found for variable ${variableId}`);
+    const modeId = resolveModeId(collection, mode);
+
+    if (aliasOf) {
+      const target = await figma.variables.getVariableByIdAsync(aliasOf);
+      if (!target) throw new Error(`aliasOf variable ${aliasOf} not found`);
+      variable.setValueForMode(modeId, { type: "VARIABLE_ALIAS", id: target.id });
+      return {
+        id: variable.id,
+        mode: modeNameFor(collection, modeId),
+        aliasOf: target.name,
+        summary: `SUCCESS: Set "${variable.name}" (mode ${modeNameFor(collection, modeId)}) to alias "${target.name}"`,
+      };
+    }
+
+    if (value === undefined) throw new Error("SET_VARIABLE_VALUE requires params.value or params.aliasOf");
+    variable.setValueForMode(modeId, coerceValue(variable.resolvedType, value));
+    return {
+      id: variable.id,
+      mode: modeNameFor(collection, modeId),
+      value,
+      summary: `SUCCESS: Set "${variable.name}" (mode ${modeNameFor(collection, modeId)})`,
+    };
+  },
+
+  // Adds a new mode (e.g. "Dark") to an existing collection. Figma gives
+  // every existing variable in the collection a copy of the default mode's
+  // value as a starting point for the new mode automatically — the caller
+  // still needs SET_VARIABLE_VALUE per variable to actually diverge it.
+  ADD_VARIABLE_MODE: async (params) => {
+    const { collectionId, name } = params || {};
+    if (!collectionId) throw new Error("ADD_VARIABLE_MODE requires params.collectionId");
+    if (!name) throw new Error("ADD_VARIABLE_MODE requires params.name");
+    const collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+    if (!collection) throw new Error(`Variable collection ${collectionId} not found`);
+    const modeId = collection.addMode(name);
+    return { collectionId: collection.id, modeId, name, summary: `SUCCESS: Added mode "${name}" to collection "${collection.name}"` };
   },
 
   // Reads a COMPONENT or COMPONENT_SET as design/spec/components.json's
@@ -848,6 +1037,12 @@ const handlers = {
     comp.name = params.name || "Component";
     comp.x = Number(params.x) || 0;
     comp.y = Number(params.y) || 0;
+    // figma.createComponent() starts with an EMPTY fills array — unlike
+    // figma.createFrame(), which defaults to opaque white. Match that
+    // default here so a caller who omits `fill` (meaning to leave it for a
+    // later BIND_VARIABLE_TO_FILL call, say) gets a real paint slot to bind
+    // instead of silently staying invisible.
+    comp.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
     const applied = {};
     applyBoxParams(comp, params, applied);
     appendNode(parent, comp, params.insertIndex);
@@ -1002,6 +1197,40 @@ const handlers = {
     };
   },
 
+  // Imports an external image (e.g. a direct Unsplash photo URL) as a real
+  // Figma IMAGE paint — the actual missing capability behind "use the
+  // Unsplash plugin": there's no API to drive another plugin's UI from
+  // ours, but figma.createImage() does the same job directly. This sandbox
+  // has no network access (see top-of-file note), so ui.html fetches the
+  // bytes BEFORE this handler ever runs and hands them in as params.bytes —
+  // this handler only ever sees bytes already in hand, never a bare URL.
+  IMPORT_IMAGE: async (params) => {
+    const { bytes, targetId, scaleMode } = params || {};
+    if (!bytes || !bytes.length) {
+      throw new Error("IMPORT_IMAGE requires params.url — no bytes arrived, which means ui.html's fetch failed or was skipped");
+    }
+    const image = figma.createImage(new Uint8Array(bytes));
+    const size = await image.getSizeAsync();
+
+    let appliedTo = null;
+    if (targetId) {
+      const node = await getNode(targetId);
+      if (!node || !("fills" in node)) throw new Error(`${targetId} has no fills to apply an image to`);
+      node.fills = [{ type: "IMAGE", scaleMode: scaleMode || "FILL", imageHash: image.hash }];
+      appliedTo = node.id;
+    }
+
+    return {
+      imageHash: image.hash,
+      width: size.width,
+      height: size.height,
+      appliedTo,
+      summary: appliedTo
+        ? `SUCCESS: Imported image (${size.width}x${size.height}) and applied as fill on ${appliedTo}`
+        : `SUCCESS: Imported image (${size.width}x${size.height}), hash ${image.hash} — no targetId given, not applied to any node`,
+    };
+  },
+
   // Merge several single-variant components into one component set. Each
   // source component's name must already follow Figma's "Prop=Value"
   // convention (e.g. "Style=Primary") — that's how Figma derives the variant
@@ -1023,7 +1252,13 @@ const handlers = {
     const node = await getNode(params.id);
     if (!node || !("layoutMode" in node)) throw new Error(`Node ${params.id} does not support auto layout`);
 
-    node.layoutMode = params.layoutMode || "VERTICAL";
+    // Omitting layoutMode on a call meant only to tweak e.g. padding used to
+    // silently reset an already-HORIZONTAL node back to VERTICAL (the
+    // schema's documented default) — a real footgun on any follow-up call.
+    // Preserve the node's current layoutMode when the node is already in
+    // auto layout and the caller didn't specify one; only fall back to
+    // VERTICAL when actually turning auto layout on for the first time.
+    node.layoutMode = params.layoutMode || (node.layoutMode !== "NONE" ? node.layoutMode : "VERTICAL");
     if (params.itemSpacing !== undefined) node.itemSpacing = Number(params.itemSpacing);
     const pad = params.padding || {};
     if (params.paddingAll !== undefined) {
