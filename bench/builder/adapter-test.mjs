@@ -224,6 +224,54 @@ await step("read profile (Inspect, or no builder.write): write tools don't exist
   return { read, full };
 });
 
+await step("draft profile: drafting tools exist, publish does not, even though the key can publish", async () => {
+  const c = await connect({ profile: "draft" });
+  const tools = (await c.client.listTools()).tools.map((x) => x.name);
+  assert(tools.includes("builder_create_draft") && tools.includes("builder_update_content") && tools.includes("builder_upload_asset") && tools.includes("builder_verify_content"), JSON.stringify(tools));
+  assert(!tools.includes("builder_publish_content"), `publish tool must not exist under the draft profile: ${JSON.stringify(tools)}`);
+  await c.close();
+  return { tools };
+});
+
+await step("draft profile: a normal draft:true update works", async () => {
+  const c = await connect({ profile: "draft" });
+  const i = mock.log.length;
+  const d = await c.call("builder_create_draft", { model: "page", name: "Draft-profile page" });
+  const r = await c.call("builder_update_content", { model: "page", id: d.json.id, data: { title: "Draft profile v2" }, draft: true });
+  await c.close();
+  assert(!d.isError && !r.isError, d.text + " | " + r.text);
+  assert(writesSince(i).length === 2, "both writes went through");
+  return { created: d.json.id, updated: r.json };
+});
+
+await step("draft profile: live:true is refused by the adapter itself, not just a missing tool", async () => {
+  const c = await connect({ profile: "draft" });
+  const i = mock.log.length;
+  const r = await c.call("builder_update_content", { model: "page", id: "seedpublished01", data: { title: "Should never go live" }, live: true });
+  await c.close();
+  assert(r.isError && /draft-only/.test(r.text) && /live:true/.test(r.text), r.text);
+  assert(writesSince(i).length === 0, "nothing was sent to Builder");
+  return { error: r.text };
+});
+
+await step("draft profile: publishContent itself refuses even if something called it directly (defense in depth)", async () => {
+  // CRED_DIR is read once, at module evaluation, so BUILDER_ADAPTER_DIR must be set before this
+  // module is first imported anywhere in this process; BUILDER_ADAPTER_PROFILE is read live, on
+  // every call, so it's fine to flip at call time. This proves the refusal lives in the function
+  // itself (below any MCP tool, allow-list or profile check), not only in what builder-server.mjs
+  // chooses to register.
+  process.env.BUILDER_ADAPTER_DIR = credDir(TEST);
+  process.env.BUILDER_ADMIN_BASE = process.env.BUILDER_CONTENT_BASE = process.env.BUILDER_WRITE_BASE = BASE;
+  const { publishContent } = await import("../../builder-adapter/builder.mjs");
+  const prevProfile = process.env.BUILDER_ADAPTER_PROFILE;
+  process.env.BUILDER_ADAPTER_PROFILE = "draft";
+  let threw = null;
+  try { await publishContent("page", "seedpublished01"); } catch (e) { threw = e; }
+  process.env.BUILDER_ADAPTER_PROFILE = prevProfile;
+  assert(threw && threw.code === "DRAFT_ONLY_REFUSED", threw ? JSON.stringify({ code: threw.code, message: threw.message }) : "did not throw");
+  return { code: threw.code };
+});
+
 await step("base URL override to a non-local host is refused (the key is never sent there)", async () => {
   const c = await connect({ bases: "https://attacker.example" });
   const r = await c.call("builder_list_models");

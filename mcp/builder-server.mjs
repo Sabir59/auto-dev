@@ -2,15 +2,21 @@
 // Builder.io adapter as an MCP server: native tools over Builder's documented HTTP APIs
 // (builder-adapter/builder.mjs). No Builder MCP server, no model calls; the worker decides.
 //
-// BUILDER_ADAPTER_PROFILE=full registers every tool. Anything else (unset included) is read-only:
-// the write tools aren't registered at all, so an Inspect run can't call them whatever it's told.
-// Writes are additionally refused unless the connected Space is marked as a test space.
+// BUILDER_ADAPTER_PROFILE=full registers every tool, including publish. =draft registers the
+// drafting tools (create, update, upload) but never builder_publish_content, and the adapter
+// itself additionally refuses live:true in that mode — so a draft-only worker has no path to a
+// live write even if it tried, not merely an unregistered button. Anything else (unset included)
+// is read-only: the write tools aren't registered at all, so an Inspect run can't call them
+// whatever it's told. Writes are additionally refused unless the connected Space is marked as a
+// test space (builder-adapter/builder.mjs).
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import * as B from "../builder-adapter/builder.mjs";
 
 const FULL = process.env.BUILDER_ADAPTER_PROFILE === "full";
+const DRAFT = process.env.BUILDER_ADAPTER_PROFILE === "draft";
+const CAN_WRITE = FULL || DRAFT;
 const ok = (v) => ({ content: [{ type: "text", text: JSON.stringify(v, null, 1) }] });
 const NEEDS = "NEEDS: builder read: Builder API credentials for the target space are missing on this computer. Someone with access must add them once (builder-adapter/README.md). Stop and ask for them; don't try another way in.";
 const fail = (e) => ({ isError: true, content: [{ type: "text", text: e.code === "NO_CREDENTIALS" ? NEEDS : e.code === "PRODUCTION_REFUSED" ? `${e.message} If this change is really wanted, ask the person; don't try another way.` : e.message }] });
@@ -45,7 +51,7 @@ server.registerTool("builder_verify_content", {
   inputSchema: { model, id },
 }, run(({ model, id }) => B.verifyContent(model, id)));
 
-if (FULL) {
+if (CAN_WRITE) {
   server.registerTool("builder_create_draft", {
     description: "Create a new DRAFT entry (never published by this tool). Refused if an entry with the same name or url already exists in the model: update that one instead. Test spaces only.",
     inputSchema: { model, name: z.string(), data: z.record(z.string(), z.any()).optional().describe("The entry's data fields (for a page, e.g. title, blocks)"), url: z.string().optional().describe("For page models: the url path, e.g. /test-page") },
@@ -63,15 +69,20 @@ if (FULL) {
     },
   }, run(({ model, id, name, data, dataFile, breakpoints, draft, live }) => B.updateContent(model, id, { name, data, dataFile, breakpoints, draft, live })));
 
-  server.registerTool("builder_publish_content", {
-    description: "Publish an existing entry's latest saved version, a pending draft included (a bare published flag would discard the draft, so its content is written with it), then report what independent reads show: its state and whether it's served as live at its url. Builder's own response isn't treated as proof. Test spaces only.",
-    inputSchema: { model, id },
-  }, run(({ model, id }) => B.publishContent(model, id)));
-
   server.registerTool("builder_upload_asset", {
     description: "Upload an image or font file from your workspace to the space's asset library and get its public CDN url (to use in blocks, or in @font-face). Only files inside your workspace; images (png, jpg, webp, gif, svg) and fonts (ttf, otf, woff, woff2), up to 20 MB. Test spaces only.",
     inputSchema: { path: z.string().describe("Path relative to your workspace"), name: z.string().optional(), altText: z.string().optional() },
   }, run(({ path, name, altText }) => B.uploadAsset(path, { name, altText })));
+}
+
+// Publish is FULL-only: a draft-scoped worker never even has this tool, on top of the adapter's
+// own refusal of live:true (builder-adapter/builder.mjs's assertPublishAllowed), so there are two
+// independent layers between a draft-only run and a live write.
+if (FULL) {
+  server.registerTool("builder_publish_content", {
+    description: "Publish an existing entry's latest saved version, a pending draft included (a bare published flag would discard the draft, so its content is written with it), then report what independent reads show: its state and whether it's served as live at its url. Builder's own response isn't treated as proof. Test spaces only.",
+    inputSchema: { model, id },
+  }, run(({ model, id }) => B.publishContent(model, id)));
 }
 
 await server.connect(new StdioServerTransport());

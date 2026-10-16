@@ -1,5 +1,5 @@
 {
- "when": "2026-10-09T20:32:39.264Z",
+ "when": "2026-10-16T08:21:32.329Z",
  "note": "Mocked Builder API: proves the adapter's requests and guards, not Builder's behaviour.",
  "results": [
   {
@@ -130,8 +130,8 @@
      "servedAtUrl": true,
      "pendingDraft": false,
      "previewUrl": "/adapter-test?builder.preview=page&builder.cachebust=true&builder.overrides.page=created00000001",
-     "lastUpdated": 1791577955740,
-     "firstPublished": 1791577955740
+     "lastUpdated": 1792138878045,
+     "firstPublished": 1792138878045
     }
    }
   },
@@ -146,7 +146,7 @@
     "servedAtUrl": false,
     "pendingDraft": false,
     "previewUrl": "/draft?builder.preview=page&builder.cachebust=true&builder.overrides.page=seeddraft00001",
-    "lastUpdated": 1791577954366,
+    "lastUpdated": 1792138873622,
     "firstPublished": null
    }
   },
@@ -163,7 +163,7 @@
      "servedAtUrl": false,
      "pendingDraft": false,
      "previewUrl": "/ignored?builder.preview=page&builder.cachebust=true&builder.overrides.page=created00000002",
-     "lastUpdated": 1791577955900,
+     "lastUpdated": 1792138878169,
      "firstPublished": null
     }
    }
@@ -201,9 +201,57 @@
      "builder_verify_content",
      "builder_create_draft",
      "builder_update_content",
-     "builder_publish_content",
+     "builder_upload_asset",
+     "builder_publish_content"
+    ]
+   }
+  },
+  {
+   "step": "draft profile: drafting tools exist, publish does not, even though the key can publish",
+   "ok": true,
+   "detail": {
+    "tools": [
+     "builder_access_status",
+     "builder_list_models",
+     "builder_list_content",
+     "builder_get_content",
+     "builder_verify_content",
+     "builder_create_draft",
+     "builder_update_content",
      "builder_upload_asset"
     ]
+   }
+  },
+  {
+   "step": "draft profile: a normal draft:true update works",
+   "ok": true,
+   "detail": {
+    "created": "created00000004",
+    "updated": {
+     "id": "created00000004",
+     "model": "page",
+     "updated": [
+      "data"
+     ],
+     "breakpoints": null,
+     "mode": "draft: saved as a pending draft, the live page is unchanged",
+     "wasPublished": "draft",
+     "previewUrl": null
+    }
+   }
+  },
+  {
+   "step": "draft profile: live:true is refused by the adapter itself, not just a missing tool",
+   "ok": true,
+   "detail": {
+    "error": "Refused: this run is restricted to draft-only Builder writes, so it can't go live (live:true). Only draft:true changes are allowed. If this needs to change, ask whoever configured this worker or Team to change that policy; a worker can't grant itself this."
+   }
+  },
+  {
+   "step": "draft profile: publishContent itself refuses even if something called it directly (defense in depth)",
+   "ok": true,
+   "detail": {
+    "code": "DRAFT_ONLY_REFUSED"
    }
   },
   {
@@ -314,8 +362,8 @@
    "ok": true,
    "detail": {
     "refused": [
-     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\bld-out-Bh",
-     "Refused: ../bld-out-BhP4QN/secret.png is outside t",
+     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\bld-out-bm",
+     "Refused: ../bld-out-bmruMi/secret.png is outside t",
      "Only images and fonts can be uploaded (.png, .jpg,",
      "Reading local files isn't available in this run (n",
      "Refused: the connected Builder space (\"Mock test s"
@@ -326,7 +374,7 @@
    "step": "no key ever appears in any tool output",
    "ok": true,
    "detail": {
-    "outputsChecked": 65
+    "outputsChecked": 68
    }
   }
  ]

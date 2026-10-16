@@ -12,6 +12,10 @@
 // "environment" is the person's statement about the Space. Only "test" allows any write: this
 // version never creates, changes or publishes content in a Space marked (or defaulting to)
 // production. Keys never appear in tool results or errors.
+//
+// BUILDER_ADAPTER_PROFILE=draft: an additional, narrower mode (set by the console, never by the
+// worker) for a worker or Team scoped to draft-only writes. publishContent() and updateContent()
+// with live:true both refuse here, in the adapter itself, regardless of how they're called.
 import { readFileSync, existsSync, statSync, realpathSync } from "node:fs";
 import { join, resolve, relative, isAbsolute, extname, basename } from "node:path";
 import { homedir } from "node:os";
@@ -143,6 +147,17 @@ function writer() {
   if (c.environment !== "test") throw new BuilderError(`Refused: the connected Builder space ("${c.label}") isn't marked as a test space, and this adapter never writes to a production space.`, { code: "PRODUCTION_REFUSED" });
   return c;
 }
+// Draft-only mode (BUILDER_ADAPTER_PROFILE=draft, set by the console from a worker's or Team's
+// scope, never by the worker itself): the worker may create and update drafts, but publishing and
+// going live are refused here, in the adapter, below the model and below the MCP tool list — not
+// only by the publish tool not being registered. Called at the top of every operation that would
+// make a change live, so no caller of this module (whatever MCP tool, script or future entry point)
+// can reach a live write while this env var is set.
+function assertPublishAllowed(action) {
+  if (process.env.BUILDER_ADAPTER_PROFILE === "draft") {
+    throw new BuilderError(`Refused: this run is restricted to draft-only Builder writes, so it can't ${action}. Only draft:true changes are allowed. If this needs to change, ask whoever configured this worker or Team to change that policy; a worker can't grant itself this.`, { code: "DRAFT_ONLY_REFUSED" });
+  }
+}
 const writeReq = (c, method, path, body) => request(`${WRITE()}${path}`, { method, headers: { authorization: `Bearer ${c.privateKey}`, "content-type": "application/json" }, body: JSON.stringify(body) }, c);
 
 // A draft is never a second copy of something that already exists: an entry in the same model
@@ -170,6 +185,7 @@ export async function createDraft(model, { name, data = {}, url } = {}) {
 // through publish.
 export async function updateContent(model, id, { name, data, dataFile, breakpoints, live = false, draft = false } = {}) {
   const c = writer();
+  if (live) assertPublishAllowed("go live (live:true)");
   if (live && draft) throw new BuilderError("Choose draft:true or live:true, not both.", { code: "BAD_INPUT" });
   if (data !== undefined && dataFile) throw new BuilderError("Give data or dataFile, not both.", { code: "BAD_INPUT" });
   if (dataFile) {
@@ -199,6 +215,7 @@ export async function updateContent(model, id, { name, data, dataFile, breakpoin
 // API's response isn't treated as proof: the result says what independent reads show.
 export async function publishContent(model, id) {
   const c = writer();
+  assertPublishAllowed("publish");
   const stored = await byId(model, id, c, { includeUnpublished: true });
   if (!stored) throw new BuilderError(`No entry ${id} in model ${model}; nothing was published.`, { code: "NOT_FOUND" });
   const latest = await byId(model, id, c, { includeUnpublished: true, preview: true }) || stored;

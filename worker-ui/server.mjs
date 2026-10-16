@@ -100,6 +100,7 @@ const mcpConfig = (profile) => {
 // Capabilities name real tools. A capability turns tools on; it grants access to nothing.
 const FIGMA_READ_TOOLS = INSPECT_MCP.filter((t) => t.startsWith("mcp__figma-executor__"));
 const BUILDER_READ_TOOLS = ["access_status", "list_models", "list_content", "get_content", "verify_content"].map((t) => `mcp__builder__builder_${t}`);
+const BUILDER_DRAFT_TOOLS = ["create_draft", "update_content", "upload_asset"].map((t) => `mcp__builder__builder_${t}`);
 const CAPABILITIES = {
   "files.read": { label: "Read files in the workspace", tools: "Read, Glob, Grep", builtins: ["Read", "Glob", "Grep"], allow: ["Read", "Glob", "Grep"], profiles: ["full", "inspect"] },
   "files.write": { label: "Edit files in the workspace", tools: "Write, Edit", builtins: ["Write", "Edit"], allow: ["Write", "Edit"], profiles: ["full"] },
@@ -111,6 +112,12 @@ const CAPABILITIES = {
   "figma.plugin.edit": { label: "Change the open Figma file (plugin)", tools: "figma-executor, all tools; the plugin must be running", mcp: "figma-executor", allow: ["mcp__figma-executor"], profiles: ["full"] },
   "builder.read": { label: "Read Builder.io content", tools: "builder: access status, models, content, verify (Builder APIs)", mcp: "builder", allow: BUILDER_READ_TOOLS, profiles: ["full", "inspect"] },
   "builder.write": { label: "Create, change and publish Builder.io content (test spaces only)", tools: "builder: create draft, update (as a draft or live, inline or from a file), publish, upload assets", mcp: "builder", allow: ["mcp__builder"], profiles: ["full"] },
+  // Narrower than builder.write: drafts only, never publish, never live:true. Enforced twice, not
+  // just by this allow list — builder_publish_content isn't even registered by the MCP server in
+  // this mode, and the adapter itself refuses live:true below the tool layer (builder-adapter/
+  // builder.mjs's assertPublishAllowed). A worker can't turn this into "builder.write": that would
+  // require editing this file, which no worker capability grants access to.
+  "builder.write.draft": { label: "Create and change Builder.io content as drafts only (test spaces only) — publishing is not available", tools: "builder: create draft, update as a draft (inline or from a file), upload assets", mcp: "builder", allow: BUILDER_DRAFT_TOOLS, profiles: ["full"] },
 };
 // A Team's Figma resource locks the Figma tools of its runs to that one file: the Executor refuses
 // commands while another file is open, and the Reader refuses links to other files.
@@ -119,14 +126,19 @@ const MCP_SERVERS = {
   "figma-reader": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")],
     ...(scope.figmaKey ? { env: { FIGMA_READER_ALLOWED_KEYS: scope.figmaKey, ...(process.env.FIGMA_READER_DIR ? { FIGMA_READER_DIR: process.env.FIGMA_READER_DIR } : {}) } } : {}) }),
   "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser } }),
-  // The write tools are registered only when the worker may write here (builder.write usable);
-  // otherwise the server itself is read-only, not just its allow list. Local files it may read
+  // The write tools are registered only when the worker may write here (builder.write or the
+  // narrower builder.write.draft usable); otherwise the server itself is read-only, not just its
+  // allow list. builder.write.draft gets BUILDER_ADAPTER_PROFILE=draft: builder_publish_content
+  // isn't registered at all in that mode, and the adapter refuses live:true even if something
+  // tried to call update_content that way (builder-adapter/builder.mjs). Local files it may read
   // (uploads, page data) are confined to the run's workspace (BUILDER_UPLOAD_ROOT), and only when
   // it may write.
   builder: (profile, scope = {}, usable = [], root = null) => {
-    const write = profile === "full" && usable.includes("builder.write");
+    const full = profile === "full" && usable.includes("builder.write");
+    const draft = !full && profile === "full" && usable.includes("builder.write.draft");
+    const builderProfile = full ? "full" : draft ? "draft" : "read";
     return { command: process.execPath, args: [join(REPO, "mcp", "builder-server.mjs")],
-      env: { BUILDER_ADAPTER_PROFILE: write ? "full" : "read", ...(write && root ? { BUILDER_UPLOAD_ROOT: root } : {}), ...(process.env.BUILDER_ADAPTER_DIR ? { BUILDER_ADAPTER_DIR: process.env.BUILDER_ADAPTER_DIR } : {}) } };
+      env: { BUILDER_ADAPTER_PROFILE: builderProfile, ...((full || draft) && root ? { BUILDER_UPLOAD_ROOT: root } : {}), ...(process.env.BUILDER_ADAPTER_DIR ? { BUILDER_ADAPTER_DIR: process.env.BUILDER_ADAPTER_DIR } : {}) } };
   },
 };
 // Deny rules are applied by the runtime itself, below the model. Absolute paths are written the
