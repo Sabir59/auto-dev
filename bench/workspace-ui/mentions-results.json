@@ -1,5 +1,5 @@
 {
- "when": "2026-10-06T13:10:30.692Z",
+ "when": "2026-10-15T07:53:28.996Z",
  "results": [
   {
    "step": "typing @ opens a list of this workspace's files, including ones .gitignore hides; no dependency or linked-out files",
@@ -102,7 +102,7 @@
      }
     ],
     "shownAsMissing": 1,
-    "reply": "No"
+    "reply": "No."
    }
   },
   {
@@ -142,11 +142,11 @@
      ".claude/settings.json",
      "src/index.js",
      "package.json",
-     ".htpasswd",
      "README.md",
+     ".htpasswd",
      ".env.development.local",
-     ".env.development",
      ".env",
+     ".env.development",
      "notes-link.txt"
     ],
     "label": "Recent files · Canary"
@@ -163,7 +163,7 @@
      "Read",
      "ToolSearch"
     ],
-    "reply": "The first line of README.md is:\n\n# Canary workspace\n\nDONEQuoted the first line of README.md:1."
+    "reply": "The first line of README.md is:\n\n# Canary workspace"
    }
   },
   {
@@ -224,25 +224,25 @@
    "ok": true,
    "detail": {
     "executor": {
-     "indexed": 574,
-     "coldMs": 404,
-     "warmMs": 22
+     "indexed": 910,
+     "coldMs": 496,
+     "warmMs": 8
     },
     "big": {
      "onDisk": 21300,
      "indexed": 20000,
      "truncated": true,
-     "coldMs": 842,
+     "coldMs": 992,
      "keystrokeMs": [
-      37,
-      18,
-      18,
+      30,
+      29,
+      14,
+      13,
+      21,
+      11,
+      15,
       22,
-      20,
-      26,
-      23,
-      25,
-      14
+      24
      ]
     }
    }

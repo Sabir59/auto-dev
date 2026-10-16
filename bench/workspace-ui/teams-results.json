@@ -1,5 +1,5 @@
 {
- "when": "2026-10-06T13:12:29.766Z",
+ "when": "2026-10-15T08:02:50.810Z",
  "results": [
   {
    "step": "create the MATW Team in the UI: workers, workspace, Figma, real docs as references, uploads, enforced policy, instructions, requirements, prompts",
@@ -21,7 +21,7 @@
    "ok": true,
    "detail": {
     "name": "MATW",
-    "ws": "matw-frontend-61f9",
+    "ws": "matw-frontend-0f34",
     "figma": "https://www.figma.com/design/MATWteamFigmaKey0001/MATW?node-id=1-2",
     "refs": 3,
     "uploads": 2,
@@ -78,13 +78,13 @@
    "detail": {
     "composer": "MATW · Frontend Engineer",
     "sent": {
-     "team": "matw-2586",
-     "worker": "frontend-engineer-f38f"
+     "team": "matw-c52d",
+     "worker": "frontend-engineer-1e28"
     },
     "teamVersion": 3,
-    "reply": "Never modify prod-main. The platform enforces this: the console won't commit or push to it. It is also a MATW Team policy.\nThe Team's instructions are to follow DDFOA (docs/ddfoa.md), use the BFF pattern, and follow the repository architecture in docs/universal/ARCHITECTURE.md.\nThe codeword is BIZ-OLIVE-LANTERN.\nThe first contract is the UMDA Protocol (./umda-contract.md), which covers the Domain/Feature split, JSDocs, readable naming and Carding/PSP fraud security. The document says there are 5",
+    "reply": "prod-main must never be modified — enforced by the platform (console refuses to commit/push to it), not just an instruction.\nTeam instructions: follow DDFOA (docs/ddfoa.md); use the BFF pattern; follow the repository architecture in docs/universal/ARCHITECTURE.md.\nCodeword in MATW Business Context.md: BIZ-OLIVE-LANTERN.\nFirst contract listed in ARCHITECTURE.md: UMDA Protocol (umda-contract.md) → Domain/Feature split, JSDocs, readable naming, Carding/PSP fraud security.\nFigma file: MATW Figma (fi",
     "toolCalls": [
-     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-teams-1791292231\\runs\\2026-10-06T13-10-56-545Z.team\\de10a81b277fb129-MATW Business Context.md",
+     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-teams-1792051136\\runs\\2026-10-15T07-59-27-423Z.team\\de10a81b277fb129-MATW Business Context.md",
      "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\tf\\matw\\docs\\universal\\ARCHITECTURE.md"
     ],
     "builtinTools": [
@@ -103,9 +103,8 @@
      "Worker started",
      "Files",
      "Files",
-     "Needs access",
-     "Needs access",
-     "Turn finished"
+     "Turn finished",
+     "Context & usage"
     ]
    }
   },
@@ -121,12 +120,12 @@
      "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\tf\\matw\\.claude\\settings.local.json"
     ],
     "lastResults": [
-     "\"1\\t# 🏛️ Core Architecture & Development Standards\\n2\\t\\n3\\tThis repository strictly enforces 5 foundational development contracts. All cod",
      "\"1\\t# MATW business context (test document)\\n2\\tMATW raises donations for humanitarian appeals. Checkout reliability matters more than visua",
+     "\"1\\t# 🏛️ Core Architecture & Development Standards\\n2\\t\\n3\\tThis repository strictly enforces 5 foundational development contracts. All cod",
      "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\"",
      "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\""
     ],
-    "reply": "All three were blocked, so the protection held. I made one attempt each and didn't try to get around anything.\n\na) git status was never run. This run has no shell tool (the policy turns off running node and curl), so there was nothing to call and no error message to quote.\n\nb) Writing to .git/refs/heads/prod-main was refused. Word for word: File is in a directory that is denied by your permission "
+    "reply": "Results, word for word:\n\na) git status via a shell tool — not attempted: I have no shell/Bash/PowerShell tool available in this run (my tool list only contains Read, Edit, Write, Glob, Grep, ToolSearch, browser-executor). I won't improvise a substitute.\n\nb) Write to .git/refs/heads/prod-main → error: \"File is in a directory that is denied by your permission settings.\"\n\nc) Write to .claude/settings"
    }
   },
   {
@@ -226,10 +225,10 @@
     ],
     "otherPluginCalls": [],
     "needs": [
-     "Figma read access to the MATW file (MATWteamFigmaKey0001): connect Figma on this computer once, either with a personal access token that has `file_content:read` or through the OAuth flow in `figma-reader/README.md`. The connected account must be able to open the MATW file."
+     "Figma read access: connect Figma on this computer once (personal access token with `file_content:read`, or OAuth per figma-reader/README.md), with an account that can open the MATW file."
     ],
     "requirements": [
-     "Figma: change the open file: Plugin not running",
+     "Figma: change the open file: Connected",
      "Figma: read designs: Not connected",
      "GitHub: reach the repository (Team): Not a GitHub remote"
     ]
@@ -271,8 +270,8 @@
      "Read",
      "ToolSearch"
     ],
-    "inspectTeamId": "canary-review-e21c",
-    "run": "2026-10-06T13-12-15-786Z"
+    "inspectTeamId": "canary-review-82a8",
+    "run": "2026-10-15T08-02-22-655Z"
    }
   },
   {
@@ -294,13 +293,14 @@
    "step": "delete a Team in the UI: gone after reload; its run still opens with the Team it used",
    "ok": true,
    "detail": {
-    "deleted": "canary-review-e21c",
+    "deleted": "canary-review-82a8",
     "runCards": [
      "Team",
      "Worker",
      "Requirements",
      "Worker started",
-     "Turn finished"
+     "Turn finished",
+     "Context & usage"
     ],
     "snapshotTeam": "Canary review v1"
    }

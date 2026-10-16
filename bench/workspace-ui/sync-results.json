@@ -1,5 +1,5 @@
 {
- "when": "2026-10-06T10:13:26.914Z",
+ "when": "2026-10-15T07:50:48.757Z",
  "results": [
   {
    "step": "Executor: remove it (it has a run) → off the list, its run hidden",
@@ -10,7 +10,7 @@
      "wsId": "scratch",
      "rows": [
       "scratch",
-      "work-test-6c31"
+      "work-test-1166"
      ],
      "current": [
       "scratch"
@@ -35,7 +35,7 @@
     "wsId": "scratch",
     "rows": [
      "scratch",
-     "work-test-6c31"
+     "work-test-1166"
     ],
     "current": [
      "scratch"
@@ -55,7 +55,7 @@
      "rows": [
       "scratch",
       "console",
-      "work-test-6c31"
+      "work-test-1166"
      ],
      "current": [
       "console"
@@ -63,10 +63,10 @@
      "cName": "Executor",
      "runs": 1,
      "tree": [
+      ".claude",
       "agent",
       "bench",
-      "bridge",
-      "browser-adapter"
+      "bridge"
      ],
      "consistent": true
     },
@@ -96,14 +96,14 @@
    "ok": true,
    "detail": {
     "A": {
-     "wsId": "work-test-893b",
+     "wsId": "work-test-c0de",
      "rows": [
       "scratch",
-      "work-test-893b",
+      "work-test-c0de",
       "console"
      ],
      "current": [
-      "work-test-893b"
+      "work-test-c0de"
      ],
      "cName": "Work test",
      "runs": 0,
@@ -117,7 +117,7 @@
      "wsId": "scratch",
      "rows": [
       "scratch",
-      "work-test-893b",
+      "work-test-c0de",
       "console"
      ],
      "current": [
@@ -168,10 +168,10 @@
      "cName": "Executor",
      "runs": 1,
      "tree": [
+      ".claude",
       "agent",
       "bench",
-      "bridge",
-      "browser-adapter"
+      "bridge"
      ],
      "consistent": true
     },
