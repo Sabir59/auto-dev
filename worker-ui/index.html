@@ -228,7 +228,7 @@ async function send() {
 }
 $("send").onclick = send;
 $("input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
-$("stopBtn").onclick = () => selected && api("POST", `/runs/${selected}/stop`);
+$("stopBtn").onclick = () => { const id = selected; id && api("POST", `/runs/${id}/stop`).catch(async (e) => { add(node("op sys", esc(e.message))); const m = await api("GET", `/runs/${id}`); if (selected === id) { meta = m; setStatus(m.status); } }); };
 $("endBtn").onclick = () => selected && api("POST", `/runs/${selected}/end`);
 $("restartBtn").onclick = async () => { if (!selected) return; try { const m = await api("POST", `/runs/${selected}/restart`); await refreshRuns(); openRun(m.id); } catch (e) { $("hint").textContent = e.message; } };
 $("newRun").onclick = newRunView;

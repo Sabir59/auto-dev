@@ -1203,12 +1203,21 @@ function followUp(run, text, atts = [], mentions = [], opts = {}) {
   sendToWorker(run, text, atts, mentions, opts);
 }
 
+function lastLoggedStatus(file) {
+  const lines = readFileSync(file, "utf8").split("\n");
+  for (let i = lines.length - 1; i >= 0; i--) if (lines[i].includes('"type":"status"')) { try { return JSON.parse(lines[i]).summary; } catch {} }
+  return null;
+}
 function loadRun(id) {
   if (runs.has(id)) return runs.get(id);
   if (!/^[\w-]+$/.test(id) || !existsSync(metaPath(id))) return null;
   const meta = JSON.parse(readFileSync(metaPath(id), "utf8"));
   const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
   if (["starting", "running", "waiting"].includes(meta.status)) { meta.status = "interrupted"; saveMeta(run); } // server restarted under it
+  // The log has to say so too: the page rebuilds a run's state by replaying it, and a log still
+  // ending on "running" shows a busy worker with nothing to stop and no way to reply.
+  if (meta.status === "interrupted" && existsSync(run.file) && lastLoggedStatus(run.file) !== "interrupted")
+    emit(run, { type: "status", summary: "interrupted", detail: "the console restarted while the worker was running; send a message to continue" });
   runs.set(id, run);
   return run;
 }
@@ -1794,7 +1803,12 @@ http.createServer(async (req, res) => {
         const mentions = resolveMentions(checkBinding(run, { resume: false }).root, ms); // the run's own workspace
         followUp(run, String(text || "").trim(), atts, mentions); return json(res, 200, run.meta);
       }
-      if (action === "stop") { if (alive(run)) { run.stopRequested = true; run.child.kill(); } return json(res, 200, run.meta); }
+      if (action === "stop") {
+        if (alive(run)) { run.stopRequested = true; run.child.kill(); return json(res, 200, run.meta); }
+        // Nothing to kill: say so, and make sure the run no longer claims to be working.
+        if (["starting", "running", "waiting"].includes(run.meta.status)) setStatus(run, "interrupted", "the worker process was already gone");
+        return json(res, 409, { error: "Nothing is running: the worker had already stopped. Reply to continue the conversation.", status: run.meta.status });
+      }
       if (action === "end") { if (alive(run)) { run.endRequested = true; run.child.stdin.end(); } return json(res, 200, run.meta); }
       if (action === "restart") return json(res, 200, (await newRun(run.meta.prompt, checkBinding(run, { resume: false }).id, [], run.meta.worker?.id || null, [], run.meta.team?.id || null, { model: run.meta.model, effort: run.meta.effort })).meta);
     }

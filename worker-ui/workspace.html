@@ -1488,11 +1488,11 @@ function onEvent(ev) {
     if (meta) meta.status = ev.summary;
     for (const [, c] of T.openTools) if (!ALIVE.includes(ev.summary)) setCardMeta(c, "Interrupted", "bad");
     if (!ALIVE.includes(ev.summary)) { T.openTools.clear(); T.turnStart = null; T.current = null; }
-    if (["stopped", "failed"].includes(ev.summary)) {
+    if (["stopped", "failed", "interrupted"].includes(ev.summary)) {
       T.items.push({ k: ev.summary === "failed" ? "e" : "s", text: `Worker ${ev.summary}${ev.detail && ev.detail !== "stopped by the user" ? `: ${ev.detail}` : ""}` });
-      addCard({ title: ev.summary === "failed" ? "Failed" : "Stopped", meta: "", metaCls: "bad", body: esc(ev.detail || "") });
+      addCard({ title: STATE[ev.summary][0], meta: "", metaCls: "bad", body: esc(ev.detail || "") });
     }
-    if (["waiting", "finished", "stopped", "failed"].includes(ev.summary)) { refreshMeta(); loadRuns(); loadGit(); }
+    if (["waiting", "finished", "stopped", "failed", "interrupted"].includes(ev.summary)) { refreshMeta(); loadRuns(); loadGit(); }
     renderRunState();
   }
   scheduleCanvas();
@@ -1772,7 +1772,7 @@ $("canvas").addEventListener("click", (e) => { const m = e.target.closest(".ment
 async function send() {
   if (!runId && ws().none) { notice("Add a workspace first."); return; }
   const st = runId ? (T?.status || meta?.status) : null;
-  if (["starting", "running"].includes(st)) { await api("POST", `/runs/${runId}/stop`).catch(notice); return; }
+  if (["starting", "running"].includes(st)) { await stopRun(); return; }
   const text = $("input").value.trim();
   if (!text && !PENDING.length) return;
   const attachments = PENDING.map(({ name, data }) => ({ name, data }));
@@ -1804,6 +1804,21 @@ async function send() {
     }
   } catch (e) { notice(e.message); }
   finally { $("send").disabled = false; }
+}
+async function stopRun() {
+  const id = runId;
+  try { await api("POST", `/runs/${id}/stop`); }
+  catch (e) {
+    notice(e);
+    // The page thought the worker was busy but nothing was running: take the run's real state.
+    try {
+      const m = await api("GET", `/runs/${id}`);
+      if (runId === id && !["starting", "running"].includes(m.status)) {
+        meta = m; T.status = m.status; T.openTools.clear(); T.turnStart = null; T.current = null;
+        renderCanvas(); renderRunState(); loadRuns();
+      }
+    } catch {}
+  }
 }
 async function endAndWait(id) {
   await api("POST", `/runs/${id}/end`);
