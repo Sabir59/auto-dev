@@ -1,5 +1,5 @@
 {
- "when": "2026-10-17T12:18:34.158Z",
+ "when": "2026-10-19T17:36:27.772Z",
  "results": [
   {
    "step": "the Context & usage card shows the runtime's context and token numbers, and measured tool counts, matching the raw stream",
@@ -8,18 +8,18 @@
     "modelRequests": 2,
     "tools": 3,
     "context": {
-     "last": 25892,
-     "max": 25892,
+     "last": 27539,
+     "max": 27539,
      "window": 200000,
-     "first": 24603
+     "first": 26242
     },
     "tokens": {
      "input": 18,
-     "output": 396,
-     "cacheRead": 45474,
-     "cacheWrite": 5003
+     "output": 755,
+     "cacheRead": 26232,
+     "cacheWrite": 27531
     },
-    "card": "Context & usage 1 turn Context per request 26k of 200k · max 26k RUNTIME 2 model requests · tokens: 45k read from cache, 5k written, 18 new, 396 output RUNTIME 3 tool calls (Figma 0) · 0 document reads, 0 characters · 0 batches (0 edits) · 0 visual checks MEAS"
+    "card": "CONTEXT & USAGE 1 turn Context per request 28k of 200k · max 28k RUNTIME 2 model requests · tokens: 26k read from cache, 28k written, 18 new, 755 output RUNTIME 3 tool calls (Figma 0) · 0 document reads, 0 characters · 0 batches (0 edits) · 0 visual checks MEA"
    }
   },
   {
@@ -27,8 +27,8 @@
    "ok": true,
    "detail": {
     "beforeSetting": 0,
-    "warning": "Context is 26k tokens per request (warning at 3k)",
-    "card": "Context warning Growing Context is 26k tokens per request (warning at 3k) Each step re-reads the whole conversation. Compact it, or continue in a fresh session "
+    "warning": "Context is 28k tokens per request (warning at 3k)",
+    "card": "Context warning Growing Context is 28k tokens per request (warning at 3k) Each step re-reads the whole conversation. Compact it, or continue in a fresh session "
    }
   },
   {
@@ -36,10 +36,10 @@
    "ok": true,
    "detail": {
     "compaction": {
-     "at": "2026-10-17T12:18:12.022Z",
+     "at": "2026-10-19T17:35:56.186Z",
      "trigger": "manual",
-     "pre": 26139,
-     "post": 2756
+     "pre": 28139,
+     "post": 2857
     },
     "replyAfter": "#FF6B35"
    }
@@ -48,25 +48,25 @@
    "step": "Continue in a fresh session: a handoff (task state + the worker's summary) starts a new run; the old run keeps its history",
    "ok": true,
    "detail": {
-    "newRun": "2026-10-17T12-18-23-903Z",
-    "handoffChars": 1873,
+    "newRun": "2026-10-19T17-36-07-787Z",
+    "handoffChars": 1972,
     "oldRequests": [
      "DECISION: the accent colour is #FF6B35. Acknowledge with the single word NOTED.",
      "What accent colour was decided? Reply with the hex value only."
     ],
     "oldMilestones": [],
-    "workerSummaryChars": 923
+    "workerSummaryChars": 1022
    }
   },
   {
    "step": "the new session got the handoff, not the old transcript: no old tool output in it, and a smaller first context than the old run reached",
    "ok": true,
    "detail": {
-    "oldMaxContext": 26065,
-    "newFirstContext": 25071,
+    "oldMaxContext": 28063,
+    "newFirstContext": 26720,
     "firstInputIsTheHandoff": true,
     "oldRawToolOutputInNew": false,
-    "reply": "#FF6B35\n\nDONEOriginal task completed with total line count of 66 across the three files. Accent colour confirmed as #FF6"
+    "reply": "#FF6B35\n\nDONEAccent colour confirmed and task completed."
    }
   },
   {
@@ -82,9 +82,9 @@
    "step": "cost is counted once: the run's cost equals the runtime's own per-process totals, not their running sum",
    "ok": true,
    "detail": {
-    "shown": 0.051351049999999995,
-    "runtimePerProcessTotals": 0.051351049999999995,
-    "whatTheOldCodeWouldShow": 0.16486625
+    "shown": 0.0972026,
+    "runtimePerProcessTotals": 0.0972026,
+    "whatTheOldCodeWouldShow": 0.394466
    }
   }
  ],

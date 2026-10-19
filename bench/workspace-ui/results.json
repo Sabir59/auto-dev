@@ -1,10 +1,10 @@
 {
- "when": "2026-10-15T07:49:41.158Z",
+ "when": "2026-10-19T17:29:37.114Z",
  "results": [
   {
    "step": "add an Inspect workspace through the form",
    "ok": true,
-   "seconds": 0.3,
+   "seconds": 0.4,
    "detail": {
     "selected": "Canary",
     "mode": "Inspect",
@@ -23,7 +23,7 @@
   {
    "step": "add a Work workspace",
    "ok": true,
-   "seconds": 0.4,
+   "seconds": 0.3,
    "detail": {
     "workspaces": [
      "No folder",
@@ -59,7 +59,7 @@
   {
    "step": "a hostile HTML file is shown as text, not run",
    "ok": true,
-   "seconds": 1.9,
+   "seconds": 2.2,
    "detail": {
     "shownAsText": true,
     "csp": "sandbox",
@@ -70,17 +70,17 @@
   {
    "step": "start a run, see live activity, get the result (Inspect)",
    "ok": true,
-   "seconds": 12.8,
+   "seconds": 10,
    "detail": {
     "liveSeen": true,
     "sendIsStop": "Stop the worker",
     "cards": [
      "Worker started",
-     "Files Success · 97ms",
-     "Turn finished 7s",
-     "Context & usage 1 turn"
+     "Files Success · 100ms",
+     "Done Complete",
+     "Turn finished 6s"
     ],
-    "reply": "This is a disposable test repository called \"Canary workspace.\""
+    "reply": "DONEThe README calls this the \"Canary workspace,\" a throwaway repository used for testing."
    }
   },
   {
@@ -106,27 +106,27 @@
   {
    "step": "End run, then it appears in Recent runs as finished",
    "ok": true,
-   "seconds": 0.8,
+   "seconds": 1.4,
    "detail": {
     "recent": [
-     "Read README.md in this folder and summarise it in one sentence. just now"
+     "Finished: Read README.md in this folder and summarise it in one sentence. just now"
     ]
    }
   },
   {
    "step": "reload, open the run from Recent runs, continue it (resume)",
    "ok": true,
-   "seconds": 8.6,
+   "seconds": 9.1,
    "detail": {
     "replayedMessages": 4,
     "resumedCard": 1,
-    "reply": "You asked me to read README.md in this folder and summarize it in one sentence."
+    "reply": "You first asked me to read README.md in this folder and summarise it in one sentence."
    }
   },
   {
    "step": "Stop a busy run with the send button",
    "ok": true,
-   "seconds": 0.2,
+   "seconds": 0.3,
    "detail": {
     "status": "Stopped",
     "thread": [
@@ -137,7 +137,7 @@
   {
    "step": "Work workspace: the worker writes a file, it shows as an artifact, it opens in the viewer",
    "ok": true,
-   "seconds": 10.9,
+   "seconds": 24.7,
    "detail": {
     "artifact": "notes/summary.md",
     "content": "Workspace artifact test",
@@ -147,7 +147,7 @@
   {
    "step": "a worker that moves into a sub-folder of its workspace (cd) keeps working on the next message, and after a resume",
    "ok": true,
-   "seconds": 34.4,
+   "seconds": 36.3,
    "detail": {
     "reportedCwds": [
      "wsui/work",

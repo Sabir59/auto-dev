@@ -1,5 +1,5 @@
 {
- "when": "2026-10-16T20:00:18.852Z",
+ "when": "2026-10-19T17:26:32.944Z",
  "results": [
   {
    "step": "16a. the GitHub page: not connected, nothing registered (empty states), discovery disabled",
@@ -50,7 +50,7 @@
      "id": "gh-1000",
      "fullName": "alice/site",
      "defaultBranch": "main",
-     "url": "Temp/gh-Zqr4Bi/site-remote.git"
+     "url": "Temp/gh-UQXOb7/site-remote.git"
     },
     "duplicate": 409,
     "invisible": 404,
@@ -70,15 +70,15 @@
    "step": "14. rate limits and GitHub failures give useful errors (API and page)",
    "ok": true,
    "detail": {
-    "discover": "GitHub's rate limit is used up until 1:09:39 AM. Try again then.",
-    "pageShows": "GitHub's rate limit is used up until 1:09:39 AM. Try again then."
+    "discover": "GitHub's rate limit is used up until 10:35:53 PM. Try again then.",
+    "pageShows": "GitHub's rate limit is used up until 10:35:53 PM. Try again then."
    }
   },
   {
    "step": "6. assignment: a folder whose origin is another repository is refused; the checkout is assigned and persists; it can be changed",
    "ok": true,
    "detail": {
-    "mismatched": "This folder's origin is C:\\Users\\hp\\AppData\\Local\\Temp\\gh-Zqr4Bi\\other-remote.git, not ali",
+    "mismatched": "This folder's origin is C:\\Users\\hp\\AppData\\Local\\Temp\\gh-UQXOb7\\other-remote.git, not ali",
     "forgedId": "Choose a registered repository.",
     "assigned": {
      "id": "gh-1000",
@@ -132,6 +132,12 @@
     ],
     "repoLevel": "read",
     "denied": [
+     "WebFetch(domain:localhost)",
+     "WebFetch(domain:*.localhost)",
+     "WebFetch(domain:127.0.0.1)",
+     "WebFetch(domain:[::1])",
+     "WebFetch(domain:::1)",
+     "WebFetch(domain:0.0.0.0)",
      "Edit(.git/**)",
      "Edit(**/.git/**)",
      "Edit(.claude/**)",
@@ -144,7 +150,7 @@
    "ok": true,
    "detail": {
     "branch": "work/hello",
-    "commit": "13ca208",
+    "commit": "e3cf441",
     "author": "Test Person",
     "linkedToRun": true,
     "pushTool": "not given (commit access)",
@@ -167,8 +173,8 @@
    "step": "12. a checkout whose origin no longer matches is refused: no run starts, the person's push is refused too",
    "ok": true,
    "detail": {
-    "run": "This folder's origin is C:\\Users\\hp\\AppData\\Local\\Temp\\gh-Zqr4Bi\\other-remote.git, not alice/site (f",
-    "push": "Refused: this branch pushes to C:\\Users\\hp\\AppData\\Local\\Temp\\gh-Zqr4Bi\\other-remote.git, not alice/"
+    "run": "This folder's origin is C:\\Users\\hp\\AppData\\Local\\Temp\\gh-UQXOb7\\other-remote.git, not alice/site (f",
+    "push": "Refused: this branch pushes to C:\\Users\\hp\\AppData\\Local\\Temp\\gh-UQXOb7\\other-remote.git, not alice/"
    }
   },
   {
@@ -176,7 +182,7 @@
    "ok": true,
    "detail": {
     "changes": 1,
-    "commit": "61e71c7"
+    "commit": "ce503f1"
    }
   },
   {
@@ -198,7 +204,7 @@
    "detail": {
     "detail": [
      "Remote",
-     "file:///C:/Users/hp/AppData/Local/Temp/gh-Zqr4Bi/docs-remote.git",
+     "file:///C:/Users/hp/AppData/Local/Temp/gh-UQXOb7/docs-remote.git",
      "Default branch",
      "main"
     ],

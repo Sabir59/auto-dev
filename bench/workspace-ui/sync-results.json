@@ -1,5 +1,5 @@
 {
- "when": "2026-10-15T07:50:48.757Z",
+ "when": "2026-10-19T17:27:59.911Z",
  "results": [
   {
    "step": "Executor: remove it (it has a run) → off the list, its run hidden",
@@ -10,7 +10,7 @@
      "wsId": "scratch",
      "rows": [
       "scratch",
-      "work-test-1166"
+      "work-test-c113"
      ],
      "current": [
       "scratch"
@@ -35,7 +35,7 @@
     "wsId": "scratch",
     "rows": [
      "scratch",
-     "work-test-1166"
+     "work-test-c113"
     ],
     "current": [
      "scratch"
@@ -55,7 +55,7 @@
      "rows": [
       "scratch",
       "console",
-      "work-test-1166"
+      "work-test-c113"
      ],
      "current": [
       "console"
@@ -96,19 +96,20 @@
    "ok": true,
    "detail": {
     "A": {
-     "wsId": "work-test-c0de",
+     "wsId": "work-test-195f",
      "rows": [
       "scratch",
-      "work-test-c0de",
+      "work-test-195f",
       "console"
      ],
      "current": [
-      "work-test-c0de"
+      "work-test-195f"
      ],
      "cName": "Work test",
      "runs": 0,
      "tree": [
       "src",
+      "big-notes.txt",
       "README.md"
      ],
      "consistent": true
@@ -117,7 +118,7 @@
      "wsId": "scratch",
      "rows": [
       "scratch",
-      "work-test-c0de",
+      "work-test-195f",
       "console"
      ],
      "current": [
