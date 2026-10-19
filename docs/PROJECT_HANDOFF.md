@@ -109,6 +109,18 @@ Organisations have real work inside real systems: a codebase, a Figma file, a we
 7. **Worker definitions and memory; Figma Reader.**
 8. **Senior UI/UX Design Engineer worker; "No folder"; `@` mentions.**
 9. **Teams** (`e44501c`).
+10. **Workspace UI redesign** (2026-10-19). This was presentation only: `worker-ui/workspace.html`. No API or server change.
+    - **Design system:** one token set, plus borders, spacing and a sans-first type scale. Mono is kept for code, paths and hashes.
+    - **Sidebar:** a **New task** action (Alt+N), then foldable groups: Workforce (workers, teams), Work (runs, prompts), Project (workspaces, versions, files) and Connections (GitHub). Folding is remembered per browser.
+    - **Run header:** who is working (worker, Team), where, and the run's state.
+    - **New task screen:** the worker's mission, what it can use (from its definition) and saved prompts to start from.
+    - **Each turn:** a "Worked Ns · N actions" line, counted from the run's real events, and the files the worker produced as deliverables after its reply.
+    - **Activity panel:**
+      - the run's deliverables pinned at the top;
+      - typed steps: tool calls as compact rows, the worker's PLAN…DONE notes accented, alerts tinted;
+      - Context & usage pinned at the bottom.
+    - **Composer:** hidden on the worker, Team and GitHub definition pages.
+    - **Unchanged:** every element id and the card titles the bench suites use.
 
 Details in §11.
 
