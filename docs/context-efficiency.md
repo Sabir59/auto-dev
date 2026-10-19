@@ -170,8 +170,27 @@ See section 5; the numbers come from `bench/figma-executor/measure/{legacy,new}.
 - **Visual quality:** comparable. Compare `legacy.png` and `new.png`: both are complete, consistent sections with a highlighted recommended plan, and both runs found and fixed an issue in their own export.
 - **What the batch did:** the "after" run made 157 edits in 6 batches and read the document 0 times. The "before" run made 195 single Figma calls.
 
-## 6. Remaining limits
-- **Long sessions can still grow.** The warning and the Compact and Continue buttons need a person to click them; nothing compacts or continues automatically. That's by design: a restart must never happen in the middle of a step or lose task state.
+## 6. Automatic context control (2026-10-17)
+Workers may run as bots that nobody watches, so this happens without anyone clicking.
+
+**What prompted it:** a design conversation was continued for four days. Each step re-read 800k–924k tokens: 125 steps used 105M cache-read tokens in one morning. The worker never picked up `figma_batch`.
+
+**During a turn.** Every worker runs with the runtime's own `autoCompactWindow`, which is console-settings.json's `contextWarnTokens` (default 250k; the runtime accepts 100k–1M).
+- The runtime compacts between steps before the conversation passes that size. This was verified headless.
+- The console shows it as "Compacting automatically" and counts it.
+
+**At the next message** (`autoFreshSession`, on by default). Suppose a message arrives, from the page or the API, for a conversation already at or past the limit *that has also grown* by half the limit since its first step:
+- the worker writes its handoff;
+- a fresh session starts with the handoff plus that message;
+- the page follows it to the new run;
+- a message to the old run's id goes to the newest run in its chain;
+- if the process dies during the handoff, the work continues from the task state.
+
+The growth rule is what stops a fresh session from looping.
+
+**Tests:** `bash bench/workspace-ui/run-suite.sh autofresh`: 4/4 (real runtime, Haiku). The context suite is still 7/7.
+
+## 7. Remaining limits
 - **The handoff summary costs one request** at the old conversation's size. `summary: false` skips it and hands over the task state only.
 - **"Unchanged" reads after compaction:** the model may no longer hold the earlier result, so the answer tells it to pass `fresh: true` if it doesn't have it.
 - **The task state is built from what the stream shows:** tool results, and PLAN, DECISION, VERIFICATION, DONE, FAILURE and NEEDS lines. Decisions that are never written as such reach a fresh session only through the worker's handoff summary.

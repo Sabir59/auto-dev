@@ -411,6 +411,15 @@ It isn't used.
   - remote URLs are shown without credentials.
 - **Protected branches** (a Team policy): the console refuses a commit while the branch is checked out, and a push when the branch or its upstream target is protected. The Versions view shows why.
 - **Workers** are told not to commit or push (`worker-instructions.md`). Under a branch policy they *can't* (no shell, `.git` writes denied).
+- **GitHub (2026-10-17, `docs/github.md`):**
+  - one platform-wide GitHub connection (a token kept outside the repo, used by the console only);
+  - a registry of repositories, each assignable to one workspace whose checkout's origin it must match;
+  - per-worker access levels (read / write / commit / push), enforced through `mcp/repo-server.mjs` and the runtime. In an assigned workspace, workers do Git only through those tools: no shell by default, and no commits or pushes to the default or protected branches.
+- **Second developer (2026-10-17, `docs/second-developer.md`):**
+  - each developer runs their own copy (their own Claude login, bridge, plugin and Git/GitHub sign-in), and nothing is exposed to the network;
+  - the browser tool and WebFetch can't reach the console, the bridge or devctl, and the browser opens `file://` only inside the workspace;
+  - the bridge refuses web pages and foreign Host names;
+  - `worker-ui/doctor.mjs` checks a new machine.
 - **Limitations:**
   - commit stages everything in the folder that isn't ignored;
   - repo hooks run on commit and push;

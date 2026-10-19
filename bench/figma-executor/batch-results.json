@@ -1,5 +1,5 @@
 {
- "when": "2026-10-15T08:38:22.456Z",
+ "when": "2026-10-18T14:05:53.599Z",
  "results": [
   {
    "step": "1. one batch creates dependent elements: a frame, then children that use its ref",
@@ -110,7 +110,7 @@
    "detail": {
     "repeated": {
      "unchanged": true,
-     "readAt": "2026-10-15T08:38:21.774Z",
+     "readAt": "2026-10-18T14:05:52.736Z",
      "note": "Identical to what you were given at readAt (checked against a fresh read). Pass fresh:true if you no longer have it."
     },
     "afterEdit": "Pricing v2",

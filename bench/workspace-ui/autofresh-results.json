@@ -1,0 +1,42 @@
+{
+ "when": "2026-10-17T12:17:34.141Z",
+ "results": [
+  {
+   "step": "every worker runs with the runtime's own auto-compaction window",
+   "ok": true,
+   "detail": {
+    "autoCompactWindow": 250000,
+    "contextFirst": 24474,
+    "contextNow": 47731
+   }
+  },
+  {
+   "step": "past the limit, the next message goes to a fresh session with a handoff, by itself; the fact survives",
+   "ok": true,
+   "detail": {
+    "contextWas": 47731,
+    "limit": 20000,
+    "newRun": "2026-10-17T12-16-59-339Z",
+    "reply": "HERON",
+    "newFirstContext": 25108
+   }
+  },
+  {
+   "step": "a message to the old run's id is routed to the newest run, and a fresh session doesn't loop",
+   "ok": true,
+   "detail": {
+    "routedTo": "2026-10-17T12-16-59-339Z",
+    "autoFreshAgain": false
+   }
+  },
+  {
+   "step": "if the worker dies during the handoff, the work still continues from the task state",
+   "ok": true,
+   "detail": {
+    "newRun": "2026-10-17T12-17-29-554Z",
+    "handoffFrom": "task state (the worker's own summary was cut off)",
+    "objectiveCarried": true
+   }
+  }
+ ]
+}

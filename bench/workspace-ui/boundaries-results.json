@@ -1,0 +1,27 @@
+{
+ "when": "2026-10-16T20:22:01.886Z",
+ "results": [
+  {
+   "step": "the General worker: WebFetch to the console is refused by the runtime; the browser can't open the console",
+   "ok": true,
+   "detail": {
+    "webFetch": [
+     "WebFetch denied access to domain:localhost.",
+     "WebFetch denied access to domain:127.0.0.1."
+    ],
+    "browser": "Refused: 127.0.0.1:8797 is this platform's own local service; the browser can't open it."
+   }
+  },
+  {
+   "step": "a defined worker: WebFetch to the console is refused by the runtime; the browser can't open the console",
+   "ok": true,
+   "detail": {
+    "webFetch": [
+     "WebFetch denied access to domain:localhost.",
+     "WebFetch denied access to domain:127.0.0.1."
+    ],
+    "browser": "Refused: 127.0.0.1:8797 is this platform's own local service; the browser can't open it."
+   }
+  }
+ ]
+}

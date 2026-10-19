@@ -1,0 +1,212 @@
+{
+ "when": "2026-10-16T20:00:18.852Z",
+ "results": [
+  {
+   "step": "16a. the GitHub page: not connected, nothing registered (empty states), discovery disabled",
+   "ok": true,
+   "detail": {
+    "state": "Not connected",
+    "empty": true
+   }
+  },
+  {
+   "step": "1. connection: a malformed token and a rejected one are refused (nothing saved); a valid one connects",
+   "ok": true,
+   "detail": {
+    "malformed": "That doesn't look like a GitHub token. Paste a fine-grained ",
+    "rejected": "GitHub rejected the token (expired, revoked or mistyped). Replace it o",
+    "connected": "@alice",
+    "savedOutsideData": true
+   }
+  },
+  {
+   "step": "the token never comes back: not in the page's API, the registry file, the page or the console's log",
+   "ok": true,
+   "detail": {
+    "inApi": false,
+    "inRegistry": false,
+    "inPage": false,
+    "inLog": false,
+    "credentialFolder": "outside the console's data"
+   }
+  },
+  {
+   "step": "2. discovery lists only what this identity can see (with a loading state)",
+   "ok": true,
+   "detail": {
+    "loading": "Looking…",
+    "found": [
+     "alice/docs",
+     "alice/site"
+    ],
+    "notListed": "bob/other"
+   }
+  },
+  {
+   "step": "3-4. register from discovery; a duplicate, an invisible repository and a bad name are refused safely",
+   "ok": true,
+   "detail": {
+    "entry": {
+     "id": "gh-1000",
+     "fullName": "alice/site",
+     "defaultBranch": "main",
+     "url": "Temp/gh-Zqr4Bi/site-remote.git"
+    },
+    "duplicate": 409,
+    "invisible": 404,
+    "badName": 400
+   }
+  },
+  {
+   "step": "5. refresh reads metadata again; a revoked repository is marked inaccessible, then recovers",
+   "ok": true,
+   "detail": {
+    "refreshed": "trunk",
+    "revoked": "inaccessible",
+    "recovered": "ok"
+   }
+  },
+  {
+   "step": "14. rate limits and GitHub failures give useful errors (API and page)",
+   "ok": true,
+   "detail": {
+    "discover": "GitHub's rate limit is used up until 1:09:39 AM. Try again then.",
+    "pageShows": "GitHub's rate limit is used up until 1:09:39 AM. Try again then."
+   }
+  },
+  {
+   "step": "6. assignment: a folder whose origin is another repository is refused; the checkout is assigned and persists; it can be changed",
+   "ok": true,
+   "detail": {
+    "mismatched": "This folder's origin is C:\\Users\\hp\\AppData\\Local\\Temp\\gh-Zqr4Bi\\other-remote.git, not ali",
+    "forgedId": "Choose a registered repository.",
+    "assigned": {
+     "id": "gh-1000",
+     "general": "write",
+     "shell": false,
+     "workersOnDefault": false,
+     "fullName": "alice/site",
+     "registered": true
+    }
+   }
+  },
+  {
+   "step": "worker definitions: access only to registered repositories at known levels",
+   "ok": true,
+   "detail": {
+    "reader": [
+     {
+      "repo": "gh-1000",
+      "level": "read"
+     }
+    ],
+    "committer": [
+     {
+      "repo": "gh-1000",
+      "level": "commit"
+     }
+    ],
+    "forgedRepo": "No registered repository \"gh-12345\".",
+    "badLevel": "Unknown repository access \"admin\"."
+   }
+  },
+  {
+   "step": "7. a worker without access to the workspace's repository can't start there (nothing runs)",
+   "ok": true,
+   "detail": {
+    "refused": "No Access has no access to alice/site, the repository of this workspace. Grant it in the worker's definition (Repositori"
+   }
+  },
+  {
+   "step": "8. read access, as the runtime gives it: no Write, Edit or shell; repo tools read-only; .git not writable",
+   "ok": true,
+   "detail": {
+    "runtimeTools": [
+     "Glob",
+     "Grep",
+     "Read",
+     "ToolSearch",
+     "mcp__repo__repo_diff",
+     "mcp__repo__repo_log",
+     "mcp__repo__repo_status"
+    ],
+    "repoLevel": "read",
+    "denied": [
+     "Edit(.git/**)",
+     "Edit(**/.git/**)",
+     "Edit(.claude/**)",
+     "Edit(**/.claude/**)"
+    ]
+   }
+  },
+  {
+   "step": "9-10. commit access, end to end: the worker branches, edits and commits for real through the repo tools; the commit is linked to its run",
+   "ok": true,
+   "detail": {
+    "branch": "work/hello",
+    "commit": "13ca208",
+    "author": "Test Person",
+    "linkedToRun": true,
+    "pushTool": "not given (commit access)",
+    "remoteUntouched": true
+   }
+  },
+  {
+   "step": "changing a worker's access applies at its next start, and a run never gets more than it started with",
+   "ok": true,
+   "detail": {
+    "processes": 2,
+    "nowHas": [
+     "mcp__repo__repo_diff",
+     "mcp__repo__repo_log",
+     "mcp__repo__repo_status"
+    ]
+   }
+  },
+  {
+   "step": "12. a checkout whose origin no longer matches is refused: no run starts, the person's push is refused too",
+   "ok": true,
+   "detail": {
+    "run": "This folder's origin is C:\\Users\\hp\\AppData\\Local\\Temp\\gh-Zqr4Bi\\other-remote.git, not alice/site (f",
+    "push": "Refused: this branch pushes to C:\\Users\\hp\\AppData\\Local\\Temp\\gh-Zqr4Bi\\other-remote.git, not alice/"
+   }
+  },
+  {
+   "step": "15. existing Git features still work in an assigned workspace: versions list, diff, the person's commit",
+   "ok": true,
+   "detail": {
+    "changes": 1,
+    "commit": "61e71c7"
+   }
+  },
+  {
+   "step": "13. removing a registration: refused while assigned; afterwards only the entry goes (folder, changes, commits stay) and grants are dropped",
+   "ok": true,
+   "detail": {
+    "whileAssigned": "alice/site is assigned to Site. Unassign it there first.",
+    "removed": "alice/site",
+    "folderIntact": true,
+    "grantsRemoved": [
+     "Repo Reader",
+     "Repo Committer"
+    ]
+   }
+  },
+  {
+   "step": "16b. the page: registered list, detail, and disconnect with confirmation (token deleted, registry kept)",
+   "ok": true,
+   "detail": {
+    "detail": [
+     "Remote",
+     "file:///C:/Users/hp/AppData/Local/Temp/gh-Zqr4Bi/docs-remote.git",
+     "Default branch",
+     "main"
+    ],
+    "confirm": "Disconnect: sure?",
+    "tokenDeleted": true,
+    "registryKept": 1
+   }
+  }
+ ],
+ "pageErrors": []
+}

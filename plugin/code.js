@@ -53,17 +53,124 @@ function solidPaint(c) {
   return { type: "SOLID", color: { r: c.r, g: c.g, b: c.b }, opacity: c.a !== undefined ? c.a : 1 };
 }
 
+// --- Fonts and text ranges ---------------------------------------------
+// figma.loadFontAsync can stall for minutes when Figma's font service is slow (observed: four
+// characters edits on instance text all waited ~2 min after an image import, finished together,
+// and were reported as bridge timeouts although Figma did apply them). So every load is limited:
+// a font that doesn't load in time fails the command BEFORE anything is changed, never after.
+// A font loaded once stays loaded for the plugin session, so it isn't asked for again.
+const FONT_TIMEOUT_MS = 20000;
+const loadedFonts = new Set();
+async function loadFont(f) {
+  const font = { family: f.family, style: f.style }; // never pass variationSettings etc. on
+  const key = font.family + "\u0000" + font.style;
+  if (loadedFonts.has(key)) return font;
+  let timer;
+  try {
+    await Promise.race([
+      figma.loadFontAsync(font),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Loading the font "${font.family} ${font.style}" took longer than ${FONT_TIMEOUT_MS / 1000}s (Figma's font service). Nothing was changed by this command; send it again.`)), FONT_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+  loadedFonts.add(key);
+  return font;
+}
+// Every font a text node uses. A node with mixed fonts reports fontName as figma.mixed, and Figma
+// refuses any text change until all of its fonts are loaded.
+async function loadNodeFonts(node) {
+  const fonts = node.characters.length ? node.getRangeAllFontNames(0, node.characters.length) : [node.fontName];
+  for (const f of fonts) if (f !== figma.mixed) await loadFont(f);
+}
+const fontAt = (node, i) => (node.fontName !== figma.mixed ? node.fontName : node.getRangeFontName(i, i + 1));
+const unitValue = (v) => (typeof v === "number" ? { value: v, unit: "PIXELS" } : v);
+const clipText = (s, n) => (s.length > n ? s.slice(0, n) + "…" : s);
+
+// Where a range applies: { start, end } (end exclusive) or { match, occurrence }. Both are JS
+// string indices (UTF-16 code units), which is exactly what Figma's range API uses, so characters
+// like "ﷺ" or combining marks line up either way.
+function rangeTargets(node, r, i) {
+  const text = node.characters;
+  if (r.match !== undefined) {
+    const m = String(r.match);
+    if (!m) throw new Error(`ranges[${i}]: match is empty.`);
+    const hits = [];
+    for (let at = text.indexOf(m); at !== -1; at = text.indexOf(m, at + m.length)) hits.push([at, at + m.length]);
+    if (!hits.length) throw new Error(`ranges[${i}]: "${m}" is not in this text node (${node.id}). Its characters are: "${clipText(text, 400)}"`);
+    const occ = r.occurrence === undefined ? "all" : r.occurrence;
+    if (occ === "all") return hits;
+    const n = Number(occ);
+    if (!Number.isInteger(n) || n < 1 || n > hits.length) throw new Error(`ranges[${i}]: "${m}" occurs ${hits.length} time(s) in this text; occurrence ${occ} doesn't exist.`);
+    return [hits[n - 1]];
+  }
+  const s = Number(r.start), e = Number(r.end);
+  if (!Number.isInteger(s) || !Number.isInteger(e) || s < 0 || e > text.length || s >= e) {
+    throw new Error(`ranges[${i}]: needs match, or start/end with 0 <= start < end <= ${text.length} (this text's length); got start ${r.start}, end ${r.end}.`);
+  }
+  return [[s, e]];
+}
+// Word-level styling with Figma's range API. Runs after the whole-node properties, so it overrides
+// them. On instance text these are ordinary overrides.
+async function applyTextRanges(node, ranges) {
+  for (let i = 0; i < ranges.length; i++) {
+    const r = ranges[i] || {};
+    const targets = rangeTargets(node, r, i);
+    const variable = r.fillVariableId ? await figma.variables.getVariableByIdAsync(r.fillVariableId) : r.fillVariable ? await findVariable(r.fillVariable) : null;
+    if (r.fillVariableId && !variable) throw new Error(`ranges[${i}]: variable ${r.fillVariableId} not found or not accessible from this file`);
+    const style = r.textStyle ? await findStyle(r.textStyle, "TEXT") : null;
+    if (style) await figma.loadFontAsync(style.fontName);
+    for (const [s, e] of targets) {
+      if (style) await node.setRangeTextStyleIdAsync(s, e, style.id);
+      if (r.font) {
+        const cur = fontAt(node, s);
+        node.setRangeFontName(s, e, await loadFont({ family: r.font.family || cur.family, style: r.font.style || cur.style }));
+      }
+      if (r.fontSize !== undefined) node.setRangeFontSize(s, e, Number(r.fontSize));
+      if (r.fill !== undefined || variable) {
+        const paint = solidPaint(r.fill || { r: 0, g: 0, b: 0 });
+        node.setRangeFills(s, e, [variable ? figma.variables.setBoundVariableForPaint(paint, "color", variable) : paint]);
+      }
+      if (r.textDecoration !== undefined) node.setRangeTextDecoration(s, e, r.textDecoration);
+      if (r.textCase !== undefined) node.setRangeTextCase(s, e, r.textCase);
+      if (r.letterSpacing !== undefined) node.setRangeLetterSpacing(s, e, unitValue(r.letterSpacing));
+      if (r.lineHeight !== undefined) node.setRangeLineHeight(s, e, unitValue(r.lineHeight));
+    }
+  }
+}
+// A text node's styled runs, short: enough to check word-level styling without an export.
+function textSegments(node, max = 40) {
+  const segs = node.getStyledTextSegments(["fills", "fontName", "fontSize", "textDecoration"]);
+  const out = segs.slice(0, max).map((s) => {
+    const solid = (s.fills || []).find((f) => f.type === "SOLID" && f.visible !== false);
+    const seg = { start: s.start, end: s.end, text: clipText(s.characters, 60) };
+    if (solid) seg.fill = colorToCss(solid.color, solid.opacity).hex;
+    if (solid && solid.boundVariables && solid.boundVariables.color) seg.fillVariable = solid.boundVariables.color.id;
+    seg.font = `${s.fontName.family} ${s.fontName.style}`;
+    seg.fontSize = s.fontSize;
+    if (s.textDecoration && s.textDecoration !== "NONE") seg.textDecoration = s.textDecoration;
+    return seg;
+  });
+  if (segs.length > max) out.push({ more: segs.length - max });
+  return out;
+}
+// Whether a text node's style varies inside it (then reads include its segments).
+const hasMixedText = (node) => ["fills", "fontName", "fontSize", "textDecoration", "letterSpacing", "lineHeight", "textCase"].some((k) => node[k] === figma.mixed);
+
 // Shared by CREATE_TEXT and MODIFY_NODE (on TEXT nodes) so styling logic
-// only lives in one place.
+// only lives in one place. Returns the styled segments when ranges were applied.
+const TEXT_KEYS = ["font", "fontSize", "characters", "fill", "textAlignHorizontal", "letterSpacing", "lineHeight", "textCase", "textAutoResize", "width", "ranges"];
 async function applyTextParams(node, p) {
+  // Any text change needs every font the node uses, including mixed ones.
+  if (TEXT_KEYS.some((k) => p[k] !== undefined)) await loadNodeFonts(node);
   if (p.font) {
-    const f = { family: p.font.family || node.fontName.family, style: p.font.style || node.fontName.style };
-    await figma.loadFontAsync(f);
-    node.fontName = f;
+    const cur = fontAt(node, 0);
+    node.fontName = await loadFont({ family: p.font.family || cur.family, style: p.font.style || cur.style });
   }
   if (p.fontSize !== undefined) node.fontSize = Number(p.fontSize);
   if (p.characters !== undefined) {
-    await figma.loadFontAsync(node.fontName);
     node.characters = String(p.characters);
   }
   if (p.fill !== undefined) node.fills = [solidPaint(p.fill)];
@@ -83,6 +190,12 @@ async function applyTextParams(node, p) {
     if (node.textAutoResize === "WIDTH_AND_HEIGHT") node.textAutoResize = "HEIGHT";
     node.resize(Number(p.width), node.height);
   }
+  if (p.ranges !== undefined) {
+    if (!Array.isArray(p.ranges)) throw new Error("ranges must be an array");
+    await applyTextRanges(node, p.ranges);
+    return textSegments(node);
+  }
+  return null;
 }
 
 // Shared by CREATE_FRAME/CREATE_COMPONENT and MODIFY_NODE for generic
@@ -140,6 +253,81 @@ function applyBoxParams(node, p, applied) {
   if (p.clipsContent !== undefined && "clipsContent" in node) {
     node.clipsContent = !!p.clipsContent;
     applied.clipsContent = node.clipsContent;
+  }
+}
+
+// Design-system links for MODIFY_NODE: bind paints and numbers to local Variables and apply local
+// text/effect styles, each given by name (e.g. "card", "spacing/4", "body/md") or id, so a fix never
+// has to write a literal value.
+async function findVariable(ref) {
+  const v = String(ref).startsWith("VariableID:")
+    ? await figma.variables.getVariableByIdAsync(ref)
+    : (await figma.variables.getLocalVariablesAsync()).find((x) => x.name === ref);
+  if (!v) throw new Error(`Variable "${ref}" not found in this file`);
+  return v;
+}
+async function findStyle(ref, kind) {
+  const styles = kind === "TEXT" ? await figma.getLocalTextStylesAsync() : await figma.getLocalEffectStylesAsync();
+  const s = styles.find((x) => x.id === ref || x.name === ref);
+  if (!s) throw new Error(`${kind === "TEXT" ? "Text" : "Effect"} style "${ref}" not found in this file`);
+  return s;
+}
+const RADIUS_FIELDS = ["topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius"];
+async function applyDesignSystemParams(node, p, applied) {
+  if (p.fillVariable !== undefined && "fills" in node) {
+    const v = await findVariable(p.fillVariable);
+    const fills = Array.isArray(node.fills) && node.fills.length ? node.fills.slice() : [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+    const base = fills[0].type === "SOLID" ? fills[0] : { type: "SOLID", color: { r: 1, g: 1, b: 1 } };
+    // Keep the paint's own opacity/visibility (a 30% scrim stays 30%); fillOpacity sets it explicitly.
+    const extra = p.fillOpacity !== undefined ? { opacity: Number(p.fillOpacity) } : {};
+    fills[0] = figma.variables.setBoundVariableForPaint(Object.assign({}, base, extra), "color", v);
+    node.fills = fills;
+    applied.fillVariable = v.name;
+  } else if (p.fillOpacity !== undefined && "fills" in node && Array.isArray(node.fills) && node.fills.length) {
+    const fills = node.fills.slice();
+    fills[0] = Object.assign({}, fills[0], { opacity: Number(p.fillOpacity) });
+    node.fills = fills;
+    applied.fillOpacity = Number(p.fillOpacity);
+  }
+  if (p.strokeVariable !== undefined && "strokes" in node) {
+    const v = await findVariable(p.strokeVariable);
+    const strokes = node.strokes.length ? node.strokes.slice() : [{ type: "SOLID", color: { r: 0, g: 0, b: 0 } }];
+    strokes[0] = figma.variables.setBoundVariableForPaint(Object.assign({}, strokes[0], { visible: true }), "color", v);
+    node.strokes = strokes;
+    applied.strokeVariable = v.name;
+  }
+  if (p.bindFloat !== undefined) {
+    for (const [field, ref] of Object.entries(p.bindFloat)) {
+      const v = await findVariable(ref);
+      const fields = field === "cornerRadius" ? RADIUS_FIELDS : field === "padding" ? ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"] : field === "paddingX" ? ["paddingLeft", "paddingRight"] : field === "paddingY" ? ["paddingTop", "paddingBottom"] : [field];
+      for (const f of fields) {
+        if (!(f in node)) throw new Error(`${node.id} has no ${f} to bind`);
+        node.setBoundVariable(f, v);
+      }
+      applied[`bind.${field}`] = v.name;
+    }
+  }
+  if (p.textStyle !== undefined && node.type === "TEXT") {
+    const s = await findStyle(p.textStyle, "TEXT");
+    await loadNodeFonts(node);
+    await figma.loadFontAsync(s.fontName);
+    if (node.fontName === figma.mixed) {
+      // Mixed text keeps its inline emphasis: the style goes on the runs that share the main
+      // (longest) run's font; other runs (an Amiri ﷺ, a bold phrase) stay as overrides.
+      const segs = node.getStyledTextSegments(["fontName"]);
+      const main = segs.reduce((a, b) => (b.end - b.start > a.end - a.start ? b : a)).fontName;
+      for (const g of segs) {
+        if (g.fontName.family === main.family && g.fontName.style === main.style) await node.setRangeTextStyleIdAsync(g.start, g.end, s.id);
+      }
+    } else {
+      await node.setTextStyleIdAsync(s.id);
+    }
+    applied.textStyle = s.name;
+  }
+  if (p.effectStyle !== undefined && "effectStyleId" in node) {
+    const s = await findStyle(p.effectStyle, "EFFECT");
+    await node.setEffectStyleIdAsync(s.id);
+    applied.effectStyle = s.name;
   }
 }
 
@@ -279,6 +467,8 @@ async function serializeDeep(node, depth) {
     out.letterSpacing = safe(node.letterSpacing);
     out.textAlignHorizontal = node.textAlignHorizontal;
     out.textCase = safe(node.textCase);
+    // Word-level styling (mixed fills/fonts) would otherwise read as nothing or "MIXED".
+    if (hasMixedText(node)) out.segments = textSegments(node);
   }
 
   if (node.type === "INSTANCE") {
@@ -377,6 +567,16 @@ async function styleName(styleId) {
   if (!styleId) return null;
   const s = await figma.getStyleByIdAsync(styleId);
   return s ? s.name : null;
+}
+// A text node with a style per run: "a + b", with "none" for an unstyled run.
+async function textStyleNames(node) {
+  if (node.textStyleId !== figma.mixed) return styleName(node.textStyleId);
+  const names = [];
+  for (const g of node.getStyledTextSegments(["textStyleId"])) {
+    const n = (await styleName(g.textStyleId)) || "none";
+    if (!names.includes(n)) names.push(n);
+  }
+  return names.join(" + ");
 }
 
 async function describeLayout(node, out) {
@@ -495,10 +695,11 @@ async function describeNode(node) {
 
   if (node.type === "TEXT") {
     out.text = {
-      style: await styleName(node.textStyleId),
+      style: await textStyleNames(node),
       color: out.fill,
       align: node.textAlignHorizontal,
       value: node.characters,
+      ...(hasMixedText(node) ? { segments: textSegments(node) } : {}),
     };
     delete out.fill;
   }
@@ -899,6 +1100,26 @@ const handlers = {
     return { textStyles, effectStyles, gridStyles };
   },
 
+  // A local text style (or an update to one with the same name): font, size, line height
+  // (number = px, "120%" = percent, "AUTO"), letter spacing ("1%" or px), text case, and an
+  // optional font-family variable binding (e.g. "font/arabic"), like the file's existing styles.
+  CREATE_TEXT_STYLE: async (params) => {
+    const p = params || {};
+    if (!p.name || !p.family || !p.fontSize) throw new Error("CREATE_TEXT_STYLE requires name, family and fontSize");
+    const dim = (v) => (v === "AUTO" ? { unit: "AUTO" } : typeof v === "string" && v.endsWith("%") ? { unit: "PERCENT", value: parseFloat(v) } : { unit: "PIXELS", value: Number(v) });
+    const existing = (await figma.getLocalTextStylesAsync()).find((s) => s.name === p.name);
+    const s = existing || figma.createTextStyle();
+    s.name = p.name;
+    s.fontName = await loadFont({ family: p.family, style: p.style || "Regular" });
+    s.fontSize = Number(p.fontSize);
+    if (p.lineHeight !== undefined) s.lineHeight = dim(p.lineHeight);
+    if (p.letterSpacing !== undefined) s.letterSpacing = typeof p.letterSpacing === "string" ? dim(p.letterSpacing) : { unit: "PIXELS", value: Number(p.letterSpacing) };
+    if (p.textCase) s.textCase = p.textCase;
+    if (p.description !== undefined) s.description = p.description;
+    if (p.fontVariable) s.setBoundVariable("fontFamily", await findVariable(p.fontVariable));
+    return { id: s.id, name: s.name, summary: `SUCCESS: ${existing ? "Updated" : "Created"} text style "${s.name}"` };
+  },
+
   // Reads every local Variable collection (tokens: color/float/string/
   // boolean), resolving alias chains to a final literal per mode. General
   // design-token export — not specific to any one app's naming scheme.
@@ -1053,7 +1274,7 @@ const handlers = {
     const parent = await resolveParent(params.parentId);
     const family = (params.font && params.font.family) || params.fontFamily || "Inter";
     const style = (params.font && params.font.style) || params.fontStyle || "Regular";
-    await figma.loadFontAsync({ family, style });
+    await loadFont({ family, style });
 
     const text = figma.createText();
     text.fontName = { family, style };
@@ -1062,7 +1283,7 @@ const handlers = {
     text.x = Number(params.x) || 0;
     text.y = Number(params.y) || 0;
 
-    await applyTextParams(text, params);
+    const segments = await applyTextParams(text, params);
     // Figma auto-names new text nodes by their content — must set this
     // explicitly, or a caller-supplied params.name is silently dropped.
     if (params.name) text.name = params.name;
@@ -1072,7 +1293,8 @@ const handlers = {
       id: text.id,
       name: text.name,
       characters: text.characters,
-      summary: `SUCCESS: Created text "${text.characters}"`,
+      ...(segments ? { segments } : {}),
+      summary: `SUCCESS: Created text "${text.characters}"${segments ? ` with ${segments.length} styled segment(s)` : ""}`,
     };
   },
 
@@ -1182,7 +1404,7 @@ const handlers = {
     if (params.name) instance.name = params.name;
     instance.x = Number(params.x) || 0;
     instance.y = Number(params.y) || 0;
-    parent.appendChild(instance);
+    appendNode(parent, instance, params.insertIndex);
     return {
       id: instance.id,
       name: instance.name,
@@ -1361,13 +1583,16 @@ const handlers = {
       node.fills = src.fills.map((f) => (f.type === "IMAGE" ? Object.assign({}, f, { scaleMode: "FILL" }) : f));
       applied.copyFillsFrom = src.id;
     }
+    await applyDesignSystemParams(node, props, applied);
 
+    let segments = null;
     if (node.type === "TEXT") {
-      await applyTextParams(node, props);
+      segments = await applyTextParams(node, props);
       Object.assign(applied, {
         characters: props.characters,
         fontSize: props.fontSize,
         font: props.font,
+        ranges: props.ranges ? props.ranges.length : undefined,
       });
     }
 
@@ -1375,6 +1600,7 @@ const handlers = {
       id: node.id,
       name: node.name,
       applied,
+      ...(segments ? { segments } : {}),
       summary: `SUCCESS: Modified node ${node.id} (${Object.keys(applied).join(", ") || "no-op"})`,
     };
   },

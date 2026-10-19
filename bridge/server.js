@@ -15,6 +15,13 @@ const { WebSocketServer } = require("ws");
 // an isolated bridge instance without touching the real one on 8787.
 const PORT = Number(process.env.FIGMA_BRIDGE_PORT) || 8787;
 const REQUEST_TIMEOUT_MS = 30000;
+// Commands that legitimately take longer: an image is downloaded by the plugin's UI and then
+// decoded by Figma; an export renders the node. Each timer starts when that command is sent (the
+// MCP server sends a batch's steps one at a time), so a slow one never eats into the next one's.
+const TIMEOUT_MS_BY_TYPE = { IMPORT_IMAGE: 120000, EXPORT_NODE: 90000 };
+// Commands that timed out, kept briefly: when the plugin's answer arrives after all, the log says so
+// (the change DID happen in Figma), instead of a bare "no pending request".
+const timedOut = new Map();
 const EXPORTS_DIR = path.join(__dirname, "..", "exports");
 fs.mkdirSync(EXPORTS_DIR, { recursive: true });
 
@@ -25,7 +32,32 @@ function log(...args) {
   console.log(new Date().toISOString(), ...args);
 }
 
+// Who may talk to the bridge. Its callers are local programs (the MCP server, the console, tests),
+// which send no Origin header, and the plugin's UI, which connects over WebSocket from Figma's
+// sandboxed iframe (Origin "null", or a figma.com origin). A web page the person happens to have
+// open sends its own Origin: its commands, and its WebSocket (which would replace the plugin's), are
+// refused. The Host must be this loopback port, so a DNS-rebinding name can't reach it either.
+const HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`, `[::1]:${PORT}`]);
+const WS_ORIGINS = new Set(["null", "https://www.figma.com", "https://figma.com"]);
+// The bridge's own origin is what the dev-control daemon sends with /shutdown; no web page can have
+// it, because the bridge serves no pages.
+const SELF = new Set([...HOSTS].map((h) => `http://${h}`));
+function refusal(req, { ws = false } = {}) {
+  if (!HOSTS.has(String(req.headers.host || "").toLowerCase())) return "Host is not this bridge";
+  const origin = req.headers.origin;
+  if (ws) return origin === undefined || WS_ORIGINS.has(origin) ? null : `WebSocket origin ${origin} is not the Figma plugin`;
+  if (req.method !== "GET" && origin !== undefined && !SELF.has(origin)) return `requests from web pages (Origin ${origin}) are refused`;
+  return null;
+}
+
 const server = http.createServer((req, res) => {
+  const why = refusal(req);
+  if (why) {
+    log("REFUSED", req.method, req.url, "-", why);
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: false, error: `Refused: ${why}` }));
+    return;
+  }
   if (req.method === "POST" && req.url === "/command") {
     let body = "";
     req.on("data", (chunk) => (body += chunk));
@@ -48,11 +80,14 @@ const server = http.createServer((req, res) => {
       const id = crypto.randomUUID();
       const command = { id, type: payload.type, params: payload.params || {} };
 
+      const limit = TIMEOUT_MS_BY_TYPE[command.type] || REQUEST_TIMEOUT_MS;
       const resultPromise = new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
           pending.delete(id);
-          reject(new Error("Timed out waiting for plugin response"));
-        }, REQUEST_TIMEOUT_MS);
+          timedOut.set(id, { type: command.type, at: Date.now() });
+          if (timedOut.size > 200) timedOut.delete(timedOut.keys().next().value);
+          reject(new Error(`Timed out after ${limit / 1000}s waiting for the plugin's response to ${command.type}. The plugin may still finish it, so check the node before sending it again.`));
+        }, limit);
         pending.set(id, { resolve, reject, timer });
       });
 
@@ -105,10 +140,10 @@ const server = http.createServer((req, res) => {
   res.end();
 });
 
-const wss = new WebSocketServer({ server, path: "/ws" });
+const wss = new WebSocketServer({ server, path: "/ws", verifyClient: ({ req }) => { const why = refusal(req, { ws: true }); if (why) log("REFUSED WebSocket -", why); return !why; } });
 
-wss.on("connection", (socket) => {
-  log("plugin connected");
+wss.on("connection", (socket, req) => {
+  log("plugin connected", `(origin ${req.headers.origin === undefined ? "none" : req.headers.origin})`);
   pluginSocket = socket;
 
   socket.on("message", (raw) => {
@@ -127,7 +162,9 @@ wss.on("connection", (socket) => {
 
     const entry = pending.get(msg.id);
     if (!entry) {
-      log("no pending request for id", msg.id);
+      const late = timedOut.get(msg.id);
+      if (late) { timedOut.delete(msg.id); log(`LATE reply for ${late.type} ${msg.id}: ${msg.ok ? "it DID complete in Figma" : "it failed"}, ${Math.round((Date.now() - late.at) / 1000)}s after the bridge gave up`); }
+      else log("no pending request for id", msg.id);
       return;
     }
     clearTimeout(entry.timer);

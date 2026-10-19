@@ -153,6 +153,20 @@ aside.left { background: var(--low); display: flex; flex-direction: column; min-
 .wmem li { display: flex; gap: 8px; align-items: center; padding: 2px 6px; color: var(--t2); }
 .wmem li .when { color: var(--t3); flex: none; }
 .wfoot { display: flex; gap: 6px; align-items: center; justify-content: flex-end; padding-top: 4px; }
+.ghline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ghline .wfield { flex: 1; min-width: 180px; }
+.ghline select { background: var(--surf); color: var(--t1); border: 0; border-radius: 2px; padding: 4px 6px; font: 400 12px/20px var(--sans); }
+.ghline .cap { padding: 2px 4px; align-items: center; }
+.ghlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ghhead { display: flex; }
+.ghhead .row { gap: 6px; }
+.ghfound { display: flex; gap: 8px; align-items: center; padding: 2px 6px; color: var(--t2); }
+.ghfound .ell { flex: 1; }
+.ghdet { margin: 2px 0 8px 14px; padding: 8px 10px; background: var(--surf); border-radius: 4px; display: flex; flex-direction: column; gap: 8px; color: var(--t2); }
+.ghdet dl { margin: 0; display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 2px 8px; }
+.ghdet dl > div { display: contents; } .ghdet dt { color: var(--t3); } .ghdet dd { margin: 0; min-width: 0; }
+.wrepo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 240px); gap: 6px; align-items: center; }
+.wrepo select { background: var(--surf); color: var(--t1); border: 0; border-radius: 2px; padding: 4px 6px; font: 400 12px/20px var(--sans); }
 .wfoot .msg { flex: 1; }
 .wfoot .btn { height: 28px; }
 .wsi { position: relative; }
@@ -447,6 +461,10 @@ aside.right { background: var(--low); display: flex; flex-direction: column; min
         <div class="acts"><button type="button" class="btn m11" id="fCancel">Cancel</button><button type="submit" class="btn pri m11">Add</button></div>
       </form>
     </nav>
+    <nav class="sect" aria-labelledby="lGh">
+      <div class="lab" id="lGh">GitHub</div>
+      <ul><li class="wsi"><button class="row ws" id="ghOpen" title="The GitHub connection, registered repositories and their workspaces"><span class="grow"><span class="ell" id="ghState">Repositories</span></span><span class="meta m11" id="ghMeta"></span></button></li></ul>
+    </nav>
     <section class="sect" aria-labelledby="lFav">
       <div class="lab" id="lFav">Favourites</div>
       <ul id="favList"></ul>
@@ -670,7 +688,7 @@ function renderWorkspaces() {
       <div class="acts"><button class="btn m11" data-rm-cancel>Cancel</button><button class="btn danger m11" data-rm-ok="${esc(x.id)}">Remove</button></div></div></li>`
     : x.id === "scratch" ? `<li class="wsi"><button class="row ws" data-ws="scratch" aria-current="${x.id === wsId}" title="No project folder: for Figma work and conversation. The worker gets a private scratch folder.">
       <span class="grow">${x.id === wsId ? '<span class="dot"></span>' : ""}<span class="ell">${esc(x.name)}</span></span><span class="meta">${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button></li>`
-    : `<li class="wsi" draggable="true" data-ws-item="${esc(x.id)}"><button class="row ws" data-ws="${esc(x.id)}" aria-current="${x.id === wsId}" title="${esc(x.root)}${x.available ? "" : " (folder not found)"}&#10;Drag, or Alt+↑/↓, to reorder">
+    : `<li class="wsi" draggable="true" data-ws-item="${esc(x.id)}"><button class="row ws" data-ws="${esc(x.id)}" aria-current="${x.id === wsId}" title="${esc(x.root)}${x.available ? "" : " (folder not found)"}${x.repo ? `&#10;GitHub: ${esc(x.repo.fullName || "repository no longer registered")}` : ""}&#10;Drag, or Alt+↑/↓, to reorder">
       <span class="grow">${x.id === wsId ? '<span class="dot"></span>' : ""}<span class="ell" style="${x.available ? "" : "color:var(--t3)"}">${esc(x.name)}</span></span>
       <span class="meta">${x.branch ? `<span class="m12 ell" style="max-width:80px">${esc(x.branch)}</span>` : ""}${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button><button class="x" data-rm="${esc(x.id)}" aria-label="Remove ${esc(x.name)} from the list">${svgIcon("close", 12, 12)}</button></li>`).join("") || '<li class="empty">No workspaces. Add one to start.</li>';
   $("swMenu").innerHTML = WS.map((x) => `<button role="menuitem" data-ws="${esc(x.id)}" class="m12"><span class="dot ${x.id === wsId ? "" : "grey"}"></span><span class="ell" style="flex:1">${esc(x.name)}</span><span style="color:var(--t3)">${modeOf(x)}</span></button>`).join("");
@@ -680,7 +698,8 @@ function renderWorkspaces() {
   $("cHash").hidden = !w.commit; $("cHash").textContent = w.commit ? `#${w.commit}` : "";
   $("bName").textContent = w.name; $("bBr").textContent = w.branch || ""; $("bSl").hidden = !w.branch;
   $("mName").textContent = modeOf(w);
-  $("footR").textContent = w.id === "scratch" ? "No folder: works in Figma and in chat; scratch files stay private" : w.profile === "inspect" ? "Inspect: reads and searches only. No edits, no commands" : "Work: can edit files and run commands in this folder";
+  $("footR").textContent = (w.id === "scratch" ? "No folder: works in Figma and in chat; scratch files stay private" : w.profile === "inspect" ? "Inspect: reads and searches only. No edits, no commands" : "Work: can edit files and run commands in this folder")
+    + (w.repo ? ` · GitHub: ${w.repo.fullName || "repository no longer registered"} (access per worker)` : "");
   $("input").placeholder = runId ? "Reply to the worker…" : w.id === "scratch" ? "Message the worker…" : (w.profile === "inspect" ? `Ask the worker to inspect ${w.name}…` : `Ask the worker to inspect or operate on ${w.name}…`);
 }
 function selectWorkspace(id, { newChat = true } = {}) {
@@ -752,7 +771,7 @@ $("swMenu").onclick = (e) => { const b = e.target.closest("[data-ws]"); if (b) s
 $("switcher").onclick = (e) => { e.stopPropagation(); const open = $("swMenu").hidden; closeMenus(); $("swMenu").hidden = !open; $("switcher").setAttribute("aria-expanded", open); if (open) $("swMenu").querySelector("button")?.focus(); };
 function closeMenus() { $("swMenu").hidden = true; $("switcher").setAttribute("aria-expanded", "false"); }
 document.addEventListener("click", (e) => { if (!e.target.closest("#swMenu")) closeMenus(); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); } else if (view === "file" || view === "version" || view === "worker") closeFile(); document.body.classList.remove("show-act", "show-nav"); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); } else if (view === "file" || view === "version" || view === "worker" || view === "github") closeFile(); document.body.classList.remove("show-act", "show-nav"); } });
 
 // ---------------- account & usage ----------------
 // The Claude login the workers run as (the runtime's own `claude auth status`), and its plan usage
@@ -984,6 +1003,9 @@ function openWorkerEditor(id, note) {
     const workOnly = !c.profiles.includes("inspect");
     return `<li><label class="cap"><input type="checkbox" data-cap="${esc(c.id)}" ${d.capabilities.includes(c.id) ? "checked" : ""}><span class="t"><span>${esc(c.label)}${workOnly ? ` <span class="d m11">· Work workspaces only</span>` : ""}${workOnly && inspect ? ` <span class="off m11">· not in this workspace</span>` : ""}</span><span class="d m11">${esc(c.tools)}</span></span></label></li>`;
   }).join("");
+  // Repository access: none unless chosen here, per registered repository.
+  const repoRows = (WK.repos || []).map((r) => { const cur = ((d.repos || []).find((g) => g.repo === r.id) || {}).level || "";
+    return `<div class="wrepo"><span class="ell">${esc(r.fullName)}${r.status !== "ok" ? ' <span class="err m11">needs attention</span>' : ""}</span><select data-repo="${esc(r.id)}" aria-label="Access to ${esc(r.fullName)}"><option value="">No access</option>${(WK.repoLevels || []).map((l) => `<option value="${l.id}" ${cur === l.id ? "selected" : ""}>${esc(l.label)}</option>`).join("")}</select></div>`; }).join("");
   const title = id ? `${d.name} · v${d.version}` : "New worker";
   $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="${esc(title)}"><div class="vbar m11"><span class="ell">${esc(title)}</span><span class="ro">${id ? "edits apply to new chats" : ""}</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
     <div class="vbody"><form class="wform" id="wkForm" novalidate>
@@ -993,6 +1015,7 @@ function openWorkerEditor(id, note) {
       </div>
       <label class="wf"><span class="lab">Mission</span><textarea class="wtext" id="wkM" rows="2" maxlength="600" placeholder="What this worker is for, in a sentence or two">${esc(d.mission)}</textarea></label>
       <div class="wf"><span class="lab">What it can use</span><span class="sub m11">Only checked tools are loaded. A tool gives no access by itself: requirements and the workspace decide that.</span><ul class="caps">${capRows}</ul></div>
+      <div class="wf"><span class="lab">Repositories</span><span class="sub m11">Access to registered GitHub repositories, in a workspace assigned to that repository. Enforced by the console and the runtime; an Inspect workspace caps it at Read.</span>${repoRows || '<span class="sub m11">No registered repositories yet (GitHub, in the sidebar).</span>'}</div>
       <label class="wf"><span class="lab">How it works</span><span class="sub m11">One step per line, in order.</span><textarea class="wtext" id="wkW" rows="5" placeholder="Understand the request&#10;Check access to everything it needs&#10;Inspect&#10;Plan&#10;Do the work&#10;Verify&#10;Report">${esc(d.workflow.join("\n"))}</textarea></label>
       <label class="wf"><span class="lab">What it knows</span><span class="sub m11">Domain knowledge, conventions, operating principles.</span><textarea class="wtext" id="wkK" rows="6">${esc(d.knowledge)}</textarea></label>
       <label class="wf"><span class="lab">Hard limits</span><span class="sub m11">One per line. Things it must never do, even if asked.</span><textarea class="wtext" id="wkL" rows="4">${esc(d.limitations.join("\n"))}</textarea></label>
@@ -1023,7 +1046,8 @@ function renderReqs(d) {
 }
 async function saveWorker() {
   const body = { name: $("wkN").value, specialization: $("wkS").value, mission: $("wkM").value, workflow: $("wkW").value, knowledge: $("wkK").value, limitations: $("wkL").value, onMissing: $("wkO").value,
-    capabilities: [...document.querySelectorAll("[data-cap]")].filter((x) => x.checked).map((x) => x.dataset.cap), requirements: wkEdit.reqs };
+    capabilities: [...document.querySelectorAll("[data-cap]")].filter((x) => x.checked).map((x) => x.dataset.cap), requirements: wkEdit.reqs,
+    repos: [...document.querySelectorAll("[data-repo]")].map((x) => ({ repo: x.dataset.repo, level: x.value })).filter((x) => x.level) };
   try {
     const w = wkEdit.id ? await api("PUT", `/workers/${encodeURIComponent(wkEdit.id)}`, body) : await api("POST", "/workers", body);
     wkId = w.id; store.set("worker", w.id);
@@ -1047,6 +1071,101 @@ async function loadMemory(id) {
     else return;
     loadMemory(id); loadWorkers();
   };
+}
+
+// ---------------- github ----------------
+// The platform's one GitHub connection, the registered repositories and the workspace each one is
+// assigned to (docs/github.md). Everything shown comes from the console; the token goes in once and
+// never comes back to this page. What a worker may do with a repository is set per worker (its
+// definition's Repositories) and enforced by the console and the runtime.
+let GH = null, ghOpenRepo = null, ghFound = { state: "idle", list: [], error: "" }, ghConfirm = null;
+const ghLevel = (l) => (GH?.levels.find((x) => x.id === l) || {}).label || l;
+async function loadGithub() {
+  try { GH = await api("GET", "/github"); } catch { return; }
+  $("ghState").textContent = GH.connected ? `@${GH.connection?.login || "connected"}` : "Not connected";
+  $("ghMeta").innerHTML = GH.connection?.error ? '<span style="color:var(--err)">needs attention</span>' : esc(plural(GH.repos.length, "repo"));
+  if (view === "github") renderGithub();
+}
+$("ghOpen").onclick = () => openGithubPage();
+function openGithubPage(note) {
+  view = "github"; verOpen = null; renderVersions();
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="GitHub"><div class="vbar m11"><span class="ell">GitHub</span><span class="ro">one connection for every workspace</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 12, 12)}</button></div>
+    <div class="vbody"><div class="wform" id="ghBody"><div class="sub m11">Loading…</div></div><div class="wform" style="padding-top:0"><span class="msg m11" id="ghMsg" role="status">${esc(note || "")}</span></div></div></div>`;
+  wireViewer();
+  if (GH) renderGithub();
+  loadGithub();
+}
+const ghSay = (m, bad) => { const el = $("ghMsg"); if (el) el.innerHTML = bad ? `<span class="err">${esc(m)}</span>` : esc(m); };
+async function ghDo(fn, done) { try { const r = await fn(); await loadGithub(); loadWorkspaces().catch(() => {}); if (done) ghSay(typeof done === "function" ? done(r) : done); return r; } catch (e) { ghSay(e.message, true); } }
+function renderGithub() {
+  const b = $("ghBody"); if (!b || !GH) return;
+  const c = GH.connection, gitWs = WS.filter((w) => w.id !== "scratch" && w.available && (w.branch || w.commit));
+  const conn = GH.connected ? `<div class="wstat m11 ${c?.error ? "bad" : "ok"}"><span class="dot ${c?.error ? "red" : ""}"></span>${c?.error ? esc(c.error) : `Connected as @${esc(c?.login)} · ${esc(c?.tokenKind || "")} token · checked ${esc(new Date(c?.verifiedAt).toLocaleString())}`}</div>
+      ${c?.scopes?.length ? `<div class="sub m11">Classic token scopes: ${esc(c.scopes.join(", "))}${c.scopes.includes("repo") ? " — broad: a fine-grained token limited to these repositories is safer." : ""}</div>` : ""}`
+    : '<div class="wstat m11"><span class="dot grey"></span>Not connected</div>';
+  const repoRow = (r) => {
+    const open = ghOpenRepo === r.id, st = r.status === "ok" ? "" : "red";
+    return `<li class="ghrepo"><div class="ghhead"><button type="button" class="row" data-gh-open="${esc(r.id)}" aria-expanded="${open}" style="flex:1;text-align:left"><span class="dot ${st}"></span><span class="ell">${esc(r.fullName)}</span>
+        <span class="meta m11">${r.private ? "private" : "public"}${r.workspaces.length ? ` · ${esc(r.workspaces.map((w) => w.name).join(", "))}` : " · not assigned"}</span></button></div>
+      ${open ? ghDetail(r, gitWs) : ""}</li>`;
+  };
+  b.innerHTML = `
+    <div class="wf"><span class="lab">Connection</span><span class="sub m11">Used by this console only, to find and check repositories. Git itself keeps using your own Git sign-in for clone and push. Least privilege: a fine-grained token with access to the chosen repositories and <b>Metadata: read</b>.</span>
+      ${conn}
+      <div class="ghline"><input class="wfield" id="ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="${GH.connected ? "Paste a new token to replace it" : "github_pat_…"}" aria-label="GitHub token">
+        <button type="button" class="btn pri m11" id="ghConnect">${GH.connected ? "Replace" : "Connect"}</button>
+        ${GH.connected ? `<button type="button" class="btn m11" id="ghVerify">Verify</button><button type="button" class="btn danger m11" id="ghDisc">${ghConfirm === "disconnect" ? "Disconnect: sure?" : "Disconnect"}</button>` : ""}</div>
+      ${ghConfirm === "disconnect" ? '<span class="sub m11">The token is deleted from this computer. Registered repositories, assignments and folders stay.</span>' : ""}</div>
+    <div class="wf"><span class="lab">Registered repositories</span><span class="sub m11">Assign one to a workspace whose folder is its checkout; give workers access in their definitions (Repositories).</span>
+      <ul class="ghlist">${GH.repos.length ? GH.repos.map(repoRow).join("") : '<li class="sub m11">None yet. Find one below, or register it by name.</li>'}</ul></div>
+    <div class="wf"><span class="lab">Add a repository</span>
+      <div class="ghline"><button type="button" class="btn m11" id="ghFind" ${GH.connected ? "" : "disabled"}>${ghFound.state === "loading" ? "Looking…" : ghFound.state === "done" ? "Look again" : "Find my repositories"}</button>
+        <input class="wfield" id="ghName" placeholder="owner/name" autocomplete="off" spellcheck="false" aria-label="Repository owner/name"><button type="button" class="btn m11" id="ghReg" ${GH.connected ? "" : "disabled"}>Register</button></div>
+      ${!GH.connected ? '<span class="sub m11">Connect first.</span>' : ghFound.state === "error" ? `<span class="err m11">${esc(ghFound.error)}</span>`
+        : ghFound.state === "done" ? (ghFound.list.length ? `<ul class="ghlist">${ghFound.list.map((r) => `<li class="ghfound"><span class="ell">${esc(r.fullName)}</span><span class="meta m11">${r.private ? "private" : "public"}${r.access ? ` · token: ${esc(r.access)}` : ""}</span>
+            ${r.registered ? '<span class="sub m11">registered</span>' : `<button type="button" class="btn m11" data-gh-reg="${esc(r.fullName)}">Register</button>`}</li>`).join("")}</ul>` : '<span class="sub m11">This token can\'t see any repositories.</span>') : ""}</div>`;
+  b.onclick = ghClick;
+}
+function ghDetail(r, gitWs) {
+  const free = gitWs.filter((w) => !w.repo);
+  const grants = GH.workers.map((w) => ({ name: w.name, level: (w.repos.find((g) => g.repo === r.id) || {}).level })).filter((x) => x.level);
+  return `<div class="ghdet m11"><dl>
+      <div><dt>Remote</dt><dd class="mono ell">${esc(r.url)}</dd></div>
+      <div><dt>Default branch</dt><dd>${esc(r.defaultBranch || "unknown")}</dd></div>
+      <div><dt>Status</dt><dd>${r.status === "ok" ? `Accessible · checked ${esc(new Date(r.verifiedAt).toLocaleString())}` : `<span class="err">${esc(r.status)}: ${esc(r.error || "")}</span>`}</dd></div>
+      <div><dt>This token</dt><dd>${esc(r.access || "unknown")} access${r.archived ? " · archived" : ""}</dd></div>
+      <div><dt>Workers</dt><dd>${grants.length ? grants.map((g) => `${esc(g.name)}: ${esc(g.level)}`).join(" · ") : "No defined worker has access (set it in a worker's definition)."}</dd></div></dl>
+    ${r.workspaces.map((w) => `<div class="ghline"><span class="ell" style="flex:1">Workspace <b>${esc(w.name)}</b> · General worker: ${esc(w.general)}${w.shell ? " · shell on" : ""}${w.workersOnDefault ? ` · workers may commit to ${esc(r.defaultBranch || "default")}` : ""}</span>
+      <button type="button" class="btn m11" data-gh-unassign="${esc(w.id)}">Unassign</button></div>`).join("")}
+    ${free.length ? `<div class="ghline"><select id="ghWs" aria-label="Workspace">${free.map((w) => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join("")}</select>
+      <select id="ghGen" aria-label="General worker access">${GH.levels.map((l) => `<option value="${l.id}" ${l.id === "write" ? "selected" : ""}>General: ${esc(l.id)}</option>`).join("")}</select>
+      <label class="cap" title="Workers with shell (node, curl) could run git themselves, outside these limits"><input type="checkbox" id="ghShell">shell</label>
+      <label class="cap" title="Otherwise workers commit on their own branches only"><input type="checkbox" id="ghDef">workers on ${esc(r.defaultBranch || "default")}</label>
+      <button type="button" class="btn m11" data-gh-assign="${esc(r.id)}">Assign</button></div>` : '<div class="sub">No unassigned Git workspace to assign. Add the checkout as a workspace, or clone it:</div>'}
+    <div class="ghline"><input class="wfield mono" id="ghParent" placeholder="Clone into folder, e.g. C:\\Users\\me\\projects" autocomplete="off" spellcheck="false" aria-label="Folder to clone into"><button type="button" class="btn m11" data-gh-clone="${esc(r.id)}">Clone as workspace</button></div>
+    <div class="ghline"><button type="button" class="btn m11" data-gh-refresh="${esc(r.id)}">Refresh from GitHub</button><span style="flex:1"></span>
+      <button type="button" class="btn danger m11" data-gh-remove="${esc(r.id)}">${ghConfirm === "rm:" + r.id ? "Remove: sure?" : "Remove registration"}</button></div>
+    ${ghConfirm === "rm:" + r.id ? '<div class="sub">Only the registration is removed: no folder, change, commit or run is touched. Workers lose their access grants to it.</div>' : ""}</div>`;
+}
+async function ghClick(e) {
+  const t = e.target.closest("button"); if (!t) return;
+  const d = t.dataset;
+  if (t.id === "ghConnect") { const v = $("ghToken").value; if (!v.trim()) return ghSay("Paste a token first.", true); t.disabled = true; await ghDo(() => api("POST", "/github/connection", { token: v }), (r) => `Connected as @${r.connection.login}.`); ghConfirm = null; return renderGithub(); }
+  if (t.id === "ghVerify") return ghDo(() => api("POST", "/github/connection/verify"), "The token works.");
+  if (t.id === "ghDisc") { if (ghConfirm !== "disconnect") { ghConfirm = "disconnect"; return renderGithub(); } ghConfirm = null; ghFound = { state: "idle", list: [], error: "" }; return ghDo(() => api("DELETE", "/github/connection"), "Disconnected. The token was deleted from this computer."); }
+  if (t.id === "ghFind") {
+    ghFound = { state: "loading", list: [], error: "" }; renderGithub();
+    try { ghFound = { state: "done", list: (await api("GET", "/github/discover?refresh=1")).repos, error: "" }; } catch (err) { ghFound = { state: "error", list: [], error: err.message }; }
+    return renderGithub();
+  }
+  if (t.id === "ghReg" || d.ghReg) { const name = d.ghReg || $("ghName").value.trim(); if (!name) return ghSay("Type owner/name.", true);
+    const r = await ghDo(() => api("POST", "/github/repos", { fullName: name }), (x) => `Registered ${x.fullName}.`); if (r) { ghOpenRepo = r.id; ghFound.list = ghFound.list.map((x) => (x.fullName === r.fullName ? { ...x, registered: true } : x)); renderGithub(); } return; }
+  if (d.ghOpen) { ghOpenRepo = ghOpenRepo === d.ghOpen ? null : d.ghOpen; ghConfirm = null; return renderGithub(); }
+  if (d.ghRefresh) return ghDo(() => api("POST", `/github/repos/${encodeURIComponent(d.ghRefresh)}/refresh`), (r) => (r.status === "ok" ? `${r.fullName} checked: accessible.` : `${r.fullName}: ${r.error}`));
+  if (d.ghRemove) { if (ghConfirm !== "rm:" + d.ghRemove) { ghConfirm = "rm:" + d.ghRemove; return renderGithub(); } ghConfirm = null; ghOpenRepo = null; return ghDo(() => api("DELETE", `/github/repos/${encodeURIComponent(d.ghRemove)}`), (r) => `${r.removed}: ${r.note}`); }
+  if (d.ghAssign) return ghDo(() => api("PUT", `/workspaces/${encodeURIComponent($("ghWs").value)}/repo`, { repo: d.ghAssign, general: $("ghGen").value, shell: $("ghShell").checked, workersOnDefault: $("ghDef").checked }), (w) => `Assigned to ${w.name}.`);
+  if (d.ghUnassign) return ghDo(() => api("DELETE", `/workspaces/${encodeURIComponent(d.ghUnassign)}/repo`), (w) => `${w.name} no longer has a repository assigned.`);
+  if (d.ghClone) { const p = $("ghParent").value.trim(); if (!p) return ghSay("Type the folder to clone into.", true); t.disabled = true; ghSay("Cloning…"); return ghDo(() => api("POST", `/github/repos/${encodeURIComponent(d.ghClone)}/clone`, { parent: p, mode: "work" }), (w) => `Cloned into ${w.root} and added as workspace ${w.name}.`); }
 }
 
 // ---------------- teams ----------------
@@ -1453,8 +1572,10 @@ function onEvent(ev) {
     T.items.push({ k: "s", text: ev.summary });
   } else if (t === "continued") {
     const d = JSON.parse(ev.detail || "{}");
-    addCard({ title: "Continued", meta: "Fresh session", metaCls: "ok", body: `This work continues in a new session with a handoff. <span class="link" role="link" tabindex="0" data-open-run="${esc(d.run)}">Open it</span>` });
+    addCard({ title: "Continued", meta: d.auto ? "Automatic" : "Fresh session", metaCls: "ok", body: `${d.auto ? esc(ev.summary) + ". " : "This work continues in a new session with a handoff. "}<span class="link" role="link" tabindex="0" data-open-run="${esc(d.run)}">Open it</span>` });
     T.items.push({ k: "s", text: "Continued in a fresh session (see Activity)" });
+    // Automatic: follow the work to its new session (only as it happens, not when replaying a log).
+    if (d.auto && Date.now() - Date.parse(ev.ts || 0) < 20000) { const from = runId; setTimeout(async () => { if (runId === from) { await loadRuns(); openRun(d.run); } }, 300); }
   } else if (t === "settings") {
     const d = JSON.parse(ev.detail || "{}");
     addCard({ title: "Model", meta: ev.summary, body: d.live ? "Switched for the worker's next step." : "Applies when this conversation continues." });
@@ -1911,7 +2032,7 @@ $("devBridgeSw").onclick = () => toggleDevServer("bridge", $("devBridgeSw"));
   T = freshState();
   try { await loadWorkspaces(); } catch (e) { notice(e); return; }
   await Promise.all([loadPrompts().catch(notice), loadRuns()]);
-  loadTree(); loadGit(); await loadWorkers(); await loadTeams();
+  loadTree(); loadGit(); await loadWorkers(); await loadTeams(); loadGithub();
   if (ACTIVE) openRun(ACTIVE.id); else openNewChat();
   pollDevServers();
   setInterval(() => { if (!document.hidden) { loadRuns(); syncWorkspaces(); pollDevServers(); } }, 4000);

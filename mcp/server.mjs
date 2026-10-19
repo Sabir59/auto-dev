@@ -100,6 +100,29 @@ const BoxParams = {
   clipsContent: z.boolean().optional().describe("Whether this frame/component clips children that overflow its bounds (e.g. an absolutely-positioned decorative child bleeding past a rounded corner)."),
 };
 
+// Word-level styling inside one text node (plugin/code.js applyTextRanges): applied after the
+// whole-node properties, so ranges override them.
+const Spacing = z.union([z.number(), z.object({ value: z.number(), unit: z.enum(["PIXELS", "PERCENT"]) })]);
+const TextRange = z
+  .object({
+    start: z.number().int().min(0).optional().describe("Start index (JS string index, same as Figma's)."),
+    end: z.number().int().min(1).optional().describe("End index, exclusive."),
+    match: z.string().min(1).optional().describe("Style this exact text instead of start/end. If it isn't found, the error quotes the node's text."),
+    occurrence: z.union([z.literal("all"), z.number().int().min(1)]).optional().describe('With match: "all" (default) or which occurrence, counting from 1.'),
+    fill: Color.optional(),
+    fillVariableId: z.string().optional().describe("Bind this range's colour to a COLOR variable (a token) instead of a literal fill."),
+    fillVariable: z.string().optional().describe("Same as fillVariableId, but the variable's name (e.g. \"muted-foreground\")."),
+    textStyle: z.string().optional().describe("Apply a local text style (name or id, e.g. \"body/sm\") to this range."),
+    font: z.object({ family: z.string().optional(), style: z.string().optional() }).optional().describe('e.g. {family:"Amiri", style:"Regular"} for a glyph the main font lacks (ﷺ). Loaded automatically.'),
+    fontSize: z.number().optional(),
+    textDecoration: z.enum(["NONE", "UNDERLINE", "STRIKETHROUGH"]).optional(),
+    textCase: z.enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"]).optional(),
+    letterSpacing: Spacing.optional(),
+    lineHeight: Spacing.optional(),
+  })
+  .refine((r) => r.match !== undefined || (r.start !== undefined && r.end !== undefined), { message: "each range needs match, or both start and end" });
+const RANGES_HELP = 'Word-level styling, applied after the whole-node styles so it overrides them; works on text inside instances (as overrides) and in figma_batch. Example: ranges:[{match:"MEN ONLY", fill:{r:0.969,g:0.576,b:0.118}}] or [{start:0,end:8,font:{family:"Jost",style:"Bold"}}]. The result lists the styled segments (start, end, text, fill hex, font) so you can check without exporting.';
+
 const TextParams = {
   font: z.object({ family: z.string(), style: z.string() }).optional().describe('e.g. {family:"Inter", style:"Bold"}'),
   fontSize: z.number().optional(),
@@ -110,6 +133,7 @@ const TextParams = {
   textCase: z.enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"]).optional(),
   textAutoResize: z.enum(["NONE", "WIDTH_AND_HEIGHT", "HEIGHT", "TRUNCATE"]).optional(),
   width: z.number().optional().describe("Forces textAutoResize to HEIGHT if it's still WIDTH_AND_HEIGHT, or Figma silently ignores this"),
+  ranges: z.array(TextRange).max(200).optional().describe(RANGES_HELP),
 };
 
 const Padding = z.object({ top: z.number().optional(), right: z.number().optional(), bottom: z.number().optional(), left: z.number().optional() });
@@ -178,7 +202,7 @@ server.registerTool(
 const FIELD_GROUPS = {
   geometry: ["x", "y", "width", "height", "absX", "absY", "visible", "opacity"],
   layout: ["layoutMode", "itemSpacing", "padding", "primaryAxisAlignItems", "counterAxisAlignItems", "primaryAxisSizingMode", "counterAxisSizingMode", "layoutPositioning", "layoutGrow", "layoutAlign", "clipsContent"],
-  text: ["characters", "fontName", "fontSize", "lineHeight", "letterSpacing", "textAlignHorizontal", "textCase"],
+  text: ["characters", "fontName", "fontSize", "lineHeight", "letterSpacing", "textAlignHorizontal", "textCase", "segments"],
   style: ["fills", "fillStyleId", "strokes", "strokeWeight", "cornerRadius", "topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius", "effects"],
   component: ["key", "remote", "mainComponent", "mainComponentId", "componentProperties", "variantProperties"],
 };
@@ -337,6 +361,25 @@ server.registerTool(
 );
 
 server.registerTool(
+  "figma_create_text_style",
+  {
+    description: "Create a local text style, or update the one with the same name.",
+    inputSchema: {
+      name: z.string().describe('e.g. "headline/xs"'),
+      family: z.string(),
+      style: z.string().optional().describe('Font style, e.g. "Medium". Default "Regular".'),
+      fontSize: z.number(),
+      lineHeight: z.union([z.number(), z.string()]).optional().describe('px number, "120%", or "AUTO".'),
+      letterSpacing: z.union([z.number(), z.string()]).optional().describe('px number or "1%".'),
+      textCase: z.enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"]).optional(),
+      description: z.string().optional(),
+      fontVariable: z.string().optional().describe('Bind the font family to a STRING variable, e.g. "font/arabic".'),
+    },
+  },
+  tool("CREATE_TEXT_STYLE")
+);
+
+server.registerTool(
   "figma_add_variable_mode",
   {
     description:
@@ -376,7 +419,7 @@ server.registerTool(
 server.registerTool(
   "figma_create_text",
   {
-    description: "Create a TEXT node.",
+    description: `Create a TEXT node. Styles apply to the whole node; ranges styles words inside it. ${RANGES_HELP}`,
     inputSchema: {
       parentId: z.string().optional(),
       name: z.string().optional().describe("Figma auto-names text nodes by their content otherwise."),
@@ -441,7 +484,7 @@ server.registerTool(
   "figma_create_instance",
   {
     description: "Create an instance of an existing master COMPONENT. Returns a 2-level shallow tree of the new instance's children, so a nested layer's id (e.g. a Label to override) is available without an extra lookup.",
-    inputSchema: { componentId: z.string(), parentId: z.string().optional(), name: z.string().optional(), x: z.number().optional(), y: z.number().optional() },
+    inputSchema: { componentId: z.string(), parentId: z.string().optional(), insertIndex: z.number().int().optional().describe("Position among the parent's children (like the other create tools); default: last."), name: z.string().optional(), x: z.number().optional(), y: z.number().optional() },
   },
   tool("CREATE_INSTANCE")
 );
@@ -479,7 +522,7 @@ server.registerTool(
   "figma_modify_node",
   {
     description:
-      "Change properties of an existing node. Only the props you include are touched. layoutPositioning must be set in the SAME call as x/y if you want a flow-managed node to become absolutely positioned at that x/y — Figma discards manual x/y on a still-flow-managed node otherwise.",
+      "Change properties of an existing node. Only the props you include are touched. On TEXT nodes, props.ranges styles individual words (colour, font, size, decoration), e.g. props:{ranges:[{match:\"Allāhu Akbar\", fill:{r:0.969,g:0.576,b:0.118}}]}; the result lists the styled segments. layoutPositioning must be set in the SAME call as x/y if you want a flow-managed node to become absolutely positioned at that x/y — Figma discards manual x/y on a still-flow-managed node otherwise.",
     inputSchema: {
       id: z.string(),
       props: z
@@ -507,6 +550,15 @@ server.registerTool(
             .string()
             .optional()
             .describe("Id of another node to copy fills from (e.g. to reuse an existing photo's IMAGE paint, whose imageHash isn't otherwise reachable). The source node is only read, never modified. Any IMAGE paint copied this way is set to scaleMode FILL. For a brand-new photo from a URL, use figma_import_image instead."),
+          fillVariable: z.string().optional().describe("Bind fill[0] to a local colour Variable, by name (\"card\") or id. Works on TEXT too. Keeps the paint's opacity."),
+          fillOpacity: z.number().min(0).max(1).optional().describe("Opacity of fill[0] (e.g. 0.3 for a scrim), with or without fillVariable."),
+          strokeVariable: z.string().optional().describe("Bind stroke[0] to a local colour Variable, by name or id."),
+          bindFloat: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe("Bind numeric fields to float Variables, e.g. {itemSpacing:\"spacing/3\", paddingX:\"page/padding-x\", cornerRadius:\"radius/xl\"}. Shorthands: cornerRadius (all corners), padding, paddingX, paddingY."),
+          textStyle: z.string().optional().describe("Apply a local text style by name (\"body/md\") or id. On mixed text, only the main run's font gets it; inline emphasis stays as an override."),
+          effectStyle: z.string().optional().describe("Apply a local effect style by name (\"shadow/md\") or id."),
           ...BoxParams,
           ...TextParams,
         })
@@ -612,7 +664,7 @@ if (!LEGACY) server.registerTool(
         const r = await callBridge(p.type, mapStrings(p.args, (s) => { const m = REF.exec(s); return m ? created[m[1]] : s; }));
         const id = r?.id ?? r?.node?.id ?? null;
         if (p.ref) { if (id) created[p.ref] = id; else failedRefs.add(p.ref); }
-        results.push({ i: p.i, tool: p.name.replace("figma_", ""), ...(p.ref ? { ref: p.ref } : {}), status: "ok", ...(id ? { id } : {}), ...(r?.summary ? { summary: String(r.summary).replace(/^SUCCESS:\s*/, "").slice(0, 100) } : {}) });
+        results.push({ i: p.i, tool: p.name.replace("figma_", ""), ...(p.ref ? { ref: p.ref } : {}), status: "ok", ...(id ? { id } : {}), ...(r?.summary ? { summary: String(r.summary).replace(/^SUCCESS:\s*/, "").slice(0, 100) } : {}), ...(r?.segments ? { segments: r.segments } : {}) });
       } catch (e) {
         if (p.ref) failedRefs.add(p.ref);
         results.push({ i: p.i, tool: p.name.replace("figma_", ""), ...(p.ref ? { ref: p.ref } : {}), status: "failed", error: String(e.message || e).slice(0, 300) });

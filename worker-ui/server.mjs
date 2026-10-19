@@ -17,7 +17,7 @@
 //   type: user | reply | status | start | tool | result | failure | artifact | completed
 //         | plan | observation | decision | recovery | verification | done | note
 import http from "node:http";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, statSync, lstatSync, realpathSync, renameSync, rmSync, copyFileSync, openSync, readSync, closeSync } from "node:fs";
 import { join, dirname, resolve, extname, delimiter, relative, isAbsolute, sep, basename } from "node:path";
 import { homedir } from "node:os";
@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import { randomUUID, createHash } from "node:crypto";
 import { api as figmaApi, CRED_FILE as FIGMA_CRED_FILE, parseFigmaUrl } from "../figma-reader/reader.mjs";
 import * as builderApi from "../builder-adapter/builder.mjs";
+import * as github from "./github.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "..");
@@ -38,6 +39,7 @@ const WORKERS = join(DATA, "workers.json");
 const MEMORY = join(DATA, "workers");
 const TEAMS = join(DATA, "teams.json");
 const TEAMDIR = join(DATA, "teams"); // per team: uploaded knowledge, and every saved version
+const GITHUB = join(DATA, "github.json"); // the GitHub connection's status and the repository registry (no token)
 const PORT = Number(process.env.WORKER_CONSOLE_PORT) || 8799;
 // WORKER_FIGMA_LEGACY=1: the Figma tools as they were before batches and compact reads (comparison runs).
 const FIGMA_LEGACY = process.env.WORKER_FIGMA_LEGACY === "1";
@@ -75,7 +77,18 @@ const INSPECT_MCP = [
 // personal allow rules or model setting happen to be there.
 // Commits are the person's: Claude Code must not add its co-author trailer to any commit or PR a
 // worker might make (the Workspace's own commits never add one either; see "versions").
-const WORKER_SETTINGS = JSON.stringify({ includeCoAuthoredBy: false, attribution: { commit: "", pr: "" } });
+// WebFetch never reaches this computer's own services (the console's API, the Figma bridge, the
+// dev-control daemon): the runtime refuses these, below the model. The browser adapter has its own
+// block for the platform's ports (BROWSER_BLOCK_PORTS). Shell commands (node, curl) are not covered
+// by either: a worker with shell can do what the person's account can (docs/second-developer.md).
+const LOOPBACK_FETCH_DENY = ["localhost", "*.localhost", "127.0.0.1", "[::1]", "::1", "0.0.0.0"].map((d) => `WebFetch(domain:${d})`);
+// Every worker compacts itself before its conversation passes the console's context limit (the
+// runtime's own autoCompactWindow: verified headless, it compacts between steps, mid-turn). The limit
+// is console-settings.json's contextWarnTokens (default 250k; the runtime takes 100k to 1M).
+const AUTOCOMPACT_WINDOW = (() => { let n = 250000; try { n = Number(JSON.parse(readFileSync(join(DATA, "console-settings.json"), "utf8")).contextWarnTokens) || n; } catch {} return Math.min(1000000, Math.max(100000, Math.round(n))); })();
+const WORKER_SETTINGS = JSON.stringify({ includeCoAuthoredBy: false, attribution: { commit: "", pr: "" }, autoCompactWindow: AUTOCOMPACT_WINDOW, permissions: { deny: LOOPBACK_FETCH_DENY } });
+// Ports the browser adapter must never open: this console, the main console, the bridge, devctl.
+const PLATFORM_PORTS = [...new Set([Number(process.env.WORKER_CONSOLE_PORT) || 8799, 8799, Number(process.env.FIGMA_BRIDGE_PORT) || 8787, Number(process.env.WORKER_CONSOLE_DEVCTL_PORT) || 8796])].join(",");
 const PROFILES = {
   full: { browser: "full", args: ["--settings", WORKER_SETTINGS, "--setting-sources", "project,local", "--allowedTools", ...ALLOWED] },
   inspect: { browser: "inspect", args: ["--settings", WORKER_SETTINGS, "--restricted", "--tools", INSPECT_BUILTINS.join(","), "--allowedTools", ...INSPECT_BUILTINS, ...INSPECT_MCP, "--permission-prompts", "none"] },
@@ -85,7 +98,7 @@ const mcpConfig = (profile) => {
   const file = join(DATA, `mcp.${profile}.json`);
   writeFileSync(file, JSON.stringify({ mcpServers: {
     "figma-executor": { command: process.execPath, args: [join(REPO, "mcp", "server.mjs")], ...(FIGMA_LEGACY ? { env: { FIGMA_EXECUTOR_LEGACY: "1" } } : {}) },
-    "browser-executor": { command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser } },
+    "browser-executor": { command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser, BROWSER_BLOCK_PORTS: PLATFORM_PORTS } },
   } }, null, 1));
   return file;
 };
@@ -125,7 +138,7 @@ const MCP_SERVERS = {
   "figma-executor": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "server.mjs")], ...(scope.figmaKey || FIGMA_LEGACY ? { env: { ...(scope.figmaKey ? { FIGMA_EXPECTED_FILE_KEY: scope.figmaKey } : {}), ...(FIGMA_LEGACY ? { FIGMA_EXECUTOR_LEGACY: "1" } : {}) } } : {}) }),
   "figma-reader": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")],
     ...(scope.figmaKey ? { env: { FIGMA_READER_ALLOWED_KEYS: scope.figmaKey, ...(process.env.FIGMA_READER_DIR ? { FIGMA_READER_DIR: process.env.FIGMA_READER_DIR } : {}) } } : {}) }),
-  "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser } }),
+  "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser, BROWSER_BLOCK_PORTS: PLATFORM_PORTS } }),
   // The write tools are registered only when the worker may write here (builder.write or the
   // narrower builder.write.draft usable); otherwise the server itself is read-only, not just its
   // allow list. builder.write.draft gets BUILDER_ADAPTER_PROFILE=draft: builder_publish_content
@@ -140,7 +153,16 @@ const MCP_SERVERS = {
     return { command: process.execPath, args: [join(REPO, "mcp", "builder-server.mjs")],
       env: { BUILDER_ADAPTER_PROFILE: builderProfile, ...((full || draft) && root ? { BUILDER_UPLOAD_ROOT: root } : {}), ...(process.env.BUILDER_ADAPTER_DIR ? { BUILDER_ADAPTER_DIR: process.env.BUILDER_ADAPTER_DIR } : {}) } };
   },
+  // The workspace's registered repository, at this worker's access (mcp/repo-server.mjs registers
+  // only the tools that access allows). It gets the checkout and the expected remote, no token.
+  repo: (profile, scope = {}, usable = [], root = null) => ({ command: process.execPath, args: [join(REPO, "mcp", "repo-server.mjs")],
+    env: { REPO_ROOT: root, REPO_URL: scope.repo.url, REPO_NAME: scope.repo.fullName, REPO_LEVEL: scope.repo.level, REPO_DEFAULT_BRANCH: scope.repo.defaultBranch || "",
+      REPO_WORKERS_ON_DEFAULT: scope.repo.workersOnDefault ? "1" : "0", REPO_PROTECT: (scope.protect || []).map((p) => p.branch).join(",") } }),
 };
+// Access a worker can have to a workspace's repository, lowest first, and the tools each adds.
+const REPO_LEVELS = ["read", "write", "commit", "push"];
+const REPO_LEVEL_LABELS = { read: "Read: status, history and diffs", write: "Write: also edit files", commit: "Commit: also create branches and commit", push: "Push: also push branches" };
+const REPO_TOOLS = [["repo_status", "read"], ["repo_log", "read"], ["repo_diff", "read"], ["repo_create_branch", "commit"], ["repo_commit", "commit"], ["repo_push", "push"]];
 // Deny rules are applied by the runtime itself, below the model. Absolute paths are written the
 // runtime's way (//c/Users/...); tested: a Write into such a folder is refused.
 const denyPath = (p) => "//" + resolve(p).replace(/\\/g, "/").replace(/^([A-Za-z]):/, (_, d) => d.toLowerCase());
@@ -153,23 +175,29 @@ const PROTECT_DENY = ["Edit(.git/**)", "Edit(**/.git/**)", "Edit(.claude/**)", "
 //  - onProtected: a protected branch is checked out, so file edits are off too.
 //  - knowledgeDir: the run's copy of uploaded Team knowledge, readable and not writable.
 //  - figmaKey: the Team's Figma file (see MCP_SERVERS).
+//  - repo: the registered repository assigned to the workspace and this worker's access to it
+//    (repoScope). Git goes only through the repo tools of that access; shell commands are off
+//    unless the assignment allows them (node can run git behind the console); .git and .claude
+//    can't be written; read access also turns file edits off.
 function workerRuntime(def, profile, scope = {}) {
-  const protect = !!scope.protect?.length;
-  const policyOff = new Set([...(protect ? ["shell"] : []), ...(scope.onProtected ? ["files.write"] : [])]);
+  const protect = !!scope.protect?.length, repo = scope.repo || null, repoRank = repo ? REPO_LEVELS.indexOf(repo.level) : -1;
+  const policyOff = new Set([...(protect || (repo && !repo.shell) ? ["shell"] : []), ...(scope.onProtected || (repo && repoRank < 1) ? ["files.write"] : [])]);
   const allowed = def.capabilities.filter((c) => CAPABILITIES[c]?.profiles.includes(profile));
   const usable = allowed.filter((c) => !policyOff.has(c));
   const builtins = ["ToolSearch", ...new Set(usable.flatMap((c) => CAPABILITIES[c].builtins || []))];
-  const allow = ["ToolSearch", ...usable.flatMap((c) => { const a = CAPABILITIES[c].allow; return Array.isArray(a) ? a : a[profile] || []; })];
-  const servers = [...new Set(usable.map((c) => CAPABILITIES[c].mcp).filter(Boolean))];
-  const base = profile === "inspect" || protect ? ["--restricted"] : ["--setting-sources", "project,local"];
+  const repoTools = repo ? REPO_TOOLS.filter(([, l]) => repoRank >= REPO_LEVELS.indexOf(l)).map(([t]) => `mcp__repo__${t}`) : [];
+  const allow = ["ToolSearch", ...usable.flatMap((c) => { const a = CAPABILITIES[c].allow; return Array.isArray(a) ? a : a[profile] || []; }), ...repoTools];
+  const servers = [...new Set([...usable.map((c) => CAPABILITIES[c].mcp).filter(Boolean), ...(repo ? ["repo"] : [])])];
+  const lockGit = protect || !!repo;
+  const base = profile === "inspect" || lockGit ? ["--restricted"] : ["--setting-sources", "project,local"];
   // Renders the worker makes (figma_export_node, browser_screenshot) land in the adapters' own
   // exports folders; it may read those, and only those, outside its workspace, to look at its work.
   const exportsDirs = [...new Set(usable.flatMap((c) => (c.startsWith("figma.plugin") ? [join(REPO, "exports")] : c === "browser" ? [join(REPO, "browser-adapter", "exports")] : [])))];
   const readOnly = scope.knowledgeDir ? [scope.knowledgeDir] : [];
-  const deny = [...(protect ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`)];
-  const settings = deny.length ? JSON.stringify({ ...JSON.parse(WORKER_SETTINGS), permissions: { deny } }) : WORKER_SETTINGS;
+  const deny = [...(lockGit ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`)];
+  const settings = deny.length ? JSON.stringify({ ...JSON.parse(WORKER_SETTINGS), permissions: { deny: [...LOOPBACK_FETCH_DENY, ...deny] } }) : WORKER_SETTINGS;
   const dirs = [...exportsDirs, ...readOnly];
-  return { usable, blocked: def.capabilities.filter((c) => !allowed.includes(c)), byPolicy: allowed.filter((c) => policyOff.has(c)), servers, exportsDirs,
+  return { usable, blocked: def.capabilities.filter((c) => !allowed.includes(c)), byPolicy: allowed.filter((c) => policyOff.has(c)), servers, exportsDirs, repoTools,
     args: ["--settings", settings, ...base, "--tools", builtins.join(","), "--allowedTools", ...allow, ...(dirs.length ? ["--add-dir", ...dirs] : []), "--permission-prompts", "none"] };
 }
 // The general worker, as a definition: what it gets when a policy means it can't run on the plain
@@ -261,8 +289,17 @@ function normalizeWorker(b, prev) {
   for (const c of capabilities) if (!CAPABILITIES[c]) throw new Error(`Unknown capability "${c}".`);
   const requirements = (b.requirements || []).map((r) => ({ resource: String(r.resource || ""), access: String(r.access || ""), need: r.need === "optional" ? "optional" : "required" }));
   for (const r of requirements) if (!RESOURCES[r.resource]?.access[r.access]) throw new Error(`Unknown requirement "${r.resource} ${r.access}".`);
+  // Access to registered repositories: none unless granted here, per repository.
+  const known = new Set(readGithub().repos.map((r) => r.id)), repos = [];
+  for (const g of (b.repos || []).slice(0, 50)) {
+    const repo = String(g?.repo || ""), level = String(g?.level || "");
+    if (!level || level === "none") continue;
+    if (!known.has(repo)) throw new Error(`No registered repository "${repo}".`);
+    if (!REPO_LEVELS.includes(level)) throw new Error(`Unknown repository access "${level}".`);
+    if (!repos.some((x) => x.repo === repo)) repos.push({ repo, level });
+  }
   const now = new Date().toISOString();
-  return { id: prev?.id || `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "worker"}-${randomUUID().slice(0, 4)}`, name,
+  return { id: prev?.id || `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "worker"}-${randomUUID().slice(0, 4)}`, name, repos,
     mission: String(b.mission || "").trim().slice(0, 600), specialization: String(b.specialization || "").trim().slice(0, 200),
     capabilities, knowledge: String(b.knowledge || "").trim().slice(0, 20000), workflow: lines(b.workflow, 30, 600), limitations: lines(b.limitations, 30, 300),
     requirements: requirements.filter((r, i) => requirements.findIndex((x) => x.resource === r.resource && x.access === r.access) === i), onMissing: String(b.onMissing || "").trim().slice(0, 1000),
@@ -422,10 +459,148 @@ function runScope(run, ws) {
   const protect = [...now, ...started.filter((p) => !now.some((x) => x.branch === p.branch))];
   const head = gitInfo(ws.root).branch;
   const team = run.meta.team ? readSnapshot(run.meta.id)?.team : null;
+  // Repository access is worked out again from the worker's definition now (an edit applies to the
+  // next start), and never above what the run started with.
+  const def = run.meta.worker ? readWorkers().find((w) => w.id === run.meta.worker.id) || { id: run.meta.worker.id, name: run.meta.worker.name, repos: [] } : null;
+  const repo = repoScope(ws, def, run.meta.repo ? run.meta.repo.level : undefined);
   return { protect, head, onProtected: !!head && protect.some((p) => p.branch === head), figmaKey: team?.figma ? team.figma.branchKey || team.figma.fileKey : null,
-    knowledgeDir: team?.knowledge.some((k) => k.type === "upload") ? join(RUNS, `${run.meta.id}.team`) : null };
+    knowledgeDir: team?.knowledge.some((k) => k.type === "upload") ? join(RUNS, `${run.meta.id}.team`) : null, repo };
 }
 const readSnapshot = (id) => (existsSync(snapPath(id)) ? JSON.parse(readFileSync(snapPath(id), "utf8")) : null);
+
+// ---- repositories (GitHub) --------------------------------------------------------------
+// One GitHub connection for the platform (worker-ui/github.mjs; its token stays outside the repo
+// and never reaches a worker or the page), a registry of repositories, and an assignment of at most
+// one registered repository per workspace (a workspace is one folder: the repository's checkout).
+// A worker gets a repository only through its workspace, at the access its definition grants for
+// that repository (none unless granted); the General worker gets the assignment's own level.
+//   github.json: { connection: { login, name, tokenKind, scopes, verifiedAt, error }, repos: [{ id, githubId, fullName, owner, name, url,
+//     htmlUrl, defaultBranch, private, archived, access, status: ok|inaccessible|error, verifiedAt, error, registeredAt }] }
+//   workspaces.json, per workspace: repo: { id, general: read|write|commit|push, shell: bool, workersOnDefault: bool }
+const readGithub = () => { try { const g = JSON.parse(readFileSync(GITHUB, "utf8")); return { connection: g.connection || null, repos: g.repos || [] }; } catch { return { connection: null, repos: [] }; } };
+const writeGithub = (g) => { writeFileSync(GITHUB + ".tmp", JSON.stringify(g, null, 1)); renameSync(GITHUB + ".tmp", GITHUB); };
+const assignmentOf = (wsId) => (wsId === "console" ? consoleWs() : readWorkspaces().find((w) => w.id === wsId))?.repo || null;
+// The folder's origin, read by Git itself (includes and insteadOf rewrites included).
+function originOf(root) {
+  const r = spawnSync("git", [...GIT_OPTS, "remote", "get-url", "origin"], { cwd: root, env: gitEnv(), windowsHide: true, encoding: "utf8", timeout: 15000 });
+  return r.status === 0 ? r.stdout.trim() : "";
+}
+function checkRemote(root, reg) {
+  const origin = originOf(root);
+  if (github.canonRemote(origin) !== github.canonRemote(reg.url)) throw new Error(`This folder's origin is ${origin ? safeUrl(origin) : "not set"}, not ${reg.fullName} (${safeUrl(reg.url)}). Fix the folder's remote or assign the right repository.`);
+}
+const rankOf = (l) => REPO_LEVELS.indexOf(l);
+const lowerOf = (a, b) => (rankOf(a) <= rankOf(b) ? a : b);
+// What a run in this workspace may do with its repository (null: no repository assigned). Refuses
+// when the folder isn't the registered repository, or when this worker has no access to it.
+function repoScope(ws, def, startedLevel) {
+  const a = assignmentOf(ws.id);
+  if (!a) return null;
+  const reg = readGithub().repos.find((r) => r.id === a.id);
+  if (!reg) throw new Error(`This workspace is assigned to a repository that's no longer registered (${a.id}). Unassign it on the GitHub page.`);
+  checkRemote(ws.root, reg);
+  let level = def ? (def.repos || []).find((g) => g.repo === reg.id)?.level || null : a.general || "write";
+  if (level && ws.profile === "inspect") level = "read";
+  if (level && startedLevel !== undefined) level = startedLevel ? lowerOf(level, startedLevel) : null;
+  if (!level) throw new Error(`${def?.name || "This worker"} has no access to ${reg.fullName}, the repository of this workspace. Grant it in the worker's definition (Repositories), or choose another worker.`);
+  return { id: reg.id, fullName: reg.fullName, url: reg.url, defaultBranch: reg.defaultBranch, level, shell: !!a.shell, workersOnDefault: !!a.workersOnDefault };
+}
+function repoSection(r, head) {
+  if (!r) return "";
+  const locked = [r.defaultBranch && !r.workersOnDefault ? r.defaultBranch : null].filter(Boolean);
+  return ["## Repository", `This workspace is the checkout of ${r.fullName}${r.defaultBranch ? ` (default branch ${r.defaultBranch})` : ""}${head ? `; ${head} is checked out` : ""}.`,
+    `Your access: ${REPO_LEVEL_LABELS[r.level]}. Use the repo_* tools for Git (${REPO_TOOLS.filter(([, l]) => rankOf(r.level) >= rankOf(l)).map(([t]) => t).join(", ")}); these limits are enforced, not instructions.`,
+    rankOf(r.level) >= rankOf("commit") ? `Commit on a work branch of your own (repo_create_branch)${locked.length ? `: ${locked.join(", ")} is never committed to or pushed to by workers` : ""}. Report a commit or push only with the hash the tool returned.` : "",
+    r.shell ? "Shell commands are on in this workspace: Git limits above don't cover what you do through node; don't run git that way." : "Shell commands are off here and .git can't be written: Git goes only through the repo_* tools.", ""].filter((x) => x !== "").join("\n");
+}
+// The person's actions on the GitHub page.
+const ghStatus = (e) => (e.kind === "input" ? 400 : e.status === 404 ? 404 : e.kind === "rate" ? 429 : e.kind === "auth" ? 401 : 502);
+async function ghConnect(token) {
+  const t = github.checkToken(token);
+  const who = await github.verify(t); // only a token that works is kept
+  github.saveToken(t);
+  const g = readGithub(); g.connection = { ...who, error: null }; writeGithub(g);
+  return ghReport();
+}
+async function ghVerify() {
+  const g = readGithub();
+  try { g.connection = { ...(await github.verify()), error: null }; } catch (e) { g.connection = { ...(g.connection || {}), error: e.message, errorAt: new Date().toISOString() }; writeGithub(g); throw e; }
+  writeGithub(g); return ghReport();
+}
+function ghDisconnect() { github.clearToken(); const g = readGithub(); g.connection = null; writeGithub(g); return ghReport(); }
+function ghReport() {
+  const g = readGithub(), ws = listWorkspaces();
+  return { connected: github.hasToken(), connection: g.connection, levels: REPO_LEVELS.map((l) => ({ id: l, label: REPO_LEVEL_LABELS[l] })),
+    repos: g.repos.map((r) => ({ ...r, workspaces: ws.filter((w) => w.repo?.id === r.id).map((w) => ({ id: w.id, name: w.name, general: w.repo.general, shell: !!w.repo.shell, workersOnDefault: !!w.repo.workersOnDefault })) })),
+    workers: readWorkers().map((w) => ({ id: w.id, name: w.name, repos: w.repos || [] })) };
+}
+let discovered = { at: 0, list: null };
+async function ghDiscover(refresh) {
+  if (refresh || !discovered.list || Date.now() - discovered.at > 60000) discovered = { at: Date.now(), list: await github.discover() };
+  const reg = new Set(readGithub().repos.map((r) => r.githubId));
+  return discovered.list.map((r) => ({ ...r, registered: reg.has(r.githubId) }));
+}
+async function ghRegister(fullName) {
+  const info = await github.repoInfo(String(fullName || "").trim()); // what the token can see, not what was typed
+  const g = readGithub(), dup = g.repos.find((r) => r.githubId === info.githubId);
+  if (dup) { const e = new Error(`${dup.fullName} is already registered.`); e.status = 409; throw e; }
+  const now = new Date().toISOString(), entry = { id: `gh-${info.githubId}`, ...info, status: "ok", verifiedAt: now, error: null, registeredAt: now };
+  g.repos.push(entry); writeGithub(g); return entry;
+}
+async function ghRefresh(id) {
+  const g = readGithub(), r = g.repos.find((x) => x.id === id);
+  if (!r) { const e = new Error("No such registered repository."); e.status = 404; throw e; }
+  try { Object.assign(r, await github.repoInfo(r.fullName), { status: "ok", verifiedAt: new Date().toISOString(), error: null }); }
+  catch (e) { Object.assign(r, { status: e.status === 404 || e.status === 403 ? "inaccessible" : "error", error: e.message, errorAt: new Date().toISOString() }); }
+  writeGithub(g); return { ...r, workspaces: ghReport().repos.find((x) => x.id === id).workspaces };
+}
+// Removing a registration only removes the entry: no folder, file, commit or run is touched. A
+// repository still assigned to a workspace has to be unassigned first, so no workspace silently
+// changes what its workers may do.
+function ghRemove(id) {
+  const g = readGithub(), r = g.repos.find((x) => x.id === id);
+  if (!r) { const e = new Error("No such registered repository."); e.status = 404; throw e; }
+  const used = listWorkspaces().filter((w) => w.repo?.id === id);
+  if (used.length) { const e = new Error(`${r.fullName} is assigned to ${used.map((w) => w.name).join(", ")}. Unassign it there first.`); e.status = 409; throw e; }
+  g.repos = g.repos.filter((x) => x.id !== id); writeGithub(g);
+  const grants = readWorkers().filter((w) => (w.repos || []).some((x) => x.repo === id));
+  if (grants.length) writeWorkers(readWorkers().map((w) => ({ ...w, repos: (w.repos || []).filter((x) => x.repo !== id) })));
+  return { removed: r.fullName, note: "Only the registration was removed. Local folders, changes, commits and runs are untouched.", grantsRemoved: grants.map((w) => w.name) };
+}
+// Assigning: the workspace's folder must be a checkout whose origin is the registered repository.
+function assignRepo(wsId, b) {
+  if (wsId === "scratch") throw new Error("\"No folder\" can't have a repository.");
+  const ws = resolveWorkspace(wsId), reg = readGithub().repos.find((r) => r.id === String(b.repo || ""));
+  if (!reg) throw new Error("Choose a registered repository.");
+  if (!repoTop(ws.root)) throw new Error("This workspace's folder isn't a Git checkout. Clone the repository into a folder first.");
+  checkRemote(ws.root, reg);
+  const general = REPO_LEVELS.includes(b.general) ? b.general : "write";
+  const busy = active(); if (busy && (busy.meta.workspace?.id || "console") === wsId) throw new Error("A worker is running in this workspace. Stop or end it first.");
+  const repo = { id: reg.id, general, shell: !!b.shell, workersOnDefault: !!b.workersOnDefault };
+  writeWorkspaces(withConsole(readWorkspaces()).map((w) => (w.id === wsId ? { ...w, repo } : w)));
+  return listWorkspaces().find((w) => w.id === wsId);
+}
+function unassignRepo(wsId) {
+  const busy = active(); if (busy && (busy.meta.workspace?.id || "console") === wsId) throw new Error("A worker is running in this workspace. Stop or end it first.");
+  if (!listWorkspaces().some((w) => w.id === wsId)) throw new Error(`No workspace "${wsId}".`);
+  writeWorkspaces(readWorkspaces().map((w) => { if (w.id !== wsId) return w; const { repo, ...rest } = w; return rest; }));
+  return listWorkspaces().find((w) => w.id === wsId);
+}
+// A registered repository with no checkout yet: cloned (with the person's Git sign-in) into a new
+// folder under a folder they name, which becomes a workspace assigned to it.
+async function cloneRepo(id, b) {
+  const reg = readGithub().repos.find((r) => r.id === id);
+  if (!reg) throw new Error("No such registered repository.");
+  const parent = String(b.parent || "");
+  if (!isAbsolute(parent) || /^[\\/]{2}/.test(parent)) throw new Error("Give the full path of the folder to clone into, e.g. C:\\Users\\me\\projects.");
+  let real; try { real = realpathSync.native(parent); } catch { throw new Error(`No folder at ${parent}`); }
+  const target = join(real, reg.name);
+  if (existsSync(target)) throw new Error(`${target} already exists. Add that folder as a workspace instead, or choose another folder.`);
+  try { await git(real, ["clone", "--", reg.url, target], { timeout: 600000 }); }
+  catch (e) { throw new Error(/Authentication failed|could not read Username|terminal prompts disabled|Permission denied|returned error: 40[13]/i.test(e.message) ? `Git has no working sign-in for ${reg.fullName} on this computer. Sign in with Git once (for example, clone it in a terminal), then try again.` : `Clone failed: ${clip(e.message, 300)}`); }
+  const ws = addWorkspace({ name: String(b.name || reg.name).slice(0, 60), path: target, mode: b.mode === "inspect" ? "inspect" : "work" });
+  return assignRepo(ws.id, { repo: reg.id, general: b.general });
+}
 
 function workspaceSection(w) {
   if (!w) return "";
@@ -434,7 +609,7 @@ function workspaceSection(w) {
       + w.protect.map((p) => `- Never modify ${p.branch} (${p.team ? `${p.team} policy` : "policy"}): the console refuses to commit to it or push to it.`).join("\n")
       + "\n- So nothing can change a branch behind the console's back, this run has no shell commands and can't write inside .git or .claude."
       + (w.onProtected ? `\n- ${w.head} is checked out right now, so this run can't change files at all. To make changes, the person must switch to another branch first.` : "") : "",
-    ""].filter((x) => x !== false).join("\n");
+    repoSection(w.repo, w.head), ""].filter((x) => x !== false).join("\n");
 }
 function teamSection(t) {
   if (!t) return "";
@@ -458,8 +633,8 @@ function teamSection(t) {
 // point) are dropped, so sessions never land in, or resume from, another tool's directory.
 const CONFIG_DIR = resolve(process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR || join(homedir(), ".claude"));
 const workerEnv = () => {
-  // Integration tokens (FIGMA_TOKEN, BUILDER_*, ...) never reach workers; the *_DIR ones are only paths.
-  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k === "FIGMA_READER_DIR" || k === "BUILDER_ADAPTER_DIR" || !/^(CLAUDE|AI_AGENT|WORKER_CONSOLE_|FIGMA_|BUILDER_)/i.test(k)));
+  // Integration tokens (FIGMA_TOKEN, BUILDER_*, GH_TOKEN, GITHUB_*, ...) never reach workers; the *_DIR ones are only paths.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k === "FIGMA_READER_DIR" || k === "BUILDER_ADAPTER_DIR" || !/^(CLAUDE|AI_AGENT|WORKER_CONSOLE_|FIGMA_|BUILDER_|GITHUB_|GH_)/i.test(k)));
   return { ...env, CLAUDE_CONFIG_DIR: CONFIG_DIR };
 };
 
@@ -597,7 +772,7 @@ function resolveWorkspace(id) {
 // Executor, this app's own folder, is a workspace whose record has no root (it's always this
 // repo). Removing it only hides it ({ "id": "console", "hidden": true }); adding this folder again
 // brings it back, with its runs.
-const consoleWs = (list = readWorkspaces()) => { const m = list.find((w) => w.id === "console") || {}; return { id: "console", name: m.name || "Executor", root: REPO, profile: m.profile || "full", hidden: !!m.hidden }; };
+const consoleWs = (list = readWorkspaces()) => { const m = list.find((w) => w.id === "console") || {}; return { id: "console", name: m.name || "Executor", root: REPO, profile: m.profile || "full", hidden: !!m.hidden, ...(m.repo ? { repo: m.repo } : {}) }; };
 const withConsole = (list) => (list.some((w) => w.id === "console") ? list : [{ id: "console" }, ...list]);
 // workspaces.json is in display order. { "id": "console" } marks where Executor sits (first when absent).
 const readWorkspaces = () => (existsSync(WORKSPACES) ? JSON.parse(readFileSync(WORKSPACES, "utf8")) : []);
@@ -617,10 +792,12 @@ function gitInfo(root) {
   } catch { return { branch: null, commit: null }; }
 }
 function listWorkspaces() {
-  const list = readWorkspaces();
+  const list = readWorkspaces(), repos = readGithub().repos;
   return [SCRATCH_WS, ...withConsole(list).map((w) => (w.id === "console" ? consoleWs(list) : w))].filter((w) => !w.hidden).map((w) => {
     let root = null; try { root = resolveWorkspace(w.id).root; } catch {}
-    return { id: w.id, name: w.name || w.id, root: root || w.root, profile: w.profile, available: !!root, ...(root ? gitInfo(root) : {}) };
+    const reg = w.repo ? repos.find((r) => r.id === w.repo.id) : null;
+    return { id: w.id, name: w.name || w.id, root: root || w.root, profile: w.profile, available: !!root, ...(root ? gitInfo(root) : {}),
+      ...(w.repo ? { repo: { ...w.repo, fullName: reg?.fullName || null, registered: !!reg } } : {}) };
   });
 }
 // The person names a folder and a mode; the folder must exist, and can't be a drive root or the
@@ -782,7 +959,13 @@ function translate(run, msg) {
   // The model the runtime reports at each turn: what a model switch actually did.
   if (msg.type === "system" && msg.subtype === "init" && msg.model) { lastModel = msg.model; if (run.meta.modelUsed !== msg.model) { run.meta.modelUsed = msg.model; saveMeta(run); } }
   if (msg.type === "control_response") { if (msg.response?.subtype !== "success") emit(run, { type: "failure", summary: `The runtime refused a model or effort change: ${msg.response?.error || "no reason given"}` }); return; }
-  if (msg.type === "system" && msg.subtype === "compact_boundary") { observeCompaction(run, msg); saveMeta(run); return; }
+  if (msg.type === "system" && msg.subtype === "compact_boundary") { run.manualCompact = false; observeCompaction(run, msg); saveMeta(run); return; }
+  // The runtime compacting on its own (autoCompactWindow), between steps: shown and counted.
+  if (msg.type === "system" && msg.subtype === "status" && msg.status === "compacting" && !run.manualCompact) {
+    const t = telOf(run); pushMax(t.compactions, { at: new Date().toISOString(), trigger: "auto", pre: t.context.last || null, post: null }, 20); stateOf(run).compactions++;
+    emit(run, { type: "compacted", summary: `Compacting automatically: the conversation reached ${kTok(t.context.last)} tokens (limit ${kTok(AUTOCOMPACT_WINDOW)})`, detail: JSON.stringify({ trigger: "auto", pre: t.context.last }) });
+    run.meta.contextWarnLevel = 0; saveMeta(run); return;
+  }
   if (msg.type === "system" && msg.subtype === "init") {
     // Check what the worker reports about itself, not only what it was told.
     const ws = run.meta.workspace;
@@ -891,7 +1074,7 @@ function spawnWorker(run, { resume }) {
   const snap = run.meta.worker ? readSnapshot(run.meta.id) : null;
   const scope = runScope(run, ws);
   let mcpFile = mcpConfig(ws.profile), promptFile = platformInstructionsFile(), profileArgs = PROFILES[ws.profile].args;
-  const def = snap ? snap.definition : scope.protect.length || scope.figmaKey ? GENERAL : null;
+  const def = snap ? snap.definition : scope.protect.length || scope.figmaKey || scope.repo ? GENERAL : null;
   run.enforced = null;
   if (def) {
     const rt = workerRuntime(def, ws.profile, scope);
@@ -932,6 +1115,8 @@ function spawnWorker(run, { resume }) {
   child.stderr.on("data", (d) => emit(run, { type: "note", summary: `worker stderr: ${clip(d, 200)}` }));
   child.on("exit", (code) => {
     emit(run, { type: "note", summary: `worker process exited (code ${code})` });
+    // A handoff that never finished (the process died first) still continues, from the task state.
+    if (run.awaitingHandoff && run.pendingContinue) setImmediate(() => finishContinue(run, (run.handoffText || "").trim() || null));
     if (run.bindingError) setStatus(run, "failed", run.bindingError);
     else if (run.stopRequested) setStatus(run, "stopped", "stopped by the user");
     else if (run.endRequested && code === 0) setStatus(run, "finished", "run ended by the user");
@@ -993,7 +1178,7 @@ function saveAttachments(run, atts) {
 //    evidence, not a transcript; it's what a fresh session is handed (see "continue").
 // Warning thresholds are configurable in <data>/console-settings.json.
 const SETTINGS_FILE = join(DATA, "console-settings.json");
-const DEFAULT_SETTINGS = { contextWarnTokens: 250000, contextWarnFraction: 0.4, docStateWarnChars: 150000 };
+const DEFAULT_SETTINGS = { contextWarnTokens: 250000, contextWarnFraction: 0.4, docStateWarnChars: 150000, autoFreshSession: true };
 const consoleSettings = () => { try { return { ...DEFAULT_SETTINGS, ...JSON.parse(readFileSync(SETTINGS_FILE, "utf8")) }; } catch { return { ...DEFAULT_SETTINGS }; } };
 const newTelemetry = () => ({ modelRequests: 0, context: { last: 0, max: 0, window: null }, tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, turns: 0,
   tools: { total: 0, figma: 0, docStateReads: 0, docStateChars: 0, batches: 0, batchOps: 0, visualChecks: 0, slowest: null, byTool: {} }, compactions: [], processes: 0, warnings: [] });
@@ -1011,7 +1196,10 @@ function observeRequest(run, msg) {
   if (!msg.message?.id || run.seenRequests.has(msg.message.id)) return;
   run.seenRequests.add(msg.message.id);
   const u = msg.message.usage || {}, t = telOf(run), ctx = (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
-  t.modelRequests++; t.context.last = ctx; t.context.max = Math.max(t.context.max, ctx);
+  // The runtime's own placeholder replies (a plan limit, an API error: model "<synthetic>", no usage)
+  // weren't model requests: they mustn't make a long conversation look empty.
+  if (!ctx || msg.message.model === "<synthetic>") return;
+  t.modelRequests++; t.context.last = ctx; t.context.max = Math.max(t.context.max, ctx); if (!t.context.first && ctx) t.context.first = ctx;
   checkContext(run);
 }
 function checkContext(run) {
@@ -1042,6 +1230,8 @@ function observeToolResult(run, use, b) {
   if (name.endsWith("figma_get_document_state")) t.tools.docStateChars += text.length;
   if (b.is_error) { pushMax(st.errors, { at: new Date().toISOString(), tool: short, error: clip(text, 200) }, 15); return; }
   const r = parseJson(text);
+  // A worker's own commit (repo tools) is linked to its run, like the person's commits are.
+  if (name === "mcp__repo__repo_commit" && r?.committed && /^[0-9a-f]{40}$/.test(r.hash || "")) { run.meta.commits = [...new Set([...(run.meta.commits || []), r.hash])]; saveMeta(run); emit(run, { type: "commit", summary: `${r.short} ${r.subject}`, detail: JSON.stringify({ hash: r.hash, files: r.files }) }); }
   if (name.endsWith("figma_get_file_info") && r?.fileKey) st.figma = { file: r.fileName, fileKey: r.fileKey, page: r.currentPage };
   else if (name.endsWith("figma_switch_page") && r?.id) st.figma = { ...(st.figma || {}), page: { id: r.id, name: r.name } };
   else if (/figma_create_(frame|text|component|ellipse|vector|instance|page)$/.test(name) && r?.id) pushMax(st.created, { id: r.id, name: r.name || "" }, 200);
@@ -1097,6 +1287,37 @@ function handoffMessage(run, st, summary, instruction) {
   ].filter((x) => x !== "").join("\n"), 24000);
 }
 const clip0 = (s, n) => (s.length > n ? s.slice(0, n - 40) + "\n…(handoff cut to fit; see the earlier run)" : s);
+// Automatic, for people and bots alike (no one has to watch): a message to a conversation that's
+// already past the context limit isn't added to it. The worker writes its handoff, and a fresh
+// session starts with that handoff plus the message (autoFreshSession in console-settings.json,
+// on by default). A message to a run that was already continued goes to the newest run of its chain.
+function latestInChain(run) { let r = run; for (let i = 0; i < 100 && r.meta.continuedIn; i++) { const n = loadRun(r.meta.continuedIn); if (!n) break; r = n; } return r; }
+const contextLimit = (run) => { const s = consoleSettings(), t = telOf(run); return Math.min(s.contextWarnTokens, t.context.window ? t.context.window * s.contextWarnFraction : Infinity); };
+function lastContext(run) {
+  // A run whose recorded size came from before the placeholder fix (0) is read from its log again.
+  const t = telOf(run); if (t.context.last) return t.context.last;
+  // A run from before telemetry: its last request, from the end of the runtime's own log.
+  try {
+    const size = statSync(run.raw).size, n = Math.min(size, 4 << 20), buf = Buffer.alloc(n), fd = openSync(run.raw, "r");
+    try { readSync(fd, buf, 0, n, size - n); } finally { closeSync(fd); }
+    const lines = buf.toString("utf8").split("\n");
+    for (let i = lines.length - 1; i >= 0; i--) if (lines[i].includes('"type":"assistant"')) { try { const u = JSON.parse(lines[i]).message.usage, n = (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0); if (n) return n; } catch {} }
+  } catch {}
+  return 0;
+}
+function sendMessage(run, text, atts, mentions) {
+  const target = latestInChain(run), was = lastContext(target), limit = contextLimit(target);
+  // Only a conversation that has grown: a fresh session's own starting size never triggers it (no loops).
+  const grown = was - (telOf(target).context.first || 0) >= limit / 2;
+  if (consoleSettings().autoFreshSession !== false && was >= limit && grown && !target.pendingContinue && !["starting", "running"].includes(target.meta.status)) {
+    target.pendingContinue = { instruction: text, atts, mentions, auto: true, contextWas: was };
+    emit(target, { type: "context", summary: `Starting a fresh session automatically: this conversation is ${kTok(was)} tokens per step (limit ${kTok(limit)}). Your message goes to the new session with a handoff.` });
+    try { followUp(target, HANDOFF_PROMPT, [], [], { as: "handoff" }); } catch (e) { target.pendingContinue = null; throw e; }
+    return { ...target.meta, autoFresh: { contextWas: was, limit }, ...(target !== run ? { redirectedFrom: run.meta.id } : {}) };
+  }
+  followUp(target, text, atts, mentions);
+  return { ...target.meta, ...(target !== run ? { redirectedFrom: run.meta.id } : {}) };
+}
 async function finishContinue(run, summary) {
   const pc = run.pendingContinue; run.pendingContinue = null; run.awaitingHandoff = false;
   const st = stateOf(run);
@@ -1104,10 +1325,10 @@ async function finishContinue(run, summary) {
   try {
     if (alive(run)) { run.endRequested = true; run.child.stdin.end(); await waitExit(run.child, 30000); }
     const text = handoffMessage(run, st, st.handoff, pc.instruction);
-    const next = await newRun(text, run.meta.workspace.id, [], run.meta.worker?.id || null, [], run.meta.team?.id || null, { model: run.meta.model, effort: run.meta.effort }, { continuedFrom: run.meta.id, handoff: true });
+    const next = await newRun(text, run.meta.workspace.id, pc.atts || [], run.meta.worker?.id || null, pc.mentions || [], run.meta.team?.id || null, { model: run.meta.model, effort: run.meta.effort }, { continuedFrom: run.meta.id, handoff: true });
     writeFileSync(join(RUNS, `${next.meta.id}.handoff.json`), JSON.stringify({ from: run.meta.id, at: new Date().toISOString(), state: st, workerSummary: st.handoff, instruction: pc.instruction || null }, null, 1));
     run.meta.continuedIn = next.meta.id; saveMeta(run);
-    emit(run, { type: "continued", summary: "Continued in a fresh session", detail: JSON.stringify({ run: next.meta.id }) });
+    emit(run, { type: "continued", summary: pc.auto ? `Continued automatically in a fresh session (this one was ${kTok(pc.contextWas)} tokens per step)` : "Continued in a fresh session", detail: JSON.stringify({ run: next.meta.id, auto: !!pc.auto }) });
   } catch (e) { emit(run, { type: "failure", summary: `Couldn't continue in a fresh session: ${e.message}` }); }
 }
 
@@ -1118,6 +1339,7 @@ function sendToWorker(run, text, atts = [], mentions = [], opts = {}) {
   if (opts.as) emit(run, { type: opts.as === "compact" ? "compacting" : "handoff", summary: opts.as === "compact" ? "Compacting the conversation" : "Asking the worker for a handoff summary" });
   else { emit(run, { type: "user", summary: text, ...(saved.length ? { attachments: saved } : {}), ...(mentions.length ? { mentions } : {}) }); if (run.meta.messages > 1) pushMax(stateOf(run).requests, { at: new Date().toISOString(), text: clip(text, 300) }, 10); }
   if (opts.as === "handoff") { run.awaitingHandoff = true; run.handoffText = ""; }
+  if (opts.as === "compact") run.manualCompact = true;
   setStatus(run, "running");
   const safe = (t) => defuseAtRefs(run.meta.workspace.root, t); // what the person sees stays as typed
   const full = safe(text) + mentionNote(mentions);
@@ -1142,9 +1364,12 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
   if (workerId && !def) throw new Error(`No worker "${workerId}".`);
   const id = new Date().toISOString().replace(/[:.]/g, "-");
   const protect = wsPolicies(workspace.id), head = gitInfo(workspace.root).branch;
+  // Refused here, before anything is written, when the folder isn't its registered repository or
+  // this worker has no access to it.
+  const repo = repoScope(workspace, def);
   const scope = { protect, head, onProtected: !!head && protect.some((p) => p.branch === head), figmaKey: team?.figma ? team.figma.branchKey || team.figma.fileKey : null,
-    knowledgeDir: team?.knowledge.some((k) => k.type === "upload") ? join(RUNS, `${id}.team`) : null };
-  const wsInfo = { name: listWorkspaces().find((w) => w.id === workspace.id)?.name || workspace.id, profile: workspace.profile, head, protect, onProtected: scope.onProtected };
+    knowledgeDir: team?.knowledge.some((k) => k.type === "upload") ? join(RUNS, `${id}.team`) : null, repo };
+  const wsInfo = { name: listWorkspaces().find((w) => w.id === workspace.id)?.name || workspace.id, profile: workspace.profile, head, protect, onProtected: scope.onProtected, repo };
   let snap = null;
   if (def) {
     const runtime = workerRuntime(def, workspace.profile, scope);
@@ -1155,11 +1380,11 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
     snap = { definition: def, runtime, status, memory: readMemory(def.id).slice(-40), scope, ...(team ? { team } : {}) };
     const workers = readWorkers();
     const teamCtx = team ? { def: team, members: team.workers.map((w) => workers.find((x) => x.id === w)?.name).filter(Boolean), workspaceName: wsInfo.name, runId: id } : null;
-    snap.context = workerContext(def, runtime, status, snap.memory, workspace.profile, { workspace: protect.length || team ? wsInfo : null, team: teamCtx });
+    snap.context = workerContext(def, runtime, status, snap.memory, workspace.profile, { workspace: protect.length || team || repo ? wsInfo : null, team: teamCtx });
   }
   if (active()) throw new Error("A worker is already running. Stop or end it first.");
   const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, ...(extra.continuedFrom ? { continuedFrom: extra.continuedFrom } : {}), ...(settings.model ? { model: settings.model } : {}), ...(settings.effort ? { effort: settings.effort } : {}), ...(def ? { worker: { id: def.id, name: def.name, version: def.version } } : {}),
-    ...(team ? { team: { id: team.id, name: team.name, version: team.version } } : {}), ...(protect.length ? { policy: { protect, head, onProtected: scope.onProtected } } : {}),
+    ...(team ? { team: { id: team.id, name: team.name, version: team.version } } : {}), ...(protect.length ? { policy: { protect, head, onProtected: scope.onProtected } } : {}), ...(repo ? { repo: { id: repo.id, fullName: repo.fullName, level: repo.level } } : {}),
     configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
   const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
   writeFileSync(run.file, ""); writeFileSync(run.raw, "");
@@ -1172,7 +1397,7 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
     for (const k of team.knowledge) if (k.type === "upload") copyFileSync(teamPath(team.id, "knowledge", k.file), join(scope.knowledgeDir, k.file));
   }
   // The general worker under an enforced policy gets a context that says why some tools are off.
-  if (!def && protect.length) writeFileSync(join(RUNS, `${id}.worker.md`), [platformInstructions(), "", workspaceSection(wsInfo)].join("\n"));
+  if (!def && (protect.length || repo)) writeFileSync(join(RUNS, `${id}.worker.md`), [platformInstructions(), "", workspaceSection(wsInfo)].join("\n"));
   if (snap) {
     writeFileSync(snapPath(id), JSON.stringify(snap, null, 1));
     writeFileSync(join(RUNS, `${id}.worker.md`), snap.context);
@@ -1413,6 +1638,13 @@ async function gitPush(wsId, runId) {
   const b = await branchState(r);
   if (b.detached) throw new Error("This folder isn't on a branch (detached HEAD), so there's nothing to push.");
   if (!b.remote) throw new Error("This repository has no remote to push to.");
+  // A workspace assigned to a registered repository only pushes to that repository.
+  const a = assignmentOf(wsId);
+  if (a) {
+    const reg = readGithub().repos.find((x) => x.id === a.id);
+    if (!reg) throw new Error("This workspace is assigned to a repository that's no longer registered. Unassign it on the GitHub page first.");
+    if (github.canonRemote(b.url) !== github.canonRemote(reg.url)) throw new Error(`Refused: this branch pushes to ${b.url || b.remote}, not ${reg.fullName}, the repository assigned to this workspace.`);
+  }
   const guard = wsPolicies(wsId).find((p) => p.branch === b.target || p.branch === b.branch);
   if (guard) throw new Error(`${guard.branch} is protected by the ${guard.team}'s enforced policy: nothing is pushed to it from here.`);
   if (!b.ahead) throw new Error(`Nothing to push: ${b.remote}/${b.target} already has these commits.`);
@@ -1661,13 +1893,28 @@ http.createServer(async (req, res) => {
     // the models this account can use, with the effort levels each takes (read-only)
     if (url.pathname === "/models" && req.method === "GET") return json(res, 200, { models: await modelCatalogue(url.searchParams.get("refresh") === "1"), efforts: EFFORTS });
 
+    // GitHub: the one connection (its token goes in, never out), the repository registry, and
+    // which workspace each repository is assigned to (docs/github.md)
+    if (url.pathname === "/github" && req.method === "GET") return json(res, 200, ghReport());
+    if (url.pathname === "/github/connection" && req.method === "POST") return json(res, 200, await ghConnect((await body(req)).token));
+    if (url.pathname === "/github/connection/verify" && req.method === "POST") return json(res, 200, await ghVerify());
+    if (url.pathname === "/github/connection" && req.method === "DELETE") return json(res, 200, ghDisconnect());
+    if (url.pathname === "/github/discover" && req.method === "GET") return json(res, 200, { repos: await ghDiscover(url.searchParams.get("refresh") === "1") });
+    if (url.pathname === "/github/repos" && req.method === "POST") return json(res, 200, await ghRegister((await body(req)).fullName));
+    if (parts[0] === "github" && parts[1] === "repos" && parts[2] && parts.length === 4 && parts[3] === "refresh" && req.method === "POST") return json(res, 200, await ghRefresh(decodeURIComponent(parts[2])));
+    if (parts[0] === "github" && parts[1] === "repos" && parts[2] && parts.length === 4 && parts[3] === "clone" && req.method === "POST") return json(res, 200, await cloneRepo(decodeURIComponent(parts[2]), await body(req)));
+    if (parts[0] === "github" && parts[1] === "repos" && parts[2] && parts.length === 3 && req.method === "DELETE") return json(res, 200, ghRemove(decodeURIComponent(parts[2])));
+    if (parts[0] === "workspaces" && parts[1] && parts[2] === "repo" && parts.length === 3 && req.method === "PUT") return json(res, 200, assignRepo(decodeURIComponent(parts[1]), await body(req)));
+    if (parts[0] === "workspaces" && parts[1] && parts[2] === "repo" && parts.length === 3 && req.method === "DELETE") return json(res, 200, unassignRepo(decodeURIComponent(parts[1])));
+
     // workers: definitions (with live requirement status for a workspace) and their memory
     if (url.pathname === "/workers" && req.method === "GET") {
       let profile = "full"; try { profile = resolveWorkspace(url.searchParams.get("workspace") || "console").profile; } catch {}
       const workers = await Promise.all(readWorkers().map(async (w) => ({ ...w, status: await requirementStatus(w, { profile }), memoryCount: readMemory(w.id).length, runtime: workerRuntime(w, profile) })));
       return json(res, 200, { workers, profile,
         capabilities: Object.entries(CAPABILITIES).map(([id, c]) => ({ id, label: c.label, tools: c.tools, profiles: c.profiles })),
-        resources: Object.entries(RESOURCES).flatMap(([id, r]) => Object.entries(r.access).map(([access, a]) => ({ resource: id, access, label: `${r.label}: ${a.label}`, how: a.how }))) });
+        resources: Object.entries(RESOURCES).flatMap(([id, r]) => Object.entries(r.access).map(([access, a]) => ({ resource: id, access, label: `${r.label}: ${a.label}`, how: a.how }))),
+        repos: readGithub().repos.map((r) => ({ id: r.id, fullName: r.fullName, status: r.status })), repoLevels: REPO_LEVELS.map((l) => ({ id: l, label: REPO_LEVEL_LABELS[l] })) });
     }
     if (url.pathname === "/workers" && req.method === "POST") { const w = normalizeWorker(await body(req)); writeWorkers([...readWorkers(), w]); return json(res, 200, w); }
     if (parts[0] === "workers" && parts[1]) {
@@ -1800,8 +2047,9 @@ http.createServer(async (req, res) => {
         const { text, attachments, mentions: ms } = await body(req);
         const atts = readAttachments(attachments);
         if (!text?.trim() && !atts.length) throw new Error("Empty message");
-        const mentions = resolveMentions(checkBinding(run, { resume: false }).root, ms); // the run's own workspace
-        followUp(run, String(text || "").trim(), atts, mentions); return json(res, 200, run.meta);
+        const target = latestInChain(run);
+        const mentions = resolveMentions(checkBinding(target, { resume: false }).root, ms); // the run's own workspace
+        return json(res, 200, sendMessage(run, String(text || "").trim(), atts, mentions));
       }
       if (action === "stop") {
         if (alive(run)) { run.stopRequested = true; run.child.kill(); return json(res, 200, run.meta); }
@@ -1855,6 +2103,6 @@ http.createServer(async (req, res) => {
     }
     res.writeHead(404); res.end("not found");
   } catch (e) {
-    json(res, 400, { error: e.message });
+    json(res, e instanceof github.GitHubError ? ghStatus(e) : e.status >= 400 && e.status < 600 ? e.status : 400, { error: e.message });
   }
 }).listen(PORT, "127.0.0.1", () => console.log(`Worker Console on http://localhost:${PORT} (worker binary: ${CLAUDE.cmd}${CLAUDE.shell ? " via shell" : ""}; Claude config dir: ${CONFIG_DIR})`));

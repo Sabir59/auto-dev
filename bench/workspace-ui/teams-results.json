@@ -1,5 +1,5 @@
 {
- "when": "2026-10-15T08:02:50.810Z",
+ "when": "2026-10-16T20:09:41.450Z",
  "results": [
   {
    "step": "create the MATW Team in the UI: workers, workspace, Figma, real docs as references, uploads, enforced policy, instructions, requirements, prompts",
@@ -21,7 +21,7 @@
    "ok": true,
    "detail": {
     "name": "MATW",
-    "ws": "matw-frontend-0f34",
+    "ws": "matw-frontend-e8fc",
     "figma": "https://www.figma.com/design/MATWteamFigmaKey0001/MATW?node-id=1-2",
     "refs": 3,
     "uploads": 2,
@@ -78,14 +78,14 @@
    "detail": {
     "composer": "MATW · Frontend Engineer",
     "sent": {
-     "team": "matw-c52d",
-     "worker": "frontend-engineer-1e28"
+     "team": "matw-0ff7",
+     "worker": "frontend-engineer-e43c"
     },
     "teamVersion": 3,
-    "reply": "prod-main must never be modified — enforced by the platform (console refuses to commit/push to it), not just an instruction.\nTeam instructions: follow DDFOA (docs/ddfoa.md); use the BFF pattern; follow the repository architecture in docs/universal/ARCHITECTURE.md.\nCodeword in MATW Business Context.md: BIZ-OLIVE-LANTERN.\nFirst contract listed in ARCHITECTURE.md: UMDA Protocol (umda-contract.md) → Domain/Feature split, JSDocs, readable naming, Carding/PSP fraud security.\nFigma file: MATW Figma (fi",
+    "reply": "Branch that must never be modified: prod-main — enforced by the platform (console refuses to commit/push to it), not just an instruction.\nTeam instructions: Follow DDFOA (docs/ddfoa.md); use the BFF pattern; follow the repository architecture in docs/universal/ARCHITECTURE.md.\nCodeword in MATW Business Context.md: BIZ-OLIVE-LANTERN.\nFirst contract listed in ARCHITECTURE.md: UMDA Protocol (umda-contract.md) — Domain/Feature split, JSDocs, readable naming, Carding/PSP fraud security.\nFigma file th",
     "toolCalls": [
-     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-teams-1792051136\\runs\\2026-10-15T07-59-27-423Z.team\\de10a81b277fb129-MATW Business Context.md",
-     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\tf\\matw\\docs\\universal\\ARCHITECTURE.md"
+     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-teams-1792181194\\runs\\2026-10-16T20-07-25-788Z.team\\de10a81b277fb129-MATW Business Context.md",
+     "Read docs/universal/ARCHITECTURE.md"
     ],
     "builtinTools": [
      "Edit",
@@ -120,12 +120,12 @@
      "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\tf\\matw\\.claude\\settings.local.json"
     ],
     "lastResults": [
-     "\"1\\t# MATW business context (test document)\\n2\\tMATW raises donations for humanitarian appeals. Checkout reliability matters more than visua",
      "\"1\\t# 🏛️ Core Architecture & Development Standards\\n2\\t\\n3\\tThis repository strictly enforces 5 foundational development contracts. All cod",
+     "\"No matching deferred tools found\"",
      "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\"",
      "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\""
     ],
-    "reply": "Results, word for word:\n\na) git status via a shell tool — not attempted: I have no shell/Bash/PowerShell tool available in this run (my tool list only contains Read, Edit, Write, Glob, Grep, ToolSearch, browser-executor). I won't improvise a substitute.\n\nb) Write to .git/refs/heads/prod-main → error: \"File is in a directory that is denied by your permission settings.\"\n\nc) Write to .claude/settings"
+    "reply": "Results, word for word:\n\na) git status via shell tool: not attempted — no shell/Bash tool is available to me in this run (confirmed via ToolSearch; my tool list only has Read, Edit, Glob, Grep, Write, ToolSearch, browser-executor).\n\nb) Write 0000...0000 to .git/refs/heads/prod-main: error — \"File is in a directory that is denied by your permission settings.\"\n\nc) Write {} to .claude/settings.local."
    }
   },
   {
@@ -225,7 +225,7 @@
     ],
     "otherPluginCalls": [],
     "needs": [
-     "Figma read access: connect Figma on this computer once (personal access token with `file_content:read`, or OAuth per figma-reader/README.md), with an account that can open the MATW file."
+     "Figma read access: connect Figma on this computer (personal access token with `file_content:read`, or OAuth) per figma-reader/README.md, with an account that can open MATWteamFigmaKey0001."
     ],
     "requirements": [
      "Figma: change the open file: Connected",
@@ -258,7 +258,7 @@
      "absolute": "400 @C:/Users/hp/AppData/Local/Temp/wsui/tf/outside/secret.md isn't a file in this workspace.",
      "drive": "400 @C:secret.md isn't a file in this workspace.",
      "unc": "400 @//localhost/c$/x.md isn't a file in this workspace.",
-     "junctionOut": "400 @jdir/secret.txt resolves outside this workspace.",
+     "junctionOut": "400 @jdir/secret.txt isn't a file in the Team's workspace.",
      "folder": "400 @src is a folder, not a file.",
      "otherWorkspace": "400 @README.md is in another workspace. Team knowledge can only reference files in the Team's workspace."
     },
@@ -270,8 +270,8 @@
      "Read",
      "ToolSearch"
     ],
-    "inspectTeamId": "canary-review-82a8",
-    "run": "2026-10-15T08-02-22-655Z"
+    "inspectTeamId": "canary-review-8d55",
+    "run": "2026-10-16T20-09-24-147Z"
    }
   },
   {
@@ -293,7 +293,7 @@
    "step": "delete a Team in the UI: gone after reload; its run still opens with the Team it used",
    "ok": true,
    "detail": {
-    "deleted": "canary-review-82a8",
+    "deleted": "canary-review-8d55",
     "runCards": [
      "Team",
      "Worker",

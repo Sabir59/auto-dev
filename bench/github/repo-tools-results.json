@@ -1,0 +1,70 @@
+{
+ "when": "2026-10-16T19:54:48.514Z",
+ "results": [
+  {
+   "step": "read access: only status, log and diff exist; status reports the checkout",
+   "ok": true,
+   "detail": {
+    "tools": [
+     "repo_diff",
+     "repo_log",
+     "repo_status"
+    ],
+    "branch": "main...origin/main",
+    "changes": [
+     "?? notes.txt"
+    ],
+    "commitTool": "not registered"
+   }
+  },
+  {
+   "step": "commit access: the default branch is refused; a work branch is created and committed for real",
+   "ok": true,
+   "detail": {
+    "refusedOnMain": "Refused: main is protected here (nothing is committed to it by workers). Create a branch w",
+    "branch": "work/notes",
+    "commit": "b501b32",
+    "gitLogAgrees": true,
+    "pushTool": "not registered"
+   }
+  },
+  {
+   "step": "push access: pushes the work branch (read back from the remote); the default branch is refused; never forced",
+   "ok": true,
+   "detail": {
+    "pushed": "origin's branch now points at this commit (read back)",
+    "refusedOnMain": true,
+    "rejectedNotForced": "origin/work/notes has commits this checkout doesn't have. Nothing was pushed (never forced"
+   }
+  },
+  {
+   "step": "workers on the default branch only when the workspace allows it",
+   "ok": true,
+   "detail": {
+    "committedOn": "main"
+   }
+  },
+  {
+   "step": "a Team-protected branch is refused even with push access and workers allowed on the default branch",
+   "ok": true,
+   "detail": {
+    "commit": "Refused: main is protected here (nothing is committed to it by workers). Create ",
+    "push": "Refused: main is protected here; workers never push to it. Push a work branch in"
+   }
+  },
+  {
+   "step": "a checkout whose origin isn't the registered repository is refused for every tool",
+   "ok": true,
+   "detail": {
+    "refused": "Refused: this checkout's origin (C:\\Users\\hp\\AppData\\Local\\Temp\\repo-tools-EHRrri\\site-remote.git) is not alice/site. The person must fix th"
+   }
+  },
+  {
+   "step": "forged arguments: paths outside the repository, option-like paths and bad branch names are refused",
+   "ok": true,
+   "detail": {
+    "refused": 6
+   }
+  }
+ ]
+}

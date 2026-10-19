@@ -10,8 +10,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { chromium } from "playwright";
 import { z } from "zod";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { mkdirSync, writeFileSync, realpathSync } from "node:fs";
+import { join, dirname, resolve, relative, isAbsolute, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const EXPORTS_DIR = join(dirname(fileURLToPath(import.meta.url)), "exports");
@@ -26,6 +26,30 @@ mkdirSync(EXPORTS_DIR, { recursive: true });
 // as a case-sensitive string: FILE:///, File:/// and view-source:file:/// got past url:file:*.
 const PROFILE = process.env.BROWSER_EXECUTOR_PROFILE === "full" ? "full" : "inspect";
 const WEB = new Set(["http:", "https:"]);
+// In both profiles the browser never reaches this platform's own local services (the console, the
+// Figma bridge, the dev-control daemon: BROWSER_BLOCK_PORTS, set by the console), by navigation,
+// redirect, frame, page script or WebSocket, so a worker can't drive the console as the person or
+// take over the plugin's connection. file:// pages (full profile) only from the run's workspace (the
+// adapter's working directory), its exports folder and BROWSER_FILE_ROOTS, so the browser can't read
+// the person's other files or credentials.
+const BLOCK_PORTS = new Set((process.env.BROWSER_BLOCK_PORTS || "8799,8787,8796").split(",").map(Number).filter(Boolean));
+const realish = (p) => { try { return realpathSync.native(p); } catch { return resolve(p); } };
+const FILE_ROOTS = [process.cwd(), EXPORTS_DIR, ...(process.env.BROWSER_FILE_ROOTS || "").split(delimiter)].filter(Boolean).map(realish);
+const inside = (root, p) => { const r = relative(root, p); return r === "" || (!!r && !r.startsWith("..") && !isAbsolute(r)); };
+const isLoopback = (h) => { h = h.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.$/, ""); return h === "localhost" || h.endsWith(".localhost") || h === "::1" || h === "::" || h === "0.0.0.0" || /^127\./.test(h) || /^::ffff:(127\.|7f)/.test(h); };
+function blocked(raw) {
+  let u; try { u = new URL(raw); } catch { return null; }
+  if (["http:", "https:", "ws:", "wss:"].includes(u.protocol)) {
+    const port = Number(u.port || (u.protocol === "https:" || u.protocol === "wss:" ? 443 : 80));
+    if (isLoopback(u.hostname) && BLOCK_PORTS.has(port)) return `${u.host} is this platform's own local service; the browser can't open it`;
+  }
+  if (u.protocol === "file:") {
+    if (PROFILE !== "full") return "file pages can't be opened in this profile";
+    let p; try { p = realish(fileURLToPath(u)); } catch { return "not a usable file URL"; }
+    if (!FILE_ROOTS.some((root) => inside(root, p))) return "files outside the workspace can't be opened";
+  }
+  return null;
+}
 // Parse as the browser does (WHATWG), check the scheme, and navigate to the parsed form, so the
 // browser never gets a string it could read differently from this check.
 function inspectUrl(raw) {
@@ -37,6 +61,8 @@ function inspectUrl(raw) {
 // After anything that can navigate (a redirect, a clicked link), the page must still be a web
 // page; if not, it's reset to about:blank before anything can be read from it.
 async function assertOnWeb(p) {
+  const why = blocked(p.url());
+  if (why) { await p.goto("about:blank"); throw new Error(`Refused: ${why}. The page was reset to about:blank.`); }
   if (PROFILE === "full") return;
   const at = p.url();
   if (at === "about:blank" || WEB.has(new URL(at).protocol)) return;
@@ -55,7 +81,11 @@ async function getPage() {
     browser = await chromium.launch();
     page = undefined;
   }
-  if (!page || page.isClosed()) page = await browser.newPage(PROFILE === "full" ? {} : { acceptDownloads: false });
+  if (!page || page.isClosed()) {
+    page = await browser.newPage(PROFILE === "full" ? {} : { acceptDownloads: false });
+    await page.route("**/*", (route) => (blocked(route.request().url()) ? route.abort("blockedbyclient") : route.continue()));
+    await page.routeWebSocket(() => true, (ws) => (blocked(ws.url()) ? ws.close({ code: 1008, reason: "blocked" }) : ws.connectToServer()));
+  }
   return page;
 }
 
@@ -77,6 +107,7 @@ server.registerTool(
   },
   async ({ url, viewport, waitUntil = "domcontentloaded" }) => {
     const target = PROFILE === "full" ? url : inspectUrl(url);
+    const why = blocked(target); if (why) throw new Error(`Refused: ${why}.`);
     const p = await getPage();
     if (viewport) await p.setViewportSize(viewport);
     await p.goto(target, { waitUntil });
@@ -135,6 +166,7 @@ server.registerTool(
     const p = await getPage();
     await assertOnWeb(p);
     await p.fill(selector, value);
+    await assertOnWeb(p);
     return toolResult({ filled: selector, value });
   }
 );
@@ -148,6 +180,7 @@ if (PROFILE === "full") server.registerTool(
   },
   async ({ selector, fullPage = false }) => {
     const p = await getPage();
+    await assertOnWeb(p);
     const bytes = selector ? await p.locator(selector).first().screenshot() : await p.screenshot({ fullPage });
     const fileName = `${Date.now()}.png`;
     const filePath = join(EXPORTS_DIR, fileName);

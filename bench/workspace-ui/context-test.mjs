@@ -54,7 +54,7 @@ await step("the Context & usage card shows the runtime's context and token numbe
 });
 await step("a context warning fires at a configurable threshold (console-settings.json), and is labelled in the card", async () => {
   const none = events(runId).filter((e) => e.type === "context").length;
-  writeFileSync(join(DATA, "console-settings.json"), JSON.stringify({ contextWarnTokens: 3000 }));
+  writeFileSync(join(DATA, "console-settings.json"), JSON.stringify({ contextWarnTokens: 3000, autoFreshSession: false }));
   await page.fill("#input", "DECISION: the accent colour is #FF6B35. Acknowledge with the single word NOTED.");
   await page.click("#send");
   await waitStatus(["Working"], 30000); await waitStatus(["Waiting for you"]);

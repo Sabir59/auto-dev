@@ -32,6 +32,10 @@ if curl -s -o /dev/null http://127.0.0.1:8797/; then echo "port 8797 is in use: 
 # a space they marked "test") against real Builder, and a site that renders that space (SITE).
 if [ "$suite" = builder ]; then export BUILDER_ADMIN_BASE=http://127.0.0.1:8789 BUILDER_CONTENT_BASE=http://127.0.0.1:8789 BUILDER_WRITE_BASE=http://127.0.0.1:8789; fi
 BDIR="$(cygpath -w "$D/builder")"; [ "$suite" = builder-real ] && BDIR="$(cygpath -w "$HOME/.builder-adapter")"
+# Likewise an empty GitHub credentials folder per test console; the github suite also points the
+# console at its local mock GitHub API.
+export GITHUB_CONNECTOR_DIR="$(cygpath -w "$D-github")"
+if [ "$suite" = github ]; then export GITHUB_API_BASE=http://127.0.0.1:8785; fi
 BUILDER_ADAPTER_DIR="$BDIR" FIGMA_READER_DIR="$(cygpath -w "$D/figma-reader")" WORKER_CONSOLE_PORT=8797 WORKER_CONSOLE_DATA="$(cygpath -w "$D")" node worker-ui/server.mjs > "$D/console.log" 2>&1 &
 CPID=$!
 curl -s -o /dev/null --retry 10 --retry-connrefused http://127.0.0.1:8797/
@@ -51,6 +55,9 @@ case $suite in
   account) node bench/workspace-ui/account-test.mjs 8797 ;;
   model) node bench/workspace-ui/model-test.mjs 8797 ;;
   context) node bench/workspace-ui/context-test.mjs 8797 ;;
+  github) GHDIR="$GITHUB_CONNECTOR_DIR" node bench/workspace-ui/github-test.mjs 8797 ;;
+  boundaries) node bench/workspace-ui/boundaries-test.mjs 8797 ;;
+  autofresh) node bench/workspace-ui/autofresh-test.mjs 8797 ;;
   builder-real) BUILDER_ADAPTER_DIR="$BDIR" SITE="${SITE:-http://localhost:3000}" node bench/workspace-ui/builder-worker-test.mjs 8797 ;;
   *) echo "unknown suite: $suite" ;;
 esac 2>&1 | grep -E "^(PASS|FAIL)|passed" | cut -c1-160

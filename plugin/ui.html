@@ -97,7 +97,9 @@
           const resp = await fetch(url);
           if (!resp.ok) throw new Error("Fetch failed: " + resp.status + " " + resp.statusText);
           const buf = await resp.arrayBuffer();
-          const bytes = Array.from(new Uint8Array(buf));
+          // A typed array, not Array.from(...): a plain JS array of millions of numbers is slow to
+          // build and to copy into the sandbox, and blocks both plugin threads while it happens.
+          const bytes = new Uint8Array(buf);
           log("fetched " + bytes.length + " bytes from " + url);
           parent.postMessage({ pluginMessage: { id: id, type: "IMPORT_IMAGE", params: Object.assign({}, params, { bytes: bytes }) } }, "*");
         } catch (err) {

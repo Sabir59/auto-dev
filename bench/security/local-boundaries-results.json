@@ -1,0 +1,76 @@
+{
+ "when": "2026-10-17T09:25:18.323Z",
+ "results": [
+  {
+   "step": "bridge: a web page's command is refused; a local program's goes through (no plugin here: 503)",
+   "ok": true,
+   "detail": {
+    "webPage": 403,
+    "localProgram": 503,
+    "webPageShutdown": 403,
+    "bridgeStillUp": true
+   }
+  },
+  {
+   "step": "bridge: a DNS-rebinding style Host is refused",
+   "ok": true,
+   "detail": {
+    "status": 403
+   }
+  },
+  {
+   "step": "bridge: the plugin's WebSocket (Origin null) and local programs connect; a web page's is refused",
+   "ok": true,
+   "detail": {
+    "webPage": 401,
+    "figmaPluginOriginNull": "open",
+    "localProgram": "open"
+   }
+  },
+  {
+   "step": "browser: the platform's ports can't be opened, however the address is written",
+   "ok": true,
+   "detail": {
+    "refused": 7,
+    "requestsThatArrived": 0
+   }
+  },
+  {
+   "step": "browser: an ordinary local site works; its frame, script fetch and WebSocket to the platform are blocked",
+   "ok": true,
+   "detail": {
+    "siteOpened": true,
+    "frameAndFetchArrived": 0,
+    "pageWebSocket": "ws-blocked",
+    "bridgeTakenOver": false
+   }
+  },
+  {
+   "step": "browser: a redirect into the platform is caught; the page is reset and nothing is returned",
+   "ok": true,
+   "detail": {
+    "refused": "Refused: 127.0.0.1:8781 is this platform's own local service; the browser can't open it. T",
+    "contentReturned": false,
+    "redirectedGetArrived": 1,
+    "note": "a redirect is followed by the browser itself: the GET reaches the service once; its answer never reaches the worker"
+   }
+  },
+  {
+   "step": "browser: file pages only inside the workspace (no other files, no folder listings outside it)",
+   "ok": true,
+   "detail": {
+    "insideWorkspace": "opened",
+    "outside": "Refused: files outside the workspace can't be opened.",
+    "parentFolder": "refused"
+   }
+  },
+  {
+   "step": "bridge: the dashboard's stop (devctl sends the bridge's own origin) still works",
+   "ok": true,
+   "detail": {
+    "status": 200,
+    "bridge": "stopped"
+   }
+  }
+ ]
+}
