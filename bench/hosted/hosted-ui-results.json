@@ -1,0 +1,64 @@
+{
+ "when": "2026-10-20T18:16:18.490Z",
+ "platform": "win32",
+ "results": [
+  {
+   "step": "opening the site signed out shows the sign-in page; a wrong password says so",
+   "ok": true,
+   "detail": {
+    "url": "http://127.0.0.1:8740/login",
+    "error": "Email or password is incorrect."
+   }
+  },
+  {
+   "step": "signing in opens the workspace page as a hosted person sees it: no local services, no folder path, Executor absent",
+   "ok": true,
+   "detail": {
+    "hosted": "1",
+    "title": "AI Worker",
+    "lfoot": true,
+    "ws": [
+     "scratch"
+    ]
+   }
+  },
+  {
+   "step": "the account panel names the signed-in person and the model provider, with Sign out",
+   "ok": true,
+   "detail": {
+    "text": "AccountSigned in asalice@pilot.test NameAlice ModelAnthropic API through the platform's model gateway This workspace server Runs today0 · $0.00 All runs0 · $0.0"
+   }
+  },
+  {
+   "step": "a task from the composer runs on the server: live activity, the file as a deliverable, Done",
+   "ok": true,
+   "detail": {
+    "chip": "Done"
+   }
+  },
+  {
+   "step": "the worker editor marks what the hosted platform doesn't provide",
+   "ok": true,
+   "detail": [
+    "Run node and curl not available in the hosted productBash(no",
+    "Read the open Figma file (plugin) not available in the hoste",
+    "Change the open Figma file (plugin) not available in the hos"
+   ]
+  },
+  {
+   "step": "the Figma page connects reading by token and says that editing isn't available hosted",
+   "ok": true,
+   "detail": {
+    "message": "That doesn't look like a Figma personal access token (figd_…)."
+   }
+  },
+  {
+   "step": "Sign out ends the session: the page returns to sign-in and the API refuses",
+   "ok": true,
+   "detail": {
+    "runs": 401
+   }
+  }
+ ],
+ "pageErrors": []
+}

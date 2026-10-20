@@ -1,0 +1,275 @@
+{
+ "when": "2026-10-20T18:41:46.281Z",
+ "platform": "linux",
+ "isolation": "uid",
+ "egressFirewall": true,
+ "node": "v20.19.5",
+ "results": [
+  {
+   "step": "config: a production gateway refuses to start without https, an API key, isolation and a real provider address",
+   "ok": true,
+   "detail": {
+    "exit": 1,
+    "problems": 4
+   }
+  },
+  {
+   "step": "provider: hosted consoles refuse the subscription and the in-env API key; the gateway provider needs its token; no silent fallback",
+   "ok": true,
+   "detail": {
+    "hostedDefault": "anthropic-gateway",
+    "local": "claude-subscription"
+   }
+  },
+  {
+   "step": "auth: signed out, the site is the sign-in page and the API refuses (nothing reaches a console)",
+   "ok": true,
+   "detail": {
+    "root": 303,
+    "runs": 401,
+    "post": 401
+   }
+  },
+  {
+   "step": "auth: a wrong password is refused with a generic answer; sign-in needs this site's Origin; the session cookie is HttpOnly and SameSite",
+   "ok": true,
+   "detail": {
+    "cookie": "aiw_session=…; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800"
+   }
+  },
+  {
+   "step": "csrf: a signed-in request from another origin, or with no Origin, changes nothing",
+   "ok": true,
+   "detail": {
+    "evil": 403,
+    "none": 403,
+    "crossSite": 403
+   }
+  },
+  {
+   "step": "routing: the console's local-only routes stay unreachable through path tricks",
+   "ok": true,
+   "detail": {
+    "protocolRelative": 400,
+    "dotSegments": 404,
+    "encoded": 404,
+    "plain": 404
+   }
+  },
+  {
+   "step": "auth: a forged session cookie is refused",
+   "ok": true,
+   "detail": {
+    "status": 401
+   }
+  },
+  {
+   "step": "isolation: a person's console answers only the gateway (no secret, no answer)",
+   "ok": true,
+   "detail": {
+    "noSecret": 403,
+    "wrongSecret": 403
+   }
+  },
+  {
+   "step": "model gateway: refuses requests without a console's token; the public site doesn't serve it",
+   "ok": true,
+   "detail": {
+    "none": 401,
+    "forged": 401,
+    "publicSite": 404
+   }
+  },
+  {
+   "step": "hosted workspace: a new one is a folder of the person's own; a path from the page is ignored; Executor, folder browsing and the platform's files don't exist",
+   "ok": true,
+   "detail": {
+    "root": "<data>/users/u-f69ea9cc-0ec/data/workspaces/site-8310",
+    "list": [
+     "scratch",
+     "site-8310"
+    ]
+   }
+  },
+  {
+   "step": "a real run: the CLI works through the gateway; a write stays in the workspace; reading outside it, shell, and a cloud-metadata fetch are refused below the model",
+   "ok": true,
+   "detail": {
+    "outcome": "done",
+    "refusals": [
+     "/var/tmp/aiw-hosted-WCsUey/users/u-51defc5a-9ed/data/bob-secret.txt is outside /var/tmp/ai",
+     "/var/tmp/aiw-hosted-WCsUey/control/users.json is outside /var/tmp/aiw-hosted-WCsUey/users/",
+     "<tool_use_error>Error: No such tool available: Bash. Bash is disabled for this session, in",
+     "WebFetch denied access to domain:169.254.169.254."
+    ]
+   }
+  },
+  {
+   "step": "the provider key stays in the gateway: the provider saw it, nothing else did (activity, run records, API answers, logs)",
+   "ok": true,
+   "detail": {
+    "providerRequests": 6,
+    "filesScanned": 25,
+    "processes": [
+     {
+      "role": "console",
+      "apiKey": false,
+      "clientSecret": false,
+      "internalSecret": true
+     },
+     {
+      "role": "console",
+      "apiKey": false,
+      "clientSecret": false,
+      "internalSecret": true
+     },
+     {
+      "role": "worker",
+      "apiKey": false,
+      "clientSecret": false,
+      "internalSecret": false
+     },
+     {
+      "role": "adapter",
+      "apiKey": false,
+      "clientSecret": false,
+      "internalSecret": false
+     }
+    ]
+   }
+  },
+  {
+   "step": "worker context: a defined worker in a Team gets the platform rules, Workspace, Team and its own definition; what the hosted platform lacks is named, not loaded",
+   "ok": true,
+   "detail": {
+    "outcome": "needs",
+    "tools": [
+     "Edit",
+     "Glob",
+     "Grep",
+     "Read",
+     "WebFetch",
+     "WebSearch",
+     "Write"
+    ]
+   }
+  },
+  {
+   "step": "cancellation: Stop ends a run that's waiting on the model; the provider stream is closed",
+   "ok": true,
+   "detail": {
+    "status": "stopped",
+    "ms": 530
+   }
+  },
+  {
+   "step": "provider failure: an error from the provider ends the turn as an error, shown in the activity",
+   "ok": true,
+   "detail": {
+    "status": "waiting",
+    "outcome": "error",
+    "lastError": "success"
+   }
+  },
+  {
+   "step": "rate limit: a provider 429 reaches the run as an error, not a hang",
+   "ok": true,
+   "detail": {
+    "status": "waiting",
+    "outcome": "error",
+    "seconds": 12
+   }
+  },
+  {
+   "step": "two people at once: concurrent runs each write only their own workspace; neither can open the other's runs, events or files by id",
+   "ok": true,
+   "detail": {
+    "run": 404,
+    "events": 404,
+    "file": 404,
+    "message": 404
+   }
+  },
+  {
+   "step": "OS boundary (Linux): each person's folder is theirs alone (mode 700, own uid); their console and workers run as that uid; another uid can't read it",
+   "ok": true,
+   "detail": {
+    "alice": {
+     "uid": 20001,
+     "mode": "700"
+    },
+    "bob": {
+     "uid": 20002,
+     "mode": "700"
+    },
+    "crossRead": "cat: /var/tmp/aiw-hosted-WCsUey/users/u-51defc5a-9ed/data/bob-secret.txt: Permis",
+    "processUids": [
+     20001
+    ]
+   }
+  },
+  {
+   "step": "Connect with GitHub: GitHub's consent returns to the public site; the code exchange goes through the gateway's broker (the console never holds the client secret)",
+   "ok": true,
+   "detail": {
+    "connectedAs": "alice",
+    "replay": "/?github=state"
+   }
+  },
+  {
+   "step": "repository workspace: cloned into the person's own folder with the connection; workers get at most commit (the person pushes); the push goes to the registered remote; protected branches are refused",
+   "ok": true,
+   "detail": {
+    "commit": "Alice <alice@pilot.test>|Add a hosted change",
+    "pushed": "Pushed 1 commit to origin/work/hosted",
+    "protectedRefusal": "work/hosted is protected by the Guarded Team's enforced policy: nothing is commi"
+   }
+  },
+  {
+   "step": "browser (hosted): refuses this server, private networks, cloud metadata and files outside the workspace, before anything loads",
+   "ok": true,
+   "detail": {
+    "refused": [
+     "Refused: 127.0.0.1:18770 is on this server; the browser can'",
+     "Refused: 169.254.169.254 is a private or internal network ad",
+     "Refused: 10.1.2.3 is a private or internal network address; ",
+     "Refused: localhost.:18772 is on this server; the browser can",
+     "Refused: files outside the workspace can't be opened."
+    ],
+    "publicPage": "{ \"url\": \"https://example.com/\", \"title\": \"Example Domain\", ",
+    "screenshots": 1
+   }
+  },
+  {
+   "step": "Figma: a token is checked with Figma before it's kept (live Figma API); nothing is stored when it's refused",
+   "ok": true,
+   "detail": {
+    "refused": "Figma rejected the token (expired, revoked or mistyped).",
+    "liveFigma": "answered (token rejected)"
+   }
+  },
+  {
+   "step": "restart: a run live during a shutdown is recorded as interrupted; sessions, runs and workspaces survive; a message continues the run",
+   "ok": true,
+   "detail": {
+    "afterRestart": "interrupted",
+    "continued": "waiting"
+   }
+  },
+  {
+   "step": "sign-out ends the session on the server; a password change ends existing sessions",
+   "ok": true,
+   "detail": {
+    "signedOut": true,
+    "afterPasswordChange": 401
+   }
+  },
+  {
+   "step": "sign-in rate limit: repeated failures are refused for 15 minutes",
+   "ok": true,
+   "detail": {
+    "status": 429
+   }
+  }
+ ]
+}

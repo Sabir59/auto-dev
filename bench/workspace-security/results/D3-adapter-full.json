@@ -11,121 +11,121 @@
  "rows": [
   {
    "name": "file:///",
-   "url": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "file:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "Refused: files outside the workspace can't be opened.",
+   "pageAfter": "about:blank",
+   "canaryInOutput": false
   },
   {
    "name": "FILE:///",
-   "url": "FILE:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "FILE:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "Refused: files outside the workspace can't be opened.",
+   "pageAfter": "about:blank",
+   "canaryInOutput": false
   },
   {
    "name": "File:///",
-   "url": "File:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "File:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "Refused: files outside the workspace can't be opened.",
+   "pageAfter": "about:blank",
+   "canaryInOutput": false
   },
   {
    "name": "fIlE:///",
-   "url": "fIlE:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "fIlE:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "Refused: files outside the workspace can't be opened.",
+   "pageAfter": "about:blank",
+   "canaryInOutput": false
   },
   {
    "name": "view-source:file:///",
-   "url": "view-source:file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "view-source:file:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "page.goto: net::ERR_BLOCKED_BY_CLIENT at view-source:file:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt Call log: \u001b[2m - navigating to \"view-",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
   },
   {
    "name": "VIEW-SOURCE:FILE:///",
-   "url": "VIEW-SOURCE:FILE:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "VIEW-SOURCE:FILE:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "page.goto: net::ERR_BLOCKED_BY_CLIENT at view-source:FILE:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt Call log: \u001b[2m - navigating to \"view-",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
   },
   {
    "name": "view-source:http:",
-   "url": "view-source:http://127.0.0.1:59690/ok",
+   "url": "view-source:http://127.0.0.1:50403/ok",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:59690/ok\", \"title\": \"\" }",
-   "pageAfter": "http://127.0.0.1:59690/ok",
+   "message": "{ \"url\": \"http://127.0.0.1:50403/ok\", \"title\": \"\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:50403/ok",
    "canaryInOutput": false
   },
   {
    "name": "file:/ (one slash)",
-   "url": "file:/C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "file:/C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "Refused: files outside the workspace can't be opened.",
+   "pageAfter": "http://127.0.0.1:50403/ok",
+   "canaryInOutput": false
   },
   {
    "name": "file://localhost/",
-   "url": "file://localhost/C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "file://localhost/C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "Refused: files outside the workspace can't be opened.",
+   "pageAfter": "http://127.0.0.1:50403/ok",
+   "canaryInOutput": false
   },
   {
    "name": "leading space",
-   "url": " file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": " file:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "Refused: files outside the workspace can't be opened.",
+   "pageAfter": "http://127.0.0.1:50403/ok",
+   "canaryInOutput": false
   },
   {
    "name": "leading tab+newline",
-   "url": "\t\nfile:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "\t\nfile:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "Refused: files outside the workspace can't be opened.",
+   "pageAfter": "http://127.0.0.1:50403/ok",
+   "canaryInOutput": false
   },
   {
    "name": "tab inside scheme",
-   "url": "fi\tle:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "fi\tle:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "Refused: files outside the workspace can't be opened.",
+   "pageAfter": "http://127.0.0.1:50403/ok",
+   "canaryInOutput": false
   },
   {
    "name": "newline inside scheme",
-   "url": "fi\nle:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "fi\nle:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
+   "refused": true,
+   "message": "Refused: files outside the workspace can't be opened.",
+   "pageAfter": "http://127.0.0.1:50403/ok",
+   "canaryInOutput": false
   },
   {
    "name": "percent-encoded scheme",
-   "url": "%66ile:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "%66ile:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "MCP error -32602: Input validation error: Invalid arguments for tool browser_navigate: Invalid URL at url",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "pageAfter": "http://127.0.0.1:50403/ok",
+   "canaryInOutput": false
   },
   {
    "name": "filesystem:file:",
-   "url": "filesystem:file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "filesystem:file:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
-   "message": "page.goto: net::ERR_FILE_NOT_FOUND at filesystem:file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef7",
+   "message": "page.goto: net::ERR_FILE_NOT_FOUND at filesystem:file:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt Call log: \u001b[2m - navigating to \"filesyste",
    "pageAfter": "chrome-error://chromewebdata/",
    "canaryInOutput": false
   },
@@ -141,15 +141,15 @@
    "name": "data:",
    "url": "data:text/html,<title>data</title>",
    "refused": false,
-   "message": "{ \"url\": \"data:text/html,<title>data</title>\", \"title\": \"data\" }",
+   "message": "{ \"url\": \"data:text/html,<title>data</title>\", \"title\": \"data\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
    "pageAfter": "data:text/html,<title>data</title>",
    "canaryInOutput": false
   },
   {
    "name": "blob:",
-   "url": "blob:http://127.0.0.1:59690/0b5e2c4a-0000-0000-0000-000000000000",
+   "url": "blob:http://127.0.0.1:50403/0b5e2c4a-0000-0000-0000-000000000000",
    "refused": true,
-   "message": "page.goto: net::ERR_FILE_NOT_FOUND at blob:http://127.0.0.1:59690/0b5e2c4a-0000-0000-0000-000000000000 Call log: \u001b[2m - navigating to \"blob:http://127.0.0.1:596",
+   "message": "page.goto: net::ERR_FILE_NOT_FOUND at blob:http://127.0.0.1:50403/0b5e2c4a-0000-0000-0000-000000000000 Call log: \u001b[2m - navigating to \"blob:http://127.0.0.1:504",
    "pageAfter": "chrome-error://chromewebdata/",
    "canaryInOutput": false
   },
@@ -157,7 +157,7 @@
    "name": "about:blank",
    "url": "about:blank",
    "refused": false,
-   "message": "{ \"url\": \"about:blank\", \"title\": \"\" }",
+   "message": "{ \"url\": \"about:blank\", \"title\": \"\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
    "pageAfter": "about:blank",
    "canaryInOutput": false
   },
@@ -187,114 +187,98 @@
   },
   {
    "name": "Windows path",
-   "url": "C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\outside\\secret.txt",
-   "refused": false,
-   "message": "{ \"url\": \"file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchp",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "url": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\canary\\outside\\secret.txt",
+   "refused": true,
+   "message": "page.goto: net::ERR_BLOCKED_BY_CLIENT at c:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\canary\\outside\\secret.txt Call log: \u001b[2m - navigating to \"c:\\Users\\hp\\AppData\\Local",
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
   },
   {
    "name": "UNC path",
    "url": "\\\\localhost\\c$\\Windows\\win.ini",
    "refused": true,
    "message": "MCP error -32602: Input validation error: Invalid arguments for tool browser_navigate: Invalid URL at url",
-   "pageAfter": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
-   "canaryInOutput": true
+   "pageAfter": "chrome-error://chromewebdata/",
+   "canaryInOutput": false
   },
   {
    "name": "http:\\\\ (backslashes)",
-   "url": "http:\\\\127.0.0.1:59690/ok",
+   "url": "http:\\\\127.0.0.1:50403/ok",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:59690/ok\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:59690/ok",
+   "message": "{ \"url\": \"http://127.0.0.1:50403/ok\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:50403/ok",
    "canaryInOutput": false
   },
   {
    "name": "HTTP: (upper, allowed)",
-   "url": "HTTP://127.0.0.1:59690/ok",
+   "url": "HTTP://127.0.0.1:50403/ok",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:59690/ok\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:59690/ok",
+   "message": "{ \"url\": \"http://127.0.0.1:50403/ok\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:50403/ok",
    "canaryInOutput": false
   },
   {
    "name": "http: page (allowed)",
-   "url": "http://127.0.0.1:59690/ok",
+   "url": "http://127.0.0.1:50403/ok",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:59690/ok\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:59690/ok",
+   "message": "{ \"url\": \"http://127.0.0.1:50403/ok\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:50403/ok",
    "canaryInOutput": false
   },
   {
    "name": "http -> 302 -> file:",
-   "url": "http://127.0.0.1:59690/redirect",
+   "url": "http://127.0.0.1:50403/redirect",
    "refused": true,
-   "message": "page.goto: net::ERR_UNSAFE_REDIRECT at http://127.0.0.1:59690/redirect Call log: \u001b[2m - navigating to \"http://127.0.0.1:59690/redirect\", waiting until \"domconte",
+   "message": "page.goto: net::ERR_UNSAFE_REDIRECT at http://127.0.0.1:50403/redirect Call log: \u001b[2m - navigating to \"http://127.0.0.1:50403/redirect\", waiting until \"domconte",
    "pageAfter": "chrome-error://chromewebdata/",
    "canaryInOutput": false
   },
   {
    "name": "http -> 302 -> FILE:",
-   "url": "http://127.0.0.1:59690/redirect-upper",
+   "url": "http://127.0.0.1:50403/redirect-upper",
    "refused": true,
-   "message": "page.goto: net::ERR_UNSAFE_REDIRECT at http://127.0.0.1:59690/redirect-upper Call log: \u001b[2m - navigating to \"http://127.0.0.1:59690/redirect-upper\", waiting unt",
+   "message": "page.goto: net::ERR_UNSAFE_REDIRECT at http://127.0.0.1:50403/redirect-upper Call log: \u001b[2m - navigating to \"http://127.0.0.1:50403/redirect-upper\", waiting unt",
    "pageAfter": "chrome-error://chromewebdata/",
    "canaryInOutput": false
   },
   {
    "name": "http page, script sets location to file:",
-   "url": "http://127.0.0.1:59690/script",
+   "url": "http://127.0.0.1:50403/script",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:59690/script\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:59690/script",
+   "message": "{ \"url\": \"http://127.0.0.1:50403/script\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:50403/script",
    "canaryInOutput": false
   },
   {
    "name": "http page, meta refresh to file:",
-   "url": "http://127.0.0.1:59690/meta",
+   "url": "http://127.0.0.1:50403/meta",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:59690/meta\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:59690/meta",
+   "message": "{ \"url\": \"http://127.0.0.1:50403/meta\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:50403/meta",
    "canaryInOutput": false
   },
   {
    "name": "http page, iframe of file:",
-   "url": "http://127.0.0.1:59690/iframe",
+   "url": "http://127.0.0.1:50403/iframe",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:59690/iframe\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:59690/iframe",
+   "message": "{ \"url\": \"http://127.0.0.1:50403/iframe\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:50403/iframe",
    "canaryInOutput": false
   },
   {
    "name": "click a file: link on an http page",
    "refused": false,
    "message": "{\n \"clicked\": \"#l\"\n}",
-   "pageAfter": "http://127.0.0.1:59690/link",
+   "pageAfter": "http://127.0.0.1:50403/link",
    "canaryInOutput": false
   }
  ],
  "screenshot": {
   "error": false,
-  "text": "{\n \"path\": \"C:\\\\Users\\\\hp\\\\Desktop\\\\millionaire\\\\auto-dev\\\\figma-ai-executor\\\\browser-adapter\\\\exports\\\\1790864871749.png\"\n}"
+  "text": "{\n \"path\": \"C:\\\\Users\\\\hp\\\\Desktop\\\\millionaire\\\\auto-dev\\\\figma-ai-executor\\\\browser-adapter\\\\exports\\\\1792520403424.png\",\n \"width\": 1280,\n \"height\": 720\n}"
  },
  "NEW_EXPORT_FILES": [
-  "1790864871749.png"
+  "1792520403424.png"
  ],
- "CANARY_LEAKS": [
-  "file:///",
-  "FILE:///",
-  "File:///",
-  "fIlE:///",
-  "view-source:file:///",
-  "VIEW-SOURCE:FILE:///",
-  "file:/ (one slash)",
-  "file://localhost/",
-  "leading space",
-  "leading tab+newline",
-  "tab inside scheme",
-  "newline inside scheme",
-  "percent-encoded scheme",
-  "Windows path",
-  "UNC path"
- ]
+ "CANARY_LEAKS": []
 }

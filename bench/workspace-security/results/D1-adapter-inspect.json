@@ -10,7 +10,7 @@
  "rows": [
   {
    "name": "file:///",
-   "url": "file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "file:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not file:",
    "pageAfter": "about:blank",
@@ -18,7 +18,7 @@
   },
   {
    "name": "FILE:///",
-   "url": "FILE:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "FILE:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not file:",
    "pageAfter": "about:blank",
@@ -26,7 +26,7 @@
   },
   {
    "name": "File:///",
-   "url": "File:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "File:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not file:",
    "pageAfter": "about:blank",
@@ -34,7 +34,7 @@
   },
   {
    "name": "fIlE:///",
-   "url": "fIlE:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "fIlE:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not file:",
    "pageAfter": "about:blank",
@@ -42,7 +42,7 @@
   },
   {
    "name": "view-source:file:///",
-   "url": "view-source:file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "view-source:file:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not view-source:",
    "pageAfter": "about:blank",
@@ -50,7 +50,7 @@
   },
   {
    "name": "VIEW-SOURCE:FILE:///",
-   "url": "VIEW-SOURCE:FILE:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "VIEW-SOURCE:FILE:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not view-source:",
    "pageAfter": "about:blank",
@@ -58,7 +58,7 @@
   },
   {
    "name": "view-source:http:",
-   "url": "view-source:http://127.0.0.1:52394/ok",
+   "url": "view-source:http://127.0.0.1:51675/ok",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not view-source:",
    "pageAfter": "about:blank",
@@ -66,7 +66,7 @@
   },
   {
    "name": "file:/ (one slash)",
-   "url": "file:/C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "file:/C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not file:",
    "pageAfter": "about:blank",
@@ -74,7 +74,7 @@
   },
   {
    "name": "file://localhost/",
-   "url": "file://localhost/C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "file://localhost/C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not file:",
    "pageAfter": "about:blank",
@@ -82,7 +82,7 @@
   },
   {
    "name": "leading space",
-   "url": " file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": " file:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not file:",
    "pageAfter": "about:blank",
@@ -90,7 +90,7 @@
   },
   {
    "name": "leading tab+newline",
-   "url": "\t\nfile:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "\t\nfile:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not file:",
    "pageAfter": "about:blank",
@@ -98,7 +98,7 @@
   },
   {
    "name": "tab inside scheme",
-   "url": "fi\tle:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "fi\tle:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not file:",
    "pageAfter": "about:blank",
@@ -106,7 +106,7 @@
   },
   {
    "name": "newline inside scheme",
-   "url": "fi\nle:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "fi\nle:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not file:",
    "pageAfter": "about:blank",
@@ -114,7 +114,7 @@
   },
   {
    "name": "percent-encoded scheme",
-   "url": "%66ile:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "%66ile:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "MCP error -32602: Input validation error: Invalid arguments for tool browser_navigate: Invalid URL at url",
    "pageAfter": "about:blank",
@@ -122,7 +122,7 @@
   },
   {
    "name": "filesystem:file:",
-   "url": "filesystem:file:///C:/Users/hp/AppData/Local/Temp/claude/c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor/2b2ef781-158d-46fa-a77f-4aadf5e96c75/scratchpad/sec/outside/secret.txt",
+   "url": "filesystem:file:///C:/Users/hp/AppData/Local/Temp/wsui/canary/outside/secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not filesystem:",
    "pageAfter": "about:blank",
@@ -146,7 +146,7 @@
   },
   {
    "name": "blob:",
-   "url": "blob:http://127.0.0.1:52394/0b5e2c4a-0000-0000-0000-000000000000",
+   "url": "blob:http://127.0.0.1:51675/0b5e2c4a-0000-0000-0000-000000000000",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not blob:",
    "pageAfter": "about:blank",
@@ -186,7 +186,7 @@
   },
   {
    "name": "Windows path",
-   "url": "C:\\Users\\hp\\AppData\\Local\\Temp\\claude\\c--Users-hp-Desktop-millionaire-auto-dev-figma-ai-executor\\2b2ef781-158d-46fa-a77f-4aadf5e96c75\\scratchpad\\sec\\outside\\secret.txt",
+   "url": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\canary\\outside\\secret.txt",
    "refused": true,
    "message": "Inspect profile: only http: and https: URLs can be opened, not c:",
    "pageAfter": "about:blank",
@@ -202,75 +202,75 @@
   },
   {
    "name": "http:\\\\ (backslashes)",
-   "url": "http:\\\\127.0.0.1:52394/ok",
+   "url": "http:\\\\127.0.0.1:51675/ok",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:52394/ok\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:52394/ok",
+   "message": "{ \"url\": \"http://127.0.0.1:51675/ok\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:51675/ok",
    "canaryInOutput": false
   },
   {
    "name": "HTTP: (upper, allowed)",
-   "url": "HTTP://127.0.0.1:52394/ok",
+   "url": "HTTP://127.0.0.1:51675/ok",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:52394/ok\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:52394/ok",
+   "message": "{ \"url\": \"http://127.0.0.1:51675/ok\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:51675/ok",
    "canaryInOutput": false
   },
   {
    "name": "http: page (allowed)",
-   "url": "http://127.0.0.1:52394/ok",
+   "url": "http://127.0.0.1:51675/ok",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:52394/ok\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:52394/ok",
+   "message": "{ \"url\": \"http://127.0.0.1:51675/ok\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:51675/ok",
    "canaryInOutput": false
   },
   {
    "name": "http -> 302 -> file:",
-   "url": "http://127.0.0.1:52394/redirect",
+   "url": "http://127.0.0.1:51675/redirect",
    "refused": true,
-   "message": "page.goto: net::ERR_UNSAFE_REDIRECT at http://127.0.0.1:52394/redirect Call log: \u001b[2m - navigating to \"http://127.0.0.1:52394/redirect\", waiting until \"domconte",
+   "message": "page.goto: net::ERR_UNSAFE_REDIRECT at http://127.0.0.1:51675/redirect Call log: \u001b[2m - navigating to \"http://127.0.0.1:51675/redirect\", waiting until \"domconte",
    "pageAfter": null,
    "domError": "Inspect profile: the page left http(s) (to chrome-error://chromewebdata/); it was reset to about:blank",
    "canaryInOutput": false
   },
   {
    "name": "http -> 302 -> FILE:",
-   "url": "http://127.0.0.1:52394/redirect-upper",
+   "url": "http://127.0.0.1:51675/redirect-upper",
    "refused": true,
-   "message": "page.goto: net::ERR_UNSAFE_REDIRECT at http://127.0.0.1:52394/redirect-upper Call log: \u001b[2m - navigating to \"http://127.0.0.1:52394/redirect-upper\", waiting unt",
+   "message": "page.goto: net::ERR_UNSAFE_REDIRECT at http://127.0.0.1:51675/redirect-upper Call log: \u001b[2m - navigating to \"http://127.0.0.1:51675/redirect-upper\", waiting unt",
    "pageAfter": null,
    "domError": "Inspect profile: the page left http(s) (to chrome-error://chromewebdata/); it was reset to about:blank",
    "canaryInOutput": false
   },
   {
    "name": "http page, script sets location to file:",
-   "url": "http://127.0.0.1:52394/script",
+   "url": "http://127.0.0.1:51675/script",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:52394/script\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:52394/script",
+   "message": "{ \"url\": \"http://127.0.0.1:51675/script\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:51675/script",
    "canaryInOutput": false
   },
   {
    "name": "http page, meta refresh to file:",
-   "url": "http://127.0.0.1:52394/meta",
+   "url": "http://127.0.0.1:51675/meta",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:52394/meta\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:52394/meta",
+   "message": "{ \"url\": \"http://127.0.0.1:51675/meta\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:51675/meta",
    "canaryInOutput": false
   },
   {
    "name": "http page, iframe of file:",
-   "url": "http://127.0.0.1:52394/iframe",
+   "url": "http://127.0.0.1:51675/iframe",
    "refused": false,
-   "message": "{ \"url\": \"http://127.0.0.1:52394/iframe\", \"title\": \"t\" }",
-   "pageAfter": "http://127.0.0.1:52394/iframe",
+   "message": "{ \"url\": \"http://127.0.0.1:51675/iframe\", \"title\": \"t\", \"viewport\": { \"width\": 1280, \"height\": 720 } }",
+   "pageAfter": "http://127.0.0.1:51675/iframe",
    "canaryInOutput": false
   },
   {
    "name": "click a file: link on an http page",
    "refused": false,
    "message": "{\n \"clicked\": \"#l\"\n}",
-   "pageAfter": "http://127.0.0.1:52394/link",
+   "pageAfter": "http://127.0.0.1:51675/link",
    "canaryInOutput": false
   }
  ],
