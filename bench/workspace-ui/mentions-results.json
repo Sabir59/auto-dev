@@ -1,5 +1,5 @@
 {
- "when": "2026-10-19T17:32:08.635Z",
+ "when": "2026-10-19T19:48:28.844Z",
  "results": [
   {
    "step": "typing @ opens a list of this workspace's files, including ones .gitignore hides; no dependency or linked-out files",
@@ -72,7 +72,7 @@
      }
     ],
     "inlinedByRuntime": [],
-    "reply": "CODEWORD-HEADER-ORCHID\nCODEWORD-LAYOUT-CEDAR",
+    "reply": "src/components/Header.tsx: CODEWORD-HEADER-ORCHID\nsrc/layout/AppLayout.tsx: CODEWORD-LAYOUT-CEDAR",
     "workerToldExcerpt": "<file_references>\\nThe person referenced these files with @. Paths are relative to the workspace folder (your working directory). Read them with your file tools before answering about them.\\n- src/components/Header.tsx\\n- src/layout/AppLayout.tsx\\n</file_references>\"",
     "toolCalls": [
      "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\mfix\\app\\src\\components\\Header.tsx",
@@ -118,7 +118,7 @@
       "path": "docs/release notes.md"
      }
     ],
-    "reply": "MARIGOLD\nCODEWORD-NOTES-JUNIPER"
+    "reply": "MARIGOLD, CODEWORD-NOTES-JUNIPER"
    }
   },
   {
@@ -163,15 +163,15 @@
      "Read",
      "ToolSearch"
     ],
-    "reply": "DONEHere's the first line of README.md, exactly as written:\n\n# Canary workspace"
+    "reply": "DONEHere is the first line of README.md:\n\n# Canary workspace"
    }
   },
   {
-   "step": "\"No folder\": @ lists its own (empty) folder",
+   "step": "Scratch: a new task has no files to reference, and @ says why (no other conversation's files)",
    "ok": true,
    "detail": {
-    "label": "Recent files · No folder",
-    "empty": "No matching files"
+    "label": "Recent files · Scratch",
+    "empty": "A new scratch conversation starts with an empty folder: there are no files to reference yet."
    }
   },
   {
@@ -224,25 +224,25 @@
    "ok": true,
    "detail": {
     "executor": {
-     "indexed": 1631,
-     "coldMs": 489,
-     "warmMs": 21
+     "indexed": 1769,
+     "coldMs": 486,
+     "warmMs": 24
     },
     "big": {
      "onDisk": 21300,
      "indexed": 20000,
      "truncated": true,
-     "coldMs": 1009,
+     "coldMs": 1307,
      "keystrokeMs": [
-      56,
-      36,
-      31,
-      27,
-      24,
-      34,
-      27,
-      15,
-      15
+      60,
+      25,
+      40,
+      38,
+      23,
+      35,
+      20,
+      22,
+      47
      ]
     }
    }

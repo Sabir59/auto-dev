@@ -1,5 +1,5 @@
 {
- "when": "2026-10-09T15:31:40.581Z",
+ "when": "2026-10-20T08:10:07.531Z",
  "results": [
   {
    "step": "devctl status: both targets start out stopped",
@@ -35,6 +35,16 @@
    "ok": true,
    "detail": {
     "checked": "true"
+   }
+  },
+  {
+   "step": "toggle OFF asks first: Cancel leaves the console running and the switch ON",
+   "ok": true,
+   "detail": {
+    "title": "Stop the console?",
+    "checked": "true",
+    "stillUp": true,
+    "state": "running"
    }
   },
   {

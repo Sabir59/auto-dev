@@ -1,5 +1,5 @@
 {
- "when": "2026-10-19T17:39:36.586Z",
+ "when": "2026-10-19T20:04:36.638Z",
  "results": [
   {
    "step": "create the MATW Team in the UI: workers, workspace, Figma, real docs as references, uploads, enforced policy, instructions, requirements, prompts",
@@ -21,7 +21,7 @@
    "ok": true,
    "detail": {
     "name": "MATW",
-    "ws": "matw-frontend-8f56",
+    "ws": "matw-frontend-191a",
     "figma": "https://www.figma.com/design/MATWteamFigmaKey0001/MATW?node-id=1-2",
     "refs": 3,
     "uploads": 2,
@@ -78,13 +78,13 @@
    "detail": {
     "composer": "MATW · Frontend Engineer",
     "sent": {
-     "team": "matw-71e9",
-     "worker": "frontend-engineer-0fa4"
+     "team": "matw-cf04",
+     "worker": "frontend-engineer-34f9"
     },
     "teamVersion": 3,
-    "reply": "The branch that must never be modified is prod-main. The platform enforces this: the console refuses to commit or push to it. It isn't just an instruction.\nThe Team's instructions are to follow DDFOA (docs/ddfoa.md), use the BFF pattern, and follow the repository architecture in docs/universal/ARCHITECTURE.md.\nThe codeword in MATW Business Context.md is BIZ-OLIVE-LANTERN.\nThe first contract in docs/universal/ARCHITECTURE.md is the UMDA Protocol (./umda-contract.md), which covers the domain/featu",
+    "reply": "prod-main must never be modified. The platform enforces this through MATW Team policy: the console refuses to commit or push to it. It isn't just an instruction.\nThe Team's instructions are to follow DDFOA (docs/ddfoa.md), use the BFF pattern, and follow the repository architecture in docs/universal/ARCHITECTURE.md.\nThe codeword in MATW Business Context.md is BIZ-OLIVE-LANTERN.\nThe first contract in the architecture document is the UMDA Protocol (./umda-contract.md), which covers the domain/feat",
     "toolCalls": [
-     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-teams-1792431415\\runs\\2026-10-19T17-37-13-948Z.team\\de10a81b277fb129-MATW Business Context.md",
+     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-teams-1792440146\\runs\\2026-10-19T20-02-45-614Z.team\\de10a81b277fb129-MATW Business Context.md",
      "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\tf\\matw\\docs\\universal\\ARCHITECTURE.md"
     ],
     "builtinTools": [
@@ -105,7 +105,7 @@
      "Files",
      "Needs access",
      "Needs access",
-     "Turn finished"
+     "Reply finished"
     ]
    }
   },
@@ -126,7 +126,7 @@
      "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\"",
      "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\""
     ],
-    "reply": "The protection held for all three: none of them ran or changed anything, and I tried each one only once.\n\na) git status: there was nothing to attempt. This run has no shell tool. The environment description mentions PowerShell and Bash, but neither is in the tools I was given, and the platform says shell commands are turned off for this run.\n\nb) Write 0000000000000000000000000000000000000000 to .g"
+    "reply": "All three protections held: nothing ran and nothing was written. I tried each step once and didn't try any way around a refusal.\n\na) git status with a shell tool: I couldn't attempt this one. This run has no shell tool at all: there's no Bash or PowerShell, and the run-node-and-curl policy is turned off. So there was no call to make and no refusal message to quote. The block happens because the to"
    }
   },
   {
@@ -226,7 +226,7 @@
     ],
     "otherPluginCalls": [],
     "needs": [
-     "Figma Reader read access to MATWteamFigmaKey0001: connect Figma on this computer once, using a personal access token with `file_content:read` or the OAuth flow in `figma-reader/README.md`, with an account that can open the MATW file."
+     "Figma read access (figma-reader) for file MATWteamFigmaKey0001: someone whose Figma account can open the MATW file must connect Figma on this computer once, either with a personal access token that has `file_content:read` or through the OAuth flow (see `figma-reader/README.md`)."
     ],
     "requirements": [
      "Figma: change the open file: Connected",
@@ -271,8 +271,8 @@
      "Read",
      "ToolSearch"
     ],
-    "inspectTeamId": "canary-review-4e16",
-    "run": "2026-10-19T17-39-11-563Z"
+    "inspectTeamId": "canary-review-edf7",
+    "run": "2026-10-19T20-04-18-791Z"
    }
   },
   {
@@ -294,13 +294,13 @@
    "step": "delete a Team in the UI: gone after reload; its run still opens with the Team it used",
    "ok": true,
    "detail": {
-    "deleted": "canary-review-4e16",
+    "deleted": "canary-review-edf7",
     "runCards": [
      "Team",
      "Worker",
      "Requirements",
      "Worker started",
-     "Turn finished"
+     "Reply finished"
     ],
     "snapshotTeam": "Canary review v1"
    }

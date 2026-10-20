@@ -1,5 +1,5 @@
 {
- "when": "2026-10-09T20:38:16.005Z",
+ "when": "2026-10-19T19:57:51.157Z",
  "results": [
   {
    "step": "the catalogue offers builder.read (both modes) and builder.write (Work only)",
@@ -17,7 +17,15 @@
     {
      "id": "builder.write",
      "label": "Create, change and publish Builder.io content (test spaces only)",
-     "tools": "builder: create draft, update, publish",
+     "tools": "builder: create draft, update (as a draft or live, inline or from a file), publish, upload assets",
+     "profiles": [
+      "full"
+     ]
+    },
+    {
+     "id": "builder.write.draft",
+     "label": "Create and change Builder.io content as drafts only (test spaces only) — publishing is not available",
+     "tools": "builder: create draft, update as a draft (inline or from a file), upload assets",
      "profiles": [
       "full"
      ]
@@ -52,7 +60,7 @@
    "step": "Inspect workspace: the editor's run gets only the read tools; its server is read-only",
    "ok": true,
    "detail": {
-    "id": "2026-10-09T20-37-53-007Z",
+    "id": "2026-10-19T19-57-11-445Z",
     "tools": [
      "builder_access_status",
      "builder_get_content",
@@ -67,7 +75,7 @@
      ],
      "env": {
       "BUILDER_ADAPTER_PROFILE": "read",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791578269\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1792439826\\builder"
      }
     }
    }
@@ -76,7 +84,7 @@
    "step": "Work workspace: the editor's run gets the write tools too",
    "ok": true,
    "detail": {
-    "id": "2026-10-09T20-37-57-347Z",
+    "id": "2026-10-19T19-57-18-753Z",
     "tools": [
      "builder_access_status",
      "builder_create_draft",
@@ -96,7 +104,7 @@
      "env": {
       "BUILDER_ADAPTER_PROFILE": "full",
       "BUILDER_UPLOAD_ROOT": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\work",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791578269\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1792439826\\builder"
      }
     }
    }
@@ -105,7 +113,7 @@
    "step": "Work workspace, read-only worker: no write tools (capabilities narrow, never widen)",
    "ok": true,
    "detail": {
-    "id": "2026-10-09T20-38-01-547Z",
+    "id": "2026-10-19T19-57-26-199Z",
     "tools": [
      "builder_access_status",
      "builder_get_content",
@@ -120,7 +128,7 @@
      ],
      "env": {
       "BUILDER_ADAPTER_PROFILE": "read",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1791578269\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1792439826\\builder"
      }
     }
    }

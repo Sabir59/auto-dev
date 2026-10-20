@@ -1,5 +1,5 @@
 {
- "when": "2026-10-19T17:27:59.911Z",
+ "when": "2026-10-19T19:44:54.170Z",
  "results": [
   {
    "step": "Executor: remove it (it has a run) → off the list, its run hidden",
@@ -7,17 +7,21 @@
    "detail": {
     "runsShownBefore": 1,
     "after": {
-     "wsId": "scratch",
+     "wsId": "work-test-1fba",
      "rows": [
       "scratch",
-      "work-test-c113"
+      "work-test-1fba"
      ],
      "current": [
-      "scratch"
+      "work-test-1fba"
      ],
-     "cName": "No folder",
+     "cName": "Work test",
      "runs": 0,
-     "tree": [],
+     "tree": [
+      "src",
+      "big-notes.txt",
+      "README.md"
+     ],
      "consistent": true
     },
     "resumeHiddenRun": {
@@ -32,17 +36,21 @@
    "step": "the other tab corrects itself within the refresh (it had Executor open)",
    "ok": true,
    "detail": {
-    "wsId": "scratch",
+    "wsId": "work-test-1fba",
     "rows": [
      "scratch",
-     "work-test-c113"
+     "work-test-1fba"
     ],
     "current": [
-     "scratch"
+     "work-test-1fba"
     ],
-    "cName": "No folder",
+    "cName": "Work test",
     "runs": 0,
-    "tree": [],
+    "tree": [
+     "src",
+     "big-notes.txt",
+     "README.md"
+    ],
     "consistent": true
    }
   },
@@ -55,7 +63,7 @@
      "rows": [
       "scratch",
       "console",
-      "work-test-c113"
+      "work-test-1fba"
      ],
      "current": [
       "console"
@@ -77,17 +85,22 @@
    "step": "tab B has Work test open; tab A removes it → B falls back, no stale selection",
    "ok": true,
    "detail": {
-    "wsId": "scratch",
+    "wsId": "console",
     "rows": [
      "scratch",
      "console"
     ],
     "current": [
-     "scratch"
+     "console"
     ],
-    "cName": "No folder",
-    "runs": 0,
-    "tree": [],
+    "cName": "Executor",
+    "runs": 1,
+    "tree": [
+     ".claude",
+     "agent",
+     "bench",
+     "bridge"
+    ],
     "consistent": true
    }
   },
@@ -96,14 +109,14 @@
    "ok": true,
    "detail": {
     "A": {
-     "wsId": "work-test-195f",
+     "wsId": "work-test-3866",
      "rows": [
       "scratch",
-      "work-test-195f",
+      "work-test-3866",
       "console"
      ],
      "current": [
-      "work-test-195f"
+      "work-test-3866"
      ],
      "cName": "Work test",
      "runs": 0,
@@ -115,24 +128,29 @@
      "consistent": true
     },
     "B": {
-     "wsId": "scratch",
+     "wsId": "console",
      "rows": [
       "scratch",
-      "work-test-195f",
+      "work-test-3866",
       "console"
      ],
      "current": [
-      "scratch"
+      "console"
      ],
-     "cName": "No folder",
-     "runs": 0,
-     "tree": [],
+     "cName": "Executor",
+     "runs": 1,
+     "tree": [
+      ".claude",
+      "agent",
+      "bench",
+      "bridge"
+     ],
      "consistent": true
     }
    }
   },
   {
-   "step": "remove every folder → \"No folder\" remains and is selected; adding brings the folder back",
+   "step": "remove every folder → Scratch remains and is selected; adding brings the folder back",
    "ok": true,
    "detail": {
     "empty": {
@@ -143,17 +161,17 @@
      "current": [
       "scratch"
      ],
-     "cName": "No folder",
+     "cName": "Scratch",
      "runs": 0,
      "tree": [],
      "consistent": true
     },
-    "heading": "No folder",
+    "heading": "General worker",
     "noRemoveButton": 0,
     "refused": {
      "status": 400,
      "body": {
-      "error": "\"No folder\" is built in and can't be removed."
+      "error": "Scratch is built in and can't be removed."
      }
     },
     "runsCreated": 0,
@@ -177,17 +195,22 @@
      "consistent": true
     },
     "restoredB": {
-     "wsId": "scratch",
+     "wsId": "console",
      "rows": [
       "scratch",
       "console"
      ],
      "current": [
-      "scratch"
+      "console"
      ],
-     "cName": "No folder",
-     "runs": 0,
-     "tree": [],
+     "cName": "Executor",
+     "runs": 1,
+     "tree": [
+      ".claude",
+      "agent",
+      "bench",
+      "bridge"
+     ],
      "consistent": true
     }
    }

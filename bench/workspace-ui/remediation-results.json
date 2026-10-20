@@ -1,0 +1,267 @@
+{
+ "when": "2026-10-19T19:40:47.053Z",
+ "results": [
+  {
+   "step": "UX-001: Escape on a worker page with unsaved changes asks; Keep editing keeps the draft",
+   "ok": true,
+   "detail": {
+    "view": "worker",
+    "knowledge": "Knowledge typed but not saved"
+   }
+  },
+  {
+   "step": "UX-001: leaving through the sidebar asks; Discard leaves without saving",
+   "ok": true,
+   "detail": {
+    "view": "chat",
+    "workspace": "Canary",
+    "saved": false
+   }
+  },
+  {
+   "step": "UX-001: New task (Alt+N) from a changed page asks; Save keeps the work, then goes on",
+   "ok": true,
+   "detail": {
+    "saved": "Saved On Leave",
+    "version": 1
+   }
+  },
+  {
+   "step": "UX-001: an unchanged page closes with Escape without asking",
+   "ok": true,
+   "detail": {
+    "asked": false
+   }
+  },
+  {
+   "step": "UX-013: every defined worker has a visible Edit control (not hover-only); General says it has no definition",
+   "ok": true,
+   "detail": {
+    "editButtons": 1,
+    "general": "General no definition"
+   }
+  },
+  {
+   "step": "UX-017: Clear memory asks; Cancel keeps it, confirming clears it",
+   "ok": true,
+   "detail": {
+    "afterCancel": 2,
+    "afterConfirm": 0
+   }
+  },
+  {
+   "step": "UX-006: opening a team only shows it; Work with this team enters it; Leave team is visible",
+   "ok": true,
+   "detail": {
+    "viewingKeptContext": true,
+    "inTeam": {
+     "who": "Remediation team · Saved On Leave",
+     "leave": true
+    },
+    "left": null
+   }
+  },
+  {
+   "step": "UX-003: a turn the worker reports DONE shows Done (data-outcome=done), from the server's outcome",
+   "ok": true,
+   "detail": {
+    "status": "waiting",
+    "outcome": "done",
+    "label": "Done",
+    "serverOutcome": "done"
+   }
+  },
+  {
+   "step": "UX-003: a turn that NEEDS something shows Needs your action, distinct from Done; the run list says so too",
+   "ok": true,
+   "detail": {
+    "status": "waiting",
+    "outcome": "needs",
+    "label": "Needs your action",
+    "serverOutcome": "needs",
+    "runRow": "Needs your action"
+   }
+  },
+  {
+   "step": "UX-003: a plain reply shows Your turn; the header pill names the conversation's state and workspace",
+   "ok": true,
+   "detail": {
+    "status": "waiting",
+    "outcome": "replied",
+    "label": "Your turn",
+    "pill": "Your turn · Work test"
+   }
+  },
+  {
+   "step": "UX-008: one counting rule: the reply's summary, its Activity rows and its finish row agree",
+   "ok": true,
+   "detail": {
+    "tools": 1,
+    "end": "1 action",
+    "sum": "Worked 3.0s · 1 action",
+    "earlierFolded": true
+   }
+  },
+  {
+   "step": "UX-004/011: with a conversation open, a new task says before sending that it will close it; the run is findable from anywhere",
+   "ok": true,
+   "detail": {
+    "note": "“Reply with exactly this one line and nothing else: DONE: nothing needed doing” in Work test is still open (Your turn). Sending here closes it; you can continue it later from Conversations.\nOpen it",
+    "listedInCanary": 0,
+    "listedInAll": 1,
+    "pillOpened": true
+   }
+  },
+  {
+   "step": "UX-005: while the worker works, Send is disabled, Stop is separate, and Enter keeps the message in the box",
+   "ok": true,
+   "detail": {
+    "send": true,
+    "stop": true,
+    "box": "my next instruction",
+    "life": "running",
+    "note": "The worker is still working. Your message stays in the box: send it when it replies, or Stop the worker."
+   }
+  },
+  {
+   "step": "UX-004: a busy conversation is never closed by another task: the attempt is refused with a link to it",
+   "ok": true,
+   "detail": {
+    "note": "The worker is busy with “Reply with exactly this one line and nothing else: DONE: nothing needed doing” in Work test. Wait for it, or open it and stop it, before sending here.\nOpen it",
+    "refusal": "The worker is busy with “Reply with exactly this one line and nothing else: DONE: nothing needed doing”. Open it and stop it, or wait for it, before sending here. Open it",
+    "otherRunStatus": "running",
+    "stoppedWithStop": true
+   }
+  },
+  {
+   "step": "UX-007: a named deliverable and an incidental file are told apart, with one Activity link each",
+   "ok": true,
+   "detail": {
+    "declared": [
+     "notes/result.txt"
+    ],
+    "pin": "Deliverables",
+    "delivRows": [
+     "notes/result.txt"
+    ],
+    "links": [
+     "notes/result.txt",
+     "notes/scratch.txt"
+    ],
+    "tagged": 1,
+    "thread": "Deliverablesnotes/result.txt",
+    "other": "1 other file written"
+   }
+  },
+  {
+   "step": "UX-009: Continue explains itself first, and an unchecked draft stays in the box",
+   "ok": true,
+   "detail": {
+    "box": "DRAFT-I-KEEP",
+    "instruction": null,
+    "next": "2026-10-19T19-39-26-709Z"
+   }
+  },
+  {
+   "step": "UX-010: the continued conversation is listed once, titled after the original request, with its sessions",
+   "ok": true,
+   "detail": {
+    "row": "Working: Reply with exactly this one line and nothing else: DONE: nothing needed doing General · 2 sessions Working"
+   }
+  },
+  {
+   "step": "cleanup: close the open conversation",
+   "ok": true,
+   "detail": {
+    "closed": "2026-10-19T19-39-26-709Z"
+   }
+  },
+  {
+   "step": "Scratch: each conversation gets its own empty folder; one's files are invisible to the other and to Scratch itself",
+   "ok": true,
+   "detail": {
+    "folderA": "scratch-runs/2026-10-19T19-39-28-060Z",
+    "folderB": "scratch-runs/2026-10-19T19-39-38-686Z",
+    "filesA": [
+     "note.txt"
+    ],
+    "filesB": [],
+    "scratchItself": 0
+   }
+  },
+  {
+   "step": "Scratch: the worker is told what its folder is (no project files, no Git)",
+   "ok": true,
+   "detail": {
+    "contextHasScratchSection": true
+   }
+  },
+  {
+   "step": "Scratch: continuing in a fresh session keeps working in the same folder",
+   "ok": true,
+   "detail": {
+    "sameFolder": true,
+    "filesInContinuation": [
+     "note.txt"
+    ]
+   }
+  },
+  {
+   "step": "Scratch: a conversation from before per-conversation folders keeps its shared folder (nothing moved or lost)",
+   "ok": true,
+   "detail": {
+    "legacyFileServed": true
+   }
+  },
+  {
+   "step": "Scratch: a team in Scratch can't reference project files; Scratch has no Git",
+   "ok": true,
+   "detail": {
+    "team": "A team that works in Scratch has no project files to reference: upload the document instead.",
+    "git": "This workspace isn't a Git repository.",
+    "repo": "Scratch can't have a repository: it has no project folder."
+   }
+  },
+  {
+   "step": "Scratch in the UI: listed apart from project folders and explained; never the fallback while a project exists",
+   "ok": true,
+   "detail": {
+    "fallback": "console",
+    "row": "Scratch No project · a new folder per conversation",
+    "tree": "Each scratch conversation has its own folder. Its files show here while it's open.",
+    "versions": "Scratch has no version history. Use a project folder for Git.",
+    "at": "A new scratch conversation starts with an empty folder: there are no files to reference yet.",
+    "openRunTree": "note.txt"
+   }
+  },
+  {
+   "step": "UX-016: the commit button names the files and the branch; Enter adds a line, Ctrl+Enter commits",
+   "ok": true,
+   "detail": {
+    "label": "Commit 2 files to main",
+    "afterEnter": "1",
+    "afterCtrlEnter": "2"
+   }
+  },
+  {
+   "step": "UX-024/I: at 700px the navigation is a drawer (Escape closes it), the access mode stays visible, nothing scrolls sideways",
+   "ok": true,
+   "detail": {
+    "drawerOpens": true,
+    "escapeCloses": true,
+    "overflow": false,
+    "mode": true
+   }
+  },
+  {
+   "step": "UX-027: shortcuts are listed in a dialog that keyboard users can open and close",
+   "ok": true,
+   "detail": {
+    "title": "Keyboard shortcuts",
+    "closesWithEscape": true,
+    "aria": "Alt+N"
+   }
+  }
+ ],
+ "pageErrors": []
+}

@@ -1,5 +1,5 @@
 {
- "when": "2026-10-19T17:27:10.011Z",
+ "when": "2026-10-19T19:44:09.898Z",
  "added": [
   200,
   200
@@ -46,7 +46,7 @@
      "Work test",
      "Canary"
     ],
-    "focusedId": "work-test-a85c",
+    "focusedId": "work-test-1ed1",
     "afterReload": [
      "Executor",
      "Work test",
@@ -75,7 +75,7 @@
      "Executor",
      "Work test"
     ],
-    "selectedNow": "No folder",
+    "selectedNow": "Executor",
     "registry": [
      "console",
      "Work test"
@@ -95,11 +95,11 @@
     "afterEnd": [
      "Executor"
     ],
-    "selectedNow": "No folder",
+    "selectedNow": "Executor",
     "resumeRemovedRun": {
      "status": 400,
      "body": {
-      "error": "No workspace \"work-test-a85c\"."
+      "error": "No workspace \"work-test-1ed1\"."
      }
     },
     "workFolderFiles": [

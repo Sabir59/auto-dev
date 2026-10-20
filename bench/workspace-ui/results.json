@@ -1,10 +1,10 @@
 {
- "when": "2026-10-19T17:29:37.114Z",
+ "when": "2026-10-19T19:46:14.326Z",
  "results": [
   {
    "step": "add an Inspect workspace through the form",
    "ok": true,
-   "seconds": 0.4,
+   "seconds": 0.7,
    "detail": {
     "selected": "Canary",
     "mode": "Inspect",
@@ -23,10 +23,10 @@
   {
    "step": "add a Work workspace",
    "ok": true,
-   "seconds": 0.3,
+   "seconds": 0.4,
    "detail": {
     "workspaces": [
-     "No folder",
+     "Scratch\nNo project · a new folder per conversation",
      "Executor\nmain",
      "Canary\nmaster\nInspect",
      "Work test"
@@ -36,7 +36,7 @@
   {
    "step": "file explorer lists the workspace and opens a file read-only",
    "ok": true,
-   "seconds": 0.3,
+   "seconds": 0.4,
    "detail": {
     "entries": [
      ".claude",
@@ -59,7 +59,7 @@
   {
    "step": "a hostile HTML file is shown as text, not run",
    "ok": true,
-   "seconds": 2.2,
+   "seconds": 2.1,
    "detail": {
     "shownAsText": true,
     "csp": "sandbox",
@@ -73,20 +73,20 @@
    "seconds": 10,
    "detail": {
     "liveSeen": true,
-    "sendIsStop": "Stop the worker",
+    "sendIsStop": "Send",
     "cards": [
      "Worker started",
-     "Files Success · 100ms",
-     "Done Complete",
-     "Turn finished 6s"
+     "Files Success · 158ms",
+     "Done Reported done",
+     "Reply finished 5.0s"
     ],
-    "reply": "DONEThe README calls this the \"Canary workspace,\" a throwaway repository used for testing."
+    "reply": "DONEREADME.md says this is the \"Canary workspace,\" a throwaway test repository."
    }
   },
   {
    "step": "follow-up in the same worker process",
    "ok": true,
-   "seconds": 2.7,
+   "seconds": 1.7,
    "detail": {
     "reply": "README.md",
     "workerStartedCards": 1,
@@ -106,17 +106,17 @@
   {
    "step": "End run, then it appears in Recent runs as finished",
    "ok": true,
-   "seconds": 1.4,
+   "seconds": 1.5,
    "detail": {
     "recent": [
-     "Finished: Read README.md in this folder and summarise it in one sentence. just now"
+     "Closed: Read README.md in this folder and summarise it in one sentence. General just now"
     ]
    }
   },
   {
    "step": "reload, open the run from Recent runs, continue it (resume)",
    "ok": true,
-   "seconds": 9.1,
+   "seconds": 9,
    "detail": {
     "replayedMessages": 4,
     "resumedCard": 1,
@@ -124,9 +124,9 @@
    }
   },
   {
-   "step": "Stop a busy run with the send button",
+   "step": "Stop a busy run with the Stop button (Send never stops it)",
    "ok": true,
-   "seconds": 0.3,
+   "seconds": 0.4,
    "detail": {
     "status": "Stopped",
     "thread": [
@@ -137,7 +137,7 @@
   {
    "step": "Work workspace: the worker writes a file, it shows as an artifact, it opens in the viewer",
    "ok": true,
-   "seconds": 24.7,
+   "seconds": 14.7,
    "detail": {
     "artifact": "notes/summary.md",
     "content": "Workspace artifact test",
@@ -147,7 +147,7 @@
   {
    "step": "a worker that moves into a sub-folder of its workspace (cd) keeps working on the next message, and after a resume",
    "ok": true,
-   "seconds": 36.3,
+   "seconds": 28.4,
    "detail": {
     "reportedCwds": [
      "wsui/work",
