@@ -1,0 +1,119 @@
+{
+ "when": "2026-10-19T20:00:13.398Z",
+ "results": [
+  {
+   "step": "not set up: both ways are shown; Connect with GitHub is disabled and says what's needed; the API refuses to start",
+   "ok": true,
+   "detail": {
+    "start": 400,
+    "setupNote": "Not set up on this computer yet: it needs your organisation's GitHub App (its client ID an"
+   }
+  },
+  {
+   "step": "set up: Connect with GitHub goes to GitHub, comes back to this console, and connects; the page says so",
+   "ok": true,
+   "detail": {
+    "stored": "app",
+    "addressAfter": "http://127.0.0.1:8797/",
+    "chooseRepositories": "http://127.0.0.1:8785/apps/ai-workspace-test/installations/new"
+   }
+  },
+  {
+   "step": "secrets stay on the server: the token, refresh token and client secret are never in the page, its API answers, the console log or a URL",
+   "ok": true,
+   "detail": {
+    "leaks": 0,
+    "redirect": "http://127.0.0.1:8797/github/callback",
+    "pkce": "S256"
+   }
+  },
+  {
+   "step": "repository selection is GitHub's: discovery lists only what the app is installed on; registering one gives no worker access",
+   "ok": true,
+   "detail": {
+    "discovered": [
+     "alice/site"
+    ],
+    "registered": [
+     "alice/site"
+    ],
+    "workerRepos": [],
+    "notChosen": 404
+   }
+  },
+  {
+   "step": "a forged or unknown state is refused and changes nothing",
+   "ok": true,
+   "detail": {
+    "forged": "/?github=state",
+    "missing": "/?github=state"
+   }
+  },
+  {
+   "step": "a callback can't be replayed: the second use of the same state is refused",
+   "ok": true,
+   "detail": {
+    "first": "/?github=connected",
+    "replay": "/?github=state"
+   }
+  },
+  {
+   "step": "an expired state is refused (and the code isn't exchanged)",
+   "ok": true,
+   "detail": {
+    "expired": "/?github=expired",
+    "afterwards": "/?github=state",
+    "tokenRequestsSoFar": 2
+   }
+  },
+  {
+   "step": "a state started by another console address (localhost vs 127.0.0.1) is refused",
+   "ok": true,
+   "detail": {
+    "crossConsole": "/?github=state"
+   }
+  },
+  {
+   "step": "GitHub's own errors are handled: a cancelled sign-in and a code GitHub won't exchange leave things as they were",
+   "ok": true,
+   "detail": {
+    "cancelled": "/?github=denied",
+    "badCode": "/?github=exchange",
+    "pageSays": "You cancelled on GitHub. Nothing was connected."
+   }
+  },
+  {
+   "step": "an installation change on GitHub (setup_action) just says so and stores nothing",
+   "ok": true,
+   "detail": {
+    "status": 303,
+    "location": "/?github=installed"
+   }
+  },
+  {
+   "step": "an expiring token is refreshed before use; a refused refresh says to connect again",
+   "ok": true,
+   "detail": {
+    "refreshed": true,
+    "refusedRefresh": "GitHub's sign-in for the console has expired. Connect with GitHub again."
+   }
+  },
+  {
+   "step": "disconnect deletes the local sign-in and revokes it at GitHub",
+   "ok": true,
+   "detail": {
+    "deletedLocally": true,
+    "revokedAtGitHub": true,
+    "tokenAfter": 401
+   }
+  },
+  {
+   "step": "the token way still works, beside the app",
+   "ok": true,
+   "detail": {
+    "method": "token"
+   }
+  }
+ ],
+ "pageErrors": []
+}
