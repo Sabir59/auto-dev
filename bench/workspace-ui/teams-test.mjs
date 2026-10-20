@@ -62,7 +62,9 @@ const step = async (name, fn) => {
   try { const detail = await fn(); results.push({ step: name, ok: true, detail }); console.log("PASS", name, JSON.stringify(detail).slice(0, 260)); }
   catch (e) { results.push({ step: name, ok: false, error: e.message }); console.log("FAIL", name, e.message.slice(0, 400)); await page.screenshot({ path: join(HERE, "shots", `teams-fail-${results.length}.png`) }); }
 };
-const waitStatus = (label, timeout = 300000) => page.waitForFunction((l) => document.querySelector("#rState").textContent === l, label, { timeout });
+// Work as a team: open it and choose "Work with this team" (the page offers it only when not already working as it).
+const workAs = async (id) => { await page.click(`#tmList [data-tm="${id}"]`); await page.waitForSelector("#tmForm"); if (await page.locator("#tmEnter").count()) await page.click("#tmEnter"); else await page.click("#vClose"); await page.waitForFunction((t) => tmId === t && view === "chat", id); };
+const waitStatus = (label, timeout = 300000) => page.waitForFunction((l) => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready") === l, label, { timeout });
 const lastReply = () => page.locator(".msg-w").last().innerText();
 const meta = (id) => fetch(`${BASE}/runs/${id}`).then((r) => r.json());
 const waitRun = async (id, states = ["waiting", "finished", "failed", "stopped"]) => { for (let i = 0; i < 400; i++) { const m = await meta(id); if (states.includes(m.status)) return m; await new Promise((ok) => setTimeout(ok, 1500)); } throw new Error(`run ${id} didn't settle`); };
@@ -152,7 +154,7 @@ await step("the UI keeps ENFORCED and INSTRUCTION apart, and the API refuses to 
   return { enforcedRows: enforced, instructionTag: instrLabel, unenforceable: fake.body.error };
 });
 await step("Team prompts: in the Team's sidebar section only; global Favourites unchanged; another Team doesn't see them", async () => {
-  await page.click("#vClose");
+  await page.click("#tmEnter"); // viewing a team doesn't enter it: working as it is explicit
   must(!(await page.locator("#tpSect").isHidden()), "Team prompts hidden");
   const tp = await page.locator("#tpList [data-tp]").allInnerTexts();
   await page.locator("#tpList [data-tp]").first().click();
@@ -163,9 +165,9 @@ await step("Team prompts: in the Team's sidebar section only; global Favourites 
   const favs = await page.locator("#favList [data-p]").allInnerTexts();
   const other = (await call("POST", "/teams", { name: "Other team", workers: [W.research.id], workspace: canary.id, prompts: [{ title: "Other prompt", text: "Something else" }] })).body;
   await page.reload({ waitUntil: "networkidle" });
-  await page.click(`#tmList [data-tm="${other.id}"]`); await page.click("#vClose");
+  await workAs(other.id);
   const otherTp = await page.locator("#tpList [data-tp]").allInnerTexts();
-  await page.click(`#tmList [data-tm="${team.id}"]`); await page.click("#vClose");
+  await workAs(team.id);
   const backTp = await page.locator("#tpList [data-tp]").allInnerTexts();
   await call("DELETE", `/teams/${other.id}`);
   must(tp.length === 2 && /Review the current uncommitted/.test(filled) && favs.some((f) => /Global favourite/.test(f)) && !tp.some((t) => /Global/.test(t)), JSON.stringify({ tp, favs }));
@@ -356,7 +358,7 @@ await step("an Inspect Team stays Inspect; Team knowledge and runs can't leave t
   return { refused: bad, otherWorkspaceRun: elsewhere.body.error, nonMember: outsider.body.error, inspectRunTools: tools.filter((t) => !t.startsWith("mcp__")), inspectTeamId: insp.id, run: r.body.id };
 });
 await step("switching to another workspace leaves the Team; removing a worker from the Team affects new runs only", async () => {
-  await page.click(`#tmList [data-tm="${team.id}"]`); await page.click("#vClose");
+  await workAs(team.id);
   const inTeam = await page.locator("#wkName").innerText();
   await page.click(`#wsList [data-ws="${canary.id}"]`);
   const after = { who: await page.locator("#wkName").innerText(), teamPromptsHidden: await page.locator("#tpSect").isHidden(), leave: await page.locator("#tmLeave").isHidden() };

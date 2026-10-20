@@ -24,7 +24,7 @@ const step = async (name, fn) => {
   try { const detail = await fn(); results.push({ step: name, ok: true, detail }); console.log("PASS", name, JSON.stringify(detail).slice(0, 240)); }
   catch (e) { results.push({ step: name, ok: false, error: e.message }); console.log("FAIL", name, e.message.slice(0, 300)); await page.screenshot({ path: join(HERE, "shots", `model-fail-${results.length}.png`) }); }
 };
-const waitStatus = (labels, timeout = 300000) => page.waitForFunction((l) => l.includes(document.querySelector("#rState").textContent), labels, { timeout });
+const waitStatus = (labels, timeout = 300000) => page.waitForFunction((l) => l.includes(({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready")), labels, { timeout });
 const openMenu = async () => { if (await page.locator("#mdlPop").isHidden()) await page.click("#mdlBtn"); await page.waitForSelector("#mdlPop .mrowm"); };
 const chip = async () => (await page.locator("#mdlBtn").innerText()).replace(/\s+/g, " ").trim();
 // What the runtime said, per turn: the model in its init message, and the models of its replies

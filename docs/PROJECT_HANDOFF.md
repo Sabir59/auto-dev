@@ -53,7 +53,7 @@ Machine-readable companion: `docs/PROJECT_MEMORY.json`.
 
 ### What it is now (VERIFIED)
 A **local AI Workspace**: a web page served by a small Node server (`worker-ui/server.mjs`, port 8799). In it, a person:
-- registers **Workspaces**: real folders on their computer, each in **Inspect** (read-only) or **Work** mode, plus a built-in "No folder";
+- registers **Workspaces**: real folders on their computer, each in **Inspect** (read-only) or **Work** mode, plus the built-in **Scratch** mode for work with no project (each conversation gets its own folder);
 - defines specialised **Workers**: identity, mission, capabilities mapped to real tools, workflow, knowledge, hard limits, requirements and memory;
 - groups them into **Teams**: shared knowledge, resources, instructions, *enforced* policies, prompts and versions;
 - gives a task and watches the worker do it.
@@ -121,6 +121,10 @@ Organisations have real work inside real systems: a codebase, a Figma file, a we
       - Context & usage pinned at the bottom.
     - **Composer:** hidden on the worker, Team and GitHub definition pages.
     - **Unchanged:** every element id and the card titles the bench suites use.
+11. **UX remediation** (2026-10-19, `docs/ux-remediation.md`): the 29 audit findings, fixed.
+    - **Server:** a per-turn outcome (replied / done / needs / error) while a run waits; deliverables (ARTIFACT:) kept apart from files written; busy-worker refusals name the run.
+    - **Page:** guarded drafts and consequential actions, a separate Stop, explicit run replacement, view-only teams, one state vocabulary and one counting rule.
+    - **Tests:** `bash bench/workspace-ui/run-suite.sh remediation`.
 
 Details in §11.
 
@@ -163,7 +167,12 @@ Organization
 **Kinds of workspace:**
 - **Registry:** `workspaces.json` in the console's data dir (gitignored). Workspaces are added in the UI with a path, Browse (the Windows folder picker) or the API.
 - **Rules for a new workspace:** the path must be absolute and exist. Drive roots, the home folder, UNC paths and duplicates are refused.
-- **"No folder"** (`id: scratch`): built in, Work profile, a private folder `<data>/scratch`. It's for work with no project folder, such as a Figma design job.
+- **Scratch** (`id: scratch`, called "No folder" until 2026-10-20): built in, Work profile, for work with no project folder (a Figma design job, Builder content, a web page, research). See `docs/ux-remediation.md` §3.
+  - Each conversation gets its own empty folder, `<data>/scratch-runs/<run id>`. A fresh-session continuation keeps its parent's folder.
+  - The worker is told it has no project files and no Git.
+  - Files, `@` mentions and the viewer reach a scratch folder only through its conversation (`?run=`). `?workspace=scratch` lists nothing.
+  - A team in Scratch can only use uploaded documents.
+  - Runs from before 2026-10-20 keep the old shared `<data>/scratch`.
 - **"Executor"** (`id: console`): this repo itself. It can be hidden.
 
 **Binding:**
@@ -279,7 +288,8 @@ Workspace folder (cwd)  ·  Figma file  ·  web pages
 | `prompts.json` | global Favourites | **tracked** (it holds the owner's prompts) |
 | `runs/<id>.meta.json`, `.jsonl` (events), `.raw.jsonl` (raw stream) | run history | **NOT ignored**; three 2026-09-30 proof runs are tracked. See §15 |
 | `runs/<id>.att/`, `.worker.json`, `.worker.md`, `.mcp.json`, `.team/` | attachments, snapshots, per-run MCP config, Team upload copies | ignored |
-| `scratch/` | the "No folder" workspace | ignored |
+| `scratch/` | the old shared Scratch folder (runs from before 2026-10-20) | ignored |
+| `scratch-runs/` | one folder per Scratch conversation | ignored |
 | `mcp.full.json`, `mcp.inspect.json` | generated MCP configs | ignored |
 | `~/.figma-reader/credentials.json` (or `FIGMA_READER_DIR`) | Figma Reader credential | outside the repo |
 | `~/.claude/projects/...` | Claude Code session transcripts | outside the repo |
@@ -497,7 +507,7 @@ While X is checked out, runs also lose Write and Edit. The policy holds in **eve
 // teams.json
 { id, name, description,
   workers: [workerId],
-  workspace: workspaceId | null,            // null/"scratch" = No folder
+  workspace: workspaceId | null,            // null/"scratch" = Scratch (no project)
   figma: { url, fileKey, branchKey?, name } | null,
   knowledge: [
     { id, type: "workspace_file", workspaceId, path, note },
@@ -705,7 +715,7 @@ worker-instructions.md (platform reporting rules)
 
 ### WORKING (VERIFIED in code and recent runs)
 - Local console on 127.0.0.1:8799.
-- Workspaces: add, browse, remove, reorder, "No folder", Executor; Inspect/Work.
+- Workspaces: add, browse, remove, reorder, Scratch (a folder per conversation), Executor; Inspect/Work.
 - Runs: start, follow-up, stop, end, resume, restart, history.
 - Live activity cards.
 - Files tree and viewer.

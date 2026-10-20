@@ -22,11 +22,11 @@ const step = async (name, fn) => {
   try { const detail = await fn(); results.push({ step: name, ok: true, detail }); console.log("PASS", name, JSON.stringify(detail).slice(0, 220)); }
   catch (e) { results.push({ step: name, ok: false, error: e.message }); console.log("FAIL", name, e.message); await page.screenshot({ path: join(HERE, "shots", `manage-fail-${results.length}.png`) }); }
 };
-// "No folder" is built in and always first; these tests are about the folders.
+// Scratch is built in and listed apart, above the project folders; these tests are about the folders.
 const order = () => page.locator('#wsList .row.ws:not([data-ws="scratch"]) .grow .ell').allInnerTexts();
 const fileState = (dir) => readdirSync(dir, { recursive: true }).length;
 const registry = () => JSON.parse(readFileSync(join(process.env.DATA, "workspaces.json"), "utf8")).map((w) => w.name || w.id);
-const status = () => page.innerText("#rState");
+const status = () => page.evaluate(() => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready"));
 
 const canary = await call("POST", "/workspaces", { name: "Canary", path: process.env.CANARY, mode: "inspect" });
 const work = await call("POST", "/workspaces", { name: "Work test", path: process.env.WORK, mode: "work" });
@@ -72,7 +72,7 @@ await step("a workspace with a running worker can't be removed until the run end
   await page.click('#wsList [data-ws]:has-text("Work test")');
   await page.fill("#input", "Reply with exactly: HELLO");
   await page.click("#send");
-  await page.waitForFunction(() => document.querySelector("#rState").textContent === "Waiting for you", null, { timeout: 300000 });
+  await page.waitForFunction(() => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready") === "Waiting for you", null, { timeout: 300000 });
   const runId = await page.evaluate(() => runId);
   await page.hover('[data-ws-item]:has-text("Work test")');
   await page.click('[data-ws-item]:has-text("Work test") [data-rm]');
@@ -81,7 +81,7 @@ await step("a workspace with a running worker can't be removed until the run end
   const refused = await page.innerText("#rmErr");
   await page.click("[data-rm-cancel]");
   await page.click("#endBtn");
-  await page.waitForFunction(() => document.querySelector("#rState").textContent === "Finished", null, { timeout: 60000 });
+  await page.waitForFunction(() => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready") === "Finished", null, { timeout: 60000 });
   await page.hover('[data-ws-item]:has-text("Work test")');
   await page.click('[data-ws-item]:has-text("Work test") [data-rm]');
   await page.click("[data-rm-ok]");

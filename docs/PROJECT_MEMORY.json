@@ -43,7 +43,7 @@
       "prompts.json": "global Favourites (tracked)",
       "runs/<id>.meta.json|.jsonl|.raw.jsonl": "run history (NOT gitignored)",
       "runs/<id>.worker.json|.worker.md|.mcp.json|.att/|.team/": "snapshot, context, per-run MCP config, attachments, Team upload copies (gitignored)",
-      "scratch/": "No folder workspace",
+      "scratch/": "old shared Scratch folder (runs before 2026-10-20)", "scratch-runs/": "one folder per Scratch conversation",
       "~/.figma-reader/credentials.json": "Figma Reader credential (outside repo)",
       "~/.claude/projects/": "Claude Code session transcripts"
     },
@@ -66,7 +66,7 @@
       "inspect": "--restricted --tools Read,Glob,Grep,ToolSearch; allow-list of 12 read-only Figma tools + browser_navigate/get_dom_state; --permission-prompts none; repo settings/hooks/CLAUDE.md not loaded",
       "full (Work)": "Read/Write/Edit/Glob/Grep, Bash(node:*), Bash(curl:*), WebFetch, WebSearch, full Figma Executor, full browser; --setting-sources project,local (repo hooks run); full trust"
     },
-    "built_in": {"scratch": "No folder: private <data>/scratch, Work profile", "console": "Executor: this repo; can be hidden"},
+    "built_in": {"scratch": "Scratch (was No folder): no project; a folder per conversation in <data>/scratch-runs, Work profile, no Git", "console": "Executor: this repo; can be hidden"},
     "binding": "run records real root/profile/config dir; checked before resume/restart/file view; init.cwd and Inspect tools checked",
     "features": ["Files tree + read-only viewer (realpath containment, CSP sandbox)", "Git versions/diff/commit/push", "attachments (in the message, never written to the workspace)", "@ mentions (references; worker reads itself; @path defused)", "artifacts (successful writes only)", "runs: follow-up same process, resume new process, one active run"]
   },

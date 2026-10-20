@@ -26,7 +26,7 @@ const step = async (name, fn) => {
   try { const detail = await fn(); results.push({ step: name, ok: true, detail }); console.log("PASS", name, JSON.stringify(detail).slice(0, 240)); }
   catch (e) { results.push({ step: name, ok: false, error: e.message }); console.log("FAIL", name, e.message.slice(0, 300)); await page.screenshot({ path: join(HERE, "shots", `attach-fail-${results.length}.png`) }); }
 };
-const waitStatus = (label, timeout = 300000) => page.waitForFunction((l) => document.querySelector("#rState").textContent === l, label, { timeout });
+const waitStatus = (label, timeout = 300000) => page.waitForFunction((l) => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready") === l, label, { timeout });
 const chips = () => page.locator("#attRow .achip .tx .ell").allInnerTexts();
 const lastReply = () => page.locator(".msg-w").last().innerText();
 const footNotice = () => page.locator("#footL").innerText();

@@ -2,7 +2,7 @@
 # Runs one Workspace UI suite against its own fresh test console: port 8797, a new data dir, an
 # empty Figma Reader dir. Your own console (8799) and its data are not touched.
 #   bash bench/workspace-ui/run-suite.sh <suite>
-#   suite: workflow | manage | sync | attach | versions | mentions | workers | designer | teams | devctl | builder | builder-real (real Builder + real worker; SITE=)
+#   suite: workflow | manage | sync | attach | versions | mentions | workers | designer | teams | devctl | builder | builder-real (real Builder + real worker; SITE=) | remediation
 # Windows + Git Bash (uses cygpath and mklink). Fixtures live under $FIXROOT (default %TEMP%\wsui,
 # kept short because the Teams suite clones MATW, whose paths are long); fixtures.mjs builds them
 # on first use. The real worker runs, so most suites take minutes and use your Claude subscription.
@@ -58,6 +58,7 @@ case $suite in
   github) GHDIR="$GITHUB_CONNECTOR_DIR" node bench/workspace-ui/github-test.mjs 8797 ;;
   boundaries) node bench/workspace-ui/boundaries-test.mjs 8797 ;;
   autofresh) node bench/workspace-ui/autofresh-test.mjs 8797 ;;
+  remediation) node bench/workspace-ui/remediation-test.mjs 8797 ;;
   builder-real) BUILDER_ADAPTER_DIR="$BDIR" SITE="${SITE:-http://localhost:3000}" node bench/workspace-ui/builder-worker-test.mjs 8797 ;;
   *) echo "unknown suite: $suite" ;;
 esac 2>&1 | grep -E "^(PASS|FAIL)|passed" | cut -c1-160

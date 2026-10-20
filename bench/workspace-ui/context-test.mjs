@@ -20,7 +20,7 @@ const page = await b.newPage({ viewport: { width: 1280, height: 1000 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 const step = async (name, fn) => { try { const d = await fn(); results.push({ step: name, ok: true, detail: d }); console.log("PASS", name, JSON.stringify(d).slice(0, 240)); } catch (e) { results.push({ step: name, ok: false, error: e.message }); console.log("FAIL", name, e.message.slice(0, 300)); await page.screenshot({ path: join(HERE, "shots", `context-fail-${results.length}.png`) }); } };
-const waitStatus = (labels, timeout = 300000) => page.waitForFunction((l) => l.includes(document.querySelector("#rState").textContent), labels, { timeout });
+const waitStatus = (labels, timeout = 300000) => page.waitForFunction((l) => l.includes(({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready")), labels, { timeout });
 const meta = async (id) => (await call("GET", `/runs/${id}`)).body;
 const raw = (id) => readFileSync(join(DATA, "runs", `${id}.raw.jsonl`), "utf8").split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } });
 const events = (id) => readFileSync(join(DATA, "runs", `${id}.jsonl`), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
@@ -46,9 +46,10 @@ await step("the Context & usage card shows the runtime's context and token numbe
   const ids = new Set(), uses = []; let lastCtx = 0;
   for (const x of r) if (x.type === "assistant") { if (!ids.has(x.message.id)) { ids.add(x.message.id); const u = x.message.usage; lastCtx = u.input_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens; } for (const c of x.message.content) if (c.type === "tool_use" && c.name !== "ToolSearch") uses.push(c.name); }
   const res = r.filter((x) => x.type === "result").at(-1), mu = Object.values(res.modelUsage)[0];
+  await page.click("#telCard details.teld summary"); // the raw numbers are under Details
   const card = await page.locator("#telCard").innerText();
   must(t.modelRequests === ids.size && t.tools.total === uses.length && t.context.last === lastCtx && t.tokens.cacheRead === mu.cacheReadInputTokens && t.context.window === mu.contextWindow, JSON.stringify({ t, ids: ids.size, uses: uses.length, lastCtx, mu }));
-  must(/Context per request/.test(card) && /RUNTIME/i.test(card) && /MEASURED/i.test(card) && /document reads/.test(card), card);
+  must(/Context per request/.test(card) && /RUNTIME/i.test(card) && /MEASURED/i.test(card) && /tool call/.test(card) && /Conversation size/.test(card), card);
   await page.screenshot({ path: join(HERE, "shots", "context-card.png") });
   return { modelRequests: t.modelRequests, tools: t.tools.total, context: t.context, tokens: t.tokens, card: card.replace(/\s+/g, " ").slice(0, 260) };
 });
@@ -82,6 +83,7 @@ let nextId;
 await step("Continue in a fresh session: a handoff (task state + the worker's summary) starts a new run; the old run keeps its history", async () => {
   await page.fill("#input", "Reply with the accent colour's hex value, then a line starting DONE:.");
   await page.click('#telCard [data-tel="continue"]');
+  await page.click('#dlg [data-dlg="go"]'); // it says what happens first; the draft is sent (checked by default)
   await page.waitForSelector('#acts .card:has(.ct:text-is("Continued"))', { timeout: 300000 });
   const old = await meta(runId);
   nextId = old.continuedIn;
@@ -121,7 +123,7 @@ await step("compact and continue are refused while the worker is mid-step; Stop 
   await page.click("#send");
   await waitStatus(["Working"], 60000);
   const c = await call("POST", `/runs/${nextId}/compact`, {}), k = await call("POST", `/runs/${nextId}/continue`, {});
-  await page.click("#send"); // the send button is Stop while working
+  await page.click("#stopBtn"); // Stop is its own button; Send is disabled while working
   await waitStatus(["Stopped"], 60000);
   await page.fill("#input", "Reply with the single word BACK.");
   await page.click("#send");

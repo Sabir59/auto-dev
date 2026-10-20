@@ -129,8 +129,12 @@ Requirements are generic `{resource, access, need}` entries. A small resource re
 
 Not all work has a project folder. A Figma design job's target is the Figma file the plugin has open.
 
-- **"No folder":** a built-in workspace (`id: scratch`) that's always present.
-- **How runs use it:** they run in a private, console-owned scratch folder with the Work profile, and the worker's capabilities still narrow its tools.
+- **Scratch** (called "No folder" until 2026-10-20): a built-in mode (`id: scratch`) that's always present, listed apart from the project folders.
+- **How runs use it:**
+  - Each conversation runs in its own new, empty folder (`<data>/scratch-runs/<run id>`), with the Work profile; the worker's capabilities still narrow its tools.
+  - A fresh-session continuation works in its parent's folder.
+  - Runs from before 2026-10-20 keep the old shared `<data>/scratch`.
+  - Details are in `docs/ux-remediation.md` §3.
 - **The rule stays the same:** every run has exactly one bound workspace. That's what keeps resume and the file viewer bound to a real folder.
 
 ## 12. Teams (added 2026-10-06)

@@ -98,10 +98,10 @@ const PROMPT = `Use only your Builder tools, in model ${MODEL}, and don't ask me
 await step("the worker runs the workflow (prompt typed in the composer)", async () => {
   await page.fill("#input", PROMPT);
   await page.click("#send");
-  await page.waitForFunction(() => ["Working", "Starting"].includes(document.querySelector("#rState").textContent), null, { timeout: 30000 });
-  await page.waitForFunction(() => ["Waiting for you", "Failed", "Finished"].includes(document.querySelector("#rState").textContent), null, { timeout: 600000 });
+  await page.waitForFunction(() => ["Working", "Starting"].includes(({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready")), null, { timeout: 30000 });
+  await page.waitForFunction(() => ["Waiting for you", "Failed", "Finished"].includes(({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready")), null, { timeout: 600000 });
   runId = (await call("GET", "/runs")).body.runs[0].id;
-  const state = await page.locator("#rState").innerText();
+  const state = await page.evaluate(() => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready"));
   mkdirSync(join(HERE, "shots"), { recursive: true });
   await page.screenshot({ path: join(HERE, "shots", "builder-worker-run.png") });
   trace = toolTrace(runId);

@@ -35,7 +35,7 @@ A Team run is a normal worker run, started by `newRun()` with a `teamId`. The sa
 ```js
 { id, name, description,
   workers: [workerId],                       // membership; each worker keeps its own definition and memory
-  workspace: workspaceId | null,             // the Team's workspace (null = "No folder")
+  workspace: workspaceId | null,             // the Team's workspace (null = Scratch: no project; uploads only, no workspace files)
   figma: { url, fileKey, branchKey?, name } | null,
   knowledge: [
     { id, type: "workspace_file", workspaceId, path, note },          // a reference: read fresh by the worker

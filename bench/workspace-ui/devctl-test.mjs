@@ -35,6 +35,9 @@ function spawnDirect(cmd, args, opts) { const c = spawn(cmd, args, { ...opts, de
 let devctlChild;
 const errors = [];
 let browser, page;
+// Turning a switch OFF is confirmed in the page (it stops a process); a step that means to stop confirms.
+const dialogOpen = () => page.evaluate(() => new Promise((ok) => setTimeout(() => ok(document.getElementById("dlg").open), 200)));
+const flip = async (sel) => { await page.click(sel); if (await dialogOpen()) await page.click('#dlg [data-dlg="stop"]'); };
 
 try {
   // ---- bring up the dev-control daemon, isolated from any real one on 8796 ----
@@ -72,8 +75,19 @@ try {
     return { checked: await page.locator("#devWorkerSw").getAttribute("aria-checked") };
   });
 
-  await step("toggle OFF: the Worker Server switch actually stops the process", async () => {
+  await step("toggle OFF asks first: Cancel leaves the console running and the switch ON", async () => {
     await page.click("#devWorkerSw");
+    if (!(await dialogOpen())) throw new Error("no confirmation before stopping the console");
+    const title = await page.locator("#dlgT").innerText(), body = await page.locator("#dlgB").innerText();
+    await page.click('#dlg [data-dlg="cancel"]');
+    await sleep(500);
+    const checked = await page.locator("#devWorkerSw").getAttribute("aria-checked"), up = await reach(`http://127.0.0.1:${consolePort}/`, 1500);
+    if (checked !== "true" || !up || !/Stop the console/.test(title) || !/stops responding/.test(body)) throw new Error(JSON.stringify({ title, body, checked, up }));
+    return { title, checked, stillUp: up, state: await page.locator("#devWorkerSt").innerText() };
+  });
+
+  await step("toggle OFF: the Worker Server switch actually stops the process", async () => {
+    await flip("#devWorkerSw");
     await page.waitForFunction(() => document.getElementById("devWorkerSw").getAttribute("aria-checked") === "false", null, { timeout: 8000 });
     const stillUp = await reach(`http://127.0.0.1:${consolePort}/`, 1500);
     if (stillUp) throw new Error("switch shows OFF but the port is still answering");
@@ -81,7 +95,7 @@ try {
   });
 
   await step("toggle ON: the same page (still open while the server was down) starts it again", async () => {
-    await page.click("#devWorkerSw");
+    await flip("#devWorkerSw");
     await page.waitForFunction(() => document.getElementById("devWorkerSw").getAttribute("aria-checked") === "true", null, { timeout: 10000 });
     const up = await reach(`http://127.0.0.1:${consolePort}/`);
     if (!up) throw new Error("switch shows ON but the port isn't reachable");
@@ -104,7 +118,7 @@ try {
   });
 
   await step("stop still works gracefully on a process devctl didn't spawn (worker)", async () => {
-    await page.click("#devWorkerSw");
+    await flip("#devWorkerSw");
     await page.waitForFunction(() => document.getElementById("devWorkerSw").getAttribute("aria-checked") === "false", null, { timeout: 8000 });
     const stillUp = await reach(`http://127.0.0.1:${consolePort}/`, 1500);
     if (stillUp) throw new Error("external worker still reachable after graceful stop");
@@ -117,7 +131,7 @@ try {
     const blocker = spawnDirect(process.execPath, ["-e", `require('http').createServer(()=>{}).listen(${consolePort},'127.0.0.1')`], {});
     try {
       await sleep(600); // let the blocker actually bind before we ask devctl to start into the same port
-      await page.click("#devWorkerSw");
+      await flip("#devWorkerSw");
       await page.waitForFunction(() => document.getElementById("devWorkerSw").getAttribute("aria-checked") === "false" && !document.getElementById("devWorkerSw").disabled, null, { timeout: 18000 });
       const title = await page.locator("#devWorkerSw").getAttribute("title");
       if (!title || title === (await page.evaluate(() => document.getElementById("devWorkerSw").dataset.baseTitle))) throw new Error(`expected a real error in the switch's title, got ${JSON.stringify(title)}`);
@@ -130,7 +144,7 @@ try {
   });
 
   await step("recovery: starting it again after the blocker is gone works normally", async () => {
-    await page.click("#devWorkerSw");
+    await flip("#devWorkerSw");
     await page.waitForFunction(() => document.getElementById("devWorkerSw").getAttribute("aria-checked") === "true", null, { timeout: 10000 });
     return { reachable: await reach(`http://127.0.0.1:${consolePort}/`) };
   });
@@ -142,7 +156,7 @@ try {
   });
 
   await step("toggle ON: the Figma Bridge switch actually starts the bridge", async () => {
-    await page.click("#devBridgeSw");
+    await flip("#devBridgeSw");
     await page.waitForFunction(() => document.getElementById("devBridgeSw").getAttribute("aria-checked") === "true", null, { timeout: 8000 });
     const up = await reach(`http://127.0.0.1:${bridgePort}/status`);
     if (!up) throw new Error("switch shows ON but the bridge port isn't reachable");
@@ -150,7 +164,7 @@ try {
   });
 
   await step("toggle OFF: the Figma Bridge switch actually stops the bridge", async () => {
-    await page.click("#devBridgeSw");
+    await flip("#devBridgeSw");
     await page.waitForFunction(() => document.getElementById("devBridgeSw").getAttribute("aria-checked") === "false", null, { timeout: 8000 });
     const stillUp = await reach(`http://127.0.0.1:${bridgePort}/status`, 1500);
     if (stillUp) throw new Error("switch shows OFF but the bridge port is still answering");
@@ -167,7 +181,7 @@ try {
   });
 
   await step("stop still works gracefully on a bridge devctl didn't spawn", async () => {
-    await page.click("#devBridgeSw");
+    await flip("#devBridgeSw");
     await page.waitForFunction(() => document.getElementById("devBridgeSw").getAttribute("aria-checked") === "false", null, { timeout: 8000 });
     const stillUp = await reach(`http://127.0.0.1:${bridgePort}/status`, 1500);
     if (stillUp) throw new Error("external bridge still reachable after graceful stop");
@@ -177,11 +191,11 @@ try {
   await step("both operate independently: starting one leaves the other's state untouched", async () => {
     const before = await devctl("GET", "/status");
     if (before.body.worker.running !== true || before.body.bridge.running !== false) throw new Error(`unexpected starting point: ${JSON.stringify(before.body)}`);
-    await page.click("#devBridgeSw");
+    await flip("#devBridgeSw");
     await page.waitForFunction(() => document.getElementById("devBridgeSw").getAttribute("aria-checked") === "true", null, { timeout: 8000 });
     const bothUp = await devctl("GET", "/status");
     if (!bothUp.body.worker.running || !bothUp.body.bridge.running) throw new Error(`expected both running: ${JSON.stringify(bothUp.body)}`);
-    await page.click("#devWorkerSw");
+    await flip("#devWorkerSw");
     await page.waitForFunction(() => document.getElementById("devWorkerSw").getAttribute("aria-checked") === "false", null, { timeout: 8000 });
     await sleep(500);
     const after = await devctl("GET", "/status");

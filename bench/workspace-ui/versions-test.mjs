@@ -38,7 +38,7 @@ const step = async (name, fn) => {
   try { const detail = await fn(); results.push({ step: name, ok: true, detail }); console.log("PASS", name, JSON.stringify(detail).slice(0, 260)); }
   catch (e) { results.push({ step: name, ok: false, error: e.message }); console.log("FAIL", name, e.message.slice(0, 300)); await page.screenshot({ path: join(HERE, "shots", `versions-fail-${results.length}.png`) }); }
 };
-const waitStatus = (l, timeout = 300000) => page.waitForFunction((x) => document.querySelector("#rState").textContent === x, l, { timeout });
+const waitStatus = (l, timeout = 300000) => page.waitForFunction((x) => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready") === x, l, { timeout });
 const verRows = () => page.locator("#verList .row").allInnerTexts().then((a) => a.map((t) => t.replace(/\s+/g, " ").trim()));
 const result = () => page.locator(".vres").innerText();
 const openWT = async () => { await page.click('#verList [data-rev="WORKTREE"]'); await page.waitForSelector(".vbody2"); };
@@ -102,6 +102,7 @@ await step("push to the remote; the result shows in the version view and the act
   await openWT();
   const bar = await page.locator(".vact").last().innerText();
   await page.click("#pBtn");
+  await page.click('#dlg [data-dlg="push"]'); // a push is confirmed, naming its destination
   await page.waitForFunction(() => /Pushed|failed|Push/i.test(document.querySelector(".vres")?.textContent || ""));
   const card = await page.locator('#acts .card:has-text("Push")').innerText().catch(() => null);
   return { before: bar.replace(/\s+/g, " "), result: await result(), remoteHead: g(REMOTE, "rev-parse", "main") === committed, remoteMessage: g(REMOTE, "log", "-1", "--format=%B"), activityCard: card && card.replace(/\s+/g, " "), rows: await verRows() };

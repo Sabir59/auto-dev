@@ -22,7 +22,7 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 const text = (sel) => page.locator(sel).innerText();
-const waitStatus = (labels, timeout = 300000) => page.waitForFunction((l) => l.includes(document.querySelector("#rState").textContent), labels, { timeout });
+const waitStatus = (labels, timeout = 300000) => page.waitForFunction((l) => l.includes(({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready")), labels, { timeout });
 const shot = (n) => page.screenshot({ path: join(shots, n) });
 
 await page.goto(BASE, { waitUntil: "networkidle" });
@@ -132,14 +132,14 @@ await step("reload, open the run from Recent runs, continue it (resume)", async 
   await waitStatus(["Waiting for you"]);
   return { replayedMessages: replayed, resumedCard: await page.locator("#acts .card:has-text('Resumed')").count(), reply: (await page.locator(".msg-w").last().innerText()).slice(0, 200) };
 });
-await step("Stop a busy run with the send button", async () => {
+await step("Stop a busy run with the Stop button (Send never stops it)", async () => {
   await page.fill("#input", "Read every file in this folder one at a time, then write a long detailed report about each of them.");
   await page.click("#send");
   await waitStatus(["Working"], 30000);
-  await page.waitForFunction(() => document.querySelector("#send").classList.contains("stop"));
-  await page.click("#send");
+  await page.waitForFunction(() => !document.querySelector("#stopBtn").hidden && document.querySelector("#send").disabled);
+  await page.click("#stopBtn");
   await waitStatus(["Stopped"], 30000);
-  return { status: await text("#rState"), thread: (await page.locator(".sys").allInnerTexts()).slice(-1) };
+  return { status: await page.evaluate(() => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready")), thread: (await page.locator(".sys").allInnerTexts()).slice(-1) };
 });
 await step("Work workspace: the worker writes a file, it shows as an artifact, it opens in the viewer", async () => {
   await page.click('#wsList [data-ws]:has-text("Work test")');
@@ -166,13 +166,13 @@ await step("a worker that moves into a sub-folder of its workspace (cd) keeps wo
   await page.fill("#input", "Reply with the single word NEXT.");
   await page.click("#send");
   await waitStatus(["Working"], 30000); await waitStatus(["Waiting for you", "Failed"]);
-  const sameProcess = await text("#rState"), reply1 = await page.locator(".msg-w").last().innerText();
+  const sameProcess = await page.evaluate(() => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready")), reply1 = await page.locator(".msg-w").last().innerText();
   await page.click("#endBtn"); await waitStatus(["Finished"], 60000);
   // a resume starts a new process on the same session, whose transcript now records src/ too
   await page.fill("#input", "Reply with the single word AGAIN.");
   await page.click("#send");
   await waitStatus(["Working"], 60000); await waitStatus(["Waiting for you", "Failed"]);
-  const resumed = await text("#rState"), reply2 = await page.locator(".msg-w").last().innerText();
+  const resumed = await page.evaluate(() => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready")), reply2 = await page.locator(".msg-w").last().innerText();
   const inits = readFileSync(join(process.env.DATA, "runs", `${id}.raw.jsonl`), "utf8").split("\n").filter((l) => l.includes('"subtype":"init"')).map((l) => JSON.parse(l).cwd);
   await page.click("#endBtn"); await waitStatus(["Finished"], 60000);
   if (sameProcess !== "Waiting for you" || resumed !== "Waiting for you" || !/NEXT/.test(reply1) || !/AGAIN/.test(reply2)) throw new Error(JSON.stringify({ sameProcess, resumed, reply1, reply2, inits }));

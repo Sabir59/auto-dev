@@ -16,7 +16,8 @@
 :root {
   --bg: #0d0f14; --low: #12151b; --surf: #191c24; --high: #222631;
   --line: #232733; --line2: #2f3442;
-  --t1: #e8eaf0; --t2: #b8bfcc; --t3: #8a93a3; --t4: #4b5262;
+  /* t1–t3 are text (t3 is ≥ 4.7:1 on every surface); t4 is for non-text marks only (≥ 3:1). */
+  --t1: #e8eaf0; --t2: #b8bfcc; --t3: #8f98a8; --t4: #636b7d;
   --pri: #8fcfff; --pri-c: #2aa9ee; --on-pri: #032235;
   --ok: #4fd69c; --star: #f2b25c; --warn: #f2b25c; --err: #ff9b92;
   --pri-soft: rgba(42, 169, 238, .14); --ok-soft: rgba(79, 214, 156, .12); --warn-soft: rgba(242, 178, 92, .12); --err-soft: rgba(255, 155, 146, .12);
@@ -45,7 +46,7 @@ svg.i { display: block; flex: none; fill: currentColor; }
 .mono, .m11.mono { font-family: var(--mono); font-size: 11px; letter-spacing: 0; }
 .lab { font: 600 11px/16px var(--sans); letter-spacing: .6px; text-transform: uppercase; color: var(--t3); }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
-.dot.grey { background: var(--t4); } .dot.blue { background: var(--pri-c); } .dot.red { background: var(--err); }
+.dot.grey { background: var(--t4); } .dot.blue { background: var(--pri-c); } .dot.red { background: var(--err); } .dot.warn { background: var(--warn); }
 .dot.pulse { animation: pulse 1.4s ease-in-out infinite; box-shadow: 0 0 0 3px var(--pri-soft); }
 @keyframes pulse { 50% { opacity: .35; } }
 .ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -82,7 +83,13 @@ header.top {
 .switcher .i { color: var(--t3); }
 .switcher .chev { margin-left: 2px; }
 .hright { display: flex; align-items: center; gap: 8px; justify-self: end; }
-.pill { height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 20px; border: 1px solid var(--line2); color: var(--t2); }
+.pill { height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 20px; border: 1px solid var(--line2); color: var(--t2); max-width: 340px; }
+.pill #wState { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.pill:hover:not(:disabled) { background: var(--surf); color: var(--t1); }
+button.pill:disabled { cursor: default; opacity: 1; }
+.toggle { position: relative; }
+.tbadge { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--low); }
+.tbadge.busy { background: var(--pri-c); } .tbadge.warn { background: var(--warn); }
 .menu { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); min-width: 260px; background: var(--surf); border: 1px solid var(--line2); border-radius: var(--r3); padding: 4px; box-shadow: var(--shadow); z-index: 30; }
 .menu button { width: 100%; display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--r2); color: var(--t2); text-align: left; }
 .menu button:hover, .menu button:focus-visible { background: var(--high); color: var(--t1); outline: none; }
@@ -113,14 +120,14 @@ aside.left { background: var(--low); border-right: 1px solid var(--line); displa
 .newtask:hover { background: var(--high); }
 .newtask .kbd { margin-left: auto; color: var(--t3); font: 400 11px/16px var(--sans); }
 .lscroll { flex: 1; overflow-y: auto; padding: 4px 8px 16px; display: flex; flex-direction: column; }
-.grp { padding: 14px 4px 2px 8px; font: 600 10.5px/14px var(--sans); letter-spacing: .8px; text-transform: uppercase; color: var(--t4); }
+.grp { padding: 14px 4px 2px 8px; font: 600 10.5px/14px var(--sans); letter-spacing: .8px; text-transform: uppercase; color: var(--t3); }
 .grp:first-child { padding-top: 8px; }
 .sect { display: flex; flex-direction: column; gap: 1px; padding-bottom: 6px; }
 .shd { margin: 0; display: flex; align-items: center; gap: 4px; height: 28px; }
 .shd .fold { flex: 1; display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px; border-radius: var(--r2); text-align: left; min-width: 0; }
 .shd .fold:hover { background: var(--surf); }
 .shd .fold .lab { color: var(--t2); text-transform: none; letter-spacing: 0; font: 500 12.5px/18px var(--sans); }
-.shd .fold svg { color: var(--t4); transition: transform .12s; transform: rotate(90deg); }
+.shd .fold svg { color: var(--t3); transition: transform .12s; transform: rotate(90deg); }
 .sect.folded .shd .fold svg { transform: rotate(0); }
 .sect.folded > :not(.shd) { display: none !important; }
 .shd .cnt { color: var(--t3); font: 400 11px/16px var(--sans); padding: 0 6px; }
@@ -144,6 +151,24 @@ aside.left { background: var(--low); border-right: 1px solid var(--line); displa
 .wsi.drop-before::before, .wsi.drop-after::after { content: ""; position: absolute; left: 8px; right: 8px; height: 2px; border-radius: 1px; background: var(--pri); pointer-events: none; }
 .wsi.drop-before::before { top: -2px; } .wsi.drop-after::after { bottom: -2px; }
 .wsi .x { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: none; width: 22px; height: 22px; border-radius: var(--r1); background: var(--high); color: var(--t3); align-items: center; justify-content: center; }
+/* Edit a worker: always visible (mouse, keyboard and touch alike), not revealed on hover. */
+.wkr { display: flex; align-items: center; gap: 2px; }
+.wkr .row { flex: 1; min-width: 0; }
+.wkr .ed { width: 28px; height: 28px; flex: none; border-radius: var(--r2); color: var(--t3); display: flex; align-items: center; justify-content: center; }
+.wkr .ed:hover, .wkr .ed:focus-visible { background: var(--surf); color: var(--t1); }
+.row .meta .missing { color: var(--err); } .row .meta .sub { color: var(--t3); }
+.row.ws .grow > .dot:first-child { display: none; } /* the accent bar marks the selected row */
+/* Conversations: scope toggle, two-line rows, state words */
+.scope { display: flex; gap: 2px; margin: 0 4px 4px 12px; padding: 2px; border: 1px solid var(--line2); border-radius: var(--r2); }
+.scope button { flex: 1; padding: 2px 6px; border-radius: var(--r1); color: var(--t3); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scope button[aria-pressed="true"] { background: var(--high); color: var(--t1); }
+.row.run { align-items: flex-start; padding-top: 5px; padding-bottom: 5px; }
+.row.run .dot { margin-top: 6px; }
+.rtx { display: flex; flex-direction: column; min-width: 0; }
+.rsub { color: var(--t3); }
+.row.run .meta { padding-top: 1px; }
+.meta .st-busy { color: var(--pri); } .meta .st-replied { color: var(--t1); } .meta .st-done { color: var(--ok); } .meta .st-needs { color: var(--warn); } .meta .st-error { color: var(--err); }
+@media (hover: none) { .wsi .x, .fav .x { display: flex; } .wsi .row .meta { padding-right: 24px; } }
 .wsi:hover .x, .wsi:focus-within .x { display: flex; }
 .wsi:hover .row .meta, .wsi:focus-within .row .meta { padding-right: 24px; }
 .wsi .x:hover { color: var(--t1); background: var(--line2); }
@@ -154,7 +179,7 @@ aside.left { background: var(--low); border-right: 1px solid var(--line); displa
 .fav .x:hover { color: var(--t1); background: var(--high); }
 .empty { color: var(--t3); padding: 4px 12px; font-size: 12px; }
 .tree .row { min-height: 26px; padding-top: 2px; padding-bottom: 2px; gap: 6px; }
-.tree .tw { width: 12px; flex: none; color: var(--t4); display: flex; justify-content: center; }
+.tree .tw { width: 12px; flex: none; color: var(--t3); display: flex; justify-content: center; }
 .tree .tw svg { transition: transform .12s; } .tree [aria-expanded="true"] .tw svg { transform: rotate(90deg); }
 .tree .ficon { color: var(--t3); }
 .tree .row[aria-selected="true"] { background: var(--high); color: var(--t1); }
@@ -199,7 +224,7 @@ main { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .wsub { display: flex; align-items: center; gap: 8px; color: var(--t3); min-width: 0; font: 400 12px/18px var(--sans); }
 .wsub .sep { color: var(--t4); }
 .brchip { display: flex; align-items: center; gap: 4px; color: var(--t3); flex: none; font: 400 11px/16px var(--mono); }
-.hash { color: var(--t4); flex: none; font: 400 11px/16px var(--mono); }
+.hash { color: var(--t3); flex: none; font: 400 11px/16px var(--mono); }
 .stchip { height: 28px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 20px; border: 1px solid var(--line2); color: var(--t2); font-weight: 500; }
 .stchip.act { border-radius: var(--r2); background: var(--surf); }
 .stchip.act:hover { background: var(--high); color: var(--t1); }
@@ -251,7 +276,7 @@ main { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .working .dot { background: var(--pri-c); }
 /* per-turn execution summary and deliverables, from the run's real events */
 .xsum { display: flex; align-items: center; gap: 8px; color: var(--t3); font: 400 12px/18px var(--sans); }
-.xsum .i { color: var(--t4); }
+.xsum .i { color: var(--t3); }
 .xsum b { color: var(--t2); font-weight: 500; }
 .xsum .bad { color: var(--err); }
 .xsum::after { content: ""; flex: 1; height: 1px; background: var(--line); margin-left: 4px; }
@@ -357,7 +382,7 @@ select.wfield { height: 34px; }
 .tsum h2 { margin: 0; font: 600 18px/26px var(--sans); letter-spacing: -.3px; color: var(--t1); } .tsum p { margin: 2px 0 0; color: var(--t2); font: 400 13px/20px var(--sans); }
 .tsum dl { margin: 14px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 18px; }
 .tsum dd { margin: 4px 0 0; color: var(--t2); display: flex; flex-wrap: wrap; gap: 4px; font: 400 12.5px/18px var(--sans); }
-.tchip { padding: 1px 8px; border-radius: 20px; background: var(--high); color: var(--t1); }
+.tchip { padding: 1px 8px; border-radius: var(--r1); background: var(--high); color: var(--t1); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .cap .tchat { margin-left: auto; height: 24px; align-self: center; }
 
 /* composer */
@@ -369,8 +394,9 @@ select.wfield { height: 34px; }
 .cbox textarea::placeholder { color: var(--t3); }
 .urow { min-height: 34px; padding: 2px 2px 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .urow .l, .urow .r { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.urow .l { flex-wrap: nowrap; overflow: hidden; }
-.urow .l > * { flex: none; } .urow .l > .cbadge { flex: 0 1 auto; min-width: 56px; }
+.urow .l { flex-wrap: nowrap; position: relative; }
+.urow .l > * { flex: none; } .urow .l > .pickwrap { flex: 0 1 auto; min-width: 64px; display: flex; }
+.pickwrap .cbadge { width: 100%; }
 .attach { width: 30px; height: 30px; border-radius: var(--r2); display: flex; align-items: center; justify-content: center; color: var(--t2); flex: none; border: 1px solid var(--line2); }
 .attach:hover { background: var(--high); color: var(--t1); }
 .cbox.drop { border-color: var(--pri-c); box-shadow: 0 0 0 3px var(--pri-soft); }
@@ -395,12 +421,22 @@ select.wfield { height: 34px; }
 .msg-att .big img { display: block; max-width: 240px; max-height: 180px; }
 a.achip:hover { background: var(--high); }
 /* composer chips: who answers, where, model */
-.cbadge, .mtag, .mdlchip { height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 9px; border-radius: var(--r2); color: var(--t2); min-width: 0; font: 400 12px/16px var(--sans); }
+.cbadge, .mdlchip { height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 9px; border-radius: var(--r2); color: var(--t2); min-width: 0; font: 400 12px/16px var(--sans); }
 .cbadge { background: var(--surf); max-width: 240px; }
+button.cbadge.pick { border: 1px solid transparent; }
+button.cbadge.pick:hover:not(:disabled), button.cbadge.pick[aria-expanded="true"] { background: var(--high); color: var(--t1); border-color: var(--line2); }
+button.cbadge.pick:disabled { opacity: 1; cursor: default; background: transparent; padding-left: 4px; }
+button.cbadge.pick:disabled .chev { display: none; }
+.cbadge .chev, .mdlchip .chev { color: var(--t3); }
+.pickpop { top: auto; bottom: calc(100% + 8px); left: 0; transform: none; width: 320px; max-height: 320px; overflow-y: auto; }
+.pickpop .lab { padding: 6px 10px 4px; }
+.pickpop button { align-items: flex-start; }
+.pickpop button[aria-checked="true"] { background: var(--high); color: var(--t1); }
+.pickpop .t { display: flex; flex-direction: column; min-width: 0; } .pickpop .d { color: var(--t3); }
+.pickpop .note { padding: 6px 10px; color: var(--t3); }
 .cbadge .sl, .cbadge .br { color: var(--t3); } .cbadge .br { font: 400 11px/16px var(--mono); }
 .cbadge .tmx { width: 16px; height: 16px; margin-right: -4px; }
-.mtag { color: var(--t3); flex: none; padding: 0 4px 0 2px; }
-.mtag .i { color: var(--warn); }
+.cbadge .mtag { height: auto; padding: 0; color: var(--t3); flex: none; }
 .mdlwrap { position: relative; display: flex; }
 .mdlchip { border: 1px dashed var(--line2); }
 .mdlchip:hover, .mdlchip[aria-expanded="true"] { background: var(--high); color: var(--t1); border-style: solid; }
@@ -428,10 +464,18 @@ a.achip:hover { background: var(--high); }
 .send { width: 32px; height: 32px; border-radius: var(--r2); background: var(--pri-c); color: var(--on-pri); display: flex; align-items: center; justify-content: center; flex: none; }
 .send:hover:not(:disabled) { background: #49b8f3; }
 .send:disabled { opacity: .45; }
-.send.stop { background: var(--high); color: var(--t1); border: 1px solid var(--line2); }
-.send.stop:hover:not(:disabled) { background: var(--err-soft); color: var(--err); }
 .foot { min-height: 18px; padding: 6px 4px 0; display: flex; justify-content: space-between; gap: 12px; color: var(--t3); }
-.foot .fl { display: flex; gap: 12px; min-width: 0; }
+.foot .fl { display: flex; gap: 12px; min-width: 0; align-items: baseline; }
+.foot .info { color: var(--t2); }
+.linkbtn { color: var(--pri); font: inherit; padding: 0; }
+.linkbtn:hover { text-decoration: underline; }
+/* Stop is its own control, labelled, next to Send */
+.stopbtn { height: 32px; gap: 6px; color: var(--t1); }
+.stopbtn:hover:not(:disabled) { background: var(--err-soft); color: var(--err); border-color: rgba(255,155,146,.5); }
+/* What sending will do to another open conversation, said before it happens */
+.runnote { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; padding: 8px 12px; border-radius: var(--r2); border: 1px solid var(--line2); background: var(--surf); color: var(--t2); font-size: 12.5px; line-height: 19px; }
+.runnote[data-kind="busy"] { border-color: rgba(242,178,92,.4); background: var(--warn-soft); }
+.runnote span { flex: 1; min-width: 200px; }
 #footL:not(:empty) + #footHint { display: none; }
 .foot kbd { font: 500 10.5px/14px var(--sans); padding: 0 4px; border: 1px solid var(--line2); border-radius: 3px; color: var(--t2); }
 /* management pages: defining work, not doing it, so there's no composer */
@@ -447,9 +491,14 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
 .rhead .h .t .lab { color: var(--t1); text-transform: none; letter-spacing: 0; font: 600 13px/18px var(--sans); }
 .live { padding: 0 7px; border-radius: 20px; background: var(--ok-soft); color: var(--ok); font: 600 10px/18px var(--sans); letter-spacing: .6px; display: inline-flex; align-items: center; gap: 5px; }
 .live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); animation: pulse 1.4s ease-in-out infinite; }
-.pin { flex: none; padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; max-height: 32vh; }
-.pin ul { overflow-y: auto; min-height: 0; }
-.pin .lab .n { color: var(--t4); margin-left: 4px; }
+.pin { flex: none; padding: 10px 16px; border-bottom: 1px solid var(--line); max-height: 32vh; overflow-y: auto; }
+.pin summary { cursor: pointer; display: flex; align-items: center; gap: 6px; list-style: none; }
+.pin summary::-webkit-details-marker { display: none; }
+.pin summary::before { content: "▸"; color: var(--t3); font-size: 10px; transition: transform .12s; }
+.pin[open] summary::before { transform: rotate(90deg); }
+.pin summary .n { color: var(--t3); font-size: 11px; }
+.pin ul { margin-top: 6px !important; }
+.pin .artrow.deliv { font-weight: 600; }
 .pin ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .pin .artrow { width: 100%; display: flex; align-items: center; gap: 8px; padding: 4px 6px; margin: 0 -6px; border-radius: var(--r2); color: var(--t1); text-align: left; font: 400 12px/18px var(--mono); }
 .pin .artrow:hover { background: var(--surf); }
@@ -490,7 +539,67 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
 #telCard .tl { color: var(--t2); font: 400 11.5px/17px var(--sans); }
 #telCard .tl b { color: var(--t1); font-weight: 600; }
 #telCard .tl.warn, #telCard .tl.warn b { color: var(--err); }
-#telCard .src { color: var(--t4); font: 600 9.5px/14px var(--sans); text-transform: uppercase; letter-spacing: .5px; margin-left: 4px; }
+#telCard .src { color: var(--t3); font: 600 9.5px/14px var(--sans); text-transform: uppercase; letter-spacing: .5px; margin-left: 4px; }
+#telCard .tl.sub { color: var(--t3); }
+#telCard .tl.lvl-growing b { color: var(--warn); } #telCard .tl.lvl-large b { color: var(--err); }
+.tbar { height: 6px; border-radius: 3px; background: var(--high); overflow: hidden; margin: 2px 0; }
+.tbar > span { display: block; height: 100%; background: var(--pri-c); }
+.tbar.growing > span { background: var(--warn); } .tbar.large > span { background: var(--err); }
+.tact { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; padding-top: 6px; }
+.tact .btn { height: 26px; padding: 0 10px; flex: none; }
+.tact span { color: var(--t3); font-size: 11.5px; line-height: 16px; }
+.teld { margin-top: 6px; } .teld summary { cursor: pointer; color: var(--t2); }
+.teld[open] { display: flex; flex-direction: column; gap: 4px; }
+/* Activity: setup first, then one folded group per message; a filter for long runs */
+.actf { margin: 0 0 10px; }
+.actf button { font-size: 11.5px; }
+.tgrp { list-style: none; }
+.tgrp > details > summary { cursor: pointer; color: var(--t3); padding: 8px 2px 4px; display: flex; align-items: center; gap: 8px; font-weight: 500; list-style: none; }
+.tgrp > details > summary::-webkit-details-marker { display: none; }
+.tgrp > details > summary::before { content: "▸"; font-size: 10px; transition: transform .12s; }
+.tgrp > details[open] > summary::before { transform: rotate(90deg); }
+.tgrp > details > summary::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.tgrp > details > summary.turn { padding: 10px 2px 4px; }
+.tgrp > details > summary.turn::after { content: ""; }
+.tcards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+#acts[data-f="tools"] .card:not(.k-tool), #acts[data-f="notes"] .card.k-tool, #acts[data-f="notes"] .card.k-end, #acts[data-f="notes"] .card:not([class*="k-"]) { display: none; }
+.tag.deliv { margin-left: 4px; }
+/* conversation: handoff, files written */
+.handoff { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px dashed var(--line2); border-radius: var(--r3); color: var(--t2); }
+.handoff .hh { display: flex; gap: 8px; align-items: baseline; } .handoff .hh .i { color: var(--t3); }
+.handoff summary { cursor: pointer; color: var(--t3); }
+.handoff .hbody { margin-top: 8px; font-size: 13px; line-height: 20px; color: var(--t2); max-height: 360px; overflow: auto; }
+.xfiles { padding: 0 2px; } .xfiles summary { cursor: pointer; color: var(--t3); }
+.xfiles ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+/* dialog */
+#dlg { border: 1px solid var(--line2); border-radius: var(--r3); background: var(--surf); color: var(--t1); padding: 20px 22px 18px; width: min(480px, calc(100vw - 32px)); box-shadow: var(--shadow); }
+#dlg::backdrop { background: rgba(0,0,0,.55); }
+#dlg h2 { margin: 0 0 8px; font: 600 15px/22px var(--sans); }
+#dlg p { margin: 0 0 10px; color: var(--t2); font-size: 13px; line-height: 20px; } #dlg p.sub { color: var(--t3); }
+#dlg blockquote { margin: 6px 0 10px; padding: 8px 10px; border-left: 2px solid var(--line2); background: var(--low); color: var(--t2); white-space: pre-wrap; font-size: 12.5px; max-height: 140px; overflow: auto; }
+#dlg .chk { display: flex; gap: 8px; align-items: center; color: var(--t1); font-size: 13px; }
+#dlg .plist { margin: 0 0 10px; padding-left: 18px; color: var(--t2); font-size: 12.5px; } #dlg code { font: 400 11.5px/18px var(--mono); }
+#dlg dl.kbd { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 4px 0 8px; font-size: 13px; } #dlg dl.kbd dd { margin: 0; color: var(--t2); }
+#dlg kbd, .vact kbd { font: 500 10.5px/14px var(--sans); padding: 0 4px; border: 1px solid var(--line2); border-radius: 3px; color: var(--t2); }
+#dlg .dacts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+/* commit box */
+.vact.col { flex-direction: column; align-items: stretch; }
+.vact.col textarea.vinput { resize: vertical; min-height: 52px; }
+.vact .vrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.vact .vrow .txt { color: var(--t3); }
+/* sidebar footer: local services */
+.lfoot > .lab { padding: 0 0 2px; }
+.svc { display: flex; align-items: center; gap: 0; min-width: 0; }
+.svst { color: var(--t3); margin-left: 8px; }
+/* Scratch: apart from the project folders, and explained where it's chosen */
+.scratchrow .row { align-items: flex-start; padding-top: 5px; padding-bottom: 5px; }
+.scratchrow .sicon { width: 18px; height: 18px; border-radius: var(--r1); background: var(--surf); border: 1px solid var(--line2); color: var(--t3); display: flex; align-items: center; justify-content: center; flex: none; margin-top: 1px; }
+.wsdiv { list-style: none; padding: 10px 12px 2px; color: var(--t3); font: 500 11px/16px var(--sans); }
+.menu .lab { padding: 6px 10px 2px; }
+.scratchnote { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--r2); background: var(--surf); color: var(--t2); font-size: 13px; line-height: 20px; max-width: 560px; }
+.scratchnote b { color: var(--t1); font-weight: 600; }
+/* worker editor */
+.cap .needs { color: var(--t3); margin-left: 6px; } .sub.off { color: var(--warn); }
 #telCard .tacts { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 6px; }
 #telCard .tacts .btn { height: 26px; padding: 0 10px; }
 .rfoot { height: 36px; flex: none; border-top: 1px solid var(--line); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; color: var(--t3); }
@@ -513,7 +622,7 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
   #navToggle { display: flex; }
   .brand .ver { display: none; }
   .view { padding: 0 12px; } .canvas { margin: 0 -12px; padding: 0 12px; }
-  .mtag, #footHint { display: none; }
+  #footHint { display: none; } /* the access mode stays visible in the workspace chip */
   .wrow2, .tsum dl { grid-template-columns: 1fr; } .trow { grid-template-columns: 1fr; }
   .req { grid-template-columns: minmax(0, 1fr) 100px 26px; } .req .wstat { display: none; }
   .msg-u { max-width: 92%; }
@@ -525,7 +634,7 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
 <body data-view="chat">
 <header class="top">
   <div class="brand">
-    <button class="toggle" id="navToggle" aria-label="Show navigation" aria-expanded="false" aria-controls="leftNav"><svg class="i" width="14" height="11" data-i="tune"></svg></button>
+    <button class="toggle" id="navToggle" aria-label="Show navigation" aria-expanded="false" aria-controls="leftNav"><svg class="i" width="16" height="16" data-i="menu"></svg></button>
     <img src="/assets/monogram.png" alt="">
     <span class="para"><span class="name">AI Workspace</span><span class="ver">local</span></span>
   </div>
@@ -536,8 +645,8 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
     <div class="menu" id="swMenu" role="menu" aria-label="Workspaces" hidden></div>
   </div>
   <div class="hright">
-    <div class="pill m12" role="status" aria-live="polite" title="The console runs one worker at a time"><span class="dot" id="wDot"></span><span id="wState">Worker · Ready</span></div>
-    <button class="toggle" id="actToggle" aria-label="Show activity" aria-expanded="false" aria-controls="rightPanel"><svg class="i" width="14" height="11" data-i="terminalSm"></svg></button>
+    <button class="pill m12" id="wPill" type="button" title="The console runs one worker at a time. Open the conversation it's in."><span class="dot" id="wDot" aria-hidden="true"></span><span id="wState" role="status" aria-live="polite">No conversation active</span></button>
+    <button class="toggle" id="actToggle" aria-label="Show activity" aria-expanded="false" aria-controls="rightPanel"><svg class="i" width="16" height="16" data-i="steps"></svg><span class="tbadge" id="actBadge" hidden></span></button>
     <div class="acctwrap">
       <button class="acctbtn" id="acctBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="acctPop" aria-label="Claude account and usage" title="Claude account and usage"><svg class="i" width="16" height="16" data-i="person"></svg></button>
       <div class="acctpop" id="acctPop" role="dialog" aria-label="Claude account and usage" hidden></div>
@@ -546,9 +655,9 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
 </header>
 
 <aside class="left" id="leftNav" aria-label="Navigation">
-  <div class="lnew"><button class="newtask" id="newTask" title="Start a new task with the selected worker"><svg class="i" width="10" height="10" data-i="plus"></svg><span>New task</span><span class="kbd" aria-hidden="true">Alt+N</span></button></div>
+  <div class="lnew"><button class="newtask" id="newTask" title="Start a new conversation with the selected worker" aria-keyshortcuts="Alt+N"><svg class="i" width="10" height="10" data-i="plus"></svg><span>New task</span><span class="kbd" aria-hidden="true">Alt+N</span></button></div>
   <div class="lscroll">
-    <div class="grp" aria-hidden="true">Workforce</div>
+    <div class="grp" aria-hidden="true">Workers &amp; teams</div>
     <nav class="sect" data-sect="workers" aria-labelledby="lWk">
       <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lWk">Workers</span></button><span class="cnt" id="wkCnt"></span></h2>
       <ul id="wkList"></ul>
@@ -559,20 +668,7 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
       <ul id="tmList"></ul>
       <button class="row add" id="addTm"><svg class="i" width="9" height="9" data-i="plus"></svg><span>New team</span></button>
     </nav>
-    <div class="grp" aria-hidden="true">Work</div>
-    <section class="sect" data-sect="runs" aria-labelledby="lRuns">
-      <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lRuns">Recent runs</span></button><span class="cnt" id="runCnt"></span></h2>
-      <ul id="runList"></ul>
-    </section>
-    <section class="sect" data-sect="favs" aria-labelledby="lFav">
-      <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lFav">Favourites</span></button></h2>
-      <ul id="favList"></ul>
-    </section>
-    <section class="sect" data-sect="tprompts" id="tpSect" aria-labelledby="lTp" hidden>
-      <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lTp">Team prompts</span></button></h2>
-      <ul id="tpList"></ul>
-    </section>
-    <div class="grp" aria-hidden="true">Project</div>
+    <div class="grp" aria-hidden="true">Workspace</div>
     <nav class="sect" data-sect="workspaces" aria-labelledby="lWs">
       <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lWs">Workspaces</span></button><span class="cnt" id="wsCnt"></span></h2>
       <ul id="wsList"></ul>
@@ -590,25 +686,40 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
         <div class="acts"><button type="button" class="btn" id="fCancel">Cancel</button><button type="submit" class="btn pri">Add</button></div>
       </form>
     </nav>
+    <section class="sect" data-sect="runs" aria-labelledby="lRuns">
+      <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lRuns">Conversations</span></button><span class="cnt" id="runCnt"></span></h2>
+      <div class="scope" role="group" aria-label="Which conversations to show"><button type="button" class="m11" data-scope="ws" aria-pressed="true" id="runScopeWs">This workspace</button><button type="button" class="m11" data-scope="all" aria-pressed="false">All workspaces</button></div>
+      <ul id="runList"></ul>
+    </section>
     <section class="sect" data-sect="versions" aria-labelledby="lVer">
-      <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lVer">Versions</span></button></h2>
+      <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lVer">Changes &amp; versions</span></button></h2>
       <ul id="verList"></ul>
     </section>
     <section class="sect" data-sect="files" aria-labelledby="lFiles">
       <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lFiles">Files</span></button></h2>
       <ul class="tree" id="tree" role="tree" aria-labelledby="lFiles"></ul>
     </section>
-    <div class="grp" aria-hidden="true">Connections</div>
+    <div class="grp" aria-hidden="true">Prompts</div>
+    <section class="sect" data-sect="favs" aria-labelledby="lFav">
+      <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lFav">Favourites</span></button></h2>
+      <ul id="favList"></ul>
+    </section>
+    <section class="sect" data-sect="tprompts" id="tpSect" aria-labelledby="lTp" hidden>
+      <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lTp">Team prompts</span></button></h2>
+      <ul id="tpList"></ul>
+    </section>
+    <div class="grp" aria-hidden="true">Integrations</div>
     <nav class="sect" data-sect="github" aria-labelledby="lGh">
       <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lGh">GitHub</span></button></h2>
       <ul><li class="wsi"><button class="row ws" id="ghOpen" title="The GitHub connection, registered repositories and their workspaces"><span class="grow"><span class="ell" id="ghState">Repositories</span></span><span class="meta m11" id="ghMeta"></span></button></li></ul>
     </nav>
   </div>
-  <div class="lfoot">
-    <div class="r1"><span style="display:flex;align-items:center"><span class="dot" id="srvDot"></span><span class="m12">Local console</span></span>
-      <span class="r1r"><button class="swbtn" id="devWorkerSw" role="switch" aria-checked="false" aria-label="Worker server" title="Start or stop this console's own server process (local dev only)"></button></span>
+  <div class="lfoot" aria-labelledby="lSvc">
+    <div class="lab" id="lSvc">Local services</div>
+    <div class="r1"><span class="svc"><span class="dot" id="srvDot" aria-hidden="true"></span><span class="m12">Console</span><span class="svst m11" id="devWorkerSt"></span></span>
+      <span class="r1r"><button class="swbtn" id="devWorkerSw" role="switch" aria-checked="false" aria-label="Console server" title="Start or stop this console's own server process (local dev only)"></button></span>
     </div>
-    <div class="r1"><span style="display:flex;align-items:center"><span class="dot" id="devBridgeDot"></span><span class="m12">Figma bridge</span></span>
+    <div class="r1"><span class="svc"><span class="dot" id="devBridgeDot" aria-hidden="true"></span><span class="m12">Figma bridge</span><span class="svst m11" id="devBridgeSt"></span></span>
       <span class="r1r"><button class="swbtn" id="devBridgeSw" role="switch" aria-checked="false" aria-label="Figma bridge" title="Start or stop the local Figma bridge process (local dev only)"></button></span>
     </div>
   </div>
@@ -627,12 +738,15 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
         </div>
       </div>
       <div class="r">
-        <button class="stchip act m12" id="endBtn" hidden title="Close this conversation cleanly. It can be continued later.">End run</button>
-        <div class="stchip m12" id="runChip" role="status" aria-live="polite"><span class="dot" id="rDot" aria-hidden="true"></span><span id="rState">Ready</span></div>
+        <button class="btn" id="cEdit" hidden title="Edit this worker's definition. Edits apply to new conversations.">Edit worker</button>
+        <button class="btn" id="cLeave" hidden title="Stop working as a member of this team. Nothing is deleted.">Leave team</button>
+        <button class="btn" id="endBtn" hidden title="Close this conversation and its worker process. You can continue it later from Conversations.">Close conversation</button>
+        <div class="stchip m12" id="runChip" role="status" aria-live="polite" data-status=""><span class="dot" id="rDot" aria-hidden="true"></span><span id="rState">New task</span></div>
       </div>
     </div>
     <div class="canvas" id="canvas"></div>
     <div class="composer">
+      <div class="runnote" id="runNote" role="status" hidden></div>
       <div class="cbox">
         <label class="sr" for="input">Describe the task, or reply to the worker</label>
         <div class="attrow" id="attRow" hidden aria-label="Attached files"></div>
@@ -642,33 +756,37 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
           <div class="l">
             <button class="attach" id="attachBtn" aria-label="Attach files" title="Attach images, PDFs or text files (or paste / drop them here)"><svg class="i" width="11" height="11" data-i="plus11"></svg></button>
             <input type="file" id="fileIn" multiple hidden accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/*,.md,.json,.csv,.txt,.log,.xml,.yml,.yaml,.svg,.js,.jsx,.mjs,.ts,.tsx,.css,.scss,.html,.py,.sql,.sh,.env.example">
-            <span class="cbadge" title="The worker that answers new chats"><span class="wkdot" aria-hidden="true">◆</span><span class="ell" id="wkName">General</span><button class="iconbtn tmx" id="tmLeave" hidden aria-label="Leave the Team" title="Leave the Team"><svg class="i" width="9" height="9" data-i="close"></svg></button></span>
-            <span class="cbadge" title="Workspace and branch"><span class="dot" id="bDot" aria-hidden="true"></span><span class="ell" id="bName"></span><span class="sl" id="bSl">/</span><span class="br ell" id="bBr"></span></span>
-            <span class="mtag" id="mTag" title="Access mode"><svg class="i" width="9" height="11" data-i="bolt"></svg><span id="mName"></span></span>
-            <span class="mdlwrap"><button type="button" class="mdlchip" id="mdlBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="mdlPop"><span id="mdlName">Default</span><span class="eff" id="mdlEff"></span></button><div class="mdlpop" id="mdlPop" role="dialog" aria-label="Model and effort" hidden></div></span>
+            <span class="pickwrap"><button type="button" class="cbadge pick" id="wkPick" aria-haspopup="menu" aria-expanded="false" title="Choose the worker for a new task"><span class="wkdot" aria-hidden="true">◆</span><span class="ell" id="wkName">General</span><svg class="i chev" width="8" height="5" data-i="chevron"></svg></button></span>
+            <button class="iconbtn tmx" id="tmLeave" hidden aria-label="Leave the team" title="Leave the team"><svg class="i" width="10" height="10" data-i="close"></svg></button>
+            <span class="pickwrap"><button type="button" class="cbadge pick" id="wsPick" aria-haspopup="menu" aria-expanded="false" title="Choose the workspace for a new task"><span class="dot" id="bDot" aria-hidden="true"></span><span class="ell" id="bName"></span><span class="sl" id="bSl">/</span><span class="br ell" id="bBr"></span><span class="mtag" id="mTag"> · <span id="mName"></span></span><svg class="i chev" width="8" height="5" data-i="chevron"></svg></button></span>
+            <span class="mdlwrap"><button type="button" class="mdlchip" id="mdlBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="mdlPop"><span id="mdlName">Default</span><span class="eff" id="mdlEff"></span><svg class="i chev" width="8" height="5" data-i="chevron"></svg></button><div class="mdlpop" id="mdlPop" role="dialog" aria-label="Model and effort" hidden></div></span>
+            <div class="menu pickpop" id="pickPop" role="menu" hidden></div>
           </div>
           <div class="r">
-            <button class="savep" id="saveP" title="Save this prompt to Favourites">☆ Save</button>
+            <button class="savep" id="saveP" title="Save the text in the box as a prompt in Favourites">☆ Save as prompt</button>
+            <button class="btn stopbtn" id="stopBtn" hidden title="Stop the worker now. The conversation is kept: send a message to continue it."><svg class="i" width="9" height="9" data-i="stop"></svg><span>Stop</span></button>
             <button class="send" id="send" aria-label="Send"><svg class="i" width="11" height="11" data-i="arrowUp"></svg></button>
           </div>
         </div>
       </div>
-      <div class="foot m11"><span class="fl"><span id="footL"></span><span id="footHint"><kbd>Enter</kbd> send · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line · <kbd>@</kbd> reference a file</span></span><span id="footR" class="ell"></span></div>
+      <div class="foot m11"><span class="fl"><span id="footL"></span><span id="footHint"><kbd>Enter</kbd> send · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line · <kbd>@</kbd> reference a file · <button type="button" class="linkbtn" id="kbdBtn">Shortcuts</button></span></span><span id="footR" class="ell"></span></div>
     </div>
   </div>
 </main>
 
 <aside class="right" id="rightPanel" aria-label="Activity">
   <div class="rhead"><div class="h">
-    <span class="t"><svg class="i" width="13" height="11" data-i="terminalSm"></svg><span class="lab">Activity</span></span>
+    <span class="t"><svg class="i" width="14" height="14" data-i="steps"></svg><span class="lab">Activity</span></span>
     <span class="live" id="live" hidden>LIVE</span>
-  </div></div>
-  <div class="pin" id="artSlot" hidden aria-labelledby="lArt"><span class="lab" id="lArt">Deliverables<span class="n" id="artCnt"></span></span><ul id="artList"></ul></div>
-  <ol class="acts" id="acts" aria-live="off" aria-label="Execution steps"></ol>
+  </div>
+  <div class="seg actf" id="actFilter" role="group" aria-label="Show in Activity"><button type="button" data-f="all" aria-pressed="true">All</button><button type="button" data-f="notes" aria-pressed="false">Notes &amp; alerts</button><button type="button" data-f="tools" aria-pressed="false">Tool calls</button></div></div>
+  <details class="pin" id="artSlot" hidden><summary><span class="lab" id="lArt">Files written</span><span class="n" id="artCnt"></span></summary><ul id="artList"></ul></details>
+  <ol class="acts" id="acts" aria-live="off" aria-label="Steps of this conversation"></ol>
   <div class="telslot" id="telSlot" hidden></div>
-  <div class="rfoot m12"><span class="s"><span class="dot" id="aDot" aria-hidden="true"></span><span id="aState">Idle</span></span><span id="aTime">0.00s execution</span></div>
+  <div class="rfoot m12"><span class="s"><span class="dot" id="aDot" aria-hidden="true"></span><span id="aState">New task</span></span><span id="aTime"></span></div>
 </aside>
 <div class="scrim" id="scrim" aria-hidden="true"></div>
+<dialog id="dlg" aria-labelledby="dlgT" aria-describedby="dlgB"><form method="dialog"><h2 id="dlgT"></h2><div id="dlgB"></div><div class="dacts" id="dlgA"></div></form></dialog>
 
 <script>
 // Icons are the design's own Material Symbols paths, exported from the Figma file.
@@ -679,7 +797,11 @@ const ICONS = {"branchSm":{"vb":"0 0 8 10","d":["M1.625 9.75V2.07188L0.758333 2.
   "close":{"vb":"0 0 24 24","d":["M6.4 19 5 17.6 10.6 12 5 6.4 6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4Z"]},
   "chevRight":{"vb":"0 0 24 24","d":["M12.6 12 8 7.4 9.4 6l6 6-6 6L8 16.6Z"]},
   "folder":{"vb":"0 0 24 24","d":["M4 20q-.825 0-1.412-.587Q2 18.825 2 18V6q0-.825.588-1.412Q3.175 4 4 4h6l2 2h8q.825 0 1.413.588Q22 7.175 22 8v10q0 .825-.587 1.413Q20.825 20 20 20Zm0-2h16V8h-8.825l-2-2H4v12Z"]},
-  "file":{"vb":"0 0 24 24","d":["M6 22q-.825 0-1.412-.587Q4 20.825 4 20V4q0-.825.588-1.413Q5.175 2 6 2h8l6 6v12q0 .825-.587 1.413Q18.825 22 18 22Zm7-13V4H6v16h12V9Z"]}
+  "file":{"vb":"0 0 24 24","d":["M6 22q-.825 0-1.412-.587Q4 20.825 4 20V4q0-.825.588-1.413Q5.175 2 6 2h8l6 6v12q0 .825-.587 1.413Q18.825 22 18 22Zm7-13V4H6v16h12V9Z"]},
+  // menu (navigation drawer), steps (Activity), edit (a worker's definition)
+  "menu":{"vb":"0 0 24 24","d":["M3 18v-2h18v2Zm0-5v-2h18v2Zm0-5V6h18v2Z"]},
+  "steps":{"vb":"0 0 24 24","d":["M4 5h2v2H4Zm4 0h12v2H8ZM4 11h2v2H4Zm4 0h12v2H8ZM4 17h2v2H4Zm4 0h12v2H8Z"]},
+  "edit":{"vb":"0 0 24 24","d":["M5 19h1.4l8.6-8.6-1.4-1.4L5 17.6ZM3 21v-4.25L16.2 3.575q.3-.275.663-.425.362-.15.762-.15t.775.15q.375.15.65.45L20.425 5q.3.275.438.65T21 6.4q0 .4-.137.763-.138.362-.438.662L7.25 21ZM19 6.4 17.6 5Zm-4.7 3.3-.7-.7 1.4 1.4Z"]}
 };
 const svgIcon = (name, w, h) => `<svg class="i" width="${w}" height="${h}" viewBox="${ICONS[name].vb}" aria-hidden="true">${ICONS[name].d.map((d) => `<path d="${d}"/>`).join("")}</svg>`;
 document.querySelectorAll("svg[data-i]").forEach((s) => { const ic = ICONS[s.dataset.i]; s.setAttribute("viewBox", ic.vb); s.setAttribute("aria-hidden", "true"); s.innerHTML = ic.d.map((d) => `<path d="${d}"/>`).join(""); });
@@ -695,10 +817,46 @@ const api = async (method, path, data) => {
   // The server accepts state-changing requests only from this page: same origin plus this header.
   const r = await fetch(path, { method, headers: { "content-type": "application/json", "x-worker-console": "1" }, body: method === "GET" ? undefined : JSON.stringify(data || {}) });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || r.statusText);
+  if (!r.ok) { const e = new Error(j.error || r.statusText); if (j.activeRun) e.activeRun = j.activeRun; throw e; }
   return j;
 };
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+
+// ---------------- dialog ----------------
+// One accessible modal for every confirmation (native <dialog>: focus is trapped, Escape cancels).
+// ask({ title, body (HTML), actions: [{ id, label, kind: "pri" | "danger" | "" }], focus }) -> id or null.
+function ask({ title, body, actions, focus }) {
+  const d = $("dlg");
+  $("dlgT").textContent = title; $("dlgB").innerHTML = body || "";
+  $("dlgA").innerHTML = actions.map((a) => `<button type="button" class="btn ${a.kind || ""}" data-dlg="${esc(a.id)}">${esc(a.label)}</button>`).join("");
+  const back = document.activeElement;
+  return new Promise((ok) => {
+    const done = (v) => { d.close(); d.onclose = null; ok(v); back?.focus?.(); };
+    $("dlgA").onclick = (e) => { const b = e.target.closest("[data-dlg]"); if (b) done(b.dataset.dlg); };
+    d.onclose = () => ok(null); d.oncancel = (e) => { e.preventDefault(); done(null); };
+    // opened on the next tick: a key that triggered it (Escape) must not also close it
+    setTimeout(() => { d.showModal(); ($("dlgA").querySelector(`[data-dlg="${focus || actions[0].id}"]`) || $("dlgA").querySelector("button")).focus(); }, 0);
+  });
+}
+
+// ---------------- unsaved edits ----------------
+// The worker and Team pages are drafts until saved. Leaving one with changes asks first: save,
+// discard, or keep editing. Nothing else on the page navigates without going through this.
+let draft = null; // { kind: "worker" | "team", clean: <snapshot>, save: () => Promise<boolean> }
+const formSnap = () => { const f = $("wkForm") || $("tmForm"); if (!f) return ""; return JSON.stringify([[...f.querySelectorAll("input,textarea,select")].map((x) => (x.type === "checkbox" ? x.checked : x.value)), wkEdit && { r: wkEdit.reqs }, tmEdit && { k: tmEdit.knowledge.map((k) => k.path || k.name), p: tmEdit.policies, q: tmEdit.prompts, r: tmEdit.reqs }]); };
+const isDirty = () => !!draft && (view === "worker" || view === "team") && formSnap() !== draft.clean;
+function trackDraft(kind, save) { draft = { kind, save, clean: formSnap() }; }
+// Resolves true when it's safe to go on (nothing to lose, saved, or discarded on purpose).
+async function leaveDraft() {
+  if (!isDirty()) return true;
+  const what = draft.kind === "team" ? "this team" : "this worker";
+  const r = await ask({ title: "Unsaved changes", body: `<p>You changed ${what} and haven't saved it. Leaving now loses those changes.</p>`,
+    actions: [{ id: "keep", label: "Keep editing" }, { id: "discard", label: "Discard changes", kind: "danger" }, { id: "save", label: "Save", kind: "pri" }], focus: "keep" });
+  if (r === "discard") { draft = null; return true; }
+  if (r === "save") { const ok = await draft.save(); if (ok) draft = null; return !!ok; }
+  return false;
+}
+window.addEventListener("beforeunload", (e) => { if (isDirty()) { e.preventDefault(); e.returnValue = ""; } });
 
 // ---------------- state ----------------
 let WS = [], RUNS = [], PROMPTS = [], ACTIVE = null;
@@ -710,7 +868,13 @@ function setView(v) { view = v; document.body.dataset.view = v; }
 let T = null; // per-run view state
 const ALIVE = ["starting", "running", "waiting"];
 const NONE = { id: null, name: "No workspace", root: "", profile: "inspect", branch: null, commit: null, none: true };
-const ws = () => WS.find((w) => w.id === wsId) || WS[0] || NONE;
+// Scratch isn't a project: when the selected workspace is gone, the page falls back to the first
+// project folder, and to Scratch only when there is none.
+const defaultWsId = () => (WS.find((w) => w.id !== "scratch" && w.available) || WS.find((w) => w.id !== "scratch") || WS[0])?.id || null;
+const ws = () => WS.find((w) => w.id === wsId) || WS.find((w) => w.id === defaultWsId()) || NONE;
+const isScratch = (w) => w?.id === "scratch";
+// A scratch conversation's files are its own folder's, reached through the run; a project's through the workspace.
+const filesQ = () => (runId && runWs(meta) === "scratch" ? `run=${encodeURIComponent(runId)}` : `workspace=${encodeURIComponent(wsId)}`);
 const modeOf = (w) => (w?.profile === "inspect" ? "Inspect" : "Work");
 const runWs = (m) => m?.workspace?.id || "console";
 
@@ -725,10 +889,27 @@ function ago(iso) {
   if (days < 7) return `${days}d ago`;
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
+// One state vocabulary for the whole page (docs/ux-remediation.md). The run's lifecycle is the
+// server's status; while it waits, the server's outcome of the last turn says why it waits.
+// [label, dot class, what it means]
 const STATE = {
-  starting: ["Starting", "blue pulse"], running: ["Working", "blue pulse"], waiting: ["Waiting for you", ""],
-  finished: ["Finished", ""], stopped: ["Stopped", "grey"], failed: ["Failed", "red"], interrupted: ["Interrupted", "grey"],
+  starting: ["Starting", "blue pulse", "The worker process is starting."],
+  running: ["Working", "blue pulse", "The worker is working on your message."],
+  waiting: ["Your turn", "blue", "The worker replied and is waiting for your next message."],
+  finished: ["Closed", "grey", "This conversation is closed. Send a message to continue it."],
+  stopped: ["Stopped", "grey", "You stopped the worker. Send a message to continue."],
+  failed: ["Failed", "red", "The worker process failed. Send a message to try again."],
+  interrupted: ["Interrupted", "warn", "The console restarted while the worker was running. Send a message to continue."],
 };
+const OUTCOME = {
+  replied: STATE.waiting,
+  done: ["Done", "", "The worker reported the task done. Review the result, or reply to continue."],
+  needs: ["Needs your action", "warn", "The worker can't go on without something from you (see Needs access)."],
+  error: ["Turn failed", "red", "The last turn ended with an error. Reply to retry or change course."],
+};
+const stateOf = (status, outcome) => (status === "waiting" && OUTCOME[outcome]) || STATE[status] || [status || "", "grey", ""];
+// What a run row, the run header and the header pill say about a run (from its meta).
+const runLabel = (m) => stateOf(m?.status, m?.outcome);
 const setDot = (el, cls) => { el.className = "dot " + (cls || ""); };
 const TAGRE = /^(\s*(?:[-*•]\s+)?)\**(PLAN|OBSERVATION|DECISION|FAILURE|RECOVERY|VERIFICATION|ARTIFACT|DONE):\**\s*/i;
 
@@ -785,12 +966,13 @@ function phrase(ev) {
     browser_navigate: "Opened", browser_get_dom_state: "Read the page", browser_click: "Clicked", browser_fill: "Filled", browser_screenshot: "Took a screenshot" };
   return [V[tool] || tool, arg];
 }
-const dur = (ms) => (ms < 1000 ? `${Math.max(1, Math.round(ms))}ms` : `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)}s`);
+// One duration format everywhere: 240ms, 9.4s, 12s, 3m 05s.
+const dur = (ms) => (ms < 1000 ? `${Math.max(1, Math.round(ms))}ms` : ms < 60000 ? `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)}s` : `${Math.floor(ms / 60000)}m ${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}s`);
 
 // ---------------- workspaces ----------------
 async function loadWorkspaces() {
   WS = await api("GET", "/workspaces");
-  if (!WS.find((w) => w.id === wsId)) wsId = WS[0]?.id || null;
+  if (!WS.find((w) => w.id === wsId)) wsId = defaultWsId();
   renderWorkspaces();
 }
 // Another tab (or the API) may have added, removed or reordered workspaces: pick that up with the
@@ -803,7 +985,7 @@ async function syncWorkspaces() {
   if (sig === wsSig) return;
   wsSig = sig; WS = list;
   if (removing && !WS.find((w) => w.id === removing)) removing = null;
-  if (!WS.find((w) => w.id === wsId)) selectWorkspace(WS[0]?.id || null); else renderWorkspaces();
+  if (!WS.find((w) => w.id === wsId)) selectWorkspace(defaultWsId()); else renderWorkspaces();
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) syncWorkspaces(); });
 window.addEventListener("focus", () => { syncWorkspaces(); loadGit(); });
@@ -813,24 +995,25 @@ function renderWorkspaces() {
       <div style="color:var(--t2)">Remove <strong>${esc(x.name)}</strong> from the list?</div><div class="help">The folder and its files stay on disk.${x.id === "console" ? " Executor is this app's own folder: add it again any time to bring it back with its runs." : ""}</div>
       <div class="err" id="rmErr" role="alert"></div>
       <div class="acts"><button class="btn m11" data-rm-cancel>Cancel</button><button class="btn danger m11" data-rm-ok="${esc(x.id)}">Remove</button></div></div></li>`
-    : x.id === "scratch" ? `<li class="wsi"><button class="row ws" data-ws="scratch" aria-current="${x.id === wsId}" title="No project folder: for Figma work and conversation. The worker gets a private scratch folder.">
-      <span class="grow">${x.id === wsId ? '<span class="dot"></span>' : ""}<span class="ell">${esc(x.name)}</span></span><span class="meta">${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button></li>`
+    : x.id === "scratch" ? `<li class="wsi scratchrow"><button class="row ws" data-ws="scratch" aria-current="${x.id === wsId}" title="${esc(SCRATCH_TIP)}">
+      <span class="grow"><span class="sicon" aria-hidden="true">${svgIcon("steps", 12, 12)}</span><span class="rtx"><span class="ell">${esc(x.name)}</span><span class="rsub ell m11">No project · a new folder per conversation</span></span></span></button></li>
+      <li class="wsdiv" aria-hidden="true">Project folders</li>${WS.some((y) => y.id !== "scratch") ? "" : '<li class="empty">None yet. Add one to work on a project.</li>'}`
     : `<li class="wsi" draggable="true" data-ws-item="${esc(x.id)}"><button class="row ws" data-ws="${esc(x.id)}" aria-current="${x.id === wsId}" title="${esc(x.root)}${x.available ? "" : " (folder not found)"}${x.repo ? `&#10;GitHub: ${esc(x.repo.fullName || "repository no longer registered")}` : ""}&#10;Drag, or Alt+↑/↓, to reorder">
       <span class="grow">${x.id === wsId ? '<span class="dot"></span>' : ""}<span class="ell" style="${x.available ? "" : "color:var(--t3)"}">${esc(x.name)}</span></span>
       <span class="meta">${x.branch ? `<span class="m12 ell" style="max-width:80px">${esc(x.branch)}</span>` : ""}${x.id === wsId ? `<span class="badge m11">${modeOf(x)}</span>` : ""}</span></button><button class="x" data-rm="${esc(x.id)}" aria-label="Remove ${esc(x.name)} from the list">${svgIcon("close", 12, 12)}</button></li>`).join("") || '<li class="empty">No workspaces. Add one to start.</li>';
-  $("swMenu").innerHTML = WS.map((x) => `<button role="menuitem" data-ws="${esc(x.id)}" class="m12"><span class="dot ${x.id === wsId ? "" : "grey"}"></span><span class="ell" style="flex:1">${esc(x.name)}</span><span style="color:var(--t3)">${modeOf(x)}</span></button>`).join("");
+  $("swMenu").innerHTML = '<div class="lab">Project folders</div>' + [...WS.filter((x) => x.id !== "scratch"), ...WS.filter((x) => x.id === "scratch")].map((x) => `${x.id === "scratch" ? '<div class="lab">No project</div>' : ""}<button role="menuitem" data-ws="${esc(x.id)}" class="m12"><span class="dot ${x.id === wsId ? "" : "grey"}"></span><span class="ell" style="flex:1">${esc(x.name)}</span><span style="color:var(--t3)">${modeOf(x)}</span></button>`).join("");
   $("swLabel").textContent = w.branch ? `${w.name} / ${w.branch}` : w.name;
   setDot($("swDot"), w.none ? "grey" : w.available === false ? "red" : "");
-  $("wsCnt").textContent = WS.length || "";
+  $("wsCnt").textContent = WS.filter((x) => x.id !== "scratch").length || "";
   $("cName").textContent = w.name;
   $("cName").title = w.root || "";
   $("cBranch").hidden = !w.branch; $("cBranch").querySelector("span").textContent = w.branch || "";
   $("cHash").hidden = !w.commit; $("cHash").textContent = w.commit ? `#${w.commit}` : "";
   $("bName").textContent = w.name; $("bBr").textContent = w.branch || ""; $("bSl").hidden = !w.branch;
   $("mName").textContent = modeOf(w);
-  $("footR").textContent = (w.id === "scratch" ? "No folder: works in Figma and in chat; scratch files stay private" : w.profile === "inspect" ? "Inspect: reads and searches only. No edits, no commands" : "Work: can edit files and run commands in this folder")
+  $("footR").textContent = (w.id === "scratch" ? "Scratch: each conversation gets its own empty folder (no project files, no Git); its files stay with it" : w.profile === "inspect" ? "Inspect: reads and searches only. No edits, no commands" : "Work: can edit files and run commands in this folder")
     + (w.repo ? ` · GitHub: ${w.repo.fullName || "repository no longer registered"} (access per worker)` : "");
-  $("input").placeholder = runId ? "Reply to the worker…" : w.id === "scratch" ? "Message the worker…" : (w.profile === "inspect" ? `Ask the worker to inspect ${w.name}…` : `Ask the worker to inspect or operate on ${w.name}…`);
+  $("input").placeholder = runId ? "Reply to the worker…" : w.id === "scratch" ? "Describe a task that needs no project folder: Figma, Builder, a web page, research…" : (w.profile === "inspect" ? `Ask the worker to inspect ${w.name}…` : `Ask the worker to inspect or operate on ${w.name}…`);
 }
 function selectWorkspace(id, { newChat = true } = {}) {
   if (tm() && teamWs(tm()) !== id) leaveTeam();
@@ -849,7 +1032,7 @@ $("wsList").onclick = async (e) => {
     try {
       WS = await api("DELETE", `/workspaces/${encodeURIComponent(ok.dataset.rmOk)}`);
       removing = null;
-      if (!WS.find((w) => w.id === wsId)) selectWorkspace(WS[0]?.id || null); else renderWorkspaces();
+      if (!WS.find((w) => w.id === wsId)) selectWorkspace(defaultWsId()); else renderWorkspaces();
     } catch (err) { $("rmErr").textContent = err.message; }
     return;
   }
@@ -901,7 +1084,17 @@ $("swMenu").onclick = (e) => { const b = e.target.closest("[data-ws]"); if (b) s
 $("switcher").onclick = (e) => { e.stopPropagation(); const open = $("swMenu").hidden; closeMenus(); $("swMenu").hidden = !open; $("switcher").setAttribute("aria-expanded", open); if (open) $("swMenu").querySelector("button")?.focus(); };
 function closeMenus() { $("swMenu").hidden = true; $("switcher").setAttribute("aria-expanded", "false"); }
 document.addEventListener("click", (e) => { if (!e.target.closest("#swMenu")) closeMenus(); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); } else if (view === "file" || view === "version" || view === "worker" || view === "github") closeFile(); document.body.classList.remove("show-act", "show-nav"); } });
+// Escape closes a menu, then a drawer, then a viewer. On a worker or Team page with unsaved
+// changes it asks first (Keep editing is the default), so a stray Escape never loses a draft.
+document.addEventListener("keydown", async (e) => {
+  if (e.key !== "Escape" || e.defaultPrevented || $("dlg").open) return;
+  if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); return; }
+  if (!$("pickPop").hidden) { closePick(); return; }
+  if (document.body.classList.contains("show-act") || document.body.classList.contains("show-nav")) { closeDrawers(); return; }
+  if (!["file", "version", "worker", "team", "github"].includes(view)) return;
+  e.preventDefault();
+  if (await leaveDraft()) closeFile();
+});
 
 // ---------------- account & usage ----------------
 // The Claude login the workers run as (the runtime's own `claude auth status`), and its plan usage
@@ -994,7 +1187,7 @@ $("addForm").onsubmit = async (e) => {
 };
 
 // ---------------- favourites (the prompt library) ----------------
-async function loadPrompts() { PROMPTS = await api("GET", "/prompts"); renderPrompts(); if (view === "chat" && !runId) renderCanvas(); }
+async function loadPrompts() { PROMPTS = (await api("GET", "/prompts")).map((p) => ({ ...p, title: plainTitle(p.title) || p.title })); renderPrompts(); if (view === "chat" && !runId) renderCanvas(); }
 function renderPrompts() {
   $("favList").innerHTML = PROMPTS.length ? PROMPTS.map((p) => `<li class="fav"><div class="row" style="padding-right:4px">
       <button class="grow" data-p="${esc(p.id)}" title="${esc(p.text)}" style="text-align:left"><span class="star" aria-hidden="true">★</span><span class="ell">${esc(p.title)}</span></button>
@@ -1010,9 +1203,9 @@ $("saveP").onclick = async () => {
   const text = $("input").value.trim();
   if (!text) { notice("Type a prompt first, then save it."); $("input").focus(); return; }
   try {
-    await api("POST", "/prompts", { title: text.split("\n")[0].slice(0, 60), text, favourite: true });
-    $("saveP").textContent = "★ Saved"; $("saveP").classList.add("done");
-    setTimeout(() => { $("saveP").textContent = "☆ Save"; $("saveP").classList.remove("done"); }, 1600);
+    await api("POST", "/prompts", { title: plainTitle(text.split("\n").find((l) => plainTitle(l)) || text).slice(0, 60), text, favourite: true });
+    $("saveP").textContent = "★ Saved to Favourites"; $("saveP").classList.add("done");
+    setTimeout(() => { $("saveP").textContent = "☆ Save as prompt"; $("saveP").classList.remove("done"); }, 1600);
     loadPrompts();
   } catch (err) { notice(err.message); }
 };
@@ -1023,32 +1216,71 @@ async function loadRuns() {
     const r = await api("GET", "/runs");
     RUNS = r.runs; ACTIVE = r.runs.find((x) => x.id === r.active) || null;
     setDot($("srvDot"), ""); renderRuns(); renderWorker();
-  } catch { setDot($("srvDot"), "red"); $("wState").textContent = "Worker · Console offline"; setDot($("wDot"), "red"); }
+  } catch { setDot($("srvDot"), "red"); $("wState").textContent = "Console offline"; setDot($("wDot"), "red"); }
 }
+// A conversation continued in a fresh session is one piece of work: it's listed once (its newest
+// session), titled after what the person originally asked, with the number of sessions.
+const HANDOFF_HEAD = /^# Continuing earlier work/;
+const plainTitle = (s) => String(s || "").replace(/^\s*#+\s*/, "").replace(/[*`_]/g, "").trim();
+function objectiveOf(prompt) {
+  const p = String(prompt || "");
+  if (!HANDOFF_HEAD.test(p)) return p;
+  const i = p.lastIndexOf("## Original objective");
+  return i < 0 ? p : p.slice(p.indexOf("\n", i) + 1);
+}
+function chainOf(r) {
+  const chain = [r];
+  for (let c = r, guard = 0; c.continuedFrom && guard < 50; guard++) { c = RUNS.find((x) => x.id === c.continuedFrom); if (!c) break; chain.push(c); }
+  return chain; // newest first
+}
+function runTitle(r) {
+  const chain = chainOf(r), first = chain[chain.length - 1];
+  return plainTitle(objectiveOf(first.prompt).split("\n").find((l) => l.trim()) || first.prompt) || "Untitled";
+}
+let runScope = store.get("runScope") === "all" ? "all" : "ws";
 function renderRuns() {
-  const all = RUNS.filter((r) => runWs(r) === wsId), mine = all.slice(0, 20);
+  const wsName = (id) => (WS.find((w) => w.id === id) || {}).name || "removed workspace";
+  // a session that was continued is shown through its newest one
+  const heads = RUNS.filter((r) => !(r.continuedIn && RUNS.some((x) => x.id === r.continuedIn)));
+  const all = runScope === "all" ? heads : heads.filter((r) => runWs(r) === wsId), mine = all.slice(0, 25);
   $("runCnt").textContent = all.length || "";
-  // Live runs say their state in words; finished ones show when. The dot is never the only signal.
+  document.querySelectorAll("#leftNav .scope button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === runScope)));
+  $("runScopeWs").textContent = `In ${ws().name}`;
+  // Live and waiting conversations say their state in words; the others show when. A dot is never the only signal.
   $("runList").innerHTML = mine.length ? mine.map((r) => {
-    const st = STATE[r.status] || [r.status, "grey"];
-    const when = ["starting", "running"].includes(r.status) ? `<span class="live-st">${esc(st[0])}</span>` : r.status === "waiting" ? '<span class="wait-st">Waiting</span>' : esc(ago(r.updatedAt || r.createdAt));
-    return `<li><button class="row" data-run="${esc(r.id)}" aria-current="${r.id === runId}" title="${esc(r.prompt)}\n${esc(st[0])}${r.worker?.name ? ` · ${esc(r.worker.name)}` : ""}">
-      <span class="grow"><span class="dot ${st[1]}" aria-hidden="true"></span><span class="sr">${esc(st[0])}: </span><span class="ell">${esc(r.prompt.split("\n")[0])}</span></span><span class="meta m11">${when}</span></button></li>`;
-  }).join("") : '<li class="empty">No runs in this workspace yet</li>';
+    const [label, cls] = runLabel(r), chain = chainOf(r), live = ALIVE.includes(r.status), inChain = chain.some((x) => x.id === runId);
+    const when = live ? `<span class="st-${esc(r.status === "waiting" ? r.outcome || "replied" : "busy")}">${esc(label)}</span>` : esc(ago(r.updatedAt || r.createdAt));
+    const sub = [r.worker?.name || "General", ...(runScope === "all" ? [wsName(runWs(r))] : []), ...(chain.length > 1 ? [`${chain.length} sessions`] : [])].join(" · ");
+    return `<li><button class="row run" data-run="${esc(r.id)}" aria-current="${inChain}" title="${esc(runTitle(r))}&#10;${esc(label)} · ${esc(sub)}">
+      <span class="grow"><span class="dot ${cls}" aria-hidden="true"></span><span class="sr">${esc(label)}: </span><span class="rtx"><span class="ell">${esc(runTitle(r))}</span><span class="rsub ell m11">${esc(sub)}</span></span></span><span class="meta m11">${when}</span></button></li>`;
+  }).join("") : `<li class="empty">${runScope === "all" ? "No conversations yet" : "No conversations in this workspace yet"}</li>`;
 }
+document.querySelector("#leftNav .scope").onclick = (e) => { const b = e.target.closest("[data-scope]"); if (!b) return; runScope = b.dataset.scope; store.set("runScope", runScope); renderRuns(); };
 $("runList").onclick = (e) => { const b = e.target.closest("[data-run]"); if (b) openRun(b.dataset.run); };
+// The header pill: the one conversation that has a live worker, wherever it is. It opens it.
 function renderWorker() {
-  const a = ACTIVE;
-  $("wState").textContent = !a ? "Worker · Ready" : a.status === "waiting" ? "Worker · Waiting" : "Worker · Working";
-  setDot($("wDot"), !a || a.status === "waiting" ? "" : "blue pulse");
+  const a = ACTIVE, [label, cls] = a ? runLabel(a) : ["No conversation active", "grey"];
+  const where = a ? (WS.find((w) => w.id === runWs(a)) || {}).name || "" : "";
+  $("wState").textContent = a ? `${label}${where ? ` · ${where}` : ""}` : label;
+  setDot($("wDot"), cls);
+  $("wPill").disabled = !a || a.id === runId;
+  $("wPill").title = a ? `${a.id === runId ? "This conversation" : `Open “${runTitle(a)}”`}. The console runs one worker at a time.` : "No worker is running. The console runs one worker at a time.";
+  renderRunNote();
 }
+$("wPill").onclick = () => { if (ACTIVE && ACTIVE.id !== runId) { if (view !== "chat") closeFile(); openRun(ACTIVE.id); } };
 
 // ---------------- files ----------------
 const open = new Set();
-async function loadTree() { open.clear(); $("tree").innerHTML = ""; if (wsId) await renderDir("", $("tree"), 0); }
+const SCRATCH_TIP = "Scratch: for work that has no project folder (Figma, Builder, a web page, research). Each conversation gets its own empty folder, kept with it and with the sessions that continue it. No project files, no Git.";
+async function loadTree() {
+  open.clear(); $("tree").innerHTML = "";
+  // Scratch has no files of its own: each conversation's folder is its own, shown while it's open.
+  if (wsId === "scratch" && !(runId && runWs(meta) === "scratch")) { $("tree").innerHTML = '<li class="empty">Each scratch conversation has its own folder. Its files show here while it\'s open.</li>'; return; }
+  if (wsId) await renderDir("", $("tree"), 0);
+}
 async function renderDir(path, ul, depth) {
   let entries;
-  try { entries = await api("GET", `/tree?workspace=${encodeURIComponent(wsId)}&path=${encodeURIComponent(path)}`); }
+  try { entries = await api("GET", `/tree?${filesQ()}&path=${encodeURIComponent(path)}`); }
   catch (e) { ul.innerHTML = `<li class="empty">${esc(e.message === "not found" ? "Folder not available" : e.message)}</li>`; return; }
   if (!entries.length) { ul.innerHTML = `<li class="empty" style="padding-left:${8 + depth * 12}px">Empty</li>`; return; }
   ul.innerHTML = entries.map((e) => `<li role="none"><button class="row" role="treeitem" style="padding-left:${8 + depth * 12}px" data-path="${esc(e.path)}" ${e.dir ? `data-dir="1" aria-expanded="false"` : 'aria-selected="false"'}>
@@ -1060,7 +1292,7 @@ $("tree").onclick = async (e) => {
     const sub = b.nextElementSibling, isOpen = b.getAttribute("aria-expanded") === "true";
     b.setAttribute("aria-expanded", !isOpen); sub.hidden = isOpen;
     if (!isOpen && !sub.dataset.loaded) { sub.dataset.loaded = 1; await renderDir(b.dataset.path, sub, (b.dataset.path.match(/\//g) || []).length + 1); }
-  } else openFile({ path: b.dataset.path, workspace: wsId });
+  } else openFile(runId && runWs(meta) === "scratch" ? { path: b.dataset.path, run: runId } : { path: b.dataset.path, workspace: wsId });
 };
 
 // The viewer only shows text (escaped) or images. Nothing from the file is ever run.
@@ -1086,8 +1318,11 @@ async function openFile({ path, workspace, run }) {
     body.innerHTML = `<div class="code"><div class="ln">${lines.map((_, i) => i + 1).join("\n")}</div><div class="tx">${esc(lines.join("\n"))}</div></div>`;
   } catch (e) { body.innerHTML = `<div class="vnote m11">${esc(e.message)}</div>`; }
 }
+let opener = null; // what opened the current page, so closing it returns focus there
 function closeFile() {
-  wkEdit = null; tmEdit = null;
+  wkEdit = null; tmEdit = null; draft = null;
+  const back = opener; opener = null;
+  setTimeout(() => (back && document.contains(back) ? back : $("input")).focus(), 0);
   verOpen = null; renderVersions();
   setView("chat");
   document.querySelectorAll("#tree [aria-selected]").forEach((b) => b.setAttribute("aria-selected", "false"));
@@ -1110,18 +1345,24 @@ function renderWorkers() {
   const rows = [{ id: null, name: "General", general: true }, ...WK.workers];
   $("wkList").innerHTML = rows.map((x) => {
     const sel = (x.id || null) === wkId, missing = (x.status || []).filter((r) => !r.ok && r.need === "required").length;
-    return `<li class="wsi"><button class="row ws" data-wk="${esc(x.id || "")}" aria-current="${sel}" title="${esc(x.general ? "The general worker: every tool this workspace allows, no definition" : x.mission || x.name)}">
-      <span class="grow">${sel ? '<span class="dot"></span>' : ""}<span class="ell">${esc(x.name)}</span></span>
-      <span class="meta m11">${x.general ? "" : missing ? `<span style="color:var(--err)">${missing} missing</span>` : `v${x.version}`}</span></button>
-      ${x.general ? "" : `<button class="x" data-wk-edit="${esc(x.id)}" aria-label="Define ${esc(x.name)}" title="Define ${esc(x.name)}">${svgIcon("tune", 12, 12)}</button>`}</li>`;
+    const miss = (x.status || []).filter((r) => !r.ok && r.need === "required");
+    const tip = x.general ? "General worker: no definition; it can use every tool this workspace allows" : `${x.mission || x.name}${miss.length ? `\n\nMissing in this workspace:\n${miss.map((r) => `• ${r.label}: ${r.state}${r.how ? ` (${r.how})` : ""}`).join("\n")}` : ""}`;
+    return `<li class="wsi wkr"><button class="row ws" data-wk="${esc(x.id || "")}" aria-current="${sel}" title="${esc(tip)}">
+      <span class="grow"><span class="ell">${esc(x.name)}</span></span>
+      <span class="meta m11">${x.general ? '<span class="sub">no definition</span>' : missing ? `<span class="missing">${missing} missing</span>` : ""}</span></button>
+      ${x.general ? "" : `<button class="ed" data-wk-edit="${esc(x.id)}" aria-label="Edit ${esc(x.name)}" title="Edit ${esc(x.name)} (v${x.version})">${svgIcon("edit", 13, 13)}</button>`}</li>`;
   }).join("");
   $("wkCnt").textContent = WK.workers.length + 1;
   renderComposerWho();
 }
 $("wkList").onclick = (e) => {
   const ed = e.target.closest("[data-wk-edit]"), b = e.target.closest("[data-wk]");
-  if (ed) return openWorkerEditor(ed.dataset.wkEdit);
-  if (b) { wkId = b.dataset.wk || null; store.set("worker", wkId || ""); if (tm() && !tm().workers.includes(wkId)) leaveTeam(); renderWorkers(); openNewChat(); }
+  if (ed) { opener = ed; return openWorkerEditor(ed.dataset.wkEdit); }
+  if (b) {
+    wkId = b.dataset.wk || null; store.set("worker", wkId || "");
+    if (tm() && !tm().workers.includes(wkId)) { const name = tm().name; leaveTeam(); notice(`Left the ${name} team: ${wk()?.name || "General"} isn't a member.`, { info: true }); }
+    renderWorkers(); openNewChat();
+  }
 };
 $("addWk").onclick = () => openWorkerEditor(null);
 const BLANK = { name: "", mission: "", specialization: "", capabilities: ["files.read"], knowledge: "", workflow: [], limitations: [], requirements: [], onMissing: "" };
@@ -1132,23 +1373,26 @@ function openWorkerEditor(id, note) {
   const d = id ? WK.workers.find((x) => x.id === id) : { ...BLANK };
   if (!d) return;
   wkEdit = { id, reqs: (d.requirements || []).map((r) => ({ ...r })), confirmDelete: false };
-  const inspect = WK.profile === "inspect";
+  // A definition is the same in every workspace: what a tool needs is a property of the tool, and
+  // what the selected workspace turns off is said once, above the list.
+  const inspect = WK.profile === "inspect", off = WK.capabilities.filter((c) => !c.profiles.includes("inspect") && d.capabilities.includes(c.id));
   const capRows = WK.capabilities.map((c) => {
     const workOnly = !c.profiles.includes("inspect");
-    return `<li><label class="cap"><input type="checkbox" data-cap="${esc(c.id)}" ${d.capabilities.includes(c.id) ? "checked" : ""}><span class="t"><span>${esc(c.label)}${workOnly ? ` <span class="d m11">· Work workspaces only</span>` : ""}${workOnly && inspect ? ` <span class="off m11">· not in this workspace</span>` : ""}</span><span class="d m11">${esc(c.tools)}</span></span></label></li>`;
+    return `<li><label class="cap"><input type="checkbox" data-cap="${esc(c.id)}" ${d.capabilities.includes(c.id) ? "checked" : ""}><span class="t"><span>${esc(c.label)}${workOnly ? ` <span class="needs m11">needs a Work workspace</span>` : ""}</span><span class="d m11">${esc(c.tools)}</span></span></label></li>`;
   }).join("");
+  const capNote = inspect && off.length ? `<span class="sub m11 off">In ${esc(ws().name)} (Inspect) ${plural(off.length, "checked tool")} ${off.length === 1 ? "is" : "are"} turned off: ${esc(off.map((c) => c.label).join(", "))}.</span>` : "";
   // Repository access: none unless chosen here, per registered repository.
   const repoRows = (WK.repos || []).map((r) => { const cur = ((d.repos || []).find((g) => g.repo === r.id) || {}).level || "";
     return `<div class="wrepo"><span class="ell">${esc(r.fullName)}${r.status !== "ok" ? ' <span class="err m11">needs attention</span>' : ""}</span><select data-repo="${esc(r.id)}" aria-label="Access to ${esc(r.fullName)}"><option value="">No access</option>${(WK.repoLevels || []).map((l) => `<option value="${l.id}" ${cur === l.id ? "selected" : ""}>${esc(l.label)}</option>`).join("")}</select></div>`; }).join("");
   const title = id ? `${d.name} · v${d.version}` : "New worker";
-  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="${esc(title)}"><div class="vbar m11"><span class="ell">${esc(title)}</span><span class="ro">${id ? "edits apply to new chats" : ""}</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="${esc(title)}"><div class="vbar m11"><span class="ell">${esc(title)}</span><span class="ro">${id ? "Applies to new conversations; open ones keep their version" : "A definition: nothing runs until you start a task"}</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
     <div class="vbody"><form class="wform" id="wkForm" novalidate>
       <div class="wrow2">
-        <label class="wf"><span class="lab">Name</span><input class="wfield" id="wkN" maxlength="60" value="${esc(d.name)}" placeholder="Figma Specialist" autocomplete="off"></label>
-        <label class="wf"><span class="lab">Specialization</span><input class="wfield" id="wkS" maxlength="200" value="${esc(d.specialization)}" placeholder="Figma design and implementation" autocomplete="off"></label>
+        <label class="wf"><span class="lab">Name</span><input class="wfield" id="wkN" maxlength="60" value="${esc(d.name)}" placeholder="e.g. Figma Specialist" autocomplete="off"></label>
+        <label class="wf"><span class="lab">Specialization</span><input class="wfield" id="wkS" maxlength="200" value="${esc(d.specialization)}" placeholder="e.g. Figma design and implementation" autocomplete="off"></label>
       </div>
       <label class="wf"><span class="lab">Mission</span><textarea class="wtext" id="wkM" rows="2" maxlength="600" placeholder="What this worker is for, in a sentence or two">${esc(d.mission)}</textarea></label>
-      <div class="wf"><span class="lab">What it can use</span><span class="sub m11">Only checked tools are loaded. A tool gives no access by itself: requirements and the workspace decide that.</span><ul class="caps">${capRows}</ul></div>
+      <div class="wf"><span class="lab">What it can use</span><span class="sub m11">Only checked tools are loaded. A tool gives no access by itself: requirements and the workspace decide that.</span>${capNote}<ul class="caps">${capRows}</ul></div>
       <div class="wf"><span class="lab">Repositories</span><span class="sub m11">Access to registered GitHub repositories, in a workspace assigned to that repository. Enforced by the console and the runtime; an Inspect workspace caps it at Read.</span>${repoRows || '<span class="sub m11">No registered repositories yet (GitHub, in the sidebar).</span>'}</div>
       <label class="wf"><span class="lab">How it works</span><span class="sub m11">One step per line, in order.</span><textarea class="wtext" id="wkW" rows="5" placeholder="Understand the request&#10;Check access to everything it needs&#10;Inspect&#10;Plan&#10;Do the work&#10;Verify&#10;Report">${esc(d.workflow.join("\n"))}</textarea></label>
       <label class="wf"><span class="lab">What it knows</span><span class="sub m11">Domain knowledge, conventions, operating principles.</span><textarea class="wtext" id="wkK" rows="6">${esc(d.knowledge)}</textarea></label>
@@ -1164,6 +1408,7 @@ function openWorkerEditor(id, note) {
   $("wkCancel").onclick = closeFile;
   $("wkForm").onsubmit = (e) => { e.preventDefault(); saveWorker(); };
   if (id) { $("wkDel").onclick = () => deleteWorker(id); loadMemory(id); }
+  trackDraft("worker", saveWorker);
   $("wkN").focus();
 }
 function renderReqs(d) {
@@ -1186,8 +1431,9 @@ async function saveWorker() {
     const w = wkEdit.id ? await api("PUT", `/workers/${encodeURIComponent(wkEdit.id)}`, body) : await api("POST", "/workers", body);
     wkId = w.id; store.set("worker", w.id);
     await loadWorkers();
-    openWorkerEditor(w.id, `Saved v${w.version}. New chats use it; earlier runs keep the version they started with.`);
-  } catch (e) { $("wkMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+    openWorkerEditor(w.id, `Saved v${w.version}. New conversations use it; open ones keep the version they started with.`);
+    return true;
+  } catch (e) { $("wkMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; return false; }
 }
 async function deleteWorker(id) {
   if (!wkEdit.confirmDelete) { wkEdit.confirmDelete = true; $("wkDel").textContent = "Delete: sure?"; $("wkMsg").textContent = "Its past runs stay readable; its memory is deleted."; return; }
@@ -1197,12 +1443,17 @@ async function deleteWorker(id) {
 async function loadMemory(id) {
   let m; try { m = await api("GET", `/workers/${encodeURIComponent(id)}/memory`); } catch { return; }
   const ul = $("wkMem"); if (!ul) return;
-  ul.innerHTML = m.length ? m.map((x, i) => `<li><span class="when m11">${esc(new Date(x.at).toLocaleDateString())}</span><span style="flex:1">${esc(x.text)}</span><button type="button" class="iconbtn" data-mem-del="${i}" aria-label="Forget this">${svgIcon("close", 12, 12)}</button></li>`).join("") + '<li><button type="button" class="btn m11" id="wkMemClear">Clear memory</button></li>' : '<li class="when m11">Nothing yet.</li>';
+  ul.innerHTML = m.length ? m.map((x, i) => `<li><span class="when m11">${esc(new Date(x.at).toLocaleDateString())}</span><span style="flex:1">${esc(x.text)}</span><button type="button" class="iconbtn" data-mem-del="${i}" aria-label="Forget this">${svgIcon("close", 12, 12)}</button></li>`).join("") + '<li><button type="button" class="btn danger" id="wkMemClear">Clear memory…</button></li>' : '<li class="when m11">Nothing yet.</li>';
   ul.onclick = async (e) => {
     const b = e.target.closest("[data-mem-del]");
     if (b) await api("DELETE", `/workers/${encodeURIComponent(id)}/memory/${b.dataset.memDel}`);
-    else if (e.target.id === "wkMemClear") await api("DELETE", `/workers/${encodeURIComponent(id)}/memory`);
-    else return;
+    else if (e.target.id === "wkMemClear") {
+      // Irreversible: every remembered item goes, and later conversations start without them.
+      const r = await ask({ title: `Clear ${plural(m.length, "remembered item")}?`, body: "<p>This worker forgets everything it chose to remember. Its next conversations start without it. This can't be undone; its definition and past conversations are not affected.</p>",
+        actions: [{ id: "cancel", label: "Cancel" }, { id: "clear", label: "Clear memory", kind: "danger" }], focus: "cancel" });
+      if (r !== "clear") return;
+      await api("DELETE", `/workers/${encodeURIComponent(id)}/memory`);
+    } else return;
     loadMemory(id); loadWorkers();
   };
 }
@@ -1310,7 +1561,7 @@ async function ghClick(e) {
 let TM = { teams: [], enforceable: [] }, tmId = store.get("team") || null, tmEdit = null;
 const tm = () => TM.teams.find((t) => t.id === tmId) || null;
 const teamWs = (t) => t.workspace || "scratch";
-const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const plural = (n, w) => `${n} ${n === 1 ? w : /(s|x|ch|sh)$/.test(w) ? w + "es" : /[^aeiou]y$/.test(w) ? w.slice(0, -1) + "ies" : w + "s"}`;
 async function loadTeams() {
   try { TM = await api("GET", "/teams"); } catch { return; }
   if (tmId && !tm()) leaveTeam(false);
@@ -1319,9 +1570,10 @@ async function loadTeams() {
 }
 function renderTeams() {
   $("tmList").innerHTML = TM.teams.length ? TM.teams.map((t) => {
-    const sel = t.id === tmId, missing = t.status.filter((r) => !r.ok && r.need === "required").length;
-    return `<li class="wsi"><button class="row ws" data-tm="${esc(t.id)}" aria-current="${sel}" title="${esc(t.description || t.name)}"><span class="grow">${sel ? '<span class="dot"></span>' : ""}<span class="ell">${esc(t.name)}</span></span>
-      <span class="meta m11">${missing ? `<span style="color:var(--err)">${missing} missing</span>` : `v${t.version}`}</span></button></li>`;
+    const sel = t.id === tmId, miss = t.status.filter((r) => !r.ok && r.need === "required"), missing = miss.length;
+    const tip = `${t.description || t.name}${sel ? "\n\nYou're working as this team." : "\n\nOpen to view; use “Work with this team” to start tasks as it."}${missing ? `\n\nMissing:\n${miss.map((r) => `• ${r.label}: ${r.state}`).join("\n")}` : ""}`;
+    return `<li class="wsi"><button class="row ws" data-tm="${esc(t.id)}" aria-current="${sel}" title="${esc(tip)}"><span class="grow"><span class="ell">${esc(t.name)}</span></span>
+      <span class="meta m11">${sel ? '<span class="badge">working as</span>' : ""}${missing ? `<span class="missing">${missing} missing</span>` : ""}</span></button></li>`;
   }).join("") : '<li class="empty">No teams yet</li>';
   $("tmCnt").textContent = TM.teams.length || "";
 }
@@ -1337,7 +1589,19 @@ function renderComposerWho() {
   $("cWho").title = (!runId && k ? k.specialization || k.mission : "") || "";
   $("cAv").textContent = initials(name);
   $("cAv").classList.toggle("team", !!team);
+  // Run header actions: edit the definition this conversation uses; leave a team before starting.
+  const defId = runId ? meta?.worker?.id : k?.id;
+  $("cEdit").hidden = !(defId && WK.workers.some((w) => w.id === defId));
+  $("cEdit").dataset.editWk = defId || "";
+  $("cLeave").hidden = !(t && !runId);
+  // An open conversation's worker and workspace are fixed; the pickers say so instead of acting.
+  for (const id of ["wkPick", "wsPick"]) {
+    $(id).disabled = !!runId;
+    $(id).title = runId ? "This conversation's worker and workspace are fixed. Start a new task to change them." : id === "wkPick" ? "Choose the worker for a new task" : "Choose the workspace for a new task";
+  }
 }
+$("cEdit").onclick = () => { if ($("cEdit").dataset.editWk) { opener = $("cEdit"); openWorkerEditor($("cEdit").dataset.editWk); } };
+$("cLeave").onclick = () => leaveTeam();
 function renderTeamPrompts() {
   const t = tm(); $("tpSect").hidden = !t;
   if (!t) return;
@@ -1359,7 +1623,9 @@ function leaveTeam(render = true) {
   tmId = null; store.set("team", "");
   if (render) { renderTeams(); renderTeamPrompts(); renderComposerWho(); if (view === "chat" && !runId) renderCanvas(); }
 }
-$("tmList").onclick = (e) => { const b = e.target.closest("[data-tm]"); if (!b) return; enterTeam(b.dataset.tm); openNewChat(); openTeamPage(b.dataset.tm); };
+// Opening a team only shows it. Working as it (its workspace, its workers, its context) is a
+// separate, explicit step: "Work with this team", or Chat next to one of its workers.
+$("tmList").onclick = (e) => { const b = e.target.closest("[data-tm]"); if (!b) return; opener = b; openTeamPage(b.dataset.tm); };
 $("addTm").onclick = () => openTeamPage(null);
 $("tmLeave").onclick = () => leaveTeam();
 $("tpList").onclick = (e) => {
@@ -1390,20 +1656,22 @@ function openTeamPage(id, note) {
   const d = id ? TM.teams.find((x) => x.id === id) : { ...TBLANK, workspace: wsId };
   if (!d) return;
   tmEdit = { id, knowledge: d.knowledge.map((k) => ({ ...k })), policies: d.policies.map((p) => ({ ...p })), prompts: d.prompts.map((p) => ({ ...p })), reqs: d.requirements.map((r) => ({ ...r })), status: d.status || [], confirmDelete: false };
-  const title = id ? `${d.name} · v${d.version}` : "New team";
-  const wsOpts = WS.map((w) => `<option value="${esc(w.id)}" ${teamWs(d) === w.id ? "selected" : ""}>${esc(w.name)}${w.id === "scratch" ? "" : ` · ${modeOf(w)}`}</option>`).join("");
+  const title = id ? `${d.name} · v${d.version}` : "New team", inTeam = id && tmId === id;
+  const wsOpts = WS.map((w) => `<option value="${esc(w.id)}" ${teamWs(d) === w.id ? "selected" : ""}>${esc(w.name)}${w.id === "scratch" ? " · no project (a new folder per conversation)" : ` · ${modeOf(w)}`}</option>`).join("");
   const workerRows = WK.workers.length ? WK.workers.map((w) => `<li><label class="cap"><input type="checkbox" data-tw="${esc(w.id)}" ${d.workers.includes(w.id) ? "checked" : ""}><span class="t"><span>${esc(w.name)}</span><span class="d m11">${esc(w.specialization || w.mission || "")}</span></span>${id && d.workers.includes(w.id) ? `<button type="button" class="btn m11 tchat" data-tchat="${esc(w.id)}">Chat</button>` : ""}</label></li>`).join("")
     : '<li class="sub m11">No workers yet: define them under Workers first.</li>';
   const plus = `<svg class="i" width="9" height="9" viewBox="${ICONS.plus.vb}"><path d="${ICONS.plus.d[0]}"/></svg>`;
-  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="${esc(title)}"><div class="vbar m11"><span class="ell">${esc(title)}</span><span class="ro">${id ? "edits apply to new chats" : ""}</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="${esc(title)}"><div class="vbar m11"><span class="ell">${esc(title)}</span><span class="ro">${id ? "Applies to new conversations" : "A definition: nothing runs until you start a task"}</span>
+      ${id ? (inTeam ? '<span class="badge">You\'re working as this team</span><button type="button" class="btn" id="tmLeaveP">Leave team</button>' : `<button type="button" class="btn pri" id="tmEnter" title="Start tasks as a member of this team: its workspace, workers and shared context">Work with this team</button>`) : ""}
+      <button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
     <div class="vbody">${id ? teamSummary(d) : ""}<form class="wform" id="tmForm" novalidate>
-      <div class="wrow2"><label class="wf"><span class="lab">Name</span><input class="wfield" id="tmN" maxlength="60" value="${esc(d.name)}" placeholder="MATW" autocomplete="off"></label>
-        <label class="wf"><span class="lab">Description</span><input class="wfield" id="tmD" maxlength="300" value="${esc(d.description)}" placeholder="Engineering & Design Team" autocomplete="off"></label></div>
+      <div class="wrow2"><label class="wf"><span class="lab">Name</span><input class="wfield" id="tmN" maxlength="60" value="${esc(d.name)}" placeholder="e.g. MATW" autocomplete="off"></label>
+        <label class="wf"><span class="lab">Description</span><input class="wfield" id="tmD" maxlength="300" value="${esc(d.description)}" placeholder="e.g. Engineering & Design Team" autocomplete="off"></label></div>
       <div class="wf"><span class="lab">Workers</span><span class="sub m11">Each keeps its own definition, tools and memory; the Team adds shared context. Chat starts a conversation with that worker as a member of this Team.</span><ul class="caps" id="tmW">${workerRows}</ul></div>
       <div class="wf"><span class="lab">Resources</span>
         <label class="trow"><span class="m11 k">Workspace</span><select class="wfield" id="tmWs">${wsOpts}</select></label>
         <label class="trow"><span class="m11 k">Figma file</span><input class="wfield" id="tmFu" maxlength="500" value="${esc(d.figma?.url || "")}" placeholder="https://www.figma.com/design/…" autocomplete="off"></label>
-        <label class="trow"><span class="m11 k">Figma name</span><input class="wfield" id="tmFn" maxlength="80" value="${esc(d.figma?.name || "")}" placeholder="MATW Figma" autocomplete="off"></label>
+        <label class="trow"><span class="m11 k">Figma name</span><input class="wfield" id="tmFn" maxlength="80" value="${esc(d.figma?.name || "")}" placeholder="e.g. MATW Figma" autocomplete="off"></label>
         <span class="sub m11">The Team's workers run in this workspace, with its own mode (Inspect or Work). The Figma link grants no access: reading it still needs Figma authorization. In the Team's runs the Figma tools only act on this file.</span></div>
       <div class="wf"><span class="lab">Knowledge</span><span class="sub m11"><span class="tag ref">Workspace file</span> a reference: workers read the current file. <span class="tag up">Uploaded</span> a document stored with the Team; each run gets its own copy.</span>
         <ul class="klist" id="tmK"></ul>
@@ -1436,10 +1704,17 @@ function openTeamPage(id, note) {
   $("tmUpIn").onchange = async () => { await addTeamUploads([...$("tmUpIn").files]); $("tmUpIn").value = ""; };
   wireKnowledgePicker();
   if (id) { $("tmDel").onclick = () => deleteTeamPage(id); loadTeamVersions(id); }
+  $("tmEnter") && ($("tmEnter").onclick = async () => { if (!(await leaveDraft())) return; enterTeam(id); closeFile(); openNewChat(); });
+  $("tmLeaveP") && ($("tmLeaveP").onclick = () => { leaveTeam(); openTeamPage(id); });
+  trackDraft("team", saveTeamPage);
   $("tmN").focus();
 }
 function renderTeamKnowledge() {
   const ws = $("tmWs").value;
+  // A team in Scratch has no project files to reference (each conversation's folder starts empty): uploads only.
+  const kp = $("tmKq").closest(".kpick"); kp.hidden = ws === "scratch";
+  let kn = $("tmKnScratch"); if (!kn) { kp.insertAdjacentHTML("beforebegin", '<span class="sub m11" id="tmKnScratch">Scratch has no project files to reference: upload the documents the team needs.</span>'); kn = $("tmKnScratch"); }
+  kn.hidden = ws !== "scratch";
   $("tmK").innerHTML = tmEdit.knowledge.length ? tmEdit.knowledge.map((k, i) => {
     const other = k.type === "workspace_file" && k.workspaceId && k.workspaceId !== ws;
     const label = k.type === "upload"
@@ -1514,9 +1789,10 @@ async function saveTeamPage() {
     policies: tmEdit.policies, instructions: $("tmI").value, requirements: tmEdit.reqs, prompts: tmEdit.prompts };
   try {
     const t = tmEdit.id ? await api("PUT", `/teams/${encodeURIComponent(tmEdit.id)}`, body) : await api("POST", "/teams", body);
-    await loadTeams(); enterTeam(t.id);
-    openTeamPage(t.id, `Saved v${t.version}. New chats use it; earlier runs keep the version they started with.`);
-  } catch (e) { $("tmMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+    await loadTeams();
+    openTeamPage(t.id, `Saved v${t.version}. New conversations use it; open ones keep the version they started with.`);
+    return true;
+  } catch (e) { $("tmMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; return false; }
 }
 async function deleteTeamPage(id) {
   if (!tmEdit.confirmDelete) { tmEdit.confirmDelete = true; $("tmDel").textContent = "Delete: sure?"; $("tmMsg").textContent = "Its runs stay readable and keep the Team version they used."; return; }
@@ -1540,9 +1816,9 @@ async function loadGit() {
 function renderVersions() {
   const g = gitFor === wsId ? GIT : null, ul = $("verList");
   if (!wsId) { ul.innerHTML = ""; return; }
-  if (!g) { ul.innerHTML = '<li class="empty">…</li>'; return; }
+  if (!g) { ul.innerHTML = '<li class="empty">Loading changes and versions…</li>'; return; }
   if (g.error) { ul.innerHTML = `<li class="empty">${esc(g.error)}</li>`; return; }
-  if (!g.repo) { ul.innerHTML = `<li class="empty">${wsId === "scratch" ? "No project folder" : "Not a Git repository"}</li>`; return; }
+  if (!g.repo) { ul.innerHTML = `<li class="empty">${wsId === "scratch" ? "Scratch has no version history. Use a project folder for Git." : "Not a Git repository"}</li>`; return; }
   const cur = verOpen?.rev;
   const wc = `<li><button class="row" data-rev="WORKTREE" aria-current="${cur === "WORKTREE"}" title="Uncommitted changes in this folder">
       <span class="grow"><span class="dot ${g.changeCount ? "blue" : ""}"></span><span class="ell">Working copy</span></span>
@@ -1576,11 +1852,13 @@ async function openVersion(rev, { keepScroll } = {}) {
     if (!g.canWrite) actions = '<div class="vact"><span class="txt m11">Commit and push are available in Work workspaces. This one is Inspect.</span></div>';
     else if (onProt) actions = `<div class="vact" id="vProtected"><span class="tag enf m11">Enforced</span><span class="txt m11">${esc(onProt.branch)} is protected by the ${esc(onProt.team)}: nothing is committed to it or pushed to it from here. Switch to another branch to commit.</span></div>`;
     else {
-      if (v.files.length) actions += `<div class="vact"><label class="sr" for="cMsg">Describe this version</label><input id="cMsg" class="vinput" maxlength="5000" placeholder="Describe this version (commit message)" autocomplete="off"><button class="btn pri m11" id="cBtn">Commit</button></div>`;
+      // What a commit takes and where it goes, said on the button: every listed change, on this branch, on this computer.
+      if (v.files.length) actions += `<div class="vact col"><label class="lab" for="cMsg">Commit message</label><textarea id="cMsg" class="vinput" rows="2" maxlength="5000" placeholder="Describe this version" autocomplete="off"></textarea>
+        <div class="vrow"><span class="txt m11">Includes all ${plural(v.files.length, "changed file")} listed above (there's no file selection). It stays on this computer until you push. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> commits.</span><button class="btn pri" id="cBtn">Commit ${plural(v.files.length, "file")} to ${esc(g.detached ? "this commit" : g.branch || "this branch")}</button></div></div>`;
       if (toProt) actions += `<div class="vact" id="vProtected"><span class="tag enf m11">Enforced</span><span class="txt m11">Pushing goes to ${esc(g.remote)}/${esc(toProt.branch)}, which the ${esc(toProt.team)} protects: nothing is pushed to it from here.</span></div>`;
       else if (g.detached) actions += '<div class="vact"><span class="txt m11">Not on a branch, so there is nothing to push.</span></div>';
       else if (!g.remote) actions += '<div class="vact"><span class="txt m11">No remote: versions stay on this computer.</span></div>';
-      else if (g.ahead) actions += `<div class="vact"><span class="txt m11">↑ ${g.ahead} commit${g.ahead === 1 ? "" : "s"} not on ${g.github ? "GitHub" : esc(g.remote)} · ${esc(g.remote)}/${esc(g.target)}</span><button class="btn pri m11" id="pBtn">Push to ${g.github ? "GitHub" : esc(g.remote)}</button></div>`;
+      else if (g.ahead) actions += `<div class="vact"><span class="txt m11">${plural(g.ahead, "commit")} on this computer only, not yet on ${g.github ? "GitHub" : esc(g.remote)}.</span><button class="btn pri" id="pBtn">Push ${plural(g.ahead, "commit")} to ${esc(g.remote)}/${esc(g.target)}</button></div>`;
       else if (!v.files.length) actions += `<div class="vact"><span class="txt m11">Nothing to commit. Everything is on ${esc(g.remote)}/${esc(g.target)}.</span></div>`;
     }
   } else {
@@ -1597,7 +1875,8 @@ async function openVersion(rev, { keepScroll } = {}) {
     else if (rl) openRun(rl.dataset.run);
   };
   $("cBtn") && ($("cBtn").onclick = () => doCommit());
-  $("cMsg") && $("cMsg").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doCommit(); } });
+  // Enter makes a new line in the message; committing is the button, or Ctrl+Enter.
+  $("cMsg") && $("cMsg").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); doCommit(); } });
   $("pBtn") && ($("pBtn").onclick = () => doPush());
 }
 function wireViewer() { $("vClose") && ($("vClose").onclick = closeFile); }
@@ -1640,6 +1919,11 @@ async function doCommit() {
   await loadGit(); openVersion("WORKTREE");
 }
 async function doPush() {
+  // Publishing: confirmed, with exactly what goes where.
+  const g = GIT || {}, list = (g.commits || []).filter((c) => !c.pushed).slice(0, 8);
+  const r = await ask({ title: `Push ${plural(g.ahead || list.length, "commit")}?`, body: `<p>They go to <b>${esc(g.remote)}/${esc(g.target)}</b>${g.github ? " on GitHub" : ""}, using your own Git sign-in. Anyone with access to that repository will see them. It's a normal push, never a force push.</p>${list.length ? `<ul class="plist">${list.map((c) => `<li><code>${esc(c.short)}</code> ${esc(c.subject)}</li>`).join("")}</ul>` : ""}`,
+    actions: [{ id: "cancel", label: "Cancel" }, { id: "push", label: `Push to ${g.remote}/${g.target}`, kind: "pri" }], focus: "cancel" });
+  if (r !== "push") return;
   $("pBtn").disabled = true; $("pBtn").textContent = "Pushing…";
   try { const r = await api("POST", "/git/push", { workspace: wsId, run: actionRun() }); gitResult[wsId] = { ok: true, text: `${r.summary}.` }; }
   catch (e) { gitResult[wsId] = { ok: false, text: e.message }; }
@@ -1647,10 +1931,15 @@ async function doPush() {
 }
 
 // ---------------- chat + activity for one run ----------------
-function freshState() { return { items: [], cards: [], openTools: new Map(), turnStart: null, lastSecs: null, status: null, current: null, n: 0, arts: new Set() }; }
+// outcome: undefined until a status event says (then the server's, or derived from the turn's events
+// for logs written before the server recorded it). arts: every file written; declared: the files
+// the worker named as the result (ARTIFACT:). toolCards: tool rows by ref, to link the file a write produced.
+function freshState() { return { items: [], cards: [], openTools: new Map(), toolCards: new Map(), turnStart: null, lastSecs: null, status: null, outcome: undefined, guess: "replied", current: null, n: 0, arts: new Set(), declared: new Set(), group: null }; }
 function openNewChat() {
   if (es) { es.close(); es = null; }
+  const wasScratchRun = runId && runWs(meta) === "scratch";
   runId = null; meta = null; T = freshState(); setView("chat"); verOpen = null; renderVersions();
+  if (wasScratchRun) loadTree(); // back to "no files yet" for a new scratch task
   resetActivity(); renderCanvas(); renderRunState(); renderRuns(); renderWorkspaces(); $("live").hidden = true;
   $("input").focus();
 }
@@ -1663,30 +1952,43 @@ async function openRun(id) {
     if (WS.find((w) => w.id === runWs(meta))) { wsId = runWs(meta); store.set("ws", wsId); renderWorkspaces(); loadTree(); loadGit(); }
     else notice("This run's workspace was removed. You can read the conversation but not continue it.");
   }
+  if (runWs(meta) === "scratch" && wsId === "scratch") loadTree(); // this conversation's own folder
   renderRuns(); renderWorkspaces();
   // The server replays a run's whole event log on every connection (including automatic
   // reconnects), so the view is rebuilt from scratch each time the stream opens.
   es = new EventSource(`/events?run=${encodeURIComponent(id)}`);
-  es.onopen = () => { T = freshState(); T.status = meta.status; resetActivity(); renderCanvas(); };
+  es.onopen = () => { T = freshState(); T.status = meta.status; T.outcome = meta.outcome; resetActivity(); renderCanvas(); };
   es.onmessage = (m) => onEvent(JSON.parse(m.data));
   es.onerror = () => { $("live").hidden = true; };
-  T = freshState(); T.status = meta.status; resetActivity(); renderCanvas(); renderRunState();
+  T = freshState(); T.status = meta.status; T.outcome = meta.outcome; resetActivity(); renderCanvas(); renderRunState();
+}
+// How a turn ended, from its own events (the same rule as the server's, for older logs).
+const guessOutcome = (tags, err) => (tags.has("needs") ? "needs" : err || (tags.has("failure") && !tags.has("recovery") && !tags.has("done")) ? "error" : tags.has("done") ? "done" : "replied");
+// A path as people read it: inside the run's workspace, relative; elsewhere, the last two parts (full path on hover).
+function shortPath(p) {
+  const s = String(p || "").replace(/\\/g, "/"), root = String(meta?.workspace?.root || "").replace(/\\/g, "/");
+  if (root && s.toLowerCase().startsWith(root.toLowerCase() + "/")) return s.slice(root.length + 1);
+  if (/^([a-z]:)?\//i.test(s)) { const parts = s.split("/").filter(Boolean); return parts.length > 2 ? "…/" + parts.slice(-2).join("/") : s; }
+  return s;
 }
 
 function onEvent(ev) {
   if (!T) return;
   const t = ev.type, at = Date.parse(ev.ts);
   if (t === "user") {
-    T.items.push({ k: "u", text: ev.summary, atts: ev.attachments || [], mentions: ev.mentions || [] }); T.turnStart = at; T.n++; addTurn(ev);
-    // this turn's execution, summarised in the conversation once it ends (counted from real events)
-    T.x = { k: "x", tools: 0, fails: 0, secs: null, done: false, arts: [] }; T.items.push(T.x);
+    // A continued session's first message is the console's handoff, not something the person typed.
+    const handoff = T.n === 0 && meta?.continuedFrom && HANDOFF_HEAD.test(ev.summary || "");
+    T.items.push(handoff ? { k: "h", text: ev.summary, from: meta.continuedFrom } : { k: "u", text: ev.summary, atts: ev.attachments || [], mentions: ev.mentions || [] });
+    T.turnStart = at; T.n++; addTurn(ev);
+    // this message's work, summarised in the conversation once it ends (counted from real events)
+    T.x = { k: "x", tools: 0, fails: 0, secs: null, done: false, arts: [], decl: [], tags: new Set() }; T.items.push(T.x);
   }
   else if (t === "reply") T.items.push({ k: "w", text: ev.summary });
   else if (t === "tool") {
-    const [verb, arg] = phrase(ev);
-    const card = addCard({ title: ENV_LABEL[ev.env] || ev.env, meta: "Running", metaCls: "run", body: `${esc(verb)}${arg ? ` <code>${esc(arg)}</code>` : ""}`, kind: "tool" });
+    const [verb, arg] = phrase(ev), shown = shortPath(arg);
+    const card = addCard({ title: ENV_LABEL[ev.env] || ev.env, meta: "Running", metaCls: "run", body: `${esc(verb)}${arg ? ` <code title="${esc(arg)}">${esc(shown)}</code>` : ""}`, kind: "tool" });
     if (T.x) T.x.tools++;
-    card.start = at; T.openTools.set(ev.ref || `last:${ev.tool}`, card); T.current = `${verb}${arg ? " " + arg : ""}`;
+    card.start = at; T.openTools.set(ev.ref || `last:${ev.tool}`, card); if (ev.ref) T.toolCards.set(ev.ref, card); T.current = `${verb}${arg ? " " + shown : ""}`;
   } else if (t === "result" || (t === "failure" && ev.tool)) {
     const card = T.openTools.get(ev.ref || `last:${ev.tool}`);
     if (card) {
@@ -1696,11 +1998,22 @@ function onEvent(ev) {
       setCardMeta(card, `${ok ? "Success" : "Failed"} · ${dur(at - card.start)}`, ok ? "ok" : "bad");
       if (!ok) card.el.insertAdjacentHTML("beforeend", `<div class="cx">${esc(ev.summary)}</div>`);
     }
-  } else if (t === "failure") addCard({ title: "Failure", meta: "", body: esc(ev.summary), metaCls: "bad", kind: "alert" });
+  } else if (t === "failure") { T.x?.tags.add("failure"); addCard({ title: "Failure", meta: "", body: esc(ev.summary), metaCls: "bad", kind: "alert" }); }
   else if (["plan", "observation", "decision", "verification", "recovery", "done"].includes(t)) {
-    addCard({ title: t[0].toUpperCase() + t.slice(1), meta: t === "done" ? "Complete" : t === "verification" ? "Check" : "", metaCls: t === "done" || t === "verification" ? "ok" : "", body: esc(ev.summary), kind: t === "done" || t === "verification" ? "done" : "note" });
+    T.x?.tags.add(t);
+    addCard({ title: t[0].toUpperCase() + t.slice(1), meta: t === "done" ? "Reported done" : t === "verification" ? "Check" : "", metaCls: t === "done" || t === "verification" ? "ok" : "", body: esc(ev.summary), kind: t === "done" || t === "verification" ? "done" : "note" });
   } else if (t === "artifact") {
-    if (!T.arts.has(ev.summary)) { T.arts.add(ev.summary); T.x?.arts.push(ev.summary); renderArts(); addCard({ title: "Artifact", meta: "", body: `<span class="link" role="link" tabindex="0" data-art="${esc(ev.summary)}">${esc(ev.summary)}</span>`, kind: "art" }); }
+    // One link per file in Activity: on the tool row that wrote it, or, for a file the worker
+    // named (ARTIFACT:) without writing it here, a Deliverable row of its own.
+    const p = ev.summary, isNew = !T.arts.has(p);
+    if (isNew) { T.arts.add(p); T.x?.arts.push(p); }
+    if (ev.declared) { T.declared.add(p); if (T.x && !T.x.decl.includes(p)) T.x.decl.push(p); }
+    const link = `<span class="link" role="link" tabindex="0" data-art="${esc(p)}">${esc(p)}</span>`;
+    const have = [...$("acts").querySelectorAll("[data-art]")].find((x) => x.dataset.art === p);
+    if (have) { if (ev.declared) { const c = have.closest(".card"); if (c && !c.querySelector(".tag.deliv")) c.querySelector(".ct").insertAdjacentHTML("afterend", '<span class="tag ref deliv">Deliverable</span>'); } }
+    else if (ev.ref && T.toolCards.get(ev.ref)) T.toolCards.get(ev.ref).el.querySelector(".cb").insertAdjacentHTML("beforeend", `<div class="cx">Wrote ${link}</div>`);
+    else addCard({ title: ev.declared ? "Deliverable" : "File written", meta: "", body: link, kind: "art" });
+    renderArts();
   } else if (t === "start") {
     const servers = String(ev.detail || "").replace(/^MCP /, "").split(", ").filter(Boolean).map((s) => { const [n, st] = s.split(": "); return `${n.replace(/-executor$/, "")} ${st}`; });
     addCard({ title: "Worker started", meta: "", body: servers.length ? esc(servers.join(" · ")) : "Claude Code worker process" });
@@ -1713,7 +2026,7 @@ function onEvent(ev) {
   } else if (t === "telemetry") {
     renderTelCard(JSON.parse(ev.detail || "{}"));
   } else if (t === "context") {
-    addCard({ title: "Context warning", meta: "Growing", metaCls: "bad", kind: "alert", body: `${esc(ev.summary)}<div class="cx">Each step re-reads the whole conversation. Compact it, or continue in a fresh session with a handoff.</div>` });
+    addCard({ title: "Context warning", meta: "Getting large", metaCls: "bad", kind: "alert", body: `${esc(ev.summary)}<div class="cx">Every step re-reads the whole conversation, so it gets slower and uses more of your plan. Compact it, or continue in a fresh session (Context &amp; usage, below).</div>` });
   } else if (t === "compacting" || t === "handoff") {
     addCard({ title: t === "compacting" ? "Compacting" : "Handoff", meta: "", body: esc(ev.summary) });
   } else if (t === "compacted") {
@@ -1724,7 +2037,7 @@ function onEvent(ev) {
     addCard({ title: "Continued", meta: d.auto ? "Automatic" : "Fresh session", metaCls: "ok", body: `${d.auto ? esc(ev.summary) + ". " : "This work continues in a new session with a handoff. "}<span class="link" role="link" tabindex="0" data-open-run="${esc(d.run)}">Open it</span>` });
     T.items.push({ k: "s", text: "Continued in a fresh session (see Activity)" });
     // Automatic: follow the work to its new session (only as it happens, not when replaying a log).
-    if (d.auto && Date.now() - Date.parse(ev.ts || 0) < 20000) { const from = runId; setTimeout(async () => { if (runId === from) { await loadRuns(); openRun(d.run); } }, 300); }
+    if (d.auto && Date.now() - Date.parse(ev.ts || 0) < 20000) { const from = runId; setTimeout(async () => { if (runId === from && view === "chat") { await loadRuns(); openRun(d.run); } }, 300); }
   } else if (t === "settings") {
     const d = JSON.parse(ev.detail || "{}");
     addCard({ title: "Model", meta: ev.summary, body: d.live ? "Switched for the worker's next step." : "Applies when this conversation continues." });
@@ -1738,7 +2051,8 @@ function onEvent(ev) {
     const list = JSON.parse(ev.detail || "[]");
     addCard({ title: "Requirements", meta: ev.summary, metaCls: list.some((r) => !r.ok && r.need === "required") ? "bad" : "ok", body: list.length ? list.map((r) => `<div class="wstat ${r.ok ? "ok" : "bad"} m11"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)}${r.source === "team" ? " (Team)" : ""} · ${esc(r.need)} · ${esc(r.state)}${r.detail ? " " + esc(r.detail) : ""}</div>`).join("") : "None declared" });
   } else if (t === "needs") {
-    addCard({ title: "Needs access", meta: "Waiting for you", metaCls: "bad", body: esc(ev.summary), kind: "alert" });
+    T.x?.tags.add("needs");
+    addCard({ title: "Needs access", meta: "Needs your action", metaCls: "bad", body: esc(ev.summary), kind: "alert" });
     T.items.push({ k: "e", text: `Needs: ${ev.summary}` });
   } else if (t === "memory") {
     addCard({ title: ev.ok === false ? "Not remembered" : "Remembered", meta: "", metaCls: ev.ok === false ? "bad" : "ok", body: esc(ev.summary) });
@@ -1751,12 +2065,16 @@ function onEvent(ev) {
     addCard({ title: "Push", meta: ok ? "Pushed" : "Failed", metaCls: ok ? "ok" : "bad", body: esc(ok ? `${ev.summary}${ev.detail ? ` (${ev.detail})` : ""}` : ev.detail || ev.summary) });
     T.items.push({ k: ok ? "s" : "e", text: ok ? ev.summary : `Push failed: ${ev.detail || ""}` });
   } else if (t === "completed") {
-    const d = JSON.parse(ev.detail || "{}"); T.lastSecs = d.seconds; T.turnStart = null; T.current = null;
-    addCard({ title: /error/.test(ev.summary) ? "Turn ended with an error" : "Turn finished", meta: d.seconds != null ? `${d.seconds}s` : "", metaCls: /error/.test(ev.summary) ? "bad" : "ok", body: `${d.turns ?? "?"} step${d.turns === 1 ? "" : "s"}`, kind: "end" });
-    endTurn({ secs: d.seconds ?? null, err: /error/.test(ev.summary) });
+    // The same counting rule as the conversation's summary: actions = the tool calls shown above.
+    const d = JSON.parse(ev.detail || "{}"), err = /error/.test(ev.summary); T.lastSecs = d.seconds; T.turnStart = null; T.current = null;
+    addCard({ title: err ? "Reply ended with an error" : "Reply finished", meta: d.seconds != null ? dur(d.seconds * 1000) : "", metaCls: err ? "bad" : "ok", body: plural(T.x?.tools || 0, "action"), kind: "end" });
+    if (T.x) T.guess = guessOutcome(T.x.tags, err);
+    endTurn({ secs: d.seconds ?? null, err });
   } else if (t === "status") {
     T.status = ev.summary;
     if (meta) meta.status = ev.summary;
+    T.outcome = ev.summary === "waiting" ? ev.outcome || T.guess : null;
+    if (meta) meta.outcome = T.outcome;
     for (const [, c] of T.openTools) if (!ALIVE.includes(ev.summary)) setCardMeta(c, "Interrupted", "bad");
     if (!ALIVE.includes(ev.summary)) { T.openTools.clear(); T.turnStart = null; T.current = null; }
     if (["stopped", "failed", "interrupted"].includes(ev.summary)) {
@@ -1769,30 +2087,35 @@ function onEvent(ev) {
   }
   scheduleCanvas();
 }
-// Cards in the activity panel: only real worker events, newest last.
+// Cards in the activity panel: only real worker events, newest last. Setup (worker, requirements,
+// Team) comes first; then one group per message, the earlier ones folded.
 // kind: tool (a compact row), note / done (the worker's own PLAN…DONE lines), alert, art, end; none = setup and system.
 function addCard({ title, meta: m, metaCls = "", body, kind = "" }) {
   const el = document.createElement("li");
   el.className = "card" + (kind ? " k-" + kind : "");
   el.innerHTML = `<div class="ch"><span class="ct m12 ell">${esc(title)}</span><span class="cm m11 ${metaCls}">${m ? esc(m) : ""}</span></div><div class="cb">${body}</div>`;
   const list = $("acts"), atEnd = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
-  list.appendChild(el); if (atEnd) list.scrollTop = list.scrollHeight;
+  (T.group?.cards || list).appendChild(el); if (atEnd) list.scrollTop = list.scrollHeight;
   const card = { el }; T.cards.push(card); return card;
 }
-// A turn's summary goes into the conversation when it ends; its deliverables follow the reply.
+// A message's summary goes into the conversation when it ends; the files it produced follow the reply.
 function endTurn({ secs = null, err = false, stopped = false }) {
   const x = T.x; if (!x || x.done) return;
   Object.assign(x, { done: true, secs, err, stopped: stopped && secs == null });
-  if (x.arts.length) T.items.push({ k: "a", list: [...x.arts] });
+  if (x.arts.length || x.decl.length) T.items.push({ k: "a", list: [...x.arts], decl: [...x.decl] });
   T.x = null;
 }
 function setCardMeta(card, text, cls) { const m = card.el.querySelector(".cm"); m.className = `cm m11 ${cls}`; m.textContent = text; }
 function addTurn(ev) {
-  if (T.n < 2) return;
-  const el = document.createElement("li"); el.className = "turn m11";
-  el.textContent = `Message ${T.n} · ${new Date(ev.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  $("acts").appendChild(el);
+  if (T.group) T.group.details.open = false;
+  const li = document.createElement("li"); li.className = "tgrp";
+  const when = new Date(ev.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  li.innerHTML = `<details open><summary class="m11${T.n >= 2 ? " turn" : ""}">Message ${T.n} · ${esc(when)}</summary><ol class="tcards"></ol></details>`;
+  $("acts").appendChild(li);
+  T.group = { details: li.querySelector("details"), cards: li.querySelector(".tcards") };
 }
+// Activity filter: everything, the worker's notes and alerts, or the tool calls.
+$("actFilter").onclick = (e) => { const b = e.target.closest("[data-f]"); if (!b) return; $("acts").dataset.f = b.dataset.f; $("actFilter").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); };
 $("acts").onclick = (e) => { const a = e.target.closest("[data-art]"); if (a) openFile({ path: a.dataset.art, run: runId }); };
 $("acts").onkeydown = (e) => { if (e.key === "Enter") { const a = e.target.closest("[data-art]"); if (a) openFile({ path: a.dataset.art, run: runId }); } };
 async function refreshMeta() { if (!runId) return; const id = runId; try { const m = await api("GET", `/runs/${id}`); if (runId === id) { meta = m; renderRunState(); } } catch {} }
@@ -1811,29 +2134,40 @@ function starters(t) {
   return `<div class="starters"><span class="lab">Start from a saved prompt</span><ul>${list.map((p) => `<li><button type="button" class="starter" data-starter="${esc(p.key)}" title="${esc(p.text)}"><span class="st-t ell">${p.team ? "◆" : "★"} ${esc(p.title)}</span><span class="st-d">${esc(p.text)}</span></button></li>`).join("")}</ul></div>`;
 }
 $("canvas").addEventListener("click", (e) => {
-  const s = e.target.closest("[data-starter]"), a = e.target.closest("[data-xart]");
+  const s = e.target.closest("[data-starter]"), a = e.target.closest("[data-xart]"), o = e.target.closest("[data-open-run]");
+  if (o) return openRun(o.dataset.openRun);
   if (a && runId) return openFile({ path: a.dataset.xart, run: runId });
   if (!s) return;
   const [kind, id] = s.dataset.starter.split(":"), p = kind === "tp" ? tm()?.prompts.find((x) => x.id === id) : PROMPTS.find((x) => x.id === id);
   if (p) { $("input").value = p.text; autosize(); $("input").focus(); }
 });
+// Counting rule (docs/ux-remediation.md): an action is one tool call the worker made for this
+// message, as listed in Activity; the time is the runtime's own duration for the reply.
 const xsum = (x) => {
   const parts = [x.secs != null ? `Worked <b>${dur(x.secs * 1000)}</b>` : x.stopped ? "<b>Stopped</b>" : "Worked"];
-  if (x.tools) parts.push(plural(x.tools, "action"));
+  parts.push(plural(x.tools, "action"));
   if (x.fails) parts.push(`<span class="bad">${x.fails} failed</span>`);
   if (x.err) parts.push('<span class="bad">ended with an error</span>');
-  return `<div class="xsum m12">${svgIcon("terminalSm", 13, 11)}<span>${parts.join(" · ")}</span></div>`;
+  return `<div class="xsum m12">${svgIcon("steps", 12, 12)}<span>${parts.join(" · ")}</span></div>`;
 };
-const xarts = (list) => `<div class="xarts"><span class="lab">Deliverables</span><ul>${list.map((p) => `<li><button type="button" class="artchip" data-xart="${esc(p)}" title="Open ${esc(p)} (read-only)">${svgIcon("file", 12, 12)}<span class="ell">${esc(p)}</span></button></li>`).join("")}</ul></div>`;
-// Deliverables of the open run, pinned at the top of the activity panel.
+const artBtn = (p, cls) => `<li><button type="button" class="${cls}" data-xart="${esc(p)}" title="Open ${esc(p)} (read-only, as it is now)">${svgIcon("file", 12, 12)}<span class="ell">${esc(p)}</span></button></li>`;
+// The worker's named deliverables are the result; other files it wrote are listed, folded, as files written.
+const xarts = (it) => {
+  const other = it.list.filter((p) => !it.decl.includes(p));
+  return `${it.decl.length ? `<div class="xarts"><span class="lab">Deliverables</span><ul>${it.decl.map((p) => artBtn(p, "artchip")).join("")}</ul></div>` : ""}${other.length ? `<details class="xfiles"><summary class="m12">${plural(other.length, it.decl.length ? "other file" : "file")} written</summary><ul>${other.map((p) => artBtn(p, "artchip")).join("")}</ul></details>` : ""}`;
+};
+// The run's files, pinned at the top of Activity: named deliverables first (open), otherwise files written (folded).
 function renderArts() {
-  const list = T ? [...T.arts] : [];
-  $("artSlot").hidden = !list.length; $("artCnt").textContent = list.length;
-  $("artList").innerHTML = list.map((p) => `<li><button type="button" class="artrow" data-xart="${esc(p)}" title="Open ${esc(p)} (read-only)">${svgIcon("file", 12, 12)}<span class="ell">${esc(p)}</span></button></li>`).join("");
+  const list = T ? [...T.arts, ...[...T.declared].filter((p) => !T.arts.has(p))] : [], decl = T ? [...T.declared] : [];
+  const slot = $("artSlot"), had = !slot.hidden;
+  slot.hidden = !list.length; $("artCnt").textContent = list.length;
+  $("lArt").textContent = decl.length ? "Deliverables" : "Files written";
+  if (!had && decl.length) slot.open = true; if (!list.length) slot.open = false;
+  $("artList").innerHTML = [...decl.map((p) => artBtn(p, "artrow deliv")), ...list.filter((p) => !decl.includes(p)).map((p) => artBtn(p, "artrow"))].join("");
 }
 $("artList").onclick = (e) => { const a = e.target.closest("[data-xart]"); if (a && runId) openFile({ path: a.dataset.xart, run: runId }); };
 // The activity panel for a new or reopened run: the stream, the deliverables and the context card.
-function resetActivity() { $("acts").innerHTML = ""; $("telSlot").innerHTML = ""; $("telSlot").hidden = true; renderArts(); }
+function resetActivity() { $("acts").innerHTML = ""; $("telSlot").innerHTML = ""; $("telSlot").hidden = true; $("artSlot").hidden = true; $("artSlot").open = false; renderArts(); }
 
 let canvasQueued = false;
 function scheduleCanvas() { if (canvasQueued) return; canvasQueued = true; requestAnimationFrame(() => { canvasQueued = false; if (view === "chat") renderCanvas(); renderRunState(); }); }
@@ -1849,15 +2183,16 @@ function renderCanvas() {
     const t = tm(), k = wk(), files = t.knowledge.filter((x) => x.type === "workspace_file").length;
     c.innerHTML = `<div class="emptyst" id="teamEmpty"><div class="motif avatar team" aria-hidden="true">${esc(initials(k ? k.name : t.name))}</div><div class="eyebrow m12">New task · ${esc(t.name)} Team</div><h1>${esc(t.name)}${k ? ` · ${esc(k.name)}` : ""}</h1>
       <p>${k ? esc(k.mission || k.specialization || "") : "Choose which of the Team's workers should answer: open the Team and pick Chat."}<br><span style="color:var(--t3)">in ${esc(w.name)} · Team v${t.version}</span></p>
-      <div class="tagline m11">${t.policies.map((p) => `<span><span class="tag enf">Enforced</span>Never modify ${esc(p.branch)}</span>`).join("")}<span><span class="dot"></span>${modeOf(w)}</span><span><span class="dot grey"></span>${files} reference${files === 1 ? "" : "s"} · ${t.knowledge.length - files} upload${t.knowledge.length - files === 1 ? "" : "s"} · ${t.instructions.length} instruction${t.instructions.length === 1 ? "" : "s"}</span>${t.figma ? `<span><span class="dot blue"></span>Figma: ${esc(t.figma.name || t.figma.fileKey)}</span>` : ""}</div>
+      <div class="tagline m11">${t.policies.map((p) => `<span><span class="tag enf">Enforced</span>Never modify ${esc(p.branch)}</span>`).join("")}<span title="Access mode">${svgIcon("bolt", 9, 11)}${modeOf(w)}</span><span><span class="dot grey"></span>${files} reference${files === 1 ? "" : "s"} · ${t.knowledge.length - files} upload${t.knowledge.length - files === 1 ? "" : "s"} · ${t.instructions.length} instruction${t.instructions.length === 1 ? "" : "s"}</span>${t.figma ? `<span><span class="dot blue"></span>Figma: ${esc(t.figma.name || t.figma.fileKey)}</span>` : ""}</div>
       ${k ? capChips(k) : ""}${starters(t)}</div>`;
     return;
   }
   if (!runId) {
     const k = wk();
-    c.innerHTML = `<div class="emptyst"><div class="motif" aria-hidden="true">${k ? esc(initials(k.name)) : svgIcon("terminalLg", 20, 16)}</div><div class="eyebrow m12">New task${k ? ` · v${k.version}` : " · general worker"}</div><h1>${esc(k ? k.name : w.name)}</h1>
-      <p>${k ? `${esc(k.mission || k.specialization || "")}${w.id === "scratch" ? "" : `<br><span style="color:var(--t3)">in ${esc(w.name)}</span>`}` : w.id === "scratch" ? "Chat, or work in Figma, without a project folder." : w.profile === "inspect" ? "Ask the worker to inspect this repository: read code, trace an implementation or review a component." : "Ask the worker to inspect your repository, analyze an implementation, debug an issue, or test components."}</p>
-      <div class="tagline m11"><span title="${esc(w.root)}"><span class="dot grey"></span><span class="ell mono" style="max-width:360px">${w.id === "scratch" ? "No project folder" : esc(w.root)}</span></span><span><span class="dot"></span>${modeOf(w)}</span>${(k?.status || []).map((r) => `<span title="${esc(r.ok ? "" : r.how)}"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)}: ${esc(r.state)}</span>`).join("")}</div>
+    c.innerHTML = `<div class="emptyst"><div class="motif" aria-hidden="true">${k ? esc(initials(k.name)) : svgIcon("terminalLg", 20, 16)}</div><div class="eyebrow m12">New task${k ? ` · v${k.version}` : ""} · in ${esc(w.name)}</div><h1>${esc(k ? k.name : "General worker")}</h1>
+      <p>${k ? esc(k.mission || k.specialization || "") : `No definition: it can use every tool this workspace allows. ${w.id === "scratch" ? "Use it for work that needs no project folder: Figma, Builder, a web page, research." : w.profile === "inspect" ? "Ask it to inspect this repository: read code, trace an implementation or review a component." : "Ask it to inspect your repository, change code, debug an issue or test components."}`}</p>
+      ${isScratch(w) ? `<div class="scratchnote" id="scratchNote"><b>Scratch, no project.</b> This conversation gets its own empty folder when you send. Files the worker writes stay with this conversation (and with a fresh session that continues it); other conversations don't see them. No project files, no Git: for code, choose a project folder.</div>` : ""}
+      <div class="tagline m11">${isScratch(w) ? `<span><span class="dot grey"></span>New folder for this conversation</span>` : `<span title="${esc(w.root)}"><span class="dot grey"></span><span class="ell mono" style="max-width:360px">${esc(w.root)}</span></span>`}<span title="Access mode">${svgIcon("bolt", 9, 11)}${modeOf(w)}</span>${(k?.status || []).map((r) => `<span title="${esc(r.ok ? "" : r.how)}"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)}: ${esc(r.state)}</span>`).join("")}</div>
       ${k ? capChips(k) : ""}${starters(null)}</div>`;
     return;
   }
@@ -1867,42 +2202,68 @@ function renderCanvas() {
     it.k === "u" ? `${it.atts?.length ? `<div class="msg-att">${it.atts.map(attLink).join("")}</div>` : ""}${it.text ? `<div class="msg-u">${withMentions(it.text, it.mentions)}</div>` : ""}`
     : it.k === "w" ? `<div class="msg-w">${md(it.text)}</div>`
     : it.k === "x" ? (it.done && (it.tools || it.secs != null) ? xsum(it) : "")
-    : it.k === "a" ? xarts(it.list)
+    : it.k === "a" ? xarts(it)
+    : it.k === "h" ? `<div class="handoff"><div class="hh m12">${svgIcon("steps", 12, 12)}<span>Continued from <button type="button" class="linkbtn" data-open-run="${esc(it.from)}">the previous session</button>. The worker started with this handoff instead of the whole conversation.</span></div><details><summary class="m12">Show the handoff</summary><div class="msg-w hbody">${md(it.text)}</div></details></div>`
     : `<div class="sys m11 ${it.k === "e" ? "err" : ""}">${esc(it.text)}</div>`).join("")}
     ${working ? `<div class="working m11"><span class="dot pulse"></span><span class="ell">${T.status === "starting" ? "Starting the worker…" : `Working${T.current ? ` · ${esc(T.current)}` : "…"}`}</span></div>` : ""}</div>`;
   if (atEnd || working) c.scrollTop = c.scrollHeight;
 }
 // ---------------- context & usage of a run ----------------
-// One card, updated in place each turn: what the run carries and uses. Context and tokens are the
-// runtime's own numbers; tool counts and durations are measured by the console; document reads are
-// measured in characters (not tokens).
+// Updated in place each reply. The headline is plain: how big the conversation is per step against
+// the console's warning point, and what to do about it. The runtime's raw numbers (tokens, requests)
+// and the console's measured ones (tool calls, durations; Figma document reads in characters) are
+// under Details. Cost and plan limits are the account's, in the account panel (top right).
 const kTok = (n) => (n == null ? "?" : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n));
 function renderTelCard(t) {
   if (!T.telCard) {
     const el = document.createElement("div"); el.className = "card"; el.id = "telCard";
     el.innerHTML = '<div class="ch"><span class="ct m12 ell lab">Context &amp; usage</span><span class="cm m11"></span></div><div class="cb"></div>';
-    $("telSlot").appendChild(el); $("telSlot").hidden = false; T.telCard = { el };
+    $("telSlot").appendChild(el); $("telSlot").hidden = false; T.telCard = { el, open: false };
   }
   const busy = ["starting", "running"].includes(T.status || meta?.status), tools = t.tools || {}, tok = t.tokens || {};
-  const warn = (t.warnings || []).length > 0;
-  T.telCard.el.querySelector(".cm").textContent = `${t.turns || 0} turn${t.turns === 1 ? "" : "s"}`;
+  const last = t.context?.last || 0, limit = t.limit || (t.warnings || []).at(-1)?.limit || 0, frac = limit ? last / limit : 0;
+  const lvl = frac >= 1 ? "large" : frac >= 0.6 ? "growing" : "ok";
+  const say = { ok: `Comfortable: well below the ${kTok(limit)} warning point.`, growing: `Getting large: over half of the ${kTok(limit)} warning point. Consider compacting.`,
+    large: `Large: every step re-reads ${kTok(last)} tokens, which is slower and uses more of your plan. Compact it, or continue in a fresh session.` }[lvl];
+  const auto = [t.autoCompactAt ? `The runtime compacts on its own before ${kTok(t.autoCompactAt)}.` : "", t.autoFresh ? "Past the warning point, your next message continues in a fresh session automatically." : ""].filter(Boolean).join(" ");
+  const det = T.telCard.el.querySelector("details.teld"), wasOpen = det ? det.open : false;
+  T.telCard.el.querySelector(".cm").textContent = plural(t.turns || 0, "reply");
   T.telCard.el.querySelector(".cb").innerHTML = `
-    <div class="tl${warn ? " warn" : ""}" id="telContext">Context per request <b>${kTok(t.context?.last)}</b>${t.context?.window ? ` of ${kTok(t.context.window)}` : ""} · max ${kTok(t.context?.max)} <span class="src">runtime</span></div>
-    <div class="tl">${t.modelRequests || 0} model requests · tokens: ${kTok(tok.cacheRead)} read from cache, ${kTok(tok.cacheWrite)} written, ${kTok(tok.input)} new, ${kTok(tok.output)} output <span class="src">runtime</span></div>
-    <div class="tl" id="telTools">${tools.total || 0} tool calls (Figma ${tools.figma || 0}) · ${tools.docStateReads || 0} document reads, ${kTok(tools.docStateChars)} characters · ${tools.batches || 0} batches (${tools.batchOps || 0} edits) · ${tools.visualChecks || 0} visual checks <span class="src">measured</span></div>
-    ${(t.compactions || []).length || (t.processes || 0) > 1 ? `<div class="tl">${(t.compactions || []).length} compaction${(t.compactions || []).length === 1 ? "" : "s"} · ${t.processes || 0} worker processes</div>` : ""}
-    <div class="tacts"><button type="button" class="btn m11" data-tel="compact" ${busy ? "disabled" : ""} title="Ask Claude Code to summarise this conversation, keeping the objective, decisions, ids and outstanding work">Compact</button><button type="button" class="btn m11" data-tel="continue" ${busy ? "disabled" : ""} title="Start a new session that gets a handoff (task state plus the worker's summary) instead of this whole conversation. Text in the message box becomes its next instruction.">Continue in a fresh session</button></div>`;
+    <div class="tl lvl-${lvl}${(t.warnings || []).length ? " warn" : ""}" id="telContext">Conversation size <b>${kTok(last)}</b> tokens per step</div>
+    ${limit ? `<div class="tbar ${lvl}" role="meter" aria-label="Conversation size against the warning point" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round(frac * 100))}"><span style="width:${Math.min(100, Math.round(frac * 100))}%"></span></div>` : ""}
+    <div class="tl sub">${limit ? esc(say) : last ? "" : "Size is reported after the first reply."}${auto ? ` ${esc(auto)}` : ""}</div>
+    <div class="tact"><button type="button" class="btn" data-tel="compact" ${busy ? "disabled" : ""}>Compact</button><span>Summarises this conversation in place, keeping the objective, decisions, ids and open work. Same conversation, smaller.</span></div>
+    <div class="tact"><button type="button" class="btn" data-tel="continue" ${busy ? "disabled" : ""}>Continue in a fresh session</button><span>A new conversation that starts from a handoff summary instead of this whole history. This one is closed and stays readable.</span></div>
+    ${busy ? '<div class="tl sub">Both are available when the worker isn\'t in the middle of a step.</div>' : ""}
+    <details class="teld"${wasOpen ? " open" : ""}><summary class="m12">Details</summary>
+      <div class="tl">Context per request <b>${kTok(last)}</b>${t.context?.window ? ` of the model's ${kTok(t.context.window)}` : ""} · largest so far ${kTok(t.context?.max)}${limit ? ` · warning at ${kTok(limit)}` : ""} <span class="src">runtime</span></div>
+      <div class="tl">${t.modelRequests || 0} model requests · tokens: ${kTok(tok.cacheRead)} re-read from cache, ${kTok(tok.cacheWrite)} written to cache, ${kTok(tok.input)} new input, ${kTok(tok.output)} output <span class="src">runtime</span></div>
+      <div class="tl" id="telTools">${plural(tools.total || 0, "tool call")}${tools.figma ? ` (Figma ${tools.figma}) · ${tools.docStateReads || 0} document reads, ${kTok(tools.docStateChars)} characters · ${tools.batches || 0} batches (${tools.batchOps || 0} edits) · ${tools.visualChecks || 0} visual checks` : ""} <span class="src">measured</span></div>
+      ${(t.compactions || []).length || (t.processes || 0) > 1 ? `<div class="tl">${plural((t.compactions || []).length, "compaction")} · ${plural(t.processes || 0, "worker process")}</div>` : ""}
+      <div class="tl sub">Token counts are the runtime's. Cost estimates and plan limits are in the account panel (top right).</div>
+    </details>`;
 }
 const telClick = async (e) => {
   const b = e.target.closest("[data-tel]"), o = e.target.closest("[data-open-run]");
   if (o) return openRun(o.dataset.openRun);
   if (!b || !runId) return;
+  const id = runId;
+  if (b.dataset.tel === "continue") {
+    // Say what happens before it happens, and let the person decide what becomes of their draft.
+    const draftText = $("input").value.trim();
+    const r = await ask({ title: "Continue in a fresh session?", body: `<p>A new conversation starts with the same worker, workspace and model. It gets a handoff (the task state and the worker's own summary) instead of the whole history. This conversation is closed and stays readable.</p>${draftText
+      ? `<label class="chk"><input type="checkbox" id="dlgUseDraft" checked> Send the text in the message box as its first instruction</label><blockquote>${esc(draftText.slice(0, 400))}${draftText.length > 400 ? "…" : ""}</blockquote><p class="sub">Unchecked, the text stays in the box.</p>` : "<p class=\"sub\">The message box is empty, so the new session just carries on with the task.</p>"}`,
+      actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Continue in a fresh session", kind: "pri" }], focus: "go" });
+    if (r !== "go") return;
+    const useDraft = !!draftText && !!$("dlgUseDraft")?.checked;
+    b.disabled = true;
+    try { await api("POST", `/runs/${encodeURIComponent(id)}/continue`, { instruction: useDraft ? draftText : "" }); if (useDraft && $("input").value.trim() === draftText) { $("input").value = ""; autosize(); } refreshMeta(); }
+    catch (err) { notice(err); b.disabled = false; }
+    return;
+  }
   b.disabled = true;
-  try {
-    if (b.dataset.tel === "compact") await api("POST", `/runs/${encodeURIComponent(runId)}/compact`, {});
-    else { const instruction = $("input").value.trim(); await api("POST", `/runs/${encodeURIComponent(runId)}/continue`, { instruction }); $("input").value = ""; autosize(); }
-    refreshMeta();
-  } catch (err) { notice(err); b.disabled = false; }
+  try { await api("POST", `/runs/${encodeURIComponent(id)}/compact`, {}); refreshMeta(); }
+  catch (err) { notice(err); b.disabled = false; }
 };
 $("acts").addEventListener("click", telClick); $("telSlot").addEventListener("click", telClick);
 
@@ -1916,7 +2277,11 @@ const EFFORT_ORDER = ["low", "medium", "high", "xhigh", "max"];
 const modelPref = () => { const m = store.get("model"), e = store.get("effort"); return { ...(m ? { model: m } : {}), ...(e ? { effort: e } : {}) }; };
 const modelSel = () => (runId && meta ? { model: meta.model || "default", effort: meta.effort || null } : { model: store.get("model") || "default", effort: store.get("effort") || null });
 const modelInfo = (v) => (MODELS || []).find((m) => m.value === v) || null;
-const modelName = (v) => modelInfo(v)?.displayName.replace(" (recommended)", "") || (v === "default" ? "Default" : v);
+// "Default" names the model it resolves to when the runtime says so (a model of the same resolved id).
+const modelName = (v) => {
+  if (v === "default") { const d = modelInfo("default"), to = d && (MODELS || []).find((m) => m.value !== "default" && m.resolvedModel === d.resolvedModel); return to ? `Default (${to.displayName.replace(" (recommended)", "")})` : "Default"; }
+  return modelInfo(v)?.displayName.replace(" (recommended)", "") || v;
+};
 function renderModelChip() {
   const s = modelSel(), m = modelInfo(s.model), takesEffort = !m || m.efforts.length > 0;
   $("mdlName").textContent = modelName(s.model);
@@ -1962,27 +2327,45 @@ document.addEventListener("click", (e) => { if (!$("mdlPop").hidden && !e.target
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("mdlPop").hidden) { e.stopImmediatePropagation(); toggleModelMenu(false); $("mdlBtn").focus(); } }, true);
 api("GET", "/models").then((r) => { MODELS = r.models; renderModelChip(); }).catch(() => {});
 
+const curStatus = () => (runId ? T?.status || meta?.status : null);
+const curOutcome = () => (runId ? (T?.outcome !== undefined ? T.outcome : meta?.outcome) : null);
 function renderRunState() {
   renderModelChip(); renderComposerWho();
-  const busyNow = ["starting", "running"].includes(runId ? (T?.status || meta?.status) : null);
-  document.querySelectorAll("#telCard [data-tel]").forEach((b) => { b.disabled = busyNow || !!meta?.continuedIn; });
-  const st = runId ? (T?.status || meta?.status) : null;
-  const [label, cls] = st ? (STATE[st] || [st, "grey"]) : ["Ready", ""];
-  $("rState").textContent = label; setDot($("rDot"), cls);
+  const st = curStatus(), oc = st === "waiting" ? curOutcome() || "replied" : "";
   const working = ["starting", "running"].includes(st);
+  document.querySelectorAll("#telCard [data-tel]").forEach((b) => { b.disabled = working || !!meta?.continuedIn; });
+  const [label, cls, why] = st ? stateOf(st, oc) : ["New task", "grey", "Describe a task and send it to start a conversation."];
+  // data-status is the server's lifecycle status; data-outcome is why a waiting run waits.
+  const chip = $("runChip"); chip.dataset.status = st || ""; chip.dataset.outcome = oc; chip.title = why;
+  $("rState").textContent = label; setDot($("rDot"), cls);
   $("endBtn").hidden = st !== "waiting";
+  // Send and Stop are two controls: Stop only while the worker works; Send never stops anything.
+  $("stopBtn").hidden = !working;
   const send = $("send");
-  send.classList.toggle("stop", working);
-  send.innerHTML = working ? svgIcon("stop", 9, 9) : svgIcon("arrowUp", 11, 11);
-  send.setAttribute("aria-label", working ? "Stop the worker" : runId ? "Send" : "Start a run");
+  send.disabled = working; send.title = working ? "The worker is busy. Wait for its reply, or Stop it." : "";
+  send.setAttribute("aria-label", runId ? "Send" : "Start the task");
   $("live").hidden = !(es && es.readyState === 1 && ALIVE.includes(st));
-  setDot($("aDot"), cls); $("aState").textContent = st ? label : "Idle";
-  $("input").placeholder = runId ? (working ? "The worker is busy. Stop it, or wait to reply…" : "Reply to the worker…") : $("input").placeholder;
+  setDot($("aDot"), cls); $("aState").textContent = label;
+  const badge = $("actBadge"); badge.hidden = !(working || oc === "needs" || oc === "error"); badge.className = "tbadge " + (working ? "busy" : "warn");
+  $("actToggle").setAttribute("aria-label", `Show activity${working ? " (working)" : oc === "needs" ? " (needs your action)" : oc === "error" ? " (turn failed)" : ""}`);
+  $("input").placeholder = runId ? (working ? "The worker is busy. You can write your next message and send it when it replies." : "Reply to the worker…") : $("input").placeholder;
+  renderRunNote();
 }
+// Before anything replaces another conversation, the composer says so (the console runs one worker at a time).
+function renderRunNote() {
+  const n = $("runNote"), a = ACTIVE;
+  if (!a || a.id === runId || view === "worker" || view === "team" || view === "github") { n.hidden = true; return; }
+  const where = (WS.find((w) => w.id === runWs(a)) || {}).name || "another workspace", t = esc(runTitle(a)), [label] = runLabel(a);
+  n.hidden = false; n.dataset.kind = a.status === "waiting" ? "replace" : "busy";
+  n.innerHTML = a.status === "waiting"
+    ? `<span>“${t}” in ${esc(where)} is still open (${esc(label)}). Sending here closes it; you can continue it later from Conversations.</span><button type="button" class="linkbtn" data-open-active>Open it</button>`
+    : `<span>The worker is busy with “${t}” in ${esc(where)}. Wait for it, or open it and stop it, before sending here.</span><button type="button" class="linkbtn" data-open-active>Open it</button>`;
+}
+$("runNote").onclick = (e) => { if (e.target.closest("[data-open-active]") && ACTIVE) { if (view !== "chat") closeFile(); openRun(ACTIVE.id); } };
 setInterval(() => {
-  if (T?.turnStart && ["starting", "running"].includes(T.status)) $("aTime").textContent = `${((Date.now() - T.turnStart) / 1000).toFixed(2)}s execution`;
-  else $("aTime").textContent = `${T?.lastSecs != null ? Number(T.lastSecs).toFixed(2) : "0.00"}s execution`;
-}, 100);
+  const working = T?.turnStart && ["starting", "running"].includes(T.status);
+  $("aTime").textContent = working ? `Working for ${dur(Date.now() - T.turnStart)}` : T?.lastSecs != null ? `Last reply took ${dur(T.lastSecs * 1000)}` : "";
+}, 500);
 
 // ---------------- attachments ----------------
 // Files go to the worker inside the message (the console checks them again by their bytes); they
@@ -2046,8 +2429,8 @@ function updatePicker() {
   pick.q = mq.q;
   clearTimeout(pickTimer);
   pickTimer = setTimeout(async () => {
-    const seq = ++pick.seq, forWs = runId ? runWs(meta) : wsId;
-    let r; try { r = await api("GET", `/mentions?workspace=${encodeURIComponent(forWs)}&q=${encodeURIComponent(mq.q)}`); } catch (e) { r = { files: [], error: e.message }; }
+    const seq = ++pick.seq, forWs = runId ? runWs(meta) : wsId, q = runId && forWs === "scratch" ? `run=${encodeURIComponent(runId)}` : `workspace=${encodeURIComponent(forWs)}`;
+    let r; try { r = await api("GET", `/mentions?${q}&q=${encodeURIComponent(mq.q)}`); } catch (e) { r = { files: [], error: e.message }; }
     if (seq !== pick.seq || !mentionQuery()) return;
     pick.items = r.files; pick.sel = 0; pick.open = true; pick.ws = forWs;
     renderPicker(r);
@@ -2058,7 +2441,7 @@ function renderPicker(r) {
   el.hidden = false; el.dataset.q = pick.q;
   el.innerHTML = `<div class="lab">${pick.q ? "Files" : "Recent files"} · ${esc(wsName)}</div>` + (pick.items.length
     ? pick.items.map((p, i) => { const k = p.lastIndexOf("/"); return `<button type="button" class="mrow m11" role="option" id="mo${i}" data-i="${i}" aria-selected="${i === pick.sel}"><span class="n">${esc(p.slice(k + 1))}</span><span class="d ell">${esc(k > 0 ? p.slice(0, k) : "")}</span></button>`; }).join("")
-    : `<div class="mempty m11">${r?.error ? esc(r.error) : "No matching files"}</div>`);
+    : `<div class="mempty m11">${r?.error ? esc(r.error) : r?.note ? esc(r.note) : "No matching files"}</div>`);
   $("input").setAttribute("aria-activedescendant", pick.items.length ? `mo${pick.sel}` : "");
   el.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
 }
@@ -2099,7 +2482,8 @@ $("canvas").addEventListener("click", (e) => { const m = e.target.closest(".ment
 async function send() {
   if (!runId && ws().none) { notice("Add a workspace first."); return; }
   const st = runId ? (T?.status || meta?.status) : null;
-  if (["starting", "running"].includes(st)) { await stopRun(); return; }
+  // Sending never stops a worker: while this one works, the message waits in the box.
+  if (["starting", "running"].includes(st)) { notice("The worker is still working. Your message stays in the box: send it when it replies, or Stop the worker.", { info: true }); return; }
   const text = $("input").value.trim();
   if (!text && !PENDING.length) return;
   const attachments = PENDING.map(({ name, data }) => ({ name, data }));
@@ -2111,26 +2495,26 @@ async function send() {
   const mentions = used.map((m) => ({ type: "file", path: m.path }));
   $("send").disabled = true;
   try {
+    // One worker at a time. Another conversation that's only waiting is closed (it can be continued
+    // later); the composer says so before sending (renderRunNote) and confirms after. A busy one
+    // is never touched: the person opens it and stops it.
+    await loadRuns();
+    const other = ACTIVE && ACTIVE.id !== runId ? ACTIVE : null;
+    if (other && other.status !== "waiting") { const e = new Error(`The worker is busy with “${runTitle(other)}”. Open it and stop it, or wait for it, before sending here.`); e.activeRun = { id: other.id }; throw e; }
+    if (tm() && !runId && !tm().workers.includes(wkId)) throw new Error(`Choose which of the ${tm().name} team's workers should answer (open the team and pick Chat).`);
+    if (other) await endAndWait(other.id);
+    const closed = other ? `Closed “${runTitle(other)}”; continue it any time from Conversations.` : null;
     if (!runId) {
-      await loadRuns();
-      // One worker at a time. A new chat closes a previous conversation that's only waiting
-      // (it can be continued later); a busy one has to be stopped first.
-      if (ACTIVE && ACTIVE.status !== "waiting") throw new Error("The worker is busy with another conversation. Open it from Recent runs and stop it first.");
-      if (ACTIVE) await endAndWait(ACTIVE.id);
-      if (tm() && !tm().workers.includes(wkId)) throw new Error(`Choose which of the ${tm().name} Team's workers should answer (open the Team and pick Chat).`);
       const m = await api("POST", "/runs", { ...(tm() ? { prompt: text, team: tmId, worker: wkId, attachments, mentions } : { prompt: text, workspace: wsId, attachments, mentions, ...(wkId ? { worker: wkId } : {}) }), ...modelPref() });
       $("input").value = ""; autosize(); clearPending(); MENTIONS = [];
       await loadRuns(); await openRun(m.id);
     } else {
-      if (ACTIVE && ACTIVE.id !== runId) {
-        if (ACTIVE.status !== "waiting") throw new Error("The worker is busy with another conversation. Stop it first.");
-        await endAndWait(ACTIVE.id);
-      }
       await api("POST", `/runs/${runId}/message`, { text, attachments, mentions });
       $("input").value = ""; autosize(); clearPending(); MENTIONS = []; refreshMeta(); loadRuns();
     }
-  } catch (e) { notice(e.message); }
-  finally { $("send").disabled = false; }
+    if (closed) notice(closed, { info: true, run: other.id });
+  } catch (e) { notice(e); }
+  finally { $("send").disabled = false; renderRunState(); }
 }
 async function stopRun() {
   const id = runId;
@@ -2153,18 +2537,22 @@ async function endAndWait(id) {
   throw new Error("The previous conversation didn't close. Try again.");
 }
 $("send").onclick = send;
-$("endBtn").onclick = () => runId && api("POST", `/runs/${runId}/end`).catch(notice);
+$("stopBtn").onclick = () => stopRun();
+// Close: the worker process ends cleanly; the conversation stays and can be continued.
+$("endBtn").onclick = () => runId && api("POST", `/runs/${runId}/end`).then(() => notice("Conversation closed. Send a message here any time to continue it.", { info: true })).catch(notice);
 const autosize = () => { const i = $("input"); i.style.height = "auto"; i.style.height = Math.min(240, i.scrollHeight) + "px"; };
 $("input").addEventListener("input", autosize);
-$("input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !pick.open) { e.preventDefault(); if (!["starting", "running"].includes(T?.status)) send(); } });
+$("input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !pick.open) { e.preventDefault(); send(); } });
 
-// Errors show briefly in the footnote, where the design keeps its small print.
+// Notices show briefly in the footnote, where the design keeps its small print. An error about a
+// busy or closed conversation links to it.
 let noticeTimer;
-function notice(e) {
-  const msg = typeof e === "string" ? e : e.message;
-  $("footL").innerHTML = `<span class="err" role="alert">${esc(msg)}</span>`;
-  clearTimeout(noticeTimer); noticeTimer = setTimeout(setFootL, 9000);
+function notice(e, { info = false, run } = {}) {
+  const msg = typeof e === "string" ? e : e.message, to = run || (typeof e === "object" && e?.activeRun?.id);
+  $("footL").innerHTML = `<span class="${info ? "info" : "err"}" role="${info ? "status" : "alert"}">${esc(msg)}</span>${to ? ` <button type="button" class="linkbtn" data-open-run="${esc(to)}">Open it</button>` : ""}`;
+  clearTimeout(noticeTimer); noticeTimer = setTimeout(setFootL, to ? 15000 : 9000);
 }
+$("footL").onclick = (e) => { const b = e.target.closest("[data-open-run]"); if (b) { if (view !== "chat") closeFile(); openRun(b.dataset.openRun); setFootL(); } };
 const setFootL = () => { $("footL").textContent = ""; }; // only notices go here (the port is in the sidebar footer)
 
 // small screens
@@ -2172,6 +2560,55 @@ $("actToggle").onclick = () => { const on = document.body.classList.toggle("show
 $("navToggle").onclick = () => { const on = document.body.classList.toggle("show-nav"); $("navToggle").setAttribute("aria-expanded", on); };
 const closeDrawers = () => { document.body.classList.remove("show-act", "show-nav"); $("actToggle").setAttribute("aria-expanded", "false"); $("navToggle").setAttribute("aria-expanded", "false"); };
 $("scrim").onclick = closeDrawers;
+
+// Every way of leaving a worker or Team page goes through the unsaved-changes check: sidebar,
+// header, pickers, page buttons, Alt+N. (A click it holds back is replayed once it's safe.)
+const NAV = "[data-ws],[data-run],[data-wk],[data-wk-edit],[data-tm],[data-p],[data-tp],[data-rev],[data-pick],[data-starter],[data-open-run],[data-open-active],[data-edit-wk],#ghOpen,#newTask,#addWk,#addTm,#wPill,#vClose,#wkCancel,#tmCancel,#cEdit,[data-tchat],[data-quse],#tree [data-path]:not([data-dir])";
+let replaying = false;
+document.addEventListener("click", async (e) => {
+  if (replaying || !isDirty()) return;
+  const t = e.target.closest(NAV); if (!t || $("dlg").contains(t)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (await leaveDraft()) { replaying = true; try { t.click(); } finally { replaying = false; } }
+}, true);
+
+// The composer's worker and workspace pickers (for a new task; an open conversation's are fixed).
+function closePick() { $("pickPop").hidden = true; ["wkPick", "wsPick"].forEach((id) => $(id).setAttribute("aria-expanded", "false")); }
+function openPick(kind) {
+  const pop = $("pickPop"), btn = $(kind === "wk" ? "wkPick" : "wsPick");
+  if (!pop.hidden && pop.dataset.kind === kind) return closePick();
+  const t = tm(), workers = [{ id: "", name: "General", d: "No definition: every tool the workspace allows" }, ...WK.workers.map((w) => ({ id: w.id, name: w.name, d: w.specialization || w.mission || "" }))];
+  pop.dataset.kind = kind;
+  pop.innerHTML = kind === "wk"
+    ? `<div class="lab">Worker for the new task${t ? ` · ${esc(t.name)} team` : ""}</div>${workers.map((w) => `<button role="menuitemradio" aria-checked="${(w.id || null) === wkId}" data-pick="wk:${esc(w.id)}"><span class="t"><span>${esc(w.name)}</span><span class="d m11 ell">${esc(w.d)}${t && w.id && !t.workers.includes(w.id) ? " · not in the team" : ""}</span></span></button>`).join("")}`
+    : `<div class="lab">Workspace for the new task</div>${WS.map((w) => `<button role="menuitemradio" aria-checked="${w.id === wsId}" data-pick="ws:${esc(w.id)}"><span class="t"><span>${esc(w.name)}</span><span class="d m11">${modeOf(w)}${w.branch ? ` · ${esc(w.branch)}` : ""}</span></span></button>`).join("")}${t ? `<div class="note m11">The ${esc(t.name)} team works in its own workspace; choosing another leaves the team.</div>` : ""}`;
+  pop.hidden = false; btn.setAttribute("aria-expanded", "true");
+  (pop.querySelector('[aria-checked="true"]') || pop.querySelector("button"))?.focus();
+}
+$("wkPick").onclick = (e) => { e.stopPropagation(); openPick("wk"); };
+$("wsPick").onclick = (e) => { e.stopPropagation(); openPick("ws"); };
+$("pickPop").onclick = (e) => {
+  const b = e.target.closest("[data-pick]"); if (!b) return;
+  const [kind, id] = b.dataset.pick.split(/:(.*)/s);
+  closePick();
+  if (kind === "wk") $("wkList").querySelector(`[data-wk="${CSS.escape(id)}"]`)?.click(); else selectWorkspace(id);
+  $("input").focus();
+};
+$("pickPop").addEventListener("keydown", (e) => {
+  if (!["ArrowDown", "ArrowUp"].includes(e.key)) return; e.preventDefault();
+  const items = [...$("pickPop").querySelectorAll("button")], i = items.indexOf(document.activeElement);
+  items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
+});
+document.addEventListener("click", (e) => { if (!$("pickPop").hidden && !e.target.closest("#pickPop, #wkPick, #wsPick")) closePick(); });
+
+// Keyboard shortcuts, listed where people can find them.
+$("kbdBtn").onclick = () => ask({ title: "Keyboard shortcuts", body: `<dl class="kbd">
+  <dt><kbd>Alt</kbd>+<kbd>N</kbd></dt><dd>New task</dd>
+  <dt><kbd>Enter</kbd></dt><dd>Send the message</dd><dt><kbd>Shift</kbd>+<kbd>Enter</kbd></dt><dd>New line in the message</dd>
+  <dt><kbd>@</kbd></dt><dd>Reference a file in this workspace (↑ ↓ to choose, Enter or Tab to insert)</dd>
+  <dt><kbd>Ctrl</kbd>+<kbd>Enter</kbd></dt><dd>Commit, in the commit message box</dd>
+  <dt><kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Move the focused workspace up or down the list</dd>
+  <dt><kbd>Esc</kbd></dt><dd>Close a menu, a drawer or a page (asks first if you have unsaved changes)</dd></dl>`, actions: [{ id: "ok", label: "Close", kind: "pri" }] });
 // On a narrow window the navigation is a drawer: choosing something in it closes it.
 $("leftNav").addEventListener("click", (e) => { if (e.target.closest("[data-ws],[data-run],[data-wk],[data-tm],[data-p],[data-tp],[data-rev],#ghOpen,#newTask,#addWk,#addTm,#tree [data-path]:not([data-dir])")) document.body.classList.remove("show-nav"); });
 
@@ -2220,16 +2657,19 @@ const devBusy = { worker: false, bridge: false };
 function paintDevSwitch(key, sw, dotEl, st, daemonUp) {
   if (!sw.dataset.baseTitle) sw.dataset.baseTitle = sw.title; // captured once, so an error tooltip can later be reverted
   if (devBusy[key]) return; // an action for this one is in flight; its own handler repaints when done
+  const label = $(key === "worker" ? "devWorkerSt" : "devBridgeSt");
   if (!daemonUp) {
     sw.disabled = true; sw.setAttribute("aria-checked", "false");
     sw.title = DEVCTL ? "Unavailable: the switch helper isn't running. Start it once with: node worker-ui/devctl.mjs" : "Switches are only available on the main console (port 8799)";
     if (dotEl) setDot(dotEl, "grey");
+    label.textContent = key === "worker" ? "running" : "no switch"; // this page answering is the console running
     return;
   }
   sw.disabled = false;
   sw.setAttribute("aria-checked", String(!!st.running));
   sw.title = st.lastError || sw.dataset.baseTitle;
   if (dotEl) setDot(dotEl, st.running ? "" : "red");
+  label.textContent = st.lastError ? "error" : st.running ? "running" : "stopped";
 }
 async function pollDevServers() {
   try {
@@ -2246,6 +2686,14 @@ async function pollDevServers() {
 async function toggleDevServer(key, sw) {
   if (devBusy[key] || sw.disabled || !DEVCTL) return;
   const turnOn = sw.getAttribute("aria-checked") !== "true";
+  // Stopping is disruptive (stopping the console takes this page and any working worker with it), so it's confirmed.
+  if (!turnOn) {
+    const busy = ACTIVE && ["starting", "running", "waiting"].includes(ACTIVE.status) ? ` The open conversation “${esc(runTitle(ACTIVE))}” is interrupted; you can continue it after a restart.` : "";
+    const r = await ask(key === "worker"
+      ? { title: "Stop the console?", body: `<p>This page stops responding until the console is started again (with this switch, from the helper, or <code>node worker-ui/server.mjs</code>).${busy}</p>`, actions: [{ id: "cancel", label: "Cancel" }, { id: "stop", label: "Stop the console", kind: "danger" }], focus: "cancel" }
+      : { title: "Stop the Figma bridge?", body: "<p>Workers lose the Figma plugin tools (reading and changing the open Figma file) until the bridge is started again. Figma links read through the REST API are not affected.</p>", actions: [{ id: "cancel", label: "Cancel" }, { id: "stop", label: "Stop the bridge", kind: "danger" }], focus: "cancel" });
+    if (r !== "stop") return;
+  }
   devBusy[key] = true; sw.disabled = true;
   try {
     const r = await devctlApi("POST", `/${key}/${turnOn ? "start" : "stop"}`);

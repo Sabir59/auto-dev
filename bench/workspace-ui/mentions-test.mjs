@@ -53,7 +53,7 @@ const step = async (name, fn) => {
   try { const detail = await fn(); results.push({ step: name, ok: true, detail }); console.log("PASS", name, JSON.stringify(detail).slice(0, 260)); }
   catch (e) { results.push({ step: name, ok: false, error: e.message }); console.log("FAIL", name, e.message.slice(0, 300)); await page.screenshot({ path: join(HERE, "shots", `mentions-fail-${results.length}.png`) }); }
 };
-const waitStatus = (label, timeout = 300000) => page.waitForFunction((l) => document.querySelector("#rState").textContent === l, label, { timeout });
+const waitStatus = (label, timeout = 300000) => page.waitForFunction((l) => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready") === l, label, { timeout });
 const lastReply = () => page.locator(".msg-w").last().innerText();
 // the picker's list for exactly this query (its rows as full paths), once it has arrived
 const listFor = async (q) => {
@@ -111,7 +111,7 @@ await step("keyboard: ↓/↑ move the selection, Enter picks it (and doesn't se
   const v = await input();
   must(v === `Explain @${rows[1]} `, `value: ${v}`);
   must(!(await pickerOpen()), "picker still open");
-  must(await page.evaluate(() => runId) === null && (await page.locator("#rState").innerText()) === "Ready", "Enter sent the message");
+  must(await page.evaluate(() => runId) === null && (await page.evaluate(() => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready"))) === "Ready", "Enter sent the message");
   await page.keyboard.type("and @");
   await listFor("");
   await page.keyboard.press("Escape");
@@ -262,12 +262,12 @@ await step("Inspect workspace: a mention works and the profile is unchanged (no 
   await page.click("#endBtn"); await waitStatus("Finished", 60000);
   return { profile: meta.workspace.profile, builtinTools: tools.filter((t) => !t.startsWith("mcp__")), reply: reply.slice(0, 120) };
 });
-await step("\"No folder\": @ lists its own (empty) folder", async () => {
+await step("Scratch: a new task has no files to reference, and @ says why (no other conversation's files)", async () => {
   await page.click('#wsList [data-ws="scratch"]');
   await page.click("#input"); await page.fill("#input", ""); await page.keyboard.type("@");
   await listFor("");
   const label = await page.locator("#mPick .lab").textContent(), empty = await page.locator("#mPick .mempty").innerText();
-  must(label.includes("No folder") && empty === "No matching files", `${label} / ${empty}`);
+  must(label.includes("Scratch") && /starts with an empty folder/.test(empty), `${label} / ${empty}`);
   await page.keyboard.press("Escape"); await page.fill("#input", "");
   return { label, empty };
 });

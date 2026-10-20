@@ -79,7 +79,7 @@ await step("tab A adds a workspace and reorders; tab B shows the same list", asy
   await B.waitForFunction((i) => document.querySelector('#wsList .row.ws:not([data-ws="scratch"])')?.dataset.ws === i, id, { timeout: 10000 });
   return { A: await state(A), B: await state(B) };
 });
-await step("remove every folder → \"No folder\" remains and is selected; adding brings the folder back", async () => {
+await step("remove every folder → Scratch remains and is selected; adding brings the folder back", async () => {
   for (const id of (await (await fetch(BASE + "/workspaces")).json()).map((w) => w.id).filter((i) => i !== "scratch")) await removeIn(A, id);
   await A.waitForFunction(() => wsId === "scratch");
   const empty = await state(A);

@@ -92,11 +92,11 @@ await step("Browse the same project again → duplicate refused; this repo → d
 await step("the Browse-added workspace runs exactly as before (Inspect worker, real folder)", async () => {
   await page.fill("#input", "Using Glob only (do not open any file), list the top-level folders in this workspace. One line.");
   await page.click("#send");
-  await page.waitForFunction(() => document.querySelector("#rState").textContent === "Waiting for you", null, { timeout: 300000 });
+  await page.waitForFunction(() => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready") === "Waiting for you", null, { timeout: 300000 });
   const meta = await page.evaluate(async (id) => (await fetch(`/runs/${id}`)).json(), await page.evaluate(() => runId));
   await page.screenshot({ path: join(shots, "browse-run.png") });
   await page.click("#endBtn");
-  await page.waitForFunction(() => document.querySelector("#rState").textContent === "Finished", null, { timeout: 60000 });
+  await page.waitForFunction(() => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready") === "Finished", null, { timeout: 60000 });
   return { boundTo: meta.workspace, cards: (await page.locator("#acts .card .ch").allInnerTexts()).map((c) => c.replace(/\s+/g, " ")), reply: (await page.locator(".msg-w").last().innerText()).slice(0, 200) };
 });
 await step("a foreign page can't open the picker", async () => {

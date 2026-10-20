@@ -24,14 +24,14 @@ const step = async (name, fn) => {
   try { const detail = await fn(); results.push({ step: name, ok: true, detail }); console.log("PASS", name, JSON.stringify(detail).slice(0, 260)); }
   catch (e) { results.push({ step: name, ok: false, error: e.message }); console.log("FAIL", name, e.message.slice(0, 300)); await page.screenshot({ path: join(HERE, "shots", `workers-fail-${results.length}.png`) }); }
 };
-const waitStatus = (l, timeout = 300000) => page.waitForFunction((x) => document.querySelector("#rState").textContent === x, l, { timeout });
+const waitStatus = (l, timeout = 300000) => page.waitForFunction((x) => ({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready") === x, l, { timeout });
 const lastReply = () => page.locator(".msg-w").last().innerText();
 const raw = (id) => readFileSync(join(DATA, "runs", `${id}.raw.jsonl`), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 const calls = (id) => raw(id).flatMap((m) => (m.message?.content || []).filter((c) => c.type === "tool_use").map((c) => ({ tool: c.name.replace(/^mcp__[^_]+(?:-[^_]+)*__/, ""), input: JSON.stringify(c.input) })));
 const initTools = (id, n = 0) => raw(id).filter((m) => m.type === "system" && m.subtype === "init")[n]?.tools || [];
 const events = (id) => readFileSync(join(DATA, "runs", `${id}.jsonl`), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 const sha = (p) => createHash("sha1").update(readFileSync(p)).digest("hex");
-const send = async (text) => { await page.fill("#input", text); await page.click("#send"); await page.waitForFunction(() => ["Working", "Starting"].includes(document.querySelector("#rState").textContent), null, { timeout: 30000 }); await waitStatus("Waiting for you"); };
+const send = async (text) => { await page.fill("#input", text); await page.click("#send"); await page.waitForFunction(() => ["Working", "Starting"].includes(({ starting: "Starting", running: "Working", waiting: "Waiting for you", finished: "Finished", stopped: "Stopped", failed: "Failed", interrupted: "Interrupted" }[document.querySelector("#runChip").dataset.status] || "Ready")), null, { timeout: 30000 }); await waitStatus("Waiting for you"); };
 const endRun = async () => { await page.click("#endBtn"); await waitStatus("Finished", 60000); };
 const until = async (fn, ms = 300000) => { const t0 = Date.now(); for (;;) { const v = await fn(); if (v) return v; if (Date.now() - t0 > ms) throw new Error("timeout"); await new Promise((ok) => setTimeout(ok, 1000)); } };
 

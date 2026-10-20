@@ -48,11 +48,20 @@ const FIGMA_LEGACY = process.env.WORKER_FIGMA_LEGACY === "1";
 const platformInstructions = () => [readFileSync(join(HERE, "worker-instructions.md"), "utf8").trim(), ...(FIGMA_LEGACY ? [] : ["", readFileSync(join(HERE, "worker-efficiency.md"), "utf8").trim()])].join("\n");
 function platformInstructionsFile() { const f = join(DATA, "instructions.effective.md"); writeFileSync(f, platformInstructions() + "\n"); return f; }
 mkdirSync(RUNS, { recursive: true });
-// "No folder": work that has no project folder (a Figma design, a conversation) runs in this
-// private, console-owned scratch folder, with the Work profile; the worker's own capabilities
-// still decide its tools. It's always in the list and can't be removed.
-const SCRATCH_WS = { id: "scratch", name: "No folder", root: join(DATA, "scratch"), profile: "full" };
-mkdirSync(SCRATCH_WS.root, { recursive: true });
+// Scratch: work that has no project folder (a Figma design, Builder content, a browser task,
+// research). It's a mode, not a project: every scratch conversation gets its own empty folder,
+// <data>/scratch-runs/<run id>, created when it starts, kept with the conversation, and reused by
+// the sessions that continue it (a fresh-session handoff). The Work profile applies; the worker's
+// own capabilities still decide its tools. It has no Git, and no project files to reference.
+// Conversations from before 2026-10-20 ran in one shared folder, <data>/scratch (SCRATCH_WS.root):
+// they keep it, so nothing of theirs moves. "scratch" is always in the list and can't be removed.
+const SCRATCH_WS = { id: "scratch", name: "Scratch", root: join(DATA, "scratch"), profile: "full" };
+const SCRATCH_RUNS = join(DATA, "scratch-runs");
+mkdirSync(SCRATCH_WS.root, { recursive: true }); mkdirSync(SCRATCH_RUNS, { recursive: true });
+const isScratchFolder = (p) => { try { return samePath(dirname(realpathSync.native(p)), realpathSync.native(SCRATCH_RUNS)); } catch { return false; } };
+const SCRATCH_NOTE = ["## Workspace: Scratch",
+  "This conversation has no project folder. Your working directory is its own scratch folder: it started empty, only this conversation (and any session that continues it) uses it, and it isn't under version control. There are no project files here to find.",
+  "Keep intermediate files here. Report anything the person should keep or open with an ARTIFACT: line."].join("\n");
 if (!existsSync(PROMPTS)) writeFileSync(PROMPTS, "[]\n");
 
 // Tools the worker may use: MCP environments, files, node/curl in the shell, web.
@@ -382,6 +391,7 @@ function normalizeTeam(b, prev) {
     const note = String(k.note || "").trim().slice(0, 200);
     if (k.type === "workspace_file") {
       if (!workspace) throw new Error("Choose the Team's workspace before adding files from it.");
+      if (workspace === "scratch") throw new Error("A team that works in Scratch has no project files to reference: upload the document instead.");
       if (k.workspaceId && k.workspaceId !== workspace) throw new Error(`@${k.path} is in another workspace. Team knowledge can only reference files in the Team's workspace.`);
       const [m] = resolveMentions(root, [{ type: "file", path: k.path }]);
       if (!m.exists) throw new Error(`@${m.path} isn't a file in the Team's workspace.`);
@@ -569,7 +579,7 @@ function ghRemove(id) {
 }
 // Assigning: the workspace's folder must be a checkout whose origin is the registered repository.
 function assignRepo(wsId, b) {
-  if (wsId === "scratch") throw new Error("\"No folder\" can't have a repository.");
+  if (wsId === "scratch") throw new Error("Scratch can't have a repository: it has no project folder.");
   const ws = resolveWorkspace(wsId), reg = readGithub().repos.find((r) => r.id === String(b.repo || ""));
   if (!reg) throw new Error("Choose a registered repository.");
   if (!repoTop(ws.root)) throw new Error("This workspace's folder isn't a Git checkout. Clone the repository into a folder first.");
@@ -796,7 +806,7 @@ function listWorkspaces() {
   return [SCRATCH_WS, ...withConsole(list).map((w) => (w.id === "console" ? consoleWs(list) : w))].filter((w) => !w.hidden).map((w) => {
     let root = null; try { root = resolveWorkspace(w.id).root; } catch {}
     const reg = w.repo ? repos.find((r) => r.id === w.repo.id) : null;
-    return { id: w.id, name: w.name || w.id, root: root || w.root, profile: w.profile, available: !!root, ...(root ? gitInfo(root) : {}),
+    return { id: w.id, name: w.name || w.id, root: root || w.root, profile: w.profile, available: !!root, ...(w.id === "scratch" ? { scratch: true } : root ? gitInfo(root) : {}),
       ...(w.repo ? { repo: { ...w.repo, fullName: reg?.fullName || null, registered: !!reg } } : {}) };
   });
 }
@@ -827,7 +837,7 @@ function addWorkspace({ name, path, mode }) {
 // stay in the history but can no longer be resumed or browsed (the binding check refuses them).
 function removeWorkspace(id) {
   const list = readWorkspaces();
-  if (id === "scratch") throw new Error("\"No folder\" is built in and can't be removed.");
+  if (id === "scratch") throw new Error("Scratch is built in and can't be removed.");
   if (!listWorkspaces().some((w) => w.id === id)) throw new Error(`No workspace "${id}".`);
   const busy = active();
   if (busy && (busy.meta.workspace?.id || "console") === id) throw new Error("A worker is running in this workspace. Stop or end it first.");
@@ -836,7 +846,7 @@ function removeWorkspace(id) {
 }
 // New display order: the same workspaces, rearranged.
 function reorderWorkspaces(ids) {
-  ids = Array.isArray(ids) ? ids.filter((i) => i !== "scratch") : ids; // "No folder" stays first
+  ids = Array.isArray(ids) ? ids.filter((i) => i !== "scratch") : ids; // Scratch isn't one of the projects: it stays apart
   const now = listWorkspaces().map((w) => w.id).filter((i) => i !== "scratch");
   if (!Array.isArray(ids) || ids.length !== now.length || new Set(ids).size !== ids.length || !ids.every((i) => now.includes(i))) throw new Error("The workspace list changed. Reload and try again.");
   const list = readWorkspaces(), byId = new Map(list.map((w) => [w.id, w]));
@@ -885,7 +895,11 @@ function checkBinding(run, { resume }) {
   // Runs from before workspaces were all created in this repo with the full profile.
   const bound = run.meta.workspace || { id: "console", root: realpathSync.native(REPO), profile: "full" };
   const now = resolveWorkspace(bound.id);
-  if (!samePath(now.root, bound.root)) throw new Error(`Workspace "${bound.id}" now resolves to ${now.root}, but this run is bound to ${bound.root}. Start a new run.`);
+  // A scratch conversation is bound to its own folder (or, from before per-conversation folders, the shared one).
+  if (bound.id === "scratch") {
+    if (!samePath(now.root, bound.root) && !isScratchFolder(bound.root)) throw new Error(`This scratch conversation is bound to ${bound.root}, which isn't a scratch folder. Start a new task.`);
+    if (!existsSync(bound.root)) throw new Error("This scratch conversation's folder was deleted, so it can't continue. Start a new task.");
+  } else if (!samePath(now.root, bound.root)) throw new Error(`Workspace "${bound.id}" now resolves to ${now.root}, but this run is bound to ${bound.root}. Start a new run.`);
   if (now.profile !== bound.profile) throw new Error(`Workspace "${bound.id}" now has the ${now.profile} profile, but this run is bound to ${bound.profile}. Start a new run.`);
   if (resume) {
     if (run.meta.configDir && !samePath(run.meta.configDir, CONFIG_DIR)) throw new Error(`This run's session lives in Claude config dir ${run.meta.configDir}; this console uses ${CONFIG_DIR}.`);
@@ -934,6 +948,11 @@ function resultText(content) {
 
 // ---- runs ----------------------------------------------------------------
 // Status: starting | running | waiting | finished | stopped | failed | interrupted
+// While a run waits, meta.outcome says how its last turn ended, from the runtime's own result and
+// the worker's tagged lines in that turn: "needs" (a NEEDS: line: it can't go on without the
+// person), "error" (the runtime ended the turn with an error, or the worker reported a FAILURE it
+// didn't recover from), "done" (a DONE: line), otherwise "replied". A compaction or handoff request
+// isn't a turn of the task, so it keeps the outcome it had.
 const runs = new Map(); // id -> { meta, child?, toolUses, file, raw }
 const listeners = new Map(); // id -> Set(res)
 const metaPath = (id) => join(RUNS, `${id}.meta.json`);
@@ -947,7 +966,19 @@ function emit(run, ev) {
 function setStatus(run, status, why) {
   run.meta.status = status;
   saveMeta(run);
-  emit(run, { type: "status", summary: status, detail: why });
+  emit(run, { type: "status", summary: status, detail: why, ...(status === "waiting" && run.meta.outcome ? { outcome: run.meta.outcome } : {}) });
+}
+function turnOutcome(run, msg) {
+  const tags = run.turnTags || new Set();
+  if (tags.has("needs")) return "needs";
+  if (msg.is_error || (tags.has("failure") && !tags.has("recovery") && !tags.has("done"))) return "error";
+  return tags.has("done") ? "done" : "replied";
+}
+// The busy-worker refusals name the run that's busy, so the page can lead to it.
+function busyError(message) {
+  const a = active(), e = new Error(message);
+  if (a) e.activeRun = { id: a.meta.id, status: a.meta.status, workspace: a.meta.workspace?.id || "console", prompt: clip(String(a.meta.prompt || "").split(/\r?\n/)[0], 120) };
+  return e;
 }
 const alive = (run) => run.child && run.child.exitCode === null && !run.child.killed;
 const active = () => [...runs.values()].find(alive);
@@ -1003,7 +1034,8 @@ function translate(run, msg) {
           const tag = Object.keys(TAGS).find((t) => line.toUpperCase().startsWith(t));
           if (!tag) continue;
           const text = line.slice(tag.length).trim();
-          if (TAGS[tag] === "artifact") addArtifact(run, relTo(run.meta.workspace.root, text.replace(/[`"]/g, "")), "Files");
+          (run.turnTags ||= new Set()).add(TAGS[tag]);
+          if (TAGS[tag] === "artifact") addArtifact(run, relTo(run.meta.workspace.root, text.replace(/[`"]/g, "")), "Files", { declared: true });
           else if (TAGS[tag] === "remember") remember(run, text);
           else emit(run, { type: TAGS[tag], summary: text });
           if (TAGS[tag] === "needs") run.meta.needs = [...(run.meta.needs || []), text];
@@ -1025,7 +1057,7 @@ function translate(run, msg) {
       observeToolResult(run, use, b);
       if (b.is_error) run.meta.failures++;
       emit(run, { type: b.is_error ? "failure" : "result", ref: b.tool_use_id, env: use.env, tool: shortName(use.name), summary: clip(resultText(b.content), 220) });
-      if (use.writes && !b.is_error) addArtifact(run, use.writes, use.env);
+      if (use.writes && !b.is_error) addArtifact(run, use.writes, use.env, { ref: b.tool_use_id });
     }
     return;
   }
@@ -1042,6 +1074,7 @@ function translate(run, msg) {
       detail: JSON.stringify({ turns: msg.num_turns, seconds: Math.round((msg.duration_ms || 0) / 1000), costUsd: msg.total_cost_usd }),
     });
     if (msg.is_error) run.meta.lastError = msg.subtype;
+    if (!run.turnAs) run.meta.outcome = turnOutcome(run, msg);
     observeTurn(run, msg);
     setStatus(run, "waiting", "ready for a follow-up");
     if (run.awaitingHandoff && run.pendingContinue) finishContinue(run, run.handoffText.trim());
@@ -1057,11 +1090,15 @@ function remember(run, text) {
   if (!list.some((m) => m.text === text)) { list.push({ text: text.slice(0, 500), at: new Date().toISOString(), run: run.meta.id }); writeMemory(w.id, list.slice(-200)); }
   emit(run, { type: "memory", summary: text });
 }
-function addArtifact(run, path, env) {
-  // Only files inside the workspace are deliverables; worker scratch files elsewhere (absolute paths) are not.
-  if (!path || /^([a-z]:|\/|\\)/i.test(path) || run.meta.artifacts.includes(path)) return;
-  run.meta.artifacts.push(path);
-  emit(run, { type: "artifact", env, summary: path });
+// Two kinds of result file, kept apart: every file the worker wrote inside the workspace
+// (meta.artifacts, found from its successful writes), and the ones it named as part of the result
+// with an ARTIFACT: line (meta.declared). Files outside the workspace (absolute paths) are neither.
+function addArtifact(run, path, env, { declared = false, ref } = {}) {
+  if (!path || /^([a-z]:|\/|\\)/i.test(path)) return;
+  const known = run.meta.artifacts.includes(path), wasDeclared = (run.meta.declared || []).includes(path);
+  if (declared && !wasDeclared) run.meta.declared = [...(run.meta.declared || []), path];
+  if (!known) run.meta.artifacts.push(path);
+  if (!known || (declared && !wasDeclared)) emit(run, { type: "artifact", env, summary: path, ...(declared ? { declared: true } : {}), ...(ref ? { ref } : {}) });
 }
 
 const snapPath = (id) => join(RUNS, `${id}.worker.json`);
@@ -1080,13 +1117,14 @@ function spawnWorker(run, { resume }) {
     const rt = workerRuntime(def, ws.profile, scope);
     mcpFile = join(RUNS, `${run.meta.id}.mcp.json`);
     writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(rt.servers.map((n) => [n, MCP_SERVERS[n](ws.profile, scope, rt.usable, ws.root)])) }, null, 1));
-    if (existsSync(join(RUNS, `${run.meta.id}.worker.md`))) promptFile = join(RUNS, `${run.meta.id}.worker.md`);
     profileArgs = rt.args;
     if (scope.protect.length) {
       run.enforced = { noShell: true, noWrite: scope.onProtected };
       emit(run, { type: "policy", summary: `${scope.protect.map((p) => p.branch).join(", ")} protected`, detail: JSON.stringify({ policies: scope.protect, head: scope.head, onProtected: scope.onProtected, off: rt.byPolicy.map((c) => CAPABILITIES[c].label) }) });
     }
   }
+  // The run's own context (its worker, Team, policies, or Scratch), when it has one.
+  if (existsSync(join(RUNS, `${run.meta.id}.worker.md`))) promptFile = join(RUNS, `${run.meta.id}.worker.md`);
   const args = [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
     "--mcp-config", mcpFile, "--strict-mcp-config",
@@ -1251,7 +1289,7 @@ function observeTurn(run, msg) {
   if (now.window) t.context.window = now.window;
   if (run.meta.sessionId && !st.sessions.includes(run.meta.sessionId)) st.sessions.push(run.meta.sessionId);
   checkContext(run); saveTaskState(run);
-  emit(run, { type: "telemetry", summary: `context ${kTok(t.context.last)} · ${t.modelRequests} requests · ${t.tools.total} tool calls`, detail: JSON.stringify(t) });
+  emit(run, { type: "telemetry", summary: `context ${kTok(t.context.last)} · ${t.modelRequests} requests · ${t.tools.total} tool calls`, detail: JSON.stringify({ ...t, limit: Math.round(contextLimit(run)), autoCompactAt: AUTOCOMPACT_WINDOW, autoFresh: consoleSettings().autoFreshSession !== false }) });
 }
 function observeCompaction(run, msg) {
   const t = telOf(run), m = msg.compact_metadata || {}, c = { at: new Date().toISOString(), trigger: m.trigger || null, pre: m.pre_tokens ?? null, post: m.post_tokens ?? null };
@@ -1338,6 +1376,7 @@ function sendToWorker(run, text, atts = [], mentions = [], opts = {}) {
   // A compaction or handoff request is the console's, not the person's: logged as such, not as a chat message.
   if (opts.as) emit(run, { type: opts.as === "compact" ? "compacting" : "handoff", summary: opts.as === "compact" ? "Compacting the conversation" : "Asking the worker for a handoff summary" });
   else { emit(run, { type: "user", summary: text, ...(saved.length ? { attachments: saved } : {}), ...(mentions.length ? { mentions } : {}) }); if (run.meta.messages > 1) pushMax(stateOf(run).requests, { at: new Date().toISOString(), text: clip(text, 300) }, 10); }
+  run.turnAs = opts.as || null; if (!opts.as) { run.turnTags = new Set(); run.meta.outcome = null; }
   if (opts.as === "handoff") { run.awaitingHandoff = true; run.handoffText = ""; }
   if (opts.as === "compact") run.manualCompact = true;
   setStatus(run, "running");
@@ -1351,7 +1390,7 @@ function sendToWorker(run, text, atts = [], mentions = [], opts = {}) {
 // is refused), with the Team's context added before the worker's own.
 const teamWorkspace = (t) => t.workspace || "scratch";
 async function newRun(prompt, workspaceId = "console", atts = [], workerId = null, mentions = [], teamId = null, settings = {}, extra = {}) {
-  if (active()) throw new Error("A worker is already running. Stop or end it first.");
+  if (active()) throw busyError("A worker is already running. Stop or end it first.");
   const team = teamId ? readTeams().find((t) => t.id === teamId) : null;
   if (teamId && !team) throw new Error(`No Team "${teamId}".`);
   if (team) {
@@ -1359,10 +1398,18 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
     if (!team.workers.includes(workerId)) throw new Error(`That worker isn't in the ${team.name} Team.`);
     if (workspaceId !== teamWorkspace(team)) throw new Error(`The ${team.name} Team works in its own workspace; it can't run in another one.`);
   }
-  const workspace = resolveWorkspace(workspaceId);
+  let workspace = resolveWorkspace(workspaceId);
   const def = workerId ? readWorkers().find((w) => w.id === workerId) : null;
   if (workerId && !def) throw new Error(`No worker "${workerId}".`);
   const id = new Date().toISOString().replace(/[:.]/g, "-");
+  // Scratch: this conversation's own folder; a continuation keeps working in its parent's.
+  const parent = extra.continuedFrom ? loadRun(extra.continuedFrom) : null;
+  const scratch = workspace.id === "scratch";
+  if (scratch) {
+    let root = parent?.meta.workspace?.id === "scratch" && existsSync(parent.meta.workspace.root) ? parent.meta.workspace.root : join(SCRATCH_RUNS, id);
+    mkdirSync(root, { recursive: true }); root = realpathSync.native(root);
+    workspace = { ...workspace, root };
+  }
   const protect = wsPolicies(workspace.id), head = gitInfo(workspace.root).branch;
   // Refused here, before anything is written, when the folder isn't its registered repository or
   // this worker has no access to it.
@@ -1380,9 +1427,9 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
     snap = { definition: def, runtime, status, memory: readMemory(def.id).slice(-40), scope, ...(team ? { team } : {}) };
     const workers = readWorkers();
     const teamCtx = team ? { def: team, members: team.workers.map((w) => workers.find((x) => x.id === w)?.name).filter(Boolean), workspaceName: wsInfo.name, runId: id } : null;
-    snap.context = workerContext(def, runtime, status, snap.memory, workspace.profile, { workspace: protect.length || team || repo ? wsInfo : null, team: teamCtx });
+    snap.context = workerContext(def, runtime, status, snap.memory, workspace.profile, { workspace: protect.length || team || repo ? wsInfo : null, team: teamCtx }) + (scratch ? `\n\n${SCRATCH_NOTE}\n` : "");
   }
-  if (active()) throw new Error("A worker is already running. Stop or end it first.");
+  if (active()) throw busyError("A worker is already running. Stop or end it first.");
   const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, ...(extra.continuedFrom ? { continuedFrom: extra.continuedFrom } : {}), ...(settings.model ? { model: settings.model } : {}), ...(settings.effort ? { effort: settings.effort } : {}), ...(def ? { worker: { id: def.id, name: def.name, version: def.version } } : {}),
     ...(team ? { team: { id: team.id, name: team.name, version: team.version } } : {}), ...(protect.length ? { policy: { protect, head, onProtected: scope.onProtected } } : {}), ...(repo ? { repo: { id: repo.id, fullName: repo.fullName, level: repo.level } } : {}),
     configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
@@ -1398,6 +1445,7 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
   }
   // The general worker under an enforced policy gets a context that says why some tools are off.
   if (!def && (protect.length || repo)) writeFileSync(join(RUNS, `${id}.worker.md`), [platformInstructions(), "", workspaceSection(wsInfo)].join("\n"));
+  else if (!def && scratch) writeFileSync(join(RUNS, `${id}.worker.md`), [platformInstructions(), "", SCRATCH_NOTE].join("\n"));
   if (snap) {
     writeFileSync(snapPath(id), JSON.stringify(snap, null, 1));
     writeFileSync(join(RUNS, `${id}.worker.md`), snap.context);
@@ -1419,7 +1467,7 @@ function followUp(run, text, atts = [], mentions = [], opts = {}) {
     if (run.meta.status !== "waiting") throw new Error("The worker is still working on the previous message. Wait for it, or stop it.");
     return sendToWorker(run, text, atts, mentions, opts);
   }
-  if (active()) throw new Error("Another worker is running. Stop or end it first.");
+  if (active()) throw busyError("Another worker is running. Stop or end it first.");
   if (!run.meta.sessionId) throw new Error("This run has no saved session to resume.");
   checkBinding(run, { resume: true }); // before anything is logged, so a refused resume changes nothing
   emit(run, { type: "note", summary: "Resuming the saved session in a new worker process. Conversation context is kept; tool processes are new (browser pages and logins are gone, Figma and files are unaffected)." });
@@ -1975,9 +2023,18 @@ http.createServer(async (req, res) => {
     }
     if (url.pathname === "/git/commit" && req.method === "POST") { const b = await body(req); return json(res, 200, await gitCommit(String(b.workspace || ""), b.message, b.run)); }
     if (url.pathname === "/git/push" && req.method === "POST") { const b = await body(req); return json(res, 200, await gitPush(String(b.workspace || ""), b.run)); }
-    if (url.pathname === "/mentions" && req.method === "GET") return json(res, 200, { workspace: W, ...(await searchFiles(resolveWorkspace(W).root, url.searchParams.get("q"))) });
+    // Files of a workspace, or of one run (a scratch conversation's own folder). Scratch itself has
+    // no files to list: each conversation's are its own.
+    const filesRoot = () => {
+      if (url.searchParams.has("run")) { const run = loadRun(url.searchParams.get("run")); if (!run) throw Object.assign(new Error("No such run."), { status: 404 }); return checkBinding(run, { resume: false }).root; }
+      const id = url.searchParams.get("workspace") || "";
+      return id === "scratch" ? null : resolveWorkspace(id).root;
+    };
+    if (url.pathname === "/mentions" && req.method === "GET") { const root = filesRoot(); return json(res, 200, { workspace: W, ...(root ? await searchFiles(root, url.searchParams.get("q")) : { files: [], note: "A new scratch conversation starts with an empty folder: there are no files to reference yet." }) }); }
     if (url.pathname === "/tree") {
-      const entries = dirInside(resolveWorkspace(url.searchParams.get("workspace") || "").root, url.searchParams.get("path") || "");
+      const root = filesRoot();
+      if (!root) return json(res, 200, []);
+      const entries = dirInside(root, url.searchParams.get("path") || "");
       return entries ? json(res, 200, entries) : json(res, 404, { error: "not found" });
     }
 
@@ -1992,7 +2049,7 @@ http.createServer(async (req, res) => {
       const team = b.team ? readTeams().find((t) => t.id === String(b.team)) : null;
       if (b.team && !team) throw new Error(`No Team "${b.team}".`);
       const wsIdArg = workspace === undefined ? (team ? teamWorkspace(team) : "console") : String(workspace);
-      const mentions = resolveMentions(resolveWorkspace(wsIdArg).root, b.mentions);
+      const mentions = wsIdArg === "scratch" ? (b.mentions || []).slice(0, 20).map((m) => ({ path: String(m.path || ""), exists: false })) : resolveMentions(resolveWorkspace(wsIdArg).root, b.mentions); // a new scratch folder is empty
       const settings = b.model != null || b.effort != null ? await checkRunSettings({ model: b.model, effort: b.effort }) : {};
       return json(res, 200, (await newRun(String(prompt || "").trim(), wsIdArg, atts, b.worker ? String(b.worker) : null, mentions, team?.id || null, settings)).meta);
     }
@@ -2093,6 +2150,7 @@ http.createServer(async (req, res) => {
     if (url.pathname === "/file") {
       const run = url.searchParams.has("run") ? loadRun(url.searchParams.get("run")) : null;
       if (url.searchParams.has("run") && !run) { res.writeHead(404); return res.end("not found"); }
+      if (!run && url.searchParams.get("workspace") === "scratch") { res.writeHead(404); return res.end("not found"); } // scratch files belong to their conversation: ?run=
       const root = run ? checkBinding(run, { resume: false }).root : url.searchParams.has("workspace") ? resolveWorkspace(url.searchParams.get("workspace")).root : REPO;
       const p = fileInside(root, url.searchParams.get("path") || "");
       if (!p) { res.writeHead(404); return res.end("not found"); }
@@ -2103,6 +2161,6 @@ http.createServer(async (req, res) => {
     }
     res.writeHead(404); res.end("not found");
   } catch (e) {
-    json(res, e instanceof github.GitHubError ? ghStatus(e) : e.status >= 400 && e.status < 600 ? e.status : 400, { error: e.message });
+    json(res, e instanceof github.GitHubError ? ghStatus(e) : e.status >= 400 && e.status < 600 ? e.status : 400, { error: e.message, ...(e.activeRun ? { activeRun: e.activeRun } : {}) });
   }
 }).listen(PORT, "127.0.0.1", () => console.log(`Worker Console on http://localhost:${PORT} (worker binary: ${CLAUDE.cmd}${CLAUDE.shell ? " via shell" : ""}; Claude config dir: ${CONFIG_DIR})`));

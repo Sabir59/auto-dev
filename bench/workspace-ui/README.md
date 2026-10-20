@@ -1,6 +1,6 @@
 # Workspace UI: workflow and fidelity check (2026-10-01)
 
-**Running the suites:** `bash bench/workspace-ui/run-suite.sh <workflow|manage|sync|attach|versions|mentions|workers|designer|teams|devctl>` (Git Bash on Windows).
+**Running the suites:** `bash bench/workspace-ui/run-suite.sh <workflow|manage|sync|attach|versions|mentions|workers|designer|teams|devctl|remediation>` (Git Bash on Windows).
 - It starts its own test console on port 8797 with a fresh data dir and an empty Figma Reader dir.
 - It builds the disposable fixtures with `fixtures.mjs` under `%TEMP%wsui`. They use canary values only; no real secrets.
 - The Teams suite reads the real MATW repository (`MATW_SRC`) to make a local clone. Nothing is ever written to the real repository.
