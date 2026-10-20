@@ -1,0 +1,9 @@
+# TLS in front of the gateway (docs/CLOUD_DEPLOYMENT.md §8). Caddy gets and renews the certificate.
+# Set AIW_DOMAIN (the DNS name pointing at this VM) in Caddy's environment, or write the name here.
+{$AIW_DOMAIN} {
+	# No response compression: it can hold back the activity stream.
+	reverse_proxy 127.0.0.1:8080 {
+		# The activity stream (/events) is server-sent events: pass bytes on as they arrive.
+		flush_interval -1
+	}
+}

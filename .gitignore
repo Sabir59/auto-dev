@@ -20,3 +20,17 @@ worker-ui/runs/*.team/
 worker-ui/devctl-logs/
 worker-ui/instructions.effective.md
 worker-ui/github.json
+
+# Run history (prompts and whatever a worker read): never committed by accident. The three
+# 2026-09-30 proof runs already tracked stay tracked.
+worker-ui/runs/*.jsonl
+worker-ui/runs/*.meta.json
+worker-ui/runs/*.state.json
+worker-ui/runs/*.handoff.json
+# Local, generated or personal files
+worker-ui/console-settings.json
+bench/workspace-security/mcp.abs.json
+exports/*.jpg
+# Credentials and environment files, wherever they appear
+.env
+*.env

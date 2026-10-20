@@ -1,15 +1,28 @@
 # Cloud deployment (hosted pilot)
 
-How to run AI Worker as a website for a few trusted people. The design is in `docs/HOSTED_ARCHITECTURE.md`. **Nothing has been deployed yet.** §9 lists what isn't verified and what blocks launch.
+How to run AI Worker as a website for a few trusted people. The design is in `docs/HOSTED_ARCHITECTURE.md`. **Nothing has been deployed yet** (2026-10-21): the image is built and tested locally; the recommended host is a Linux VM (§1a). §9 lists what isn't verified and what blocks launch.
 
 ## 1. What you deploy
 - **One container** (`deploy/Dockerfile`), running the gateway. It starts one console per signed-in person inside the same container.
 - **A persistent volume at `/data`** (accounts, sessions, every person's runs, workspaces and credentials).
 - **TLS in front:** a load balancer or a reverse proxy (Caddy, nginx) that forwards to the container's port 8080.
 
-**Recommended pilot host:** one Linux VM (2–4 vCPU, 8 GB RAM, 50 GB SSD for 5–10 people) with Docker, an encrypted persistent disk, and Caddy for TLS.
-- A managed container service works only if it lets the container run as root with `SETUID`/`SETGID`/`CHOWN`/`KILL` capabilities and gives it a persistent POSIX volume. Many serverless container platforms don't.
+**Recommended pilot host:** one Linux VM (2–4 vCPU, 8 GB RAM, 50 GB SSD for 5–10 people) with Docker, an encrypted persistent disk, and Caddy for TLS. Use `deploy/docker-compose.yml` and `deploy/Caddyfile`.
+- A managed container service works only if it lets the container run as root with `SETUID`/`SETGID`/`CHOWN`/`KILL` capabilities, gives it a persistent POSIX volume and allows `NET_ADMIN` for the egress firewall. Many serverless container platforms don't.
 - Several hosts aren't supported yet (consoles live inside the gateway's container).
+
+### 1a. Railway: evaluated, not suitable as configured (2026-10-21)
+| Requirement | Railway | Evidence |
+|---|---|---|
+| Persistent `/data` | One volume per service, mounted as root | Railway docs, Volumes reference |
+| Root in the container (to start consoles as person uids) | Yes, `RAILWAY_RUN_UID=0` runs the container as root | Railway docs, Volumes reference |
+| `SETUID`/`SETGID`/`CHOWN` for `setpriv` | Not documented; untested without an account | — |
+| **`NET_ADMIN` for the egress firewall** | **Not available.** No `--cap-add` and no privileged mode | Railway staff, Central Station: "This would not be possible on Railway" (2024-03-29, on `--cap-add NET_ADMIN`); "You simply can't do such things on Railway.. Yet." (2025-08-16, on privileged mode) |
+| Health check | `/readyz` is checked during each deploy only (traffic switches on 200; not monitored afterwards) | Railway docs, Healthchecks |
+| Restart | "On Failure", up to 10 restarts by default | Railway docs, Restart policy |
+| Secrets | Service variables | Railway docs |
+
+**Conclusion:** without `NET_ADMIN`, `AIW_EGRESS_FIREWALL=1` can't run. A worker could reach the platform's internal network or a metadata service through WebFetch. CLOUD_DEPLOYMENT §9 lists the firewall as a launch blocker, and this design doesn't drop it to fit a host. **Use a Linux VM.** Revisit Railway only if it adds capabilities, or if the egress control moves outside the container (a provider-level egress policy).
 
 ## 2. Configuration (environment variables)
 
@@ -90,14 +103,23 @@ Each person then: GitHub page → Connect with GitHub → authorize → "Choose 
 ## 7. Start, health, shutdown, logs
 
 ```sh
-docker build -f deploy/Dockerfile -t ai-worker:pilot .
-docker volume create aiw-data
-docker run -d --name ai-worker --restart unless-stopped \
-  --env-file /etc/ai-worker.env \
-  -v aiw-data:/data -p 127.0.0.1:8080:8080 \
-  --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add SETUID --cap-add SETGID --cap-add KILL --cap-add NET_ADMIN \
-  ai-worker:pilot
+# on the VM, in a clone of the repository
+sudo docker compose -f deploy/docker-compose.yml up -d --build
+sudo docker compose -f deploy/docker-compose.yml logs -f      # the gateway's JSON log
 ```
+
+What `deploy/docker-compose.yml` sets:
+- secrets from `/etc/ai-worker.env`;
+- `AIW_TRUST_PROXY=1`, `AIW_EGRESS_FIREWALL=1`;
+- port `127.0.0.1:8080` only (Caddy is the public side);
+- the named volume `aiw-data` at `/data`;
+- `cap_drop: ALL` plus CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, KILL, NET_ADMIN;
+- `no-new-privileges`;
+- a 30 s stop grace period;
+- `restart: unless-stopped`;
+- rotated logs.
+
+**Build context:** the image is built from an allowlist (`.dockerignore`), and the build fails if local state (run history, workers, Teams, prompts) reaches it.
 
 - **Startup failure:** a missing or unsafe setting makes the gateway exit with a list of problems (`docker logs ai-worker`).
 - **Accounts:** add each person with `docker exec ai-worker node /app/worker-ui/users.mjs add person@example.com --name "Person"`. It prints a password once; send it to them privately.
@@ -105,22 +127,33 @@ docker run -d --name ai-worker --restart unless-stopped \
 - **Health:**
   - `GET /healthz`: the process answers (the image's HEALTHCHECK);
   - `GET /readyz`: data dir writable, provider key set, Claude Code CLI runnable, isolation active, GitHub App configured. 503 if a required one fails. It reports no secret.
-- **Graceful shutdown:** `docker stop` (SIGTERM, 10 s) → the gateway stops taking requests and each console records live runs as `interrupted`, then stops its workers. People continue a run by sending a message after the restart.
-  - Give `docker stop -t 30` if many people are active.
+- **Graceful shutdown:** `docker compose stop` (SIGTERM through tini, 30 s grace) → the gateway stops taking requests and each console records live runs as `interrupted`, then stops its workers. People continue a run by sending a message after the restart.
 - **Logs:** JSON lines on stdout (`docker logs`): requests (method, path without query, status, ms, person id), sign-ins, model requests (person, path, status, ms), console starts and exits.
   - Never bodies, cookies, query strings, tokens or keys.
   - Per-console logs are in `/data/logs/`.
 
 ## 8. Deployment sequence
-1. Create the VM, an encrypted data disk and a DNS name; install Docker and Caddy (`reverse_proxy 127.0.0.1:8080`).
-2. Create the Anthropic API key (Console, with a spend limit) and register the GitHub App (§4).
-3. Write `/etc/ai-worker.env` (mode 600): `AIW_PUBLIC_ORIGIN`, `ANTHROPIC_API_KEY`, `GITHUB_APP_*`, `AIW_TRUST_PROXY=1`, `AIW_EGRESS_FIREWALL=1`.
-4. Build and run the container (§7). Check `GET /readyz` → 200.
-5. **Verify the egress firewall from inside:**
-   - `docker exec ai-worker setpriv --reuid=20001 --regid=20001 --clear-groups node -e "fetch('http://169.254.169.254/').then(()=>console.log('REACHABLE')).catch(e=>console.log('blocked', e.cause?.code))"` must print `blocked`;
-   - the same for `https://api.github.com` must succeed.
-6. Add yourself as the first account. Run the live checks (§9 "Live verification"): a real model run, Connect with GitHub, a clone, a commit, your push, a Figma link read, a browser task.
-7. Add the pilot users.
+1. **Create the VM.**
+   - Ubuntu 24.04 LTS, 2–4 vCPU, 8 GB RAM, 50 GB encrypted disk, your SSH key; any provider works.
+   - Open ports 22 (your IP only), 80 and 443.
+   - Point a DNS A record (e.g. `aiworker.<your domain>`) at it.
+2. **Install Docker and Caddy:** `sudo apt-get install -y docker.io docker-compose-v2 caddy git`.
+3. **Get the code:** clone the repository on the VM (a deploy key or the GitHub CLI; the repository is private).
+4. **Write `/etc/ai-worker.env`** (`sudo install -m 600 /dev/null /etc/ai-worker.env`, then edit):
+   - `AIW_PUBLIC_ORIGIN=https://aiworker.<your domain>`
+   - `ANTHROPIC_API_KEY=…`
+   - `GITHUB_APP_CLIENT_ID=…`, `GITHUB_APP_CLIENT_SECRET=…`, `GITHUB_APP_SLUG=…`
+5. **Set up TLS:** copy `deploy/Caddyfile` to `/etc/caddy/Caddyfile`, set `AIW_DOMAIN=aiworker.<your domain>` in `/etc/default/caddy` (or write the name into the file), then `sudo systemctl restart caddy`.
+6. **Start:** `sudo docker compose -f deploy/docker-compose.yml up -d --build` (§7). Then `curl -s https://aiworker.<your domain>/readyz` must answer 200 with every check `ok`.
+7. **Verify the egress firewall from inside:**
+   - `sudo docker compose -f deploy/docker-compose.yml exec ai-worker setpriv --reuid=20001 --regid=20001 --clear-groups node -e "fetch('http://169.254.169.254/',{signal:AbortSignal.timeout(5000)}).then(()=>console.log('REACHABLE')).catch(()=>console.log('blocked'))"` must print `blocked`;
+   - the same for `https://api.github.com` must print `REACHABLE`.
+   - `bench/hosted/image-test.sh` runs these and the other container checks if you copy it to the VM.
+8. **Add yourself as the first account** (`… exec ai-worker node /app/worker-ui/users.mjs add you@example.com --name "You"`).
+9. **Run the live checks** (§9 "Live verification"): a real model run, Connect with GitHub, a clone, a commit, your push, a Figma link read, a browser task, two accounts.
+10. **Add the pilot users.**
+
+**Updating:** `git pull`, then `sudo docker compose -f deploy/docker-compose.yml up -d --build`. Live runs are recorded as interrupted and continue with the next message. The volume, accounts and sessions are kept.
 
 ## 9. Status: what's verified, what isn't, what blocks launch
 
@@ -129,6 +162,9 @@ docker run -d --name ai-worker --restart unless-stopped \
   - It also passed **with the egress firewall active** (`EGRESS=1`, `hosted-results-linux-egress.json`: 25/25, the run before the Scratch step was added).
 - `hosted-test.mjs`, **Windows** (isolation none): 24/24, with the 2 Linux-only steps skipped (`hosted-results-win32.json`).
 - `hosted-ui-test.mjs`, **Windows**: the website in a real browser, 7/7 (`hosted-ui-results.json`).
+- **The deployment image** (`ai-worker:pilot`, built with Docker 29 on Ubuntu 24.04, 2026-10-21), run with the production capability set, `no-new-privileges` and the firewall on:
+  - `image-test.sh` 16/16: no local state in the image, production start, firewall installed, `/readyz` 200 with no secret, `__Host-` Secure cookie, both people on their own uid consoles with no capabilities, no cross-person reads, metadata and the gateway port refused to a person uid, the internet reachable, graceful stop (exit 0), session kept across a restart;
+  - `hosted-test.mjs` inside the image 26/26 (`hosted-results-linux-egress-image.json`).
 - `egress-test.sh`, **Linux:** as a person uid, the model port and the public internet are reachable; another loopback service, a private address and 169.254.169.254 are refused at once; root is unaffected.
 - **What these exercised:** the real gateway, the real consoles, the real Claude Code CLI 2.1.283, real tools and real Chromium, with a **fake model provider** and a mock github.com. The Figma connection check went to the live Figma API.
 
@@ -144,12 +180,12 @@ docker run -d --name ai-worker --restart unless-stopped \
 - A run against the real Anthropic API.
 - Connect with GitHub against github.com, clone and push to a real GitHub repository.
 - Reading a real Figma file with a real token (the connection page *was* checked against the live Figma API, with a token Figma rejected).
-- The container image build and a deployment. The Dockerfile hasn't been built here (no Docker in the build environment).
+- A deployment to a real host (none is set up yet; see §1a for why not Railway).
 
 ### Launch blockers
-1. **The egress firewall** (§6) must be installed and verified on the real host (§8 step 5). The script was verified on a Linux kernel here, not on the target host or inside the image.
-2. **The live checks** in §8 step 6 must pass with the real key, app and domain.
-3. **The image must be built and `/readyz` must be 200** on the target host.
+1. **The egress firewall** (§6) must be verified on the real host (§8 step 7). It was verified inside the image here, on a WSL2 kernel, not yet on the target VM's kernel or provider network.
+2. **The live checks** in §8 step 9 must pass with the real key, app and domain.
+3. **`/readyz` must be 200 on the target host** behind TLS.
 
 ### Known limitations (accepted for the pilot, documented)
 - **Shell commands** (`node`, `curl`) aren't available to workers hosted, so workers can't run builds or tests.

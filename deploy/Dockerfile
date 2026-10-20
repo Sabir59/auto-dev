@@ -31,9 +31,10 @@ COPY figma-reader/ figma-reader/
 COPY builder-adapter/ builder-adapter/
 COPY deploy/entrypoint.sh deploy/egress-firewall.sh deploy/
 # The platform's code is read-only and readable by every person's uid; nothing of a person's lives here.
-# Local-only state that may have been copied from a developer's tree is removed.
-RUN rm -rf worker-ui/runs worker-ui/scratch worker-ui/scratch-runs worker-ui/workers worker-ui/teams worker-ui/devctl-logs \
-      worker-ui/workers.json worker-ui/teams.json worker-ui/workspaces.json worker-ui/github.json worker-ui/mcp.*.json worker-ui/instructions.effective.md \
+# .dockerignore keeps local state out of the build context; this fails the build if any ever slips in.
+RUN for p in worker-ui/runs worker-ui/scratch worker-ui/scratch-runs worker-ui/workers worker-ui/teams worker-ui/devctl-logs \
+      worker-ui/workers.json worker-ui/teams.json worker-ui/workspaces.json worker-ui/github.json worker-ui/prompts.json worker-ui/instructions.effective.md; do \
+      if [ -e "$p" ]; then echo "local state in the build context: $p (check .dockerignore)"; exit 1; fi; done \
  && chown -R root:root /app && chmod -R a+rX,go-w /app && chmod 755 deploy/*.sh
 
 ENV AIW_ENV=production AIW_DATA=/data AIW_PORT=8080 AIW_ISOLATION=uid NODE_ENV=production

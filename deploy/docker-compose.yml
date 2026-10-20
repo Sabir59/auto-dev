@@ -1,0 +1,26 @@
+# AI Worker hosted pilot on one Linux VM (docs/CLOUD_DEPLOYMENT.md §7–8).
+#   cd <repo> && docker compose -f deploy/docker-compose.yml up -d --build
+# Secrets come from /etc/ai-worker.env (mode 600, never in the repository).
+services:
+  ai-worker:
+    build: { context: .., dockerfile: deploy/Dockerfile }
+    image: ai-worker:pilot
+    restart: unless-stopped
+    env_file: /etc/ai-worker.env
+    environment:
+      AIW_TRUST_PROXY: "1"        # Caddy on the same host sets X-Forwarded-For
+      AIW_EGRESS_FIREWALL: "1"    # person uids: model port and the internet only
+    # Only Caddy on this host reaches the gateway; the model and console ports stay inside the container.
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: ["aiw-data:/data"]
+    # What the gateway needs and nothing more: create and hand over each person's folder (CHOWN,
+    # DAC_OVERRIDE, FOWNER), start their console as their uid (SETUID, SETGID), stop it (KILL), and
+    # install the egress rules (NET_ADMIN). The person processes get none of these.
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, KILL, NET_ADMIN]
+    security_opt: ["no-new-privileges:true"]
+    # Time for each console to record live runs as interrupted and stop its workers.
+    stop_grace_period: 30s
+    logging: { driver: json-file, options: { max-size: "20m", max-file: "5" } }
+volumes:
+  aiw-data: {}

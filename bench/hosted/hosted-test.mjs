@@ -114,6 +114,15 @@ const events = (who, id) => {
   });
 };
 const home = (u) => join(DATA, "users", u.id);
+// A process environment as the kernel holds it. Without SYS_PTRACE (the production capability set)
+// even root can only read its own: then it is read as the process owner (a person uid).
+const procEnv = (pid) => {
+  try { return readFileSync(`/proc/${pid}/environ`, "utf8"); } catch {}
+  let uid; try { uid = statSync(`/proc/${pid}`).uid; } catch { return null; }
+  if (!ROOT || uid === 0) return null;
+  const r = spawnSync("setpriv", [`--reuid=${uid}`, `--regid=${uid}`, "--clear-groups", "cat", `/proc/${pid}/environ`], { encoding: "utf8" });
+  return r.status === 0 ? r.stdout : null;
+};
 const allFiles = (dir) => { const out = []; const walk = (d) => { let es; try { es = readdirSync(d, { withFileTypes: true }); } catch { return; } for (const e of es) { const p = join(d, e.name); if (e.isDirectory()) walk(p); else out.push(p); } }; walk(dir); return out; };
 
 // EGRESS=1 (Linux, root): the whole suite with deploy/egress-firewall.sh active for the person uids.
@@ -271,7 +280,7 @@ await step("the provider key stays in the gateway: the provider saw it, nothing 
   if (LINUX) { // the console and the worker processes, as the kernel sees them
     procs = [];
     for (const pid of readdirSync("/proc").filter((d) => /^\d+$/.test(d))) {
-      let envs; try { envs = readFileSync(`/proc/${pid}/environ`, "utf8"); } catch { continue; }
+      const envs = procEnv(pid); if (envs === null) continue;
       if (!envs.includes(`AIW_USER_EMAIL=alice@pilot.test`) && !envs.includes(`ANTHROPIC_BASE_URL=http://127.0.0.1:${P.model}`)) continue;
       const argv = readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0");
       const role = argv.some((a) => a.endsWith("server.mjs") && a.includes("worker-ui")) ? "console" : /claude(\.exe)?$/.test(argv[0]) ? "worker" : "adapter";
@@ -369,7 +378,7 @@ await step("OS boundary (Linux): each person's folder is theirs alone (mode 700,
   assert(ctl.status !== 0, "a person's uid read the account store");
   const owners = new Set();
   for (const pid of readdirSync("/proc").filter((d) => /^\d+$/.test(d))) {
-    let envs; try { envs = readFileSync(`/proc/${pid}/environ`, "utf8"); } catch { continue; }
+    const envs = procEnv(pid); if (envs === null) continue;
     if (envs.includes(`WORKER_CONSOLE_DATA=${join(home(alice), "data")}`) || envs.includes(`CLAUDE_CONFIG_DIR=${join(home(alice), "claude")}`)) owners.add(statSync(`/proc/${pid}`).uid);
   }
   assert(owners.size === 1 && owners.has(alice.uid), `alice's processes run as ${[...owners]}`);
@@ -514,7 +523,9 @@ await step("sign-in rate limit: repeated failures are refused for 15 minutes", a
 await stopGateway();
 await fake.close(); mock.close?.();
 const passed = results.filter((r) => r.ok).length, failed = results.filter((r) => r.ok === false).length, skipped = results.filter((r) => r.skipped).length;
-writeFileSync(join(HERE, `hosted-results-${process.platform}${EGRESS ? "-egress" : ""}.json`), JSON.stringify({ when: new Date().toISOString(), platform: process.platform, isolation: ISOLATION, egressFirewall: EGRESS, node: process.version, results }, null, 1));
+// HOSTED_RESULTS_TAG names a run (e.g. "image": the suite run inside the deployment image).
+const TAG = process.env.HOSTED_RESULTS_TAG ? `-${process.env.HOSTED_RESULTS_TAG.replace(/[^\w-]/g, "")}` : "";
+writeFileSync(join(HERE, `hosted-results-${process.platform}${EGRESS ? "-egress" : ""}${TAG}.json`), JSON.stringify({ when: new Date().toISOString(), platform: process.platform, isolation: ISOLATION, tag: TAG.slice(1) || null, egressFirewall: EGRESS, node: process.version, results }, null, 1));
 console.log(`${passed} passed, ${failed} failed, ${skipped} skipped (${process.platform}, isolation ${ISOLATION})`);
 if (process.env.KEEP_DATA !== "1") rmSync(DATA, { recursive: true, force: true });
 process.exit(failed ? 1 : 0);

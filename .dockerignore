@@ -1,0 +1,29 @@
+# The image is built from an allowlist: only the platform's code goes into the build context. Run
+# history, worker memory, Teams, workspaces, credentials, prompts, exports, benchmarks, tests and
+# node_modules built on another OS never reach it (deleting them in a later layer would still ship
+# them in an earlier one). docs/CLOUD_DEPLOYMENT.md.
+*
+
+!deploy/entrypoint.sh
+!deploy/egress-firewall.sh
+
+!mcp/package.json
+!mcp/package-lock.json
+!mcp/*.mjs
+!browser-adapter/package.json
+!browser-adapter/package-lock.json
+!browser-adapter/server.mjs
+!figma-reader/*.mjs
+!builder-adapter/*.mjs
+
+!worker-ui/assets/*.png
+!worker-ui/*.html
+!worker-ui/worker-instructions.md
+!worker-ui/worker-efficiency.md
+!worker-ui/server.mjs
+!worker-ui/gateway.mjs
+!worker-ui/users.mjs
+!worker-ui/provider.mjs
+!worker-ui/github.mjs
+!worker-ui/github-app.mjs
+!worker-ui/git-credential.mjs
