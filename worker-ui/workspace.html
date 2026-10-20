@@ -479,8 +479,8 @@ button.cbadge.pick:disabled .chev { display: none; }
 #footL:not(:empty) + #footHint { display: none; }
 .foot kbd { font: 500 10.5px/14px var(--sans); padding: 0 4px; border: 1px solid var(--line2); border-radius: 3px; color: var(--t2); }
 /* management pages: defining work, not doing it, so there's no composer */
-body[data-view="worker"] .composer, body[data-view="team"] .composer, body[data-view="github"] .composer,
-body[data-view="worker"] .ctx, body[data-view="team"] .ctx, body[data-view="github"] .ctx { display: none; }
+body[data-view="worker"] .composer, body[data-view="team"] .composer, body[data-view="github"] .composer, body[data-view="figma"] .composer,
+body[data-view="worker"] .ctx, body[data-view="team"] .ctx, body[data-view="github"] .ctx, body[data-view="figma"] .ctx { display: none; }
 
 /* ---- right: activity ---- */
 aside.right { background: var(--low); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
@@ -642,7 +642,7 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
   <div class="brand">
     <button class="toggle" id="navToggle" aria-label="Show navigation" aria-expanded="false" aria-controls="leftNav"><svg class="i" width="16" height="16" data-i="menu"></svg></button>
     <img src="/assets/monogram.png" alt="">
-    <span class="para"><span class="name">AI Workspace</span><span class="ver">local</span></span>
+    <span class="para"><span class="name" id="brandName">AI Workspace</span><span class="ver" id="brandVer">local</span></span>
   </div>
   <div style="position:relative">
     <button class="switcher" id="switcher" aria-haspopup="menu" aria-expanded="false" aria-label="Switch workspace" title="Switch workspace">
@@ -715,6 +715,10 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
       <ul id="tpList"></ul>
     </section>
     <div class="grp" aria-hidden="true">Integrations</div>
+    <nav class="sect" data-sect="figma" aria-labelledby="lFg">
+      <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lFg">Figma</span></button></h2>
+      <ul><li class="wsi"><button class="row ws" id="fgOpen" title="Figma reading: the account workers read Figma links with"><span class="grow"><span class="ell" id="fgState">Figma links</span></span><span class="meta m11" id="fgMeta"></span></button></li></ul>
+    </nav>
     <nav class="sect" data-sect="github" aria-labelledby="lGh">
       <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lGh">GitHub</span></button></h2>
       <ul><li class="wsi"><button class="row ws" id="ghOpen" title="The GitHub connection, registered repositories and their workspaces"><span class="grow"><span class="ell" id="ghState">Repositories</span></span><span class="meta m11" id="ghMeta"></span></button></li></ul>
@@ -823,9 +827,22 @@ const api = async (method, path, data) => {
   // The server accepts state-changing requests only from this page: same origin plus this header.
   const r = await fetch(path, { method, headers: { "content-type": "application/json", "x-worker-console": "1" }, body: method === "GET" ? undefined : JSON.stringify(data || {}) });
   const j = await r.json().catch(() => ({}));
+  if (r.status === 401 && j.signIn) { location.assign(j.signIn); throw new Error("Signed out."); } // hosted: the session ended
   if (!r.ok) { const e = new Error(j.error || r.statusText); if (j.activeRun) e.activeRun = j.activeRun; throw e; }
   return j;
 };
+// Hosted or local (GET /platform). The hosted site has no local services, no folders to type or
+// browse, a signed-in person, and says what the platform doesn't provide.
+let PLATFORM = { hosted: false, unavailable: [] };
+function applyPlatform() {
+  if (!PLATFORM.hosted) return;
+  document.body.dataset.hosted = "1"; document.title = "AI Worker";
+  $("brandName").textContent = "AI Worker"; $("brandVer").textContent = "pilot";
+  document.querySelector(".lfoot").hidden = true;
+  const path = $("fPath"); path.required = false; path.closest(".field").hidden = true;
+  HELP.inspect = "Read and search only. No edits.";
+  HELP.work = "Can edit files in this workspace (shell commands aren't available in the hosted product).";
+}
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
 
 // ---------------- dialog ----------------
@@ -1017,7 +1034,7 @@ function renderWorkspaces() {
   $("cHash").hidden = !w.commit; $("cHash").textContent = w.commit ? `#${w.commit}` : "";
   $("bName").textContent = w.name; $("bBr").textContent = w.branch || ""; $("bSl").hidden = !w.branch;
   $("mName").textContent = modeOf(w);
-  $("footR").textContent = (w.id === "scratch" ? "Scratch: each conversation gets its own empty folder (no project files, no Git); its files stay with it" : w.profile === "inspect" ? "Inspect: reads and searches only. No edits, no commands" : "Work: can edit files and run commands in this folder")
+  $("footR").textContent = (w.id === "scratch" ? "Scratch: each conversation gets its own empty folder (no project files, no Git); its files stay with it" : w.profile === "inspect" ? "Inspect: reads and searches only. No edits, no commands" : PLATFORM.hosted ? "Work: can edit files in this workspace (no shell commands on the platform)" : "Work: can edit files and run commands in this folder")
     + (w.repo ? ` · GitHub: ${w.repo.fullName || "repository no longer registered"} (access per worker)` : "");
   $("input").placeholder = runId ? "Reply to the worker…" : w.id === "scratch" ? "Describe a task that needs no project folder: Figma, Builder, a web page, research…" : (w.profile === "inspect" ? `Ask the worker to inspect ${w.name}…` : `Ask the worker to inspect or operate on ${w.name}…`);
 }
@@ -1097,7 +1114,7 @@ document.addEventListener("keydown", async (e) => {
   if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); return; }
   if (!$("pickPop").hidden) { closePick(); return; }
   if (document.body.classList.contains("show-act") || document.body.classList.contains("show-nav")) { closeDrawers(); return; }
-  if (!["file", "version", "worker", "team", "github"].includes(view)) return;
+  if (!["file", "version", "worker", "team", "github", "figma"].includes(view)) return;
   e.preventDefault();
   if (await leaveDraft()) closeFile();
 });
@@ -1124,6 +1141,20 @@ function meter(label, w, id) {
 function renderAccount(r) {
   const a = r.account || {}, u = r.usage, t = r.totals;
   let h = '<div class="lab">Account</div>';
+  if (a.hosted) {
+    // Hosted: the person signed in to the platform; the model runs on the platform's API account.
+    h += `<div class="kv"><span>Signed in as</span><b id="acctEmail">${esc(a.email || "—")}</b></div>
+      ${a.name ? `<div class="kv"><span>Name</span><b>${esc(a.name)}</b></div>` : ""}
+      <div class="kv"><span>Model</span><b>${esc(r.provider?.label || "")}${r.model ? ` · ${esc(r.model)}` : ""}</b></div>
+      <div class="lab">This workspace server</div>
+      <div class="kv"><span>Runs today</span><b>${t.todayRuns} · ${money(t.todayCostUsd)}</b></div>
+      <div class="kv"><span>All runs</span><b>${t.runs} · ${money(t.costUsd)}</b></div>
+      <div class="note">Costs are the runtime's list-price estimates for the API.</div>
+      <div class="foot"><span class="note">Checked ${esc(ago(r.checkedAt))}</span><button type="button" class="btn m11" id="acctOut">Sign out</button></div>`;
+    $("acctPop").innerHTML = h;
+    $("acctOut").onclick = async () => { try { await fetch("/logout", { method: "POST", headers: { "content-type": "application/json" } }); } catch {} location.assign("/login"); };
+    return;
+  }
   if (a.error) h += `<div class="note warn">${esc(a.error)}</div>`;
   else if (!a.loggedIn) h += '<div class="note warn">The workers\' Claude runtime isn\'t signed in. Run <code>claude auth login</code> in a terminal.</div>';
   else h += `<div class="kv"><span>Email</span><b id="acctEmail">${esc(a.email || "—")}</b></div>
@@ -1186,7 +1217,7 @@ $("fBrowse").onclick = async () => {
 $("addForm").onsubmit = async (e) => {
   e.preventDefault();
   try {
-    const w = await api("POST", "/workspaces", { name: $("fName").value, path: $("fPath").value.trim().replace(/^"|"$/g, ""), mode: fMode });
+    const w = await api("POST", "/workspaces", PLATFORM.hosted ? { name: $("fName").value, mode: fMode } : { name: $("fName").value, path: $("fPath").value.trim().replace(/^"|"$/g, ""), mode: fMode });
     $("addForm").reset(); $("addForm").hidden = true; $("addWs").hidden = false;
     await loadWorkspaces(); selectWorkspace(w.id);
   } catch (err) { $("fErr").textContent = err.message; }
@@ -1384,7 +1415,7 @@ function openWorkerEditor(id, note) {
   const inspect = WK.profile === "inspect", off = WK.capabilities.filter((c) => !c.profiles.includes("inspect") && d.capabilities.includes(c.id));
   const capRows = WK.capabilities.map((c) => {
     const workOnly = !c.profiles.includes("inspect");
-    return `<li><label class="cap"><input type="checkbox" data-cap="${esc(c.id)}" ${d.capabilities.includes(c.id) ? "checked" : ""}><span class="t"><span>${esc(c.label)}${workOnly ? ` <span class="needs m11">needs a Work workspace</span>` : ""}</span><span class="d m11">${esc(c.tools)}</span></span></label></li>`;
+    return `<li><label class="cap"><input type="checkbox" data-cap="${esc(c.id)}" ${d.capabilities.includes(c.id) ? "checked" : ""}><span class="t"><span>${esc(c.label)}${c.unavailable ? ` <span class="needs m11 off" title="${esc(c.unavailable)}">not available in the hosted product</span>` : workOnly ? ` <span class="needs m11">needs a Work workspace</span>` : ""}</span><span class="d m11">${esc(c.tools)}</span></span></label></li>`;
   }).join("");
   const capNote = inspect && off.length ? `<span class="sub m11 off">In ${esc(ws().name)} (Inspect) ${plural(off.length, "checked tool")} ${off.length === 1 ? "is" : "are"} turned off: ${esc(off.map((c) => c.label).join(", "))}.</span>` : "";
   // Repository access: none unless chosen here, per registered repository.
@@ -1478,6 +1509,42 @@ async function loadGithub() {
   if (view === "github") renderGithub();
 }
 $("ghOpen").onclick = () => openGithubPage();
+// Figma reading (the Figma Reader): the account workers read Figma links with. The token is checked
+// with Figma before it's kept and never comes back to the page. The plugin tools are separate (they
+// need the Figma desktop app; on the hosted site they aren't available).
+let FG = null;
+async function loadFigma() {
+  try { FG = await api("GET", "/figma"); } catch { return; }
+  $("fgState").textContent = FG.connected ? (FG.ok ? "Connected" : "Needs attention") : "Not connected";
+  $("fgMeta").textContent = FG.connected && FG.detail ? FG.detail : "";
+  if (view === "figma") renderFigma();
+}
+$("fgOpen").onclick = () => {
+  setView("figma"); verOpen = null; renderVersions();
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="Figma"><div class="vbar m11"><span class="ell">Figma</span><span class="ro">reading designs from Figma links</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 12, 12)}</button></div>
+    <div class="vbody"><div class="wform" id="fgBody"><div class="sub m11">Loading…</div></div><div class="wform" style="padding-top:0"><span class="msg m11" id="fgMsg" role="status"></span></div></div></div>`;
+  wireViewer(); if (FG) renderFigma(); loadFigma();
+};
+const fgSay = (m, bad) => { const el = $("fgMsg"); if (el) el.innerHTML = bad ? `<span class="err">${esc(m)}</span>` : esc(m); };
+function renderFigma() {
+  const b = $("fgBody"); if (!b || !FG) return;
+  const plugin = (PLATFORM.unavailable || []).find((u) => u.capability === "figma.plugin.edit");
+  b.innerHTML = `<div class="wf"><span class="lab">Connection</span><span class="sub m11">Workers with "Read Figma designs from a link" read designs through Figma's API as this account. A link alone grants nothing: the account must be able to open the file.</span>
+      ${FG.connected ? `<div class="wstat m11 ${FG.ok ? "ok" : "bad"}"><span class="dot ${FG.ok ? "" : "red"}"></span>${esc(FG.state)}${FG.detail ? ` · ${esc(FG.detail)}` : ""}</div>` : '<div class="wstat m11"><span class="dot grey"></span>Not connected</div>'}
+      <span class="sub m11">Create a personal access token in Figma (Settings → Security → Personal access tokens) with <b>File content: read</b>, and paste it here.</span>
+      <div class="ghline"><input class="wfield" id="fgToken" type="password" autocomplete="off" spellcheck="false" placeholder="figd_…" aria-label="Figma personal access token">
+        <button type="button" class="btn ${FG.connected ? "" : "pri"} m11" id="fgConnect">${FG.connected ? "Replace" : "Connect"}</button>
+        ${FG.connected ? '<button type="button" class="btn danger m11" id="fgDisc">Disconnect</button>' : ""}</div></div>
+    ${plugin ? `<div class="wf"><span class="lab">Changing Figma files</span><span class="sub m11 off">${esc(plugin.reason)}</span></div>` : ""}`;
+  b.onclick = async (e) => {
+    const t = e.target.closest("button"); if (!t) return;
+    try {
+      if (t.id === "fgConnect") { const v = $("fgToken").value.trim(); if (!v) return fgSay("Paste a token first.", true); t.disabled = true; fgSay("Checking with Figma…"); FG = await api("POST", "/figma/connection", { token: v }); fgSay("Connected."); }
+      if (t.id === "fgDisc") { FG = await api("DELETE", "/figma/connection"); fgSay("Disconnected. The token was deleted."); }
+    } catch (err) { fgSay(err.message, true); }
+    await loadFigma();
+  };
+}
 // Back from GitHub (/github/callback redirects here with a short outcome): say what happened, on the GitHub page.
 const GH_OUTCOME = {
   connected: [false, "Connected with GitHub. Find my repositories lists the ones you chose for the app on GitHub."],
@@ -1517,7 +1584,7 @@ function renderGithub() {
   const tokenForm = `<div class="ghline"><input class="wfield" id="ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="${GH.connected ? "Paste a token to use it instead" : "github_pat_…"}" aria-label="GitHub personal access token">
         <button type="button" class="btn ${GH.connected ? "" : "pri"} m11" id="ghConnect">${GH.connected ? "Replace" : "Connect"}</button></div>`;
   const appCard = `<div class="ghopt" id="ghAppOpt"><div class="ghopt-h"><b>Connect with GitHub</b>${app.configured ? '<span class="tag ref">Recommended</span>' : ""}</div>
-      <span class="sub m11">Opens github.com: sign in there (the console never sees your password), authorize the app and choose which repositories it may see. It reads repository metadata only: no code, no push.</span>
+      <span class="sub m11">Opens github.com: sign in there (the console never sees your password), authorize the app and choose which repositories it may see. ${PLATFORM.hosted ? "The platform clones the repositories you choose and pushes only when you press Push." : "It reads repository metadata only: no code, no push."}</span>
       <div class="ghline"><button type="button" class="btn pri m11" id="ghAppConnect" ${app.configured ? "" : "disabled"}>${GH.connected && viaApp ? "Sign in again" : "Connect with GitHub"}</button>${app.installUrl ? `<a class="linkbtn m11" href="${esc(app.installUrl)}" target="_blank" rel="noopener noreferrer" id="ghChoose">Choose repositories on GitHub ↗</a>` : ""}</div>
       ${app.configured ? "" : `<span class="sub m11 off" id="ghAppSetup">Not set up on this computer yet: it needs your organisation's GitHub App (its client ID and secret in <code>${esc(app.configFile || "~/.github-connector/app.json")}</code>). See docs/github.md, "Connect with GitHub". Until then, use a token.</span>`}</div>`;
   const tokenCard = `<div class="ghopt" id="ghTokenOpt"><div class="ghopt-h"><b>Use a personal access token</b></div>
@@ -1529,7 +1596,7 @@ function renderGithub() {
       ${open ? ghDetail(r, gitWs) : ""}</li>`;
   };
   b.innerHTML = `
-    <div class="wf"><span class="lab">Connection</span><span class="sub m11">Used by this console only, to find and check repositories. It gives workers nothing: each worker's access is set per registered repository, in its definition. Git itself keeps using your own Git sign-in for clone and push.</span>
+    <div class="wf"><span class="lab">Connection</span><span class="sub m11">Used by this console only, to find and check repositories. It gives workers nothing: each worker's access is set per registered repository, in its definition. ${PLATFORM.hosted ? "On the platform, clone and your pushes use this connection; workers never push." : "Git itself keeps using your own Git sign-in for clone and push."}</span>
       ${conn}
       ${GH.connected ? `<div class="ghline"><button type="button" class="btn m11" id="ghVerify">Verify</button><button type="button" class="btn danger m11" id="ghDisc">${ghConfirm === "disconnect" ? "Disconnect: sure?" : "Disconnect"}</button>${viaApp && app.installUrl ? `<a class="linkbtn m11" href="${esc(app.installUrl)}" target="_blank" rel="noopener noreferrer" id="ghChoose">Choose repositories on GitHub ↗</a>` : ""}</div>
         ${ghConfirm === "disconnect" ? `<span class="sub m11">${viaApp ? "The sign-in is deleted from this computer and revoked at GitHub." : "The token is deleted from this computer."} Registered repositories, assignments and folders stay.</span>` : ""}
@@ -1558,10 +1625,10 @@ function ghDetail(r, gitWs) {
       <button type="button" class="btn m11" data-gh-unassign="${esc(w.id)}">Unassign</button></div>`).join("")}
     ${free.length ? `<div class="ghline"><select id="ghWs" aria-label="Workspace">${free.map((w) => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join("")}</select>
       <select id="ghGen" aria-label="General worker access">${GH.levels.map((l) => `<option value="${l.id}" ${l.id === "write" ? "selected" : ""}>General: ${esc(l.id)}</option>`).join("")}</select>
-      <label class="cap" title="Workers with shell (node, curl) could run git themselves, outside these limits"><input type="checkbox" id="ghShell">shell</label>
+      ${PLATFORM.hosted ? "" : '<label class="cap" title="Workers with shell (node, curl) could run git themselves, outside these limits"><input type="checkbox" id="ghShell">shell</label>'}
       <label class="cap" title="Otherwise workers commit on their own branches only"><input type="checkbox" id="ghDef">workers on ${esc(r.defaultBranch || "default")}</label>
       <button type="button" class="btn m11" data-gh-assign="${esc(r.id)}">Assign</button></div>` : '<div class="sub">No unassigned Git workspace to assign. Add the checkout as a workspace, or clone it:</div>'}
-    <div class="ghline"><input class="wfield mono" id="ghParent" placeholder="Clone into folder, e.g. C:\\Users\\me\\projects" autocomplete="off" spellcheck="false" aria-label="Folder to clone into"><button type="button" class="btn m11" data-gh-clone="${esc(r.id)}">Clone as workspace</button></div>
+    <div class="ghline">${PLATFORM.hosted ? '<span class="sub m11" style="flex:1">A new workspace of your own, on the platform, with this repository checked out.</span>' : '<input class="wfield mono" id="ghParent" placeholder="Clone into folder, e.g. C:\\Users\\me\\projects" autocomplete="off" spellcheck="false" aria-label="Folder to clone into">'}<button type="button" class="btn m11" data-gh-clone="${esc(r.id)}">Clone as workspace</button></div>
     <div class="ghline"><button type="button" class="btn m11" data-gh-refresh="${esc(r.id)}">Refresh from GitHub</button><span style="flex:1"></span>
       <button type="button" class="btn danger m11" data-gh-remove="${esc(r.id)}">${ghConfirm === "rm:" + r.id ? "Remove: sure?" : "Remove registration"}</button></div>
     ${ghConfirm === "rm:" + r.id ? '<div class="sub">Only the registration is removed: no folder, change, commit or run is touched. Workers lose their access grants to it.</div>' : ""}</div>`;
@@ -1586,7 +1653,7 @@ async function ghClick(e) {
   if (d.ghRemove) { if (ghConfirm !== "rm:" + d.ghRemove) { ghConfirm = "rm:" + d.ghRemove; return renderGithub(); } ghConfirm = null; ghOpenRepo = null; return ghDo(() => api("DELETE", `/github/repos/${encodeURIComponent(d.ghRemove)}`), (r) => `${r.removed}: ${r.note}`); }
   if (d.ghAssign) return ghDo(() => api("PUT", `/workspaces/${encodeURIComponent($("ghWs").value)}/repo`, { repo: d.ghAssign, general: $("ghGen").value, shell: $("ghShell").checked, workersOnDefault: $("ghDef").checked }), (w) => `Assigned to ${w.name}.`);
   if (d.ghUnassign) return ghDo(() => api("DELETE", `/workspaces/${encodeURIComponent(d.ghUnassign)}/repo`), (w) => `${w.name} no longer has a repository assigned.`);
-  if (d.ghClone) { const p = $("ghParent").value.trim(); if (!p) return ghSay("Type the folder to clone into.", true); t.disabled = true; ghSay("Cloning…"); return ghDo(() => api("POST", `/github/repos/${encodeURIComponent(d.ghClone)}/clone`, { parent: p, mode: "work" }), (w) => `Cloned into ${w.root} and added as workspace ${w.name}.`); }
+  if (d.ghClone) { const p = PLATFORM.hosted ? "" : $("ghParent").value.trim(); if (!p && !PLATFORM.hosted) return ghSay("Type the folder to clone into.", true); t.disabled = true; ghSay("Cloning…"); return ghDo(() => api("POST", `/github/repos/${encodeURIComponent(d.ghClone)}/clone`, { parent: p, mode: "work" }), (w) => `Cloned into ${w.root} and added as workspace ${w.name}.`); }
 }
 
 // ---------------- teams ----------------
@@ -2390,7 +2457,7 @@ function renderRunState() {
 // Before anything replaces another conversation, the composer says so (the console runs one worker at a time).
 function renderRunNote() {
   const n = $("runNote"), a = ACTIVE;
-  if (!a || a.id === runId || view === "worker" || view === "team" || view === "github") { n.hidden = true; return; }
+  if (!a || a.id === runId || view === "worker" || view === "team" || view === "github" || view === "figma") { n.hidden = true; return; }
   const where = (WS.find((w) => w.id === runWs(a)) || {}).name || "another workspace", t = esc(runTitle(a)), [label] = runLabel(a);
   n.hidden = false; n.dataset.kind = a.status === "waiting" ? "replace" : "busy";
   n.innerHTML = a.status === "waiting"
@@ -2708,6 +2775,7 @@ function paintDevSwitch(key, sw, dotEl, st, daemonUp) {
   label.textContent = st.lastError ? "error" : st.running ? "running" : "stopped";
 }
 async function pollDevServers() {
+  if (PLATFORM.hosted) return; // no local services on the hosted site
   try {
     if (!DEVCTL) throw new Error("no dev-control daemon for this console");
     const st = await devctlApi("GET", "/status");
@@ -2745,9 +2813,11 @@ $("devBridgeSw").onclick = () => toggleDevServer("bridge", $("devBridgeSw"));
 (async () => {
   setFootL();
   T = freshState();
+  try { PLATFORM = await api("GET", "/platform"); } catch {}
+  applyPlatform();
   try { await loadWorkspaces(); } catch (e) { notice(e); return; }
   await Promise.all([loadPrompts().catch(notice), loadRuns()]);
-  loadTree(); loadGit(); await loadWorkers(); await loadTeams(); loadGithub();
+  loadTree(); loadGit(); await loadWorkers(); await loadTeams(); loadGithub(); loadFigma();
   if (ACTIVE) openRun(ACTIVE.id); else openNewChat();
   githubLanding();
   pollDevServers();
