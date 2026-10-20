@@ -1,6 +1,8 @@
 # figma-ai-executor (v0.1 POC)
 
 > **Start here: `docs/PROJECT_HANDOFF.md`** is the canonical project handoff. It covers what this product is now (a local AI Workspace with Workers and Teams), its architecture, security model, test status, history, decisions and the launch priority. `docs/PROJECT_MEMORY.json` is the machine-readable version. This README describes the original Figma Executor POC, which is still the Figma execution path.
+>
+> **Hosted (website) pilot:** `docs/HOSTED_ARCHITECTURE.md` (design), `docs/CLOUD_DEPLOYMENT.md` (configuration, deployment, what's verified), `docs/HOSTED_RUNTIME_AUDIT.md` (why it changed).
 
 Goal: prove `AI -> Executor -> Figma -> result -> AI` with zero human copy/paste,
 using only the current Figma Plugin API + a tiny local bridge.

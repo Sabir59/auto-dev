@@ -30,6 +30,8 @@ The chain is: **GitHub connection → repository registry → workspace assignme
 
 ## 1a. Connect with GitHub (2026-10-20)
 
+> **Hosted:** the same flow, with the callback on the site's public origin, the client secret held by the gateway's broker, and the app needing **Contents: read and write** (the platform clones, and pushes when the person presses Push). See `docs/HOSTED_ARCHITECTURE.md` §7 and `docs/CLOUD_DEPLOYMENT.md` §4. What follows describes the local console.
+
 ### Which mechanism, and why
 | | GitHub App (chosen) | OAuth App | Fine-grained token (kept) |
 |---|---|---|---|

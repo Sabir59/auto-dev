@@ -47,6 +47,8 @@ Where this document and the code disagree, **the code wins**. Fix this document.
 
 Machine-readable companion: `docs/PROJECT_MEMORY.json`.
 
+> **2026-10-20: hosted pilot.** The product can now also run as a website for a few trusted people: a gateway (`worker-ui/gateway.mjs`) signs people in, runs one console per person as their own Linux user, and holds the Anthropic API key (the claude.ai subscription can't back a hosted product). Where this document says "local only", "no auth" or "the owner's subscription", that's still true of the local console; the hosted mode is described in `docs/HOSTED_ARCHITECTURE.md` and `docs/CLOUD_DEPLOYMENT.md`.
+
 ---
 
 ## 1. Product identity
