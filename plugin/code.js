@@ -161,7 +161,7 @@ const hasMixedText = (node) => ["fills", "fontName", "fontSize", "textDecoration
 
 // Shared by CREATE_TEXT and MODIFY_NODE (on TEXT nodes) so styling logic
 // only lives in one place. Returns the styled segments when ranges were applied.
-const TEXT_KEYS = ["font", "fontSize", "characters", "fill", "textAlignHorizontal", "letterSpacing", "lineHeight", "textCase", "textAutoResize", "width", "ranges"];
+const TEXT_KEYS = ["font", "fontSize", "characters", "replace", "fill", "textAlignHorizontal", "letterSpacing", "lineHeight", "textCase", "textAutoResize", "width", "ranges"];
 async function applyTextParams(node, p) {
   // Any text change needs every font the node uses, including mixed ones.
   if (TEXT_KEYS.some((k) => p[k] !== undefined)) await loadNodeFonts(node);
@@ -172,6 +172,16 @@ async function applyTextParams(node, p) {
   if (p.fontSize !== undefined) node.fontSize = Number(p.fontSize);
   if (p.characters !== undefined) {
     node.characters = String(p.characters);
+  }
+  // In-place find/replace ([[find, replace], …]) that keeps each run's styling, unlike `characters`,
+  // which resets the whole node to one style. Inserted text takes the style of the text it replaces.
+  if (p.replace !== undefined) {
+    for (const [find, rep] of p.replace) {
+      for (let at = node.characters.lastIndexOf(find); at !== -1; at = at > 0 ? node.characters.lastIndexOf(find, at - 1) : -1) {
+        node.insertCharacters(at, String(rep), "AFTER");
+        node.deleteCharacters(at + String(rep).length, at + String(rep).length + find.length);
+      }
+    }
   }
   if (p.fill !== undefined) node.fills = [solidPaint(p.fill)];
   if (p.textAlignHorizontal !== undefined) node.textAlignHorizontal = p.textAlignHorizontal;
@@ -195,7 +205,7 @@ async function applyTextParams(node, p) {
     await applyTextRanges(node, p.ranges);
     return textSegments(node);
   }
-  return null;
+  return p.replace !== undefined && hasMixedText(node) ? textSegments(node) : null;
 }
 
 // Shared by CREATE_FRAME/CREATE_COMPONENT and MODIFY_NODE for generic
@@ -1219,6 +1229,66 @@ const handlers = {
     };
   },
 
+  // Writes prototype reactions in bulk. items: [{id, to, on?, transition?, keepScroll?}] where
+  // `to` is a destination frame id or "BACK" (with nav: "change", a sibling variant id);
+  // `on` is click (default) | hover | press | drag;
+  // `transition` is instant | dissolve (default) | smart | push-left | push-right | slide-up |
+  // slide-down. Replaces the node's existing reactions unless params.append. Instance sublayers
+  // (I<inst>;<child>) take reactions as overrides. Optional params.flows: [{nodeId, name}] sets the
+  // current page's flow starting points.
+  SET_REACTIONS: async (params) => {
+    const TRIGGERS = { click: "ON_CLICK", hover: "ON_HOVER", press: "ON_PRESS", drag: "ON_DRAG" };
+    const easing = { type: "EASE_OUT" };
+    const TRANSITIONS = {
+      instant: null,
+      dissolve: { type: "DISSOLVE", easing, duration: 0.2 },
+      smart: { type: "SMART_ANIMATE", easing, duration: 0.3 },
+      "push-left": { type: "PUSH", direction: "LEFT", matchLayers: false, easing, duration: 0.3 },
+      "push-right": { type: "PUSH", direction: "RIGHT", matchLayers: false, easing, duration: 0.3 },
+      "slide-up": { type: "MOVE_IN", direction: "TOP", matchLayers: false, easing, duration: 0.3 },
+      "slide-down": { type: "MOVE_OUT", direction: "BOTTOM", matchLayers: false, easing, duration: 0.3 },
+    };
+    const done = [], failed = [];
+    for (const it of params.items || []) {
+      try {
+        const node = await getNode(it.id);
+        if (!node) throw new Error("not found");
+        if (!("setReactionsAsync" in node)) throw new Error(`${node.type} cannot take reactions`);
+        const trigger = { type: TRIGGERS[it.on || "click"] };
+        if (!trigger.type) throw new Error(`unknown trigger ${it.on}`);
+        let action;
+        if (it.to === "BACK") action = { type: "BACK" };
+        else {
+          const dest = await getNode(it.to);
+          if (!dest) throw new Error(`destination ${it.to} not found`);
+          const t = it.transition || "dissolve";
+          if (!(t in TRANSITIONS)) throw new Error(`unknown transition ${t}`);
+          // nav "change": variant swap (the reacting node is a variant, `to` a sibling variant).
+          const navigation = it.nav === "change" ? "CHANGE_TO" : "NAVIGATE";
+          action = { type: "NODE", destinationId: dest.id, navigation, transition: TRANSITIONS[t], preserveScrollPosition: !!it.keepScroll };
+        }
+        const reaction = { trigger, actions: [action] };
+        const reactions = params.append ? [...node.reactions, reaction] : [reaction];
+        await node.setReactionsAsync(reactions);
+        done.push(it.id);
+      } catch (e) {
+        failed.push({ id: it.id, error: String(e.message || e) });
+      }
+    }
+    if (params.flows) figma.currentPage.flowStartingPoints = params.flows.map((f) => ({ nodeId: f.nodeId, name: f.name }));
+    return { set: done.length, failed, summary: `SUCCESS: ${done.length} reactions set${failed.length ? `, ${failed.length} failed` : ""}` };
+  },
+
+  // Duplicate a node (instances stay instances, overrides kept) into parentId at insertIndex.
+  CLONE_NODE: async (params) => {
+    const node = await getNode(params.id);
+    if (!node || !("clone" in node)) throw new Error(`${params.id} can't be cloned`);
+    const copy = node.clone();
+    if (params.parentId) appendNode(await resolveParent(params.parentId), copy, params.insertIndex);
+    if (params.name) copy.name = params.name;
+    return { id: copy.id, name: copy.name, summary: `SUCCESS: Cloned "${node.name}" → ${copy.id}` };
+  },
+
   DELETE_NODE: async (params) => {
     const node = await getNode(params.id);
     if (!node) return { deleted: false, summary: `Node ${params.id} already gone` };
@@ -1566,6 +1636,18 @@ const handlers = {
     if (props.layoutSizingVertical !== undefined && "layoutSizingVertical" in node) {
       node.layoutSizingVertical = props.layoutSizingVertical;
       applied.layoutSizingVertical = props.layoutSizingVertical;
+    }
+    // e.g. { horizontal: "SCALE", vertical: "SCALE" } so an icon's shape follows instance resizes.
+    if (props.constraints !== undefined && "constraints" in node) {
+      node.constraints = Object.assign({}, node.constraints, props.constraints);
+      applied.constraints = node.constraints;
+    }
+    // One-line titles: { textTruncation: "ENDING", maxLines: 1 } adds an ellipsis instead of overflowing.
+    if (props.textTruncation !== undefined && node.type === "TEXT") {
+      await loadNodeFonts(node);
+      node.textTruncation = props.textTruncation;
+      if (props.maxLines !== undefined) node.maxLines = props.maxLines;
+      applied.textTruncation = node.textTruncation;
     }
     applyBoxParams(node, props, applied);
 
