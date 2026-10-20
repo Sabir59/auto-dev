@@ -61,6 +61,8 @@ async function currentToken() {
   saveCredentials(next);
   return next.token;
 }
+// For a hosted console's own git network commands (git-credential.mjs), never for a worker.
+export const gitToken = () => currentToken();
 export function saveCredentials(c) {
   if (!c?.token || !TOKEN.test(c.token)) throw new GitHubError("GitHub returned something that isn't a token.", { kind: "exchange" });
   mkdirSync(CRED_DIR, { recursive: true });

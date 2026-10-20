@@ -13,8 +13,11 @@ import { z } from "zod";
 import { mkdirSync, writeFileSync, realpathSync } from "node:fs";
 import { join, dirname, resolve, relative, isAbsolute, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 
-const EXPORTS_DIR = join(dirname(fileURLToPath(import.meta.url)), "exports");
+// BROWSER_EXPORTS_DIR: where screenshots go (hosted: the person's own folder; the adapter's folder otherwise).
+const EXPORTS_DIR = process.env.BROWSER_EXPORTS_DIR || join(dirname(fileURLToPath(import.meta.url)), "exports");
 mkdirSync(EXPORTS_DIR, { recursive: true });
 
 // Profile, chosen by whoever launches the adapter (the env of its MCP config entry).
@@ -50,6 +53,29 @@ function blocked(raw) {
   }
   return null;
 }
+// BROWSER_BLOCK_PRIVATE=1 (hosted): no address on the server itself or on a private network, by
+// name or by number: loopback, RFC 1918, link-local (cloud metadata), CGNAT, IPv6 ULA and
+// link-local, unspecified. Names are resolved and every address checked. A network egress rule on
+// the server is still the real control (a name can resolve differently later); this keeps the
+// browser from being pointed at the platform or the cloud's metadata service.
+const BLOCK_PRIVATE = process.env.BROWSER_BLOCK_PRIVATE === "1";
+function privateAddress(ip) {
+  ip = ip.toLowerCase().replace(/^\[|\]$/g, "");
+  const v4 = /^(?:::ffff:)?(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(ip);
+  if (v4) { const [a, b] = [Number(v4[1]), Number(v4[2])]; return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a >= 224; }
+  return ip === "::" || ip === "::1" || /^f[cd]/.test(ip) || /^fe[89ab]/.test(ip) || /^::ffff:/.test(ip);
+}
+async function privateBlocked(raw) {
+  if (!BLOCK_PRIVATE) return null;
+  let u; try { u = new URL(raw); } catch { return null; }
+  if (!["http:", "https:", "ws:", "wss:"].includes(u.protocol)) return null;
+  const host = u.hostname.replace(/^\[|\]$/g, "");
+  if (isLoopback(host)) return `${u.host} is on this server; the browser can't open it`;
+  let addrs; try { addrs = isIP(host) ? [{ address: host }] : await lookup(host, { all: true, verbatim: true }); } catch { return null; } // unresolvable: the browser fails on its own
+  return addrs.some((a) => privateAddress(a.address)) ? `${u.host} is a private or internal network address; the browser can't open it` : null;
+}
+const anyBlock = async (raw) => blocked(raw) || (await privateBlocked(raw));
+
 // Parse as the browser does (WHATWG), check the scheme, and navigate to the parsed form, so the
 // browser never gets a string it could read differently from this check.
 function inspectUrl(raw) {
@@ -61,7 +87,7 @@ function inspectUrl(raw) {
 // After anything that can navigate (a redirect, a clicked link), the page must still be a web
 // page; if not, it's reset to about:blank before anything can be read from it.
 async function assertOnWeb(p) {
-  const why = blocked(p.url());
+  const why = await anyBlock(p.url());
   if (why) { await p.goto("about:blank"); throw new Error(`Refused: ${why}. The page was reset to about:blank.`); }
   if (PROFILE === "full") return;
   const at = p.url();
@@ -83,8 +109,8 @@ async function getPage() {
   }
   if (!page || page.isClosed()) {
     page = await browser.newPage(PROFILE === "full" ? {} : { acceptDownloads: false });
-    await page.route("**/*", (route) => (blocked(route.request().url()) ? route.abort("blockedbyclient") : route.continue()));
-    await page.routeWebSocket(() => true, (ws) => (blocked(ws.url()) ? ws.close({ code: 1008, reason: "blocked" }) : ws.connectToServer()));
+    await page.route("**/*", async (route) => ((await anyBlock(route.request().url())) ? route.abort("blockedbyclient") : route.continue()));
+    await page.routeWebSocket(() => true, async (ws) => ((await anyBlock(ws.url())) ? ws.close({ code: 1008, reason: "blocked" }) : ws.connectToServer()));
   }
   return page;
 }
@@ -107,7 +133,7 @@ server.registerTool(
   },
   async ({ url, viewport, waitUntil = "domcontentloaded" }) => {
     const target = PROFILE === "full" ? url : inspectUrl(url);
-    const why = blocked(target); if (why) throw new Error(`Refused: ${why}.`);
+    const why = await anyBlock(target); if (why) throw new Error(`Refused: ${why}.`);
     const p = await getPage();
     if (viewport) await p.setViewportSize(viewport);
     await p.goto(target, { waitUntil });

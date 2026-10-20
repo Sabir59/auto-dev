@@ -22,11 +22,12 @@ import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, rea
 import { join, dirname, resolve, extname, delimiter, relative, isAbsolute, sep, basename } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { randomUUID, createHash } from "node:crypto";
-import { api as figmaApi, CRED_FILE as FIGMA_CRED_FILE, parseFigmaUrl } from "../figma-reader/reader.mjs";
+import { randomUUID, createHash, timingSafeEqual } from "node:crypto";
+import { api as figmaApi, CRED_FILE as FIGMA_CRED_FILE, CRED_DIR as FIGMA_CRED_DIR, parseFigmaUrl, saveCredentials as saveFigmaCredentials } from "../figma-reader/reader.mjs";
 import * as builderApi from "../builder-adapter/builder.mjs";
 import * as github from "./github.mjs";
 import * as ghApp from "./github-app.mjs";
+import { resolveProvider } from "./provider.mjs";
 github.setRefresher(ghApp.refreshToken); // an expiring "Connect with GitHub" token is refreshed with the app's secret
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -43,6 +44,34 @@ const TEAMS = join(DATA, "teams.json");
 const TEAMDIR = join(DATA, "teams"); // per team: uploaded knowledge, and every saved version
 const GITHUB = join(DATA, "github.json"); // the GitHub connection's status and the repository registry (no token)
 const PORT = Number(process.env.WORKER_CONSOLE_PORT) || 8799;
+// Hosted (AIW_HOSTED=1): this console is one person's, started by the hosted gateway
+// (worker-ui/gateway.mjs) as that person's own OS user, with its own data dir. It answers only the
+// gateway (AIW_INTERNAL_SECRET on every request), and the platform narrows what workers get (see
+// HOSTED_OFF). Everything else (workers, Teams, workspaces, runs, Git) is the same code as locally.
+// docs/HOSTED_ARCHITECTURE.md.
+const HOSTED = process.env.AIW_HOSTED === "1";
+const fatal = (m) => { console.error(`Worker Console can't start: ${m}`); process.exit(1); };
+const INTERNAL_SECRET = process.env.AIW_INTERNAL_SECRET || "";
+const PUBLIC_ORIGIN = HOSTED ? String(process.env.AIW_PUBLIC_ORIGIN || "").replace(/\/+$/, "") : null;
+if (HOSTED && !/^[\w-]{32,}$/.test(INTERNAL_SECRET)) fatal("AIW_INTERNAL_SECRET is missing (a hosted console is started by the gateway).");
+if (HOSTED && !/^https?:\/\/[^/]+$/.test(PUBLIC_ORIGIN)) fatal("AIW_PUBLIC_ORIGIN is missing or not an origin.");
+// The model provider: how workers are authenticated (worker-ui/provider.mjs). No fallback.
+const PROVIDER = (() => { try { return resolveProvider(process.env, { hosted: HOSTED }); } catch (e) { return fatal(e.message); } })();
+// A hosted person's workspaces are folders the console creates under their own data dir: there's
+// no server path to type or browse, and the platform's own folder is never a workspace.
+const HOSTED_WS_ROOT = join(DATA, "workspaces");
+// Capabilities the hosted platform doesn't provide, whatever a worker's definition says
+// (Effective access = worker ∩ workspace mode ∩ Team scope ∩ platform security):
+//  - shell: node/curl on the server would be arbitrary code with network access; the OS boundary
+//    keeps one person from another, but egress control isn't proven yet (CLOUD_DEPLOYMENT.md §9);
+//  - the Figma plugin tools: they drive the Figma desktop app on the person's own computer through
+//    a bridge on that computer; a server can't reach it.
+const HOSTED_OFF = {
+  shell: "Shell commands aren't available in the hosted product.",
+  "figma.plugin.read": "The Figma plugin runs in the Figma desktop app on your own computer; the hosted product can't reach it. Use Figma links (Figma Reader) instead.",
+  "figma.plugin.edit": "Changing a Figma file needs the Figma desktop app and plugin on your own computer; the hosted product can't reach it.",
+};
+const offHere = (c) => HOSTED && !!HOSTED_OFF[c];
 // WORKER_FIGMA_LEGACY=1: the Figma tools as they were before batches and compact reads (comparison runs).
 const FIGMA_LEGACY = process.env.WORKER_FIGMA_LEGACY === "1";
 // The platform rules every worker gets: the reporting convention, plus the efficiency rules (left
@@ -50,6 +79,9 @@ const FIGMA_LEGACY = process.env.WORKER_FIGMA_LEGACY === "1";
 const platformInstructions = () => [readFileSync(join(HERE, "worker-instructions.md"), "utf8").trim(), ...(FIGMA_LEGACY ? [] : ["", readFileSync(join(HERE, "worker-efficiency.md"), "utf8").trim()])].join("\n");
 function platformInstructionsFile() { const f = join(DATA, "instructions.effective.md"); writeFileSync(f, platformInstructions() + "\n"); return f; }
 mkdirSync(RUNS, { recursive: true });
+if (HOSTED) mkdirSync(HOSTED_WS_ROOT, { recursive: true });
+// Screenshots the browser adapter writes: the adapter's own folder locally, the person's data dir hosted.
+const BROWSER_EXPORTS = HOSTED ? join(DATA, "browser-exports") : join(REPO, "browser-adapter", "exports");
 // Scratch: work that has no project folder (a Figma design, Builder content, a browser task,
 // research). It's a mode, not a project: every scratch conversation gets its own empty folder,
 // <data>/scratch-runs/<run id>, created when it starts, kept with the conversation, and reused by
@@ -92,7 +124,9 @@ const INSPECT_MCP = [
 // dev-control daemon): the runtime refuses these, below the model. The browser adapter has its own
 // block for the platform's ports (BROWSER_BLOCK_PORTS). Shell commands (node, curl) are not covered
 // by either: a worker with shell can do what the person's account can (docs/second-developer.md).
-const LOOPBACK_FETCH_DENY = ["localhost", "*.localhost", "127.0.0.1", "[::1]", "::1", "0.0.0.0"].map((d) => `WebFetch(domain:${d})`);
+// Hosted, also the cloud metadata services by name (a network egress rule is the real control for
+// addresses: CLOUD_DEPLOYMENT.md §6).
+const LOOPBACK_FETCH_DENY = ["localhost", "*.localhost", "127.0.0.1", "[::1]", "::1", "0.0.0.0", ...(HOSTED ? ["169.254.169.254", "metadata.google.internal", "metadata", "100.100.100.200", "[fd00:ec2::254]"] : [])].map((d) => `WebFetch(domain:${d})`);
 // Every worker compacts itself before its conversation passes the console's context limit (the
 // runtime's own autoCompactWindow: verified headless, it compacts between steps, mid-turn). The limit
 // is console-settings.json's contextWarnTokens (default 250k; the runtime takes 100k to 1M).
@@ -149,7 +183,8 @@ const MCP_SERVERS = {
   "figma-executor": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "server.mjs")], ...(scope.figmaKey || FIGMA_LEGACY ? { env: { ...(scope.figmaKey ? { FIGMA_EXPECTED_FILE_KEY: scope.figmaKey } : {}), ...(FIGMA_LEGACY ? { FIGMA_EXECUTOR_LEGACY: "1" } : {}) } } : {}) }),
   "figma-reader": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")],
     ...(scope.figmaKey ? { env: { FIGMA_READER_ALLOWED_KEYS: scope.figmaKey, ...(process.env.FIGMA_READER_DIR ? { FIGMA_READER_DIR: process.env.FIGMA_READER_DIR } : {}) } } : {}) }),
-  "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser, BROWSER_BLOCK_PORTS: PLATFORM_PORTS } }),
+  // Hosted: no address on this machine or a private network, and screenshots in the person's own folder.
+  "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser, BROWSER_BLOCK_PORTS: PLATFORM_PORTS, ...(HOSTED ? { BROWSER_BLOCK_PRIVATE: "1", BROWSER_EXPORTS_DIR: BROWSER_EXPORTS } : {}) } }),
   // The write tools are registered only when the worker may write here (builder.write or the
   // narrower builder.write.draft usable); otherwise the server itself is read-only, not just its
   // allow list. builder.write.draft gets BUILDER_ADAPTER_PROFILE=draft: builder_publish_content
@@ -176,7 +211,8 @@ const REPO_LEVEL_LABELS = { read: "Read: status, history and diffs", write: "Wri
 const REPO_TOOLS = [["repo_status", "read"], ["repo_log", "read"], ["repo_diff", "read"], ["repo_create_branch", "commit"], ["repo_commit", "commit"], ["repo_push", "push"]];
 // Deny rules are applied by the runtime itself, below the model. Absolute paths are written the
 // runtime's way (//c/Users/...); tested: a Write into such a folder is refused.
-const denyPath = (p) => "//" + resolve(p).replace(/\\/g, "/").replace(/^([A-Za-z]):/, (_, d) => d.toLowerCase());
+// (POSIX: //var/data/...: the leading slash is part of the "//" prefix.)
+const denyPath = (p) => "//" + resolve(p).replace(/\\/g, "/").replace(/^([A-Za-z]):/, (_, d) => d.toLowerCase()).replace(/^\/+/, "");
 const PROTECT_DENY = ["Edit(.git/**)", "Edit(**/.git/**)", "Edit(.claude/**)", "Edit(**/.claude/**)"];
 // What a defined worker gets in a given profile: the context, the tools and the MCP servers.
 // scope narrows it further, never widens it:
@@ -193,23 +229,34 @@ const PROTECT_DENY = ["Edit(.git/**)", "Edit(**/.git/**)", "Edit(.claude/**)", "
 function workerRuntime(def, profile, scope = {}) {
   const protect = !!scope.protect?.length, repo = scope.repo || null, repoRank = repo ? REPO_LEVELS.indexOf(repo.level) : -1;
   const policyOff = new Set([...(protect || (repo && !repo.shell) ? ["shell"] : []), ...(scope.onProtected || (repo && repoRank < 1) ? ["files.write"] : [])]);
-  const allowed = def.capabilities.filter((c) => CAPABILITIES[c]?.profiles.includes(profile));
+  const allowed = def.capabilities.filter((c) => CAPABILITIES[c]?.profiles.includes(profile) && !offHere(c));
   const usable = allowed.filter((c) => !policyOff.has(c));
   const builtins = ["ToolSearch", ...new Set(usable.flatMap((c) => CAPABILITIES[c].builtins || []))];
   const repoTools = repo ? REPO_TOOLS.filter(([, l]) => repoRank >= REPO_LEVELS.indexOf(l)).map(([t]) => `mcp__repo__${t}`) : [];
   const allow = ["ToolSearch", ...usable.flatMap((c) => { const a = CAPABILITIES[c].allow; return Array.isArray(a) ? a : a[profile] || []; }), ...repoTools];
   const servers = [...new Set([...usable.map((c) => CAPABILITIES[c].mcp).filter(Boolean), ...(repo ? ["repo"] : [])])];
-  const lockGit = protect || !!repo;
+  // Hosted, .git and .claude are never writable by a worker and a repository's own settings and
+  // hooks never run (--restricted): a cloned repository is untrusted code on the platform's servers.
+  const lockGit = protect || !!repo || HOSTED;
   const base = profile === "inspect" || lockGit ? ["--restricted"] : ["--setting-sources", "project,local"];
   // Renders the worker makes (figma_export_node, browser_screenshot) land in the adapters' own
   // exports folders; it may read those, and only those, outside its workspace, to look at its work.
-  const exportsDirs = [...new Set(usable.flatMap((c) => (c.startsWith("figma.plugin") ? [join(REPO, "exports")] : c === "browser" ? [join(REPO, "browser-adapter", "exports")] : [])))];
+  const exportsDirs = [...new Set(usable.flatMap((c) => (c.startsWith("figma.plugin") ? [join(REPO, "exports")] : c === "browser" ? [BROWSER_EXPORTS] : [])))];
   const readOnly = scope.knowledgeDir ? [scope.knowledgeDir] : [];
-  const deny = [...(lockGit ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`)];
+  const deny = [...(lockGit ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`), ...(HOSTED ? hostedDeny() : [])];
   const settings = deny.length ? JSON.stringify({ ...JSON.parse(WORKER_SETTINGS), permissions: { deny: [...LOOPBACK_FETCH_DENY, ...deny] } }) : WORKER_SETTINGS;
   const dirs = [...exportsDirs, ...readOnly];
-  return { usable, blocked: def.capabilities.filter((c) => !allowed.includes(c)), byPolicy: allowed.filter((c) => policyOff.has(c)), servers, exportsDirs, repoTools,
+  return { usable, blocked: def.capabilities.filter((c) => !allowed.includes(c) && !offHere(c)), byPlatform: def.capabilities.filter(offHere), byPolicy: allowed.filter((c) => policyOff.has(c)), servers, exportsDirs, repoTools,
     args: ["--settings", settings, ...base, "--tools", builtins.join(","), "--allowedTools", ...allow, ...(dirs.length ? ["--add-dir", ...dirs] : []), "--permission-prompts", "none"] };
+}
+// Hosted, a worker never reads or writes the person's integration credentials (GitHub, Figma,
+// Builder) or the runtime's session transcripts, and never edits the console's own records (worker
+// and Team definitions, workspaces, run logs): its capabilities can't be changed from inside a run.
+// Enforced by the runtime's permission rules; the OS boundary (the person's own uid) is beneath it.
+function hostedDeny() {
+  const secret = [github.CRED_DIR, FIGMA_CRED_DIR, builderApi.CRED_DIR, CONFIG_DIR].map((d) => denyPath(d));
+  return [...secret.flatMap((d) => [`Read(${d}/**)`, `Edit(${d}/**)`]),
+    ...["*.json", "*.md", "runs/**", "workers/**", "teams/**"].map((p) => `Edit(${denyPath(DATA)}/${p})`)];
 }
 // The general worker, as a definition: what it gets when a policy means it can't run on the plain
 // profile flags (every capability the profile allows, except the ones the policy turns off).
@@ -221,7 +268,7 @@ const GENERAL = { id: null, name: "General", capabilities: ["files.read", "files
 let figmaCheck = { at: 0, value: null }, builderCheck = { at: 0, value: null };
 const RESOURCES = {
   figma: { label: "Figma", access: {
-    read: { label: "read designs", how: "Connect Figma on this computer once: a Figma personal access token with file_content:read, or the OAuth flow (figma-reader/README.md). The connected account must be able to open the file.",
+    read: { label: "read designs", how: HOSTED ? "Connect Figma on the Figma page (a Figma personal access token with file_content:read). The connected account must be able to open the file." : "Connect Figma on this computer once: a Figma personal access token with file_content:read, or the OAuth flow (figma-reader/README.md). The connected account must be able to open the file.",
       async check() {
         if (!existsSync(FIGMA_CRED_FILE)) return { ok: false, state: "Not connected" };
         if (Date.now() - figmaCheck.at < 300000 && figmaCheck.value) return figmaCheck.value;
@@ -229,8 +276,9 @@ const RESOURCES = {
         catch (e) { v = { ok: false, state: e.status === 401 || e.status === 403 ? "Authorization rejected" : "Can't verify", detail: clip(e.message, 120) }; }
         figmaCheck = { at: Date.now(), value: v }; return v;
       } },
-    edit: { label: "change the open file", how: "Open the Figma file and run the AI Executor plugin, so it connects to the bridge.",
+    edit: { label: "change the open file", how: HOSTED ? HOSTED_OFF["figma.plugin.edit"] : "Open the Figma file and run the AI Executor plugin, so it connects to the bridge.",
       async check() {
+        if (HOSTED) return { ok: false, state: "Not available in the hosted product" };
         try { const r = await fetch("http://127.0.0.1:8787/command", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "PING", params: {} }), signal: AbortSignal.timeout(2500) }); const j = await r.json(); return j.ok ? { ok: true, state: "Connected" } : { ok: false, state: "Plugin not running" }; }
         catch { return { ok: false, state: "Bridge not running" }; }
       } },
@@ -262,14 +310,14 @@ const RESOURCES = {
   // login (git ls-remote: reads refs, changes nothing, never prompts). It can't tell whether a
   // push would be allowed; GitHub decides that at push time.
   github: { label: "GitHub", access: {
-    read: { label: "reach the repository", how: "Sign in to GitHub with Git on this computer once (for example, run \"git fetch\" in a terminal in this folder).",
+    read: { label: "reach the repository", how: HOSTED ? "Connect GitHub on the GitHub page, and choose this repository for the AI Worker app on GitHub." : "Sign in to GitHub with Git on this computer once (for example, run \"git fetch\" in a terminal in this folder).",
       async check(ctx) {
         if (!ctx.root) return { ok: false, state: "No workspace" };
         const url = safeUrl((await git(ctx.root, ["remote", "get-url", "origin"]).catch(() => "")).trim());
         if (!/github\.com[:/]/i.test(url)) return { ok: false, state: url ? "Not a GitHub remote" : "No remote" };
         const hit = githubChecks.get(url);
         if (hit && Date.now() - hit.at < 300000) return hit.value;
-        let v; try { await git(ctx.root, ["ls-remote", "--heads", "origin"], { timeout: 20000 }); v = { ok: true, state: "Reachable", detail: url }; }
+        let v; try { await git(ctx.root, ["ls-remote", "--heads", "origin"], { timeout: 20000, auth: true }); v = { ok: true, state: "Reachable", detail: url }; }
         catch (e) { v = { ok: false, state: e.timedOut ? "Timed out" : /Authentication|could not read|terminal prompts|403|401/i.test(e.message) ? "Not signed in" : "Can't reach", detail: url }; }
         githubChecks.set(url, { at: Date.now(), value: v }); return v;
       } },
@@ -333,6 +381,7 @@ function workerContext(def, rt, status, memory, profile, extra = {}) {
     `# You are: ${def.name}`, def.mission && `Mission: ${def.mission}`, def.specialization && `Specialization: ${def.specialization}`, "",
     "## What you can use in this run", rt.usable.length ? rt.usable.map(cap).join("\n") : "- Nothing beyond reading this context.",
     rt.blocked.length ? `Not available here (this workspace is ${profile === "inspect" ? "Inspect, read-only" : "Work"}): ${rt.blocked.map((c) => CAPABILITIES[c].label).join(", ")}.` : "",
+    rt.byPlatform?.length ? `Not available in the hosted product: ${rt.byPlatform.map((c) => CAPABILITIES[c].label).join(", ")}. If the task needs one, write a NEEDS: line for it.` : "",
     rt.byPolicy?.length ? `Turned off by an enforced policy in this workspace: ${rt.byPolicy.map((c) => CAPABILITIES[c].label).join(", ")}.` : "",
     "Use only these tools. If a task needs something you don't have, say so instead of improvising.", "",
     "## Requirements and access (checked when this run started)",
@@ -513,9 +562,11 @@ function repoScope(ws, def, startedLevel) {
   checkRemote(ws.root, reg);
   let level = def ? (def.repos || []).find((g) => g.repo === reg.id)?.level || null : a.general || "write";
   if (level && ws.profile === "inspect") level = "read";
+  // Hosted, workers never push: the person reviews and pushes from Changes & versions.
+  if (level === "push" && HOSTED) level = "commit";
   if (level && startedLevel !== undefined) level = startedLevel ? lowerOf(level, startedLevel) : null;
   if (!level) throw new Error(`${def?.name || "This worker"} has no access to ${reg.fullName}, the repository of this workspace. Grant it in the worker's definition (Repositories), or choose another worker.`);
-  return { id: reg.id, fullName: reg.fullName, url: reg.url, defaultBranch: reg.defaultBranch, level, shell: !!a.shell, workersOnDefault: !!a.workersOnDefault };
+  return { id: reg.id, fullName: reg.fullName, url: reg.url, defaultBranch: reg.defaultBranch, level, shell: !!a.shell && !HOSTED, workersOnDefault: !!a.workersOnDefault };
 }
 function repoSection(r, head) {
   if (!r) return "";
@@ -523,8 +574,32 @@ function repoSection(r, head) {
   return ["## Repository", `This workspace is the checkout of ${r.fullName}${r.defaultBranch ? ` (default branch ${r.defaultBranch})` : ""}${head ? `; ${head} is checked out` : ""}.`,
     `Your access: ${REPO_LEVEL_LABELS[r.level]}. Use the repo_* tools for Git (${REPO_TOOLS.filter(([, l]) => rankOf(r.level) >= rankOf(l)).map(([t]) => t).join(", ")}); these limits are enforced, not instructions.`,
     rankOf(r.level) >= rankOf("commit") ? `Commit on a work branch of your own (repo_create_branch)${locked.length ? `: ${locked.join(", ")} is never committed to or pushed to by workers` : ""}. Report a commit or push only with the hash the tool returned.` : "",
+    HOSTED ? "Pushing is the person's: they review your commits and push them from Changes & versions." : "",
     r.shell ? "Shell commands are on in this workspace: Git limits above don't cover what you do through node; don't run git that way." : "Shell commands are off here and .git can't be written: Git goes only through the repo_* tools.", ""].filter((x) => x !== "").join("\n");
 }
+// Figma reading (the Figma Reader, REST): the person's own Figma personal access token, checked with
+// Figma before it's kept, stored where the Reader reads it (FIGMA_READER_DIR: the person's own folder
+// when hosted). It never goes to the page, a worker or a log. Figma's plugin tools are separate.
+const FIGMA_TOKEN = /^figd_[\w-]{20,200}$/;
+async function figmaConnect(token) {
+  const t = String(token || "").trim();
+  if (!FIGMA_TOKEN.test(t)) throw Object.assign(new Error("That doesn't look like a Figma personal access token (figd_…)."), { status: 400 });
+  let r; try { r = await fetch("https://api.figma.com/v1/me", { headers: { "X-Figma-Token": t }, signal: AbortSignal.timeout(15000) }); }
+  catch { throw Object.assign(new Error("Couldn't reach Figma to check the token. Try again."), { status: 502 }); }
+  if (r.status === 401 || r.status === 403) throw Object.assign(new Error("Figma rejected the token (expired, revoked or mistyped)."), { status: 400 });
+  if (!r.ok) throw Object.assign(new Error(`Figma answered ${r.status}. Try again.`), { status: 502 });
+  const me = await r.json().catch(() => ({}));
+  saveFigmaCredentials({ type: "pat", token: t, savedAt: new Date().toISOString() });
+  figmaCheck = { at: 0, value: null };
+  return figmaReport({ handle: me.handle || null });
+}
+async function figmaReport(fresh) {
+  if (!existsSync(FIGMA_CRED_FILE)) return { connected: false };
+  const st = fresh ? { ok: true, state: "Connected", detail: fresh.handle ? `as ${fresh.handle}` : "" } : await RESOURCES.figma.access.read.check();
+  return { connected: true, ok: !!st.ok, state: st.state, detail: st.detail || "" };
+}
+function figmaDisconnect() { rmSync(FIGMA_CRED_FILE, { force: true }); figmaCheck = { at: 0, value: null }; return { connected: false }; }
+
 // The person's actions on the GitHub page.
 const ghStatus = (e) => (e.kind === "input" || e.kind === "setup" ? 400 : e.status === 404 ? 404 : e.kind === "rate" ? 429 : e.kind === "auth" ? 401 : 502);
 async function ghConnect(token) {
@@ -538,7 +613,8 @@ async function ghConnect(token) {
 // "Connect with GitHub" (github-app.mjs): the browser goes to GitHub and comes back to
 // /github/callback on this console. The redirect is this console's own loopback address (the Host
 // the guard already checked), so it works on any port and on each developer's own computer.
-const callbackUri = (req) => `http://${String(req.headers.host).toLowerCase()}/github/callback`;
+// Hosted, GitHub comes back to the platform's public address (the gateway passes it on).
+const callbackUri = (req) => (HOSTED ? `${PUBLIC_ORIGIN}/github/callback` : `http://${String(req.headers.host).toLowerCase()}/github/callback`);
 function ghAppStart(req) { return ghApp.startAuth(callbackUri(req)); }
 // The callback is a plain top-level GET from github.com: it changes state only with a state this
 // console issued (one-time, ten minutes, same console). It answers with a redirect to the page and a
@@ -632,14 +708,21 @@ function unassignRepo(wsId) {
 async function cloneRepo(id, b) {
   const reg = readGithub().repos.find((r) => r.id === id);
   if (!reg) throw new Error("No such registered repository.");
-  const parent = String(b.parent || "");
+  // Hosted: always into a new folder of the person's own, with the GitHub connection's credential.
+  const parent = HOSTED ? HOSTED_WS_ROOT : String(b.parent || "");
   if (!isAbsolute(parent) || /^[\\/]{2}/.test(parent)) throw new Error("Give the full path of the folder to clone into, e.g. C:\\Users\\me\\projects.");
   let real; try { real = realpathSync.native(parent); } catch { throw new Error(`No folder at ${parent}`); }
-  const target = join(real, reg.name);
+  const target = HOSTED ? join(real, `${reg.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").slice(0, 40)}-${randomUUID().slice(0, 6)}`) : join(real, reg.name);
   if (existsSync(target)) throw new Error(`${target} already exists. Add that folder as a workspace instead, or choose another folder.`);
-  try { await git(real, ["clone", "--", reg.url, target], { timeout: 600000 }); }
-  catch (e) { throw new Error(/Authentication failed|could not read Username|terminal prompts disabled|Permission denied|returned error: 40[13]/i.test(e.message) ? `Git has no working sign-in for ${reg.fullName} on this computer. Sign in with Git once (for example, clone it in a terminal), then try again.` : `Clone failed: ${clip(e.message, 300)}`); }
-  const ws = addWorkspace({ name: String(b.name || reg.name).slice(0, 60), path: target, mode: b.mode === "inspect" ? "inspect" : "work" });
+  try { await git(real, ["clone", "--", reg.url, target], { timeout: 600000, auth: true }); }
+  catch (e) {
+    if (HOSTED) rmSync(target, { recursive: true, force: true }); // a half-done clone of the person's own
+    if (e instanceof github.GitHubError) throw e;
+    throw new Error(/Authentication failed|could not read Username|terminal prompts disabled|Permission denied|returned error: 40[13]/i.test(e.message)
+      ? (HOSTED ? `GitHub refused access to ${reg.fullName}'s code. Check that the AI Worker app may read this repository (Choose repositories on GitHub), then try again.` : `Git has no working sign-in for ${reg.fullName} on this computer. Sign in with Git once (for example, clone it in a terminal), then try again.`)
+      : `Clone failed: ${clip(e.message, 300)}`);
+  }
+  const ws = addWorkspace({ name: String(b.name || reg.name).slice(0, 60), path: target, mode: b.mode === "inspect" ? "inspect" : "work" }, { hostedRoot: target });
   return assignRepo(ws.id, { repo: reg.id, general: b.general });
 }
 
@@ -675,8 +758,10 @@ function teamSection(t) {
 const CONFIG_DIR = resolve(process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR || join(homedir(), ".claude"));
 const workerEnv = () => {
   // Integration tokens (FIGMA_TOKEN, BUILDER_*, GH_TOKEN, GITHUB_*, ...) never reach workers; the *_DIR ones are only paths.
-  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k === "FIGMA_READER_DIR" || k === "BUILDER_ADAPTER_DIR" || !/^(CLAUDE|AI_AGENT|WORKER_CONSOLE_|FIGMA_|BUILDER_|GITHUB_|GH_)/i.test(k)));
-  return { ...env, CLAUDE_CONFIG_DIR: CONFIG_DIR };
+  // The hosted console's own secrets (AIW_*: the gateway's internal secret, the broker token) never
+  // either; the model provider adds only what the runtime needs to reach the model (provider.mjs).
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k === "FIGMA_READER_DIR" || k === "BUILDER_ADAPTER_DIR" || !/^(CLAUDE|AI_AGENT|WORKER_CONSOLE_|FIGMA_|BUILDER_|GITHUB_|GH_|AIW_|ANTHROPIC_)/i.test(k)));
+  return { ...env, ...PROVIDER.runtimeEnv(), CLAUDE_CONFIG_DIR: CONFIG_DIR };
 };
 
 // ---- account & usage ----------------------------------------------------------------
@@ -773,17 +858,20 @@ async function checkRunSettings(b, currentModel) {
   return out;
 }
 async function accountReport(refresh) {
-  if (refresh || !account.value || Date.now() - account.at > 60000) {
+  if (!HOSTED && (refresh || !account.value || Date.now() - account.at > 60000)) {
     const s = await authStatus();
     account = { at: Date.now(), value: s ? { loggedIn: !!s.loggedIn, email: s.email || null, orgName: s.orgName || null, plan: s.subscriptionType || null, authMethod: s.authMethod || null, apiProvider: s.apiProvider || null, configDir: s.configDirectory || CONFIG_DIR } : { error: "The Claude runtime didn't report its sign-in status." } };
   }
-  // Live from the runtime (free); the last reading seen in a run is the fallback.
-  if (refresh || !usage || usage.source !== "runtime" || Date.now() - usage.at > 20000) { try { await refreshUsage(); usageError = null; } catch (e) { usageError = e.message; } }
-  if (!usage) usage = usageFromLogs();
+  // Live from the runtime (free); the last reading seen in a run is the fallback. A plan's usage only
+  // exists for a Claude subscription; with the API, cost per run is what there is.
+  const onPlan = PROVIDER.id === "claude-subscription";
+  if (!onPlan) usageError = "Plan usage applies to a Claude subscription. This platform uses the Anthropic API: the cost of each run is shown with it.";
+  else if (refresh || !usage || usage.source !== "runtime" || Date.now() - usage.at > 20000) { try { await refreshUsage(); usageError = null; } catch (e) { usageError = e.message; } }
+  if (!usage && onPlan) usage = usageFromLogs();
   const metas = allMetas(), today = new Date().toDateString(), live = active()?.meta || null;
   const sum = (list) => Math.round(list.reduce((s, m) => s + (m.costUsd || 0), 0) * 100) / 100;
   const ofToday = metas.filter((m) => new Date(m.createdAt).toDateString() === today);
-  return { account: account.value, checkedAt: new Date(account.at).toISOString(), model: lastModel,
+  return { provider: PROVIDER.summary(), account: HOSTED ? { hosted: true, name: process.env.AIW_USER_NAME || null, email: process.env.AIW_USER_EMAIL || null } : account.value, checkedAt: new Date(account.at).toISOString(), model: lastModel,
     usage: usage ? { status: usage.info.status, limitType: usage.info.rateLimitType, fiveHour: usage.info.unifiedWindows?.five_hour || null, sevenDay: usage.info.unifiedWindows?.seven_day || null, overage: usage.info.isUsingOverage ? "in use" : usage.info.overageStatus || null, at: new Date(usage.at).toISOString(), run: usage.run, source: usage.source || "run" } : null, usageError,
     totals: { runs: metas.length, costUsd: sum(metas), todayRuns: ofToday.length, todayCostUsd: sum(ofToday),
       active: live ? { id: live.id, status: live.status, worker: live.worker?.name || "General", messages: live.messages, costUsd: Math.round((live.costUsd || 0) * 100) / 100 } : null } };
@@ -801,7 +889,7 @@ const norm = (p) => (process.platform === "win32" ? resolve(p).toLowerCase() : r
 const samePath = (a, b) => norm(a) === norm(b);
 function resolveWorkspace(id) {
   const list = existsSync(WORKSPACES) ? JSON.parse(readFileSync(WORKSPACES, "utf8")) : [];
-  const ws = id === "console" ? consoleWs(list) : id === "scratch" ? SCRATCH_WS : list.find((w) => w.id === id);
+  const ws = id === "console" ? (HOSTED ? null : consoleWs(list)) : id === "scratch" ? SCRATCH_WS : list.find((w) => w.id === id);
   if (!ws || ws.hidden) throw new Error(`No workspace "${id}".`);
   if (!PROFILES[ws.profile]) throw new Error(`Workspace "${id}" has an unknown profile "${ws.profile}".`);
   if (!isAbsolute(String(ws.root || ""))) throw new Error(`Workspace "${id}" root must be an absolute path.`);
@@ -834,7 +922,7 @@ function gitInfo(root) {
 }
 function listWorkspaces() {
   const list = readWorkspaces(), repos = readGithub().repos;
-  return [SCRATCH_WS, ...withConsole(list).map((w) => (w.id === "console" ? consoleWs(list) : w))].filter((w) => !w.hidden).map((w) => {
+  return [SCRATCH_WS, ...(HOSTED ? list.filter((w) => w.id !== "console") : withConsole(list).map((w) => (w.id === "console" ? consoleWs(list) : w)))].filter((w) => !w.hidden).map((w) => {
     let root = null; try { root = resolveWorkspace(w.id).root; } catch {}
     const reg = w.repo ? repos.find((r) => r.id === w.repo.id) : null;
     return { id: w.id, name: w.name || w.id, root: root || w.root, profile: w.profile, available: !!root, ...(w.id === "scratch" ? { scratch: true } : root ? gitInfo(root) : {}),
@@ -843,8 +931,20 @@ function listWorkspaces() {
 }
 // The person names a folder and a mode; the folder must exist, and can't be a drive root or the
 // whole home folder (too broad to be one project).
-function addWorkspace({ name, path, mode }) {
+function addWorkspace({ name, path, mode }, { hostedRoot } = {}) {
   name = String(name || "").trim();
+  // Hosted: a new workspace is a new empty folder of the person's own (or a clone, hostedRoot);
+  // a path from the page is never used.
+  if (HOSTED) {
+    if (!name || name.length > 60) throw new Error("Give the workspace a name (up to 60 characters).");
+    if (!["inspect", "work"].includes(mode)) throw new Error("Choose Inspect or Work.");
+    const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "ws"}-${randomUUID().slice(0, 4)}`;
+    const root = hostedRoot || join(HOSTED_WS_ROOT, id);
+    if (!inRoot(realpathSync.native(HOSTED_WS_ROOT), resolve(root))) throw new Error("A workspace must be one of your own folders.");
+    mkdirSync(root, { recursive: true });
+    writeWorkspaces([...readWorkspaces(), { id, name, root: realpathSync.native(root), profile: mode === "work" ? "full" : "inspect" }]);
+    return listWorkspaces().find((w) => w.id === id);
+  }
   if (!name || name.length > 60) throw new Error("Give the workspace a name (up to 60 characters).");
   if (!["inspect", "work"].includes(mode)) throw new Error("Choose Inspect or Work.");
   if (!isAbsolute(String(path || "")) || /^[\\/]{2}/.test(path)) throw new Error("Give the full path of a folder on this computer, e.g. C:\\Users\\me\\project.");
@@ -889,6 +989,7 @@ function reorderWorkspaces(ids) {
 // goes through addWorkspace's checks like a typed one. Nothing is read from or copied out of it.
 let picking = false;
 function pickFolder() {
+  if (HOSTED) throw new Error("There's no folder to browse in the hosted product: add a workspace by name, or clone a repository.");
   if (process.platform !== "win32") throw new Error("Browse is only available on Windows. Type the folder path instead.");
   if (picking) throw new Error("The folder picker is already open.");
   picking = true;
@@ -949,9 +1050,12 @@ const TAGS = { "NEEDS:": "needs", "REMEMBER:": "remember", "PLAN:": "plan", "OBS
 // not just a cmd.exe wrapper. Falls back to the `claude` shim through a shell.
 function claudeCommand() {
   if (process.env.CLAUDE_BIN) return { cmd: process.env.CLAUDE_BIN, shell: false };
+  // The npm package's binary is claude.exe on every platform in current versions (claude before).
   for (const dir of (process.env.PATH || "").split(delimiter)) {
-    const exe = join(dir, "node_modules", "@anthropic-ai", "claude-code", "bin", process.platform === "win32" ? "claude.exe" : "claude");
-    if (dir && existsSync(exe)) return { cmd: exe, shell: false };
+    for (const name of process.platform === "win32" ? ["claude.exe"] : ["claude.exe", "claude"]) {
+      const exe = join(dir, "node_modules", "@anthropic-ai", "claude-code", "bin", name);
+      if (dir && existsSync(exe)) return { cmd: exe, shell: false };
+    }
   }
   return { cmd: "claude", shell: true };
 }
@@ -1142,7 +1246,8 @@ function spawnWorker(run, { resume }) {
   const snap = run.meta.worker ? readSnapshot(run.meta.id) : null;
   const scope = runScope(run, ws);
   let mcpFile = mcpConfig(ws.profile), promptFile = platformInstructionsFile(), profileArgs = PROFILES[ws.profile].args;
-  const def = snap ? snap.definition : scope.protect.length || scope.figmaKey || scope.repo ? GENERAL : null;
+  // Hosted, the General worker too runs on the computed tool set, so the platform's narrowing applies.
+  const def = snap ? snap.definition : HOSTED || scope.protect.length || scope.figmaKey || scope.repo ? GENERAL : null;
   run.enforced = null;
   if (def) {
     const rt = workerRuntime(def, ws.profile, scope);
@@ -1186,6 +1291,7 @@ function spawnWorker(run, { resume }) {
     emit(run, { type: "note", summary: `worker process exited (code ${code})` });
     // A handoff that never finished (the process died first) still continues, from the task state.
     if (run.awaitingHandoff && run.pendingContinue) setImmediate(() => finishContinue(run, (run.handoffText || "").trim() || null));
+    if (run.shutdown) return; // already recorded as interrupted by the shutdown
     if (run.bindingError) setStatus(run, "failed", run.bindingError);
     else if (run.stopRequested) setStatus(run, "stopped", "stopped by the user");
     else if (run.endRequested && code === 0) setStatus(run, "finished", "run ended by the user");
@@ -1536,16 +1642,33 @@ function allMetas() {
 // identity, nothing added to the message) and push (the branch's own remote, their existing
 // credentials, never a prompt, never a force push). Nothing is ever checked out or reset.
 // Workspaces inside a larger repo only see and commit their own folder (the pathspec "prefix").
-const GIT_OPTS = ["-c", "core.fsmonitor=false", "-c", "core.quotepath=false", "-c", "color.ui=false"];
+// Hosted, a repository's hooks never run for the console's Git (they'd run with the person's GitHub
+// credential in reach): core.hooksPath points at an empty folder.
+const NO_HOOKS = join(DATA, ".no-hooks");
+if (HOSTED) mkdirSync(NO_HOOKS, { recursive: true });
+const GIT_OPTS = ["-c", "core.fsmonitor=false", "-c", "core.quotepath=false", "-c", "color.ui=false", ...(HOSTED ? ["-c", `core.hooksPath=${NO_HOOKS}`] : [])];
 const NO_PROGRAMS = ["--no-ext-diff", "--no-textconv"]; // never run repo-configured diff programs
 function gitEnv() {
-  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GIT_(DIR|WORK_TREE|INDEX_FILE|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|NAMESPACE|COMMON_DIR|CEILING_DIRECTORIES)$/.test(k)));
+  // The console's own secrets (the gateway's internal secret, the model token) never reach git.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GIT_(DIR|WORK_TREE|INDEX_FILE|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|NAMESPACE|COMMON_DIR|CEILING_DIRECTORIES)$/.test(k) && !/^(AIW_|ANTHROPIC_)/.test(k)));
   // No credential prompts of any kind: missing authentication is reported, not asked for.
   return { ...env, GIT_TERMINAL_PROMPT: "0", GCM_INTERACTIVE: "never", GIT_OPTIONAL_LOCKS: "0", LC_ALL: "C" };
 }
-function git(cwd, args, { timeout = 30000, input } = {}) {
+// Hosted git network commands (clone, push, ls-remote) authenticate with the person's GitHub
+// connection: only that git process gets the token, through git-credential.mjs, which answers only
+// for GitHub's host. Nothing is written to the repository's config. Not connected: no credential
+// (a public repository or a local remote still works; GitHub answers the rest).
+const GH_HOST = (() => { try { return new URL(process.env.GITHUB_WEB_BASE || "https://github.com").host; } catch { return "github.com"; } })();
+async function gitAuth() {
+  const token = github.hasToken() ? await github.gitToken() : null;
+  if (!token) return { args: [], env: {} };
+  const q = (p) => `'${p.replace(/\\/g, "/").replace(/'/g, "'\\''")}'`;
+  return { args: ["-c", "credential.helper=", "-c", `credential.helper=!${q(process.execPath)} ${q(join(HERE, "git-credential.mjs"))}`, "-c", "credential.useHttpPath=false"], env: { AIW_GIT_TOKEN: token, AIW_GIT_HOST: GH_HOST } };
+}
+async function git(cwd, args, { timeout = 30000, input, auth = false } = {}) {
+  const cred = auth && HOSTED ? await gitAuth() : { args: [], env: {} };
   return new Promise((ok, fail) => {
-    const p = spawn("git", [...GIT_OPTS, ...args], { cwd, env: gitEnv(), windowsHide: true });
+    const p = spawn("git", [...GIT_OPTS, ...cred.args, ...args], { cwd, env: { ...gitEnv(), ...cred.env }, windowsHide: true });
     const out = [], err = []; let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; p.kill(); }, timeout);
     p.stdout.on("data", (d) => out.push(d)); p.stderr.on("data", (d) => err.push(d));
@@ -1731,7 +1854,7 @@ async function gitPush(wsId, runId) {
   const where = `${b.remote}/${b.target}`;
   try {
     // Explicit refspec, no --force, no -u: nothing in the repo's config is changed.
-    const out = await git(r.top, ["push", "--porcelain", b.remote, `HEAD:refs/heads/${b.target}`], { timeout: 120000 });
+    const out = await git(r.top, ["push", "--porcelain", b.remote, `HEAD:refs/heads/${b.target}`], { timeout: 120000, auth: true });
     const line = out.split(/\r?\n/).find((l) => /^[ +*=]\t/.test(l)) || "";
     const res = { ok: true, remote: b.remote, branch: b.target, url: b.url, github: b.github, commits: b.ahead, summary: `Pushed ${b.ahead} commit${b.ahead === 1 ? "" : "s"} to ${where}`, detail: line.trim() };
     if (run) emit(run, { type: "push", summary: res.summary, detail: b.url || "" });
@@ -1739,7 +1862,7 @@ async function gitPush(wsId, runId) {
   } catch (e) {
     const m = e.message;
     const why = e.timedOut ? "The push timed out." : /Authentication failed|could not read Username|could not read Password|terminal prompts disabled|Logon failed|Invalid username or password|Permission denied \(publickey|Host key verification failed|returned error: 40[13]|HTTP Basic: Access denied/i.test(m)
-      ? `Git has no working login for ${b.url || b.remote}. Sign in once with Git outside the Workspace (for example, run "git push" in a terminal in this folder), then push again.`
+      ? (HOSTED ? `GitHub refused the push to ${b.url || b.remote}. The AI Worker app needs write access to this repository's contents (Choose repositories on GitHub), and you need push access yourself.` : `Git has no working login for ${b.url || b.remote}. Sign in once with Git outside the Workspace (for example, run "git push" in a terminal in this folder), then push again.`)
       : /rejected|non-fast-forward|fetch first|stale info/i.test(m) ? `${where} has commits this folder doesn't have yet. Bring them in first (pull, outside the Workspace), then push.`
       : /Could not resolve host|unable to access|Connection refused|timed out|Failed to connect/i.test(m) ? `Couldn't reach ${b.url || b.remote}: ${clip(m.split(/\r?\n/)[0], 200)}`
       : `Push failed: ${clip(m, 300)}`;
@@ -1921,9 +2044,15 @@ const mentionNote = (mentions) => mentions.length ? `\n\n<file_references>\nThe 
 // must come from the console's own page: exact Origin, same-origin fetch metadata, a custom
 // header (a cross-site page can't send one without a CORS preflight, which is never approved)
 // and a JSON content type. CORS headers are never sent.
-const HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`]);
-const ORIGINS = new Set([`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`]);
+// Hosted, the gateway is the only client: it signs the person in, checks the public Origin, then
+// calls this console as http://127.0.0.1:<port> with the internal secret it started it with. A
+// request without the secret (another process on the machine) is refused before anything else.
+const HOSTS = new Set(HOSTED ? [`127.0.0.1:${PORT}`] : [`localhost:${PORT}`, `127.0.0.1:${PORT}`]);
+const ORIGINS = new Set(HOSTED ? [`http://127.0.0.1:${PORT}`] : [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`]);
+const SECRET_BUF = Buffer.from(INTERNAL_SECRET);
+const fromGateway = (req) => { const b = Buffer.from(String(req.headers["x-aiw-internal"] || "")); return b.length === SECRET_BUF.length && timingSafeEqual(b, SECRET_BUF); };
 function rejectReason(req) {
+  if (HOSTED && !fromGateway(req)) return "not from the gateway";
   if (!HOSTS.has(String(req.headers.host || "").toLowerCase())) return "Host header is not this console";
   if (req.method === "GET" || req.method === "HEAD") return null;
   if (req.method === "OPTIONS") return "CORS preflight is never approved";
@@ -1946,7 +2075,7 @@ http.createServer(async (req, res) => {
   const parts = url.pathname.split("/").filter(Boolean);
   try {
     if (url.pathname === "/") { res.writeHead(200, { "content-type": TYPES[".html"] }); return res.end(readFileSync(join(HERE, "workspace.html"))); }
-    if (url.pathname === "/console") { res.writeHead(200, { "content-type": TYPES[".html"] }); return res.end(readFileSync(join(HERE, "index.html"))); }
+    if (url.pathname === "/console" && !HOSTED) { res.writeHead(200, { "content-type": TYPES[".html"] }); return res.end(readFileSync(join(HERE, "index.html"))); }
     if (parts[0] === "assets" && /^[\w.-]+$/.test(parts[1] || "") && parts.length === 2 && existsSync(join(HERE, "assets", parts[1]))) {
       res.writeHead(200, { "content-type": TYPES[extname(parts[1]).toLowerCase()] || "application/octet-stream" }); return res.end(readFileSync(join(HERE, "assets", parts[1])));
     }
@@ -1954,7 +2083,14 @@ http.createServer(async (req, res) => {
     // Graceful self-stop for the dashboard's Worker Server dev-control toggle (worker-ui/devctl.mjs).
     // Goes through the same guard as every other state-changing route above. Responds first so the
     // caller sees success, then exits once the response has flushed.
-    if (url.pathname === "/__control/shutdown" && req.method === "POST") {
+    // Liveness for the gateway (no state, no secrets).
+    if (url.pathname === "/__health" && req.method === "GET") return json(res, 200, { ok: true, hosted: HOSTED, activeRun: active()?.meta.id || null });
+    // What the page adapts to: hosted or local, who is signed in, the model provider, and what the
+    // platform doesn't provide here.
+    if (url.pathname === "/platform" && req.method === "GET") return json(res, 200, { hosted: HOSTED, provider: PROVIDER.summary(),
+      user: HOSTED ? { name: process.env.AIW_USER_NAME || null, email: process.env.AIW_USER_EMAIL || null } : null,
+      unavailable: HOSTED ? Object.entries(HOSTED_OFF).map(([capability, reason]) => ({ capability, label: CAPABILITIES[capability].label, reason })) : [] });
+    if (url.pathname === "/__control/shutdown" && req.method === "POST" && !HOSTED) {
       json(res, 200, { ok: true });
       setTimeout(() => process.exit(0), 150);
       return;
@@ -1974,6 +2110,9 @@ http.createServer(async (req, res) => {
 
     // GitHub: the one connection (its token goes in, never out), the repository registry, and
     // which workspace each repository is assigned to (docs/github.md)
+    if (url.pathname === "/figma" && req.method === "GET") return json(res, 200, await figmaReport());
+    if (url.pathname === "/figma/connection" && req.method === "POST") return json(res, 200, await figmaConnect((await body(req)).token));
+    if (url.pathname === "/figma/connection" && req.method === "DELETE") return json(res, 200, figmaDisconnect());
     if (url.pathname === "/github" && req.method === "GET") return json(res, 200, ghReport());
     if (url.pathname === "/github/connection" && req.method === "POST") return json(res, 200, await ghConnect((await body(req)).token));
     if (url.pathname === "/github/connection/verify" && req.method === "POST") return json(res, 200, await ghVerify());
@@ -1996,7 +2135,7 @@ http.createServer(async (req, res) => {
       let profile = "full"; try { profile = resolveWorkspace(url.searchParams.get("workspace") || "console").profile; } catch {}
       const workers = await Promise.all(readWorkers().map(async (w) => ({ ...w, status: await requirementStatus(w, { profile }), memoryCount: readMemory(w.id).length, runtime: workerRuntime(w, profile) })));
       return json(res, 200, { workers, profile,
-        capabilities: Object.entries(CAPABILITIES).map(([id, c]) => ({ id, label: c.label, tools: c.tools, profiles: c.profiles })),
+        capabilities: Object.entries(CAPABILITIES).map(([id, c]) => ({ id, label: c.label, tools: c.tools, profiles: c.profiles, ...(offHere(id) ? { unavailable: HOSTED_OFF[id] } : {}) })),
         resources: Object.entries(RESOURCES).flatMap(([id, r]) => Object.entries(r.access).map(([access, a]) => ({ resource: id, access, label: `${r.label}: ${a.label}`, how: a.how }))),
         repos: readGithub().repos.map((r) => ({ id: r.id, fullName: r.fullName, status: r.status })), repoLevels: REPO_LEVELS.map((l) => ({ id: l, label: REPO_LEVEL_LABELS[l] })) });
     }
@@ -2084,7 +2223,7 @@ http.createServer(async (req, res) => {
       // A Team run happens in the Team's workspace; naming another one is refused (in newRun).
       const team = b.team ? readTeams().find((t) => t.id === String(b.team)) : null;
       if (b.team && !team) throw new Error(`No Team "${b.team}".`);
-      const wsIdArg = workspace === undefined ? (team ? teamWorkspace(team) : "console") : String(workspace);
+      const wsIdArg = workspace === undefined ? (team ? teamWorkspace(team) : HOSTED ? "scratch" : "console") : String(workspace);
       const mentions = wsIdArg === "scratch" ? (b.mentions || []).slice(0, 20).map((m) => ({ path: String(m.path || ""), exists: false })) : resolveMentions(resolveWorkspace(wsIdArg).root, b.mentions); // a new scratch folder is empty
       const settings = b.model != null || b.effort != null ? await checkRunSettings({ model: b.model, effort: b.effort }) : {};
       return json(res, 200, (await newRun(String(prompt || "").trim(), wsIdArg, atts, b.worker ? String(b.worker) : null, mentions, team?.id || null, settings)).meta);
@@ -2187,6 +2326,7 @@ http.createServer(async (req, res) => {
       const run = url.searchParams.has("run") ? loadRun(url.searchParams.get("run")) : null;
       if (url.searchParams.has("run") && !run) { res.writeHead(404); return res.end("not found"); }
       if (!run && url.searchParams.get("workspace") === "scratch") { res.writeHead(404); return res.end("not found"); } // scratch files belong to their conversation: ?run=
+      if (!run && !url.searchParams.has("workspace") && HOSTED) { res.writeHead(404); return res.end("not found"); } // the platform's own files aren't anyone's workspace
       const root = run ? checkBinding(run, { resume: false }).root : url.searchParams.has("workspace") ? resolveWorkspace(url.searchParams.get("workspace")).root : REPO;
       const p = fileInside(root, url.searchParams.get("path") || "");
       if (!p) { res.writeHead(404); return res.end("not found"); }
@@ -2199,4 +2339,21 @@ http.createServer(async (req, res) => {
   } catch (e) {
     json(res, e instanceof github.GitHubError ? ghStatus(e) : e.status >= 400 && e.status < 600 ? e.status : 400, { error: e.message, ...(e.activeRun ? { activeRun: e.activeRun } : {}) });
   }
-}).listen(PORT, "127.0.0.1", () => console.log(`Worker Console on http://localhost:${PORT} (worker binary: ${CLAUDE.cmd}${CLAUDE.shell ? " via shell" : ""}; Claude config dir: ${CONFIG_DIR})`));
+}).listen(PORT, "127.0.0.1", () => console.log(`Worker Console on http://localhost:${PORT} (worker binary: ${CLAUDE.cmd}${CLAUDE.shell ? " via shell" : ""}; Claude config dir: ${CONFIG_DIR}; model provider: ${PROVIDER.id}${HOSTED ? "; hosted" : ""})`));
+
+// Hosted, commits made here (the person's, and a worker's through the repo tools) carry the signed-in
+// person's name and email: their own Git identity in their own home folder.
+if (HOSTED && process.env.AIW_USER_EMAIL) {
+  for (const [k, v] of [["user.name", process.env.AIW_USER_NAME || process.env.AIW_USER_EMAIL], ["user.email", process.env.AIW_USER_EMAIL]]) spawnSync("git", ["config", "--global", k, v], { env: gitEnv(), windowsHide: true });
+}
+// Shutting down (the gateway stopping, a deploy): a live run's worker process is stopped and the run
+// says it was interrupted, so its history is complete and a message continues it after the restart.
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return; shuttingDown = true;
+  const live = [...runs.values()].filter(alive);
+  for (const run of live) { run.bindingError = null; run.stopRequested = false; run.shutdown = true; setStatus(run, "interrupted", `the console was shut down (${signal}); send a message to continue`); run.child.kill(); }
+  setTimeout(() => process.exit(0), live.length ? 1500 : 0);
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
