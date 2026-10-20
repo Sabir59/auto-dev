@@ -2,7 +2,7 @@
 # Runs one Workspace UI suite against its own fresh test console: port 8797, a new data dir, an
 # empty Figma Reader dir. Your own console (8799) and its data are not touched.
 #   bash bench/workspace-ui/run-suite.sh <suite>
-#   suite: workflow | manage | sync | attach | versions | mentions | workers | designer | teams | devctl | builder | builder-real (real Builder + real worker; SITE=) | remediation
+#   suite: workflow | manage | sync | attach | versions | mentions | workers | designer | teams | devctl | builder | builder-real (real Builder + real worker; SITE=) | remediation | github-app
 # Windows + Git Bash (uses cygpath and mklink). Fixtures live under $FIXROOT (default %TEMP%\wsui,
 # kept short because the Teams suite clones MATW, whose paths are long); fixtures.mjs builds them
 # on first use. The real worker runs, so most suites take minutes and use your Claude subscription.
@@ -36,6 +36,8 @@ BDIR="$(cygpath -w "$D/builder")"; [ "$suite" = builder-real ] && BDIR="$(cygpat
 # console at its local mock GitHub API.
 export GITHUB_CONNECTOR_DIR="$(cygpath -w "$D-github")"
 if [ "$suite" = github ]; then export GITHUB_API_BASE=http://127.0.0.1:8785; fi
+# github-app: github.com's sign-in and the API are both the mock; a short state lifetime for the expiry test.
+if [ "$suite" = github-app ]; then export GITHUB_API_BASE=http://127.0.0.1:8785 GITHUB_WEB_BASE=http://127.0.0.1:8785 GITHUB_STATE_TTL_MS=4000; fi
 BUILDER_ADAPTER_DIR="$BDIR" FIGMA_READER_DIR="$(cygpath -w "$D/figma-reader")" WORKER_CONSOLE_PORT=8797 WORKER_CONSOLE_DATA="$(cygpath -w "$D")" node worker-ui/server.mjs > "$D/console.log" 2>&1 &
 CPID=$!
 curl -s -o /dev/null --retry 10 --retry-connrefused http://127.0.0.1:8797/
@@ -59,6 +61,7 @@ case $suite in
   boundaries) node bench/workspace-ui/boundaries-test.mjs 8797 ;;
   autofresh) node bench/workspace-ui/autofresh-test.mjs 8797 ;;
   remediation) node bench/workspace-ui/remediation-test.mjs 8797 ;;
+  github-app) GHDIR="$GITHUB_CONNECTOR_DIR" node bench/workspace-ui/github-app-test.mjs 8797 ;;
   builder-real) BUILDER_ADAPTER_DIR="$BDIR" SITE="${SITE:-http://localhost:3000}" node bench/workspace-ui/builder-worker-test.mjs 8797 ;;
   *) echo "unknown suite: $suite" ;;
 esac 2>&1 | grep -E "^(PASS|FAIL)|passed" | cut -c1-160

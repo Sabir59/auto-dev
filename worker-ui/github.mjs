@@ -10,9 +10,13 @@
 // Git itself (clone, fetch, push) keeps using the person's own Git sign-in (Git Credential Manager
 // or SSH), exactly as before. This token is not handed to Git.
 //
-// Least privilege: a fine-grained personal access token limited to the chosen repositories, with
-// "Metadata: read" (enough for discovery and verification). Classic tokens work too; their scopes
-// are reported so a broad one is visible.
+// Two ways to connect, one credential file:
+//  - "Connect with GitHub" (github-app.mjs): the console's GitHub App, authorized in the browser;
+//    the person picks the repositories on GitHub. Stored: { method: "app", token (ghu_…),
+//    refreshToken, expiresAt, refreshExpiresAt }. An expiring token is refreshed here, before use.
+//  - A pasted token: { method: "token", token }. Least privilege: a fine-grained personal access
+//    token limited to the chosen repositories, with "Metadata: read" (enough for discovery and
+//    verification). Classic tokens work too; their scopes are reported so a broad one is visible.
 import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
@@ -43,22 +47,39 @@ export class GitHubError extends Error {
 }
 
 export const hasToken = () => existsSync(CRED_FILE);
-const readToken = () => { try { return JSON.parse(readFileSync(CRED_FILE, "utf8")).token || null; } catch { return null; } };
+const readCred = () => { try { const c = JSON.parse(readFileSync(CRED_FILE, "utf8")); return c?.token ? { method: c.method || "token", ...c } : null; } catch { return null; } };
+export const connectionMethod = () => readCred()?.method || null;
+// The app's token expires (GitHub default: 8 hours); it's refreshed with its refresh token through
+// the refresher the console installs (github-app.mjs's, which holds the client secret).
+let refresher = null;
+export const setRefresher = (fn) => { refresher = fn; };
+async function currentToken() {
+  const c = readCred(); if (!c) return null;
+  if (c.method !== "app" || !c.expiresAt || c.expiresAt - 60000 > Date.now()) return c.token;
+  if (!c.refreshToken || !refresher || (c.refreshExpiresAt && c.refreshExpiresAt <= Date.now())) throw new GitHubError("GitHub's sign-in for the console has expired. Connect with GitHub again.", { kind: "auth" });
+  const next = await refresher(c.refreshToken); // a refused refresh says "connect again"
+  saveCredentials(next);
+  return next.token;
+}
+export function saveCredentials(c) {
+  if (!c?.token || !TOKEN.test(c.token)) throw new GitHubError("GitHub returned something that isn't a token.", { kind: "exchange" });
+  mkdirSync(CRED_DIR, { recursive: true });
+  writeFileSync(CRED_FILE + ".tmp", JSON.stringify({ method: c.method || "token", token: c.token, ...(c.refreshToken ? { refreshToken: c.refreshToken } : {}), ...(c.expiresAt ? { expiresAt: c.expiresAt } : {}), ...(c.refreshExpiresAt ? { refreshExpiresAt: c.refreshExpiresAt } : {}), savedAt: new Date().toISOString() }), { mode: 0o600 });
+  renameSync(CRED_FILE + ".tmp", CRED_FILE);
+}
 export function checkToken(t) {
   t = String(t || "").trim();
   if (!TOKEN.test(t)) throw new GitHubError("That doesn't look like a GitHub token. Paste a fine-grained token (github_pat_…) or a classic one (ghp_…).", { kind: "input" });
   return t;
 }
-export function saveToken(t) {
-  mkdirSync(CRED_DIR, { recursive: true });
-  writeFileSync(CRED_FILE + ".tmp", JSON.stringify({ token: checkToken(t), savedAt: new Date().toISOString() }), { mode: 0o600 });
-  renameSync(CRED_FILE + ".tmp", CRED_FILE);
-}
-export const clearToken = () => rmSync(CRED_FILE, { force: true });
+export const saveToken = (t) => saveCredentials({ method: "token", token: checkToken(t) });
+// Deletes the stored credential; returns it, so the console can also revoke an app token at GitHub.
+export const clearToken = () => { const c = readCred(); rmSync(CRED_FILE, { force: true }); return c; };
 
 // One GitHub API request. Errors say what to do, never what the token is.
-async function gh(path, token = readToken()) {
-  if (!token) throw new GitHubError("GitHub isn't connected. Add a token on the GitHub page.", { kind: "auth" });
+async function gh(path, token) {
+  token ||= await currentToken();
+  if (!token) throw new GitHubError("GitHub isn't connected. Connect on the GitHub page.", { kind: "auth" });
   let res;
   try {
     res = await fetch(API + path, { headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "ai-workspace-console" }, signal: AbortSignal.timeout(15000) });
@@ -66,7 +87,7 @@ async function gh(path, token = readToken()) {
   const body = await res.json().catch(() => null);
   if (res.ok) return { body, headers: res.headers };
   const msg = String(body?.message || "").slice(0, 200);
-  if (res.status === 401) throw new GitHubError("GitHub rejected the token (expired, revoked or mistyped). Replace it on the GitHub page.", { status: 401, kind: "auth" });
+  if (res.status === 401) throw new GitHubError(token.startsWith("ghu_") ? "GitHub no longer accepts the console's sign-in (revoked or expired). Connect with GitHub again." : "GitHub rejected the token (expired, revoked or mistyped). Replace it on the GitHub page.", { status: 401, kind: "auth" });
   if ((res.status === 403 || res.status === 429) && (res.headers.get("x-ratelimit-remaining") === "0" || /rate limit/i.test(msg))) {
     const reset = Number(res.headers.get("x-ratelimit-reset")) * 1000;
     throw new GitHubError(`GitHub's rate limit is used up${reset ? ` until ${new Date(reset).toLocaleTimeString()}` : ""}. Try again then.`, { status: res.status, kind: "rate" });
@@ -76,9 +97,10 @@ async function gh(path, token = readToken()) {
   throw new GitHubError(`GitHub answered ${res.status}${msg ? `: ${msg}` : ""}.`, { status: res.status, kind: "error" });
 }
 
-const tokenKind = (t) => (t.startsWith("github_pat_") ? "fine-grained" : t.startsWith("ghp_") ? "classic" : "other");
+const tokenKind = (t) => (t.startsWith("ghu_") ? "GitHub App" : t.startsWith("github_pat_") ? "fine-grained" : t.startsWith("ghp_") ? "classic" : "other");
 // Who the token belongs to, and how broad it is (classic tokens report their scopes).
-export async function verify(token = readToken()) {
+export async function verify(token) {
+  token ||= await currentToken();
   const { body, headers } = await gh("/user", token);
   const scopes = headers.get("x-oauth-scopes");
   return { login: body.login, name: body.name || null, tokenKind: tokenKind(token), scopes: scopes == null ? null : scopes.split(",").map((s) => s.trim()).filter(Boolean),
@@ -87,9 +109,22 @@ export async function verify(token = readToken()) {
 
 const shape = (r) => ({ githubId: r.id, fullName: r.full_name, owner: r.owner?.login, name: r.name, private: !!r.private, defaultBranch: r.default_branch || null,
   url: r.clone_url, htmlUrl: r.html_url, archived: !!r.archived, access: r.permissions ? (r.permissions.push ? "write" : r.permissions.pull ? "read" : "none") : null });
-// The repositories this token can see (at most 300, most recently updated first).
+// The repositories the connection can see (at most 300). Connected with the app: exactly the
+// repositories the person chose for its installations on GitHub (and can access themselves).
 export async function discover() {
   const out = [];
+  if (connectionMethod() === "app") {
+    const { body } = await gh("/user/installations?per_page=100");
+    for (const inst of body?.installations || []) {
+      for (let page = 1; page <= 3; page++) {
+        const r = (await gh(`/user/installations/${encodeURIComponent(inst.id)}/repositories?per_page=100&page=${page}`)).body;
+        const list = Array.isArray(r?.repositories) ? r.repositories : [];
+        out.push(...list.map(shape));
+        if (list.length < 100) break;
+      }
+    }
+    return [...new Map(out.map((r) => [r.fullName.toLowerCase(), r])).values()];
+  }
   for (let page = 1; page <= 3; page++) {
     const { body } = await gh(`/user/repos?per_page=100&page=${page}&sort=updated`);
     if (!Array.isArray(body)) break;

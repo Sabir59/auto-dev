@@ -26,6 +26,8 @@ import { randomUUID, createHash } from "node:crypto";
 import { api as figmaApi, CRED_FILE as FIGMA_CRED_FILE, parseFigmaUrl } from "../figma-reader/reader.mjs";
 import * as builderApi from "../builder-adapter/builder.mjs";
 import * as github from "./github.mjs";
+import * as ghApp from "./github-app.mjs";
+github.setRefresher(ghApp.refreshToken); // an expiring "Connect with GitHub" token is refreshed with the app's secret
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "..");
@@ -524,23 +526,52 @@ function repoSection(r, head) {
     r.shell ? "Shell commands are on in this workspace: Git limits above don't cover what you do through node; don't run git that way." : "Shell commands are off here and .git can't be written: Git goes only through the repo_* tools.", ""].filter((x) => x !== "").join("\n");
 }
 // The person's actions on the GitHub page.
-const ghStatus = (e) => (e.kind === "input" ? 400 : e.status === 404 ? 404 : e.kind === "rate" ? 429 : e.kind === "auth" ? 401 : 502);
+const ghStatus = (e) => (e.kind === "input" || e.kind === "setup" ? 400 : e.status === 404 ? 404 : e.kind === "rate" ? 429 : e.kind === "auth" ? 401 : 502);
 async function ghConnect(token) {
   const t = github.checkToken(token);
   const who = await github.verify(t); // only a token that works is kept
   github.saveToken(t);
-  const g = readGithub(); g.connection = { ...who, error: null }; writeGithub(g);
+  const g = readGithub(); g.connection = { ...who, method: "token", error: null }; writeGithub(g);
+  discovered = { at: 0, list: null };
   return ghReport();
+}
+// "Connect with GitHub" (github-app.mjs): the browser goes to GitHub and comes back to
+// /github/callback on this console. The redirect is this console's own loopback address (the Host
+// the guard already checked), so it works on any port and on each developer's own computer.
+const callbackUri = (req) => `http://${String(req.headers.host).toLowerCase()}/github/callback`;
+function ghAppStart(req) { return ghApp.startAuth(callbackUri(req)); }
+// The callback is a plain top-level GET from github.com: it changes state only with a state this
+// console issued (one-time, ten minutes, same console). It answers with a redirect to the page and a
+// short reason, never with the code, the token or GitHub's raw error.
+async function ghAppCallback(req, url) {
+  const q = url.searchParams;
+  if (!q.has("code") && !q.has("error") && /^(install|update|request)$/.test(q.get("setup_action") || "")) return "installed"; // an installation changed on GitHub; nothing to store
+  let p;
+  try { p = ghApp.takeState(q.get("state")); } catch (e) { return e.kind === "expired" ? "expired" : "state"; }
+  if (p.redirectUri !== callbackUri(req)) return "state"; // started by another console (other port or host name)
+  if (q.get("error")) return q.get("error") === "access_denied" ? "denied" : "error";
+  let cred, who;
+  try { cred = await ghApp.exchangeCode(q.get("code"), p); who = await github.verify(cred.token); }
+  catch (e) { console.log(`${new Date().toISOString()} GitHub sign-in failed: ${e.kind || "error"}`); return e.kind === "network" ? "network" : "exchange"; }
+  github.saveCredentials(cred);
+  const g = readGithub(); g.connection = { ...who, method: "app", error: null }; writeGithub(g);
+  discovered = { at: 0, list: null };
+  return "connected";
 }
 async function ghVerify() {
   const g = readGithub();
   try { g.connection = { ...(await github.verify()), error: null }; } catch (e) { g.connection = { ...(g.connection || {}), error: e.message, errorAt: new Date().toISOString() }; writeGithub(g); throw e; }
   writeGithub(g); return ghReport();
 }
-function ghDisconnect() { github.clearToken(); const g = readGithub(); g.connection = null; writeGithub(g); return ghReport(); }
+// Disconnecting deletes the local credential; an app token is also revoked at GitHub (best effort).
+async function ghDisconnect() {
+  const old = github.clearToken(); const g = readGithub(); g.connection = null; writeGithub(g); discovered = { at: 0, list: null };
+  const revoked = old?.method === "app" ? await ghApp.revoke(old.token) : null;
+  return { ...ghReport(), ...(old?.method === "app" ? { revokedAtGitHub: revoked } : {}) };
+}
 function ghReport() {
   const g = readGithub(), ws = listWorkspaces();
-  return { connected: github.hasToken(), connection: g.connection, levels: REPO_LEVELS.map((l) => ({ id: l, label: REPO_LEVEL_LABELS[l] })),
+  return { connected: github.hasToken(), method: github.connectionMethod(), app: ghApp.appSummary(), connection: g.connection, levels: REPO_LEVELS.map((l) => ({ id: l, label: REPO_LEVEL_LABELS[l] })),
     repos: g.repos.map((r) => ({ ...r, workspaces: ws.filter((w) => w.repo?.id === r.id).map((w) => ({ id: w.id, name: w.name, general: w.repo.general, shell: !!w.repo.shell, workersOnDefault: !!w.repo.workersOnDefault })) })),
     workers: readWorkers().map((w) => ({ id: w.id, name: w.name, repos: w.repos || [] })) };
 }
@@ -1907,7 +1938,7 @@ function rejectReason(req) {
 http.createServer(async (req, res) => {
   const why = rejectReason(req);
   if (why) {
-    console.log(`${new Date().toISOString()} REJECTED ${req.method} ${req.url} — ${why} (origin=${req.headers.origin || "-"}, host=${req.headers.host || "-"})`);
+    console.log(`${new Date().toISOString()} REJECTED ${req.method} ${String(req.url).split("?")[0]} — ${why} (origin=${req.headers.origin || "-"}, host=${req.headers.host || "-"})`); // no query: a callback's code never reaches the log
     res.writeHead(403, { "content-type": "application/json" });
     return res.end(JSON.stringify({ error: `Rejected: ${why}` }));
   }
@@ -1946,7 +1977,12 @@ http.createServer(async (req, res) => {
     if (url.pathname === "/github" && req.method === "GET") return json(res, 200, ghReport());
     if (url.pathname === "/github/connection" && req.method === "POST") return json(res, 200, await ghConnect((await body(req)).token));
     if (url.pathname === "/github/connection/verify" && req.method === "POST") return json(res, 200, await ghVerify());
-    if (url.pathname === "/github/connection" && req.method === "DELETE") return json(res, 200, ghDisconnect());
+    if (url.pathname === "/github/connection" && req.method === "DELETE") return json(res, 200, await ghDisconnect());
+    if (url.pathname === "/github/app/start" && req.method === "POST") return json(res, 200, ghAppStart(req));
+    if (url.pathname === "/github/callback" && req.method === "GET") {
+      const outcome = await ghAppCallback(req, url);
+      res.writeHead(303, { location: `/?github=${outcome}`, "cache-control": "no-store", "referrer-policy": "no-referrer" }); return res.end();
+    }
     if (url.pathname === "/github/discover" && req.method === "GET") return json(res, 200, { repos: await ghDiscover(url.searchParams.get("refresh") === "1") });
     if (url.pathname === "/github/repos" && req.method === "POST") return json(res, 200, await ghRegister((await body(req)).fullName));
     if (parts[0] === "github" && parts[1] === "repos" && parts[2] && parts.length === 4 && parts[3] === "refresh" && req.method === "POST") return json(res, 200, await ghRefresh(decodeURIComponent(parts[2])));

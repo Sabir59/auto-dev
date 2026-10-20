@@ -598,6 +598,12 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
 .menu .lab { padding: 6px 10px 2px; }
 .scratchnote { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--r2); background: var(--surf); color: var(--t2); font-size: 13px; line-height: 20px; max-width: 560px; }
 .scratchnote b { color: var(--t1); font-weight: 600; }
+/* GitHub: the two ways to connect */
+.ghopts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-top: 4px; }
+.ghopt { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--line2); border-radius: var(--r3); background: var(--surf); }
+.ghopt-h { display: flex; align-items: center; gap: 8px; } .ghopt-h b { font-weight: 600; color: var(--t1); }
+.ghopt code { font: 400 11px/16px var(--mono); }
+.ghswitch summary { cursor: pointer; color: var(--t2); padding: 4px 0; } .ghswitch[open] { display: flex; flex-direction: column; gap: 8px; }
 /* worker editor */
 .cap .needs { color: var(--t3); margin-left: 6px; } .sub.off { color: var(--warn); }
 #telCard .tacts { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 6px; }
@@ -1472,6 +1478,24 @@ async function loadGithub() {
   if (view === "github") renderGithub();
 }
 $("ghOpen").onclick = () => openGithubPage();
+// Back from GitHub (/github/callback redirects here with a short outcome): say what happened, on the GitHub page.
+const GH_OUTCOME = {
+  connected: [false, "Connected with GitHub. Find my repositories lists the ones you chose for the app on GitHub."],
+  installed: [false, "GitHub updated the app's repositories. Look again to see them."],
+  denied: [true, "You cancelled on GitHub. Nothing was connected."],
+  state: [true, "That sign-in didn't start from this console's GitHub page, or was already used. Start again with Connect with GitHub."],
+  expired: [true, "The sign-in took longer than 10 minutes and expired. Start again with Connect with GitHub."],
+  exchange: [true, "GitHub didn't complete the sign-in. Start again; if it keeps failing, check the app's client ID and secret (docs/github.md)."],
+  network: [true, "Couldn't reach GitHub to finish the sign-in. Check the connection and start again."],
+  error: [true, "GitHub reported an error during the sign-in. Start again."],
+};
+function githubLanding() {
+  const k = new URLSearchParams(location.search).get("github"); if (!k) return;
+  history.replaceState(null, "", location.pathname); // the outcome is shown once, not kept in the address
+  const [bad, text] = GH_OUTCOME[k] || GH_OUTCOME.error;
+  openGithubPage(); setTimeout(() => ghSay(text, bad), 0);
+  if (!bad) ghFound = { state: "idle", list: [], error: "" };
+}
 function openGithubPage(note) {
   setView("github"); verOpen = null; renderVersions();
   $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="GitHub"><div class="vbar m11"><span class="ell">GitHub</span><span class="ro">one connection for every workspace</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 12, 12)}</button></div>
@@ -1485,9 +1509,19 @@ async function ghDo(fn, done) { try { const r = await fn(); await loadGithub(); 
 function renderGithub() {
   const b = $("ghBody"); if (!b || !GH) return;
   const c = GH.connection, gitWs = WS.filter((w) => w.id !== "scratch" && w.available && (w.branch || w.commit));
-  const conn = GH.connected ? `<div class="wstat m11 ${c?.error ? "bad" : "ok"}"><span class="dot ${c?.error ? "red" : ""}"></span>${c?.error ? esc(c.error) : `Connected as @${esc(c?.login)} · ${esc(c?.tokenKind || "")} token · checked ${esc(new Date(c?.verifiedAt).toLocaleString())}`}</div>
+  const viaApp = GH.method === "app", app = GH.app || {};
+  const conn = GH.connected ? `<div class="wstat m11 ${c?.error ? "bad" : "ok"}"><span class="dot ${c?.error ? "red" : ""}"></span>${c?.error ? esc(c.error) : `Connected as @${esc(c?.login)} · ${viaApp ? "with GitHub (the app)" : `${esc(c?.tokenKind || "")} token`} · checked ${esc(new Date(c?.verifiedAt).toLocaleString())}`}</div>
       ${c?.scopes?.length ? `<div class="sub m11">Classic token scopes: ${esc(c.scopes.join(", "))}${c.scopes.includes("repo") ? " — broad: a fine-grained token limited to these repositories is safer." : ""}</div>` : ""}`
     : '<div class="wstat m11"><span class="dot grey"></span>Not connected</div>';
+  // Two ways to connect: GitHub's own sign-in (the app; the person picks repositories on GitHub), or a pasted token.
+  const tokenForm = `<div class="ghline"><input class="wfield" id="ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="${GH.connected ? "Paste a token to use it instead" : "github_pat_…"}" aria-label="GitHub personal access token">
+        <button type="button" class="btn ${GH.connected ? "" : "pri"} m11" id="ghConnect">${GH.connected ? "Replace" : "Connect"}</button></div>`;
+  const appCard = `<div class="ghopt" id="ghAppOpt"><div class="ghopt-h"><b>Connect with GitHub</b>${app.configured ? '<span class="tag ref">Recommended</span>' : ""}</div>
+      <span class="sub m11">Opens github.com: sign in there (the console never sees your password), authorize the app and choose which repositories it may see. It reads repository metadata only: no code, no push.</span>
+      <div class="ghline"><button type="button" class="btn pri m11" id="ghAppConnect" ${app.configured ? "" : "disabled"}>${GH.connected && viaApp ? "Sign in again" : "Connect with GitHub"}</button>${app.installUrl ? `<a class="linkbtn m11" href="${esc(app.installUrl)}" target="_blank" rel="noopener noreferrer" id="ghChoose">Choose repositories on GitHub ↗</a>` : ""}</div>
+      ${app.configured ? "" : `<span class="sub m11 off" id="ghAppSetup">Not set up on this computer yet: it needs your organisation's GitHub App (its client ID and secret in <code>${esc(app.configFile || "~/.github-connector/app.json")}</code>). See docs/github.md, "Connect with GitHub". Until then, use a token.</span>`}</div>`;
+  const tokenCard = `<div class="ghopt" id="ghTokenOpt"><div class="ghopt-h"><b>Use a personal access token</b></div>
+      <span class="sub m11">Create a fine-grained token on GitHub limited to the repositories you want, with <b>Metadata: read</b>, and paste it here.</span>${tokenForm}</div>`;
   const repoRow = (r) => {
     const open = ghOpenRepo === r.id, st = r.status === "ok" ? "" : "red";
     return `<li class="ghrepo"><div class="ghhead"><button type="button" class="row" data-gh-open="${esc(r.id)}" aria-expanded="${open}" style="flex:1;text-align:left"><span class="dot ${st}"></span><span class="ell">${esc(r.fullName)}</span>
@@ -1495,20 +1529,20 @@ function renderGithub() {
       ${open ? ghDetail(r, gitWs) : ""}</li>`;
   };
   b.innerHTML = `
-    <div class="wf"><span class="lab">Connection</span><span class="sub m11">Used by this console only, to find and check repositories. Git itself keeps using your own Git sign-in for clone and push. Least privilege: a fine-grained token with access to the chosen repositories and <b>Metadata: read</b>.</span>
+    <div class="wf"><span class="lab">Connection</span><span class="sub m11">Used by this console only, to find and check repositories. It gives workers nothing: each worker's access is set per registered repository, in its definition. Git itself keeps using your own Git sign-in for clone and push.</span>
       ${conn}
-      <div class="ghline"><input class="wfield" id="ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="${GH.connected ? "Paste a new token to replace it" : "github_pat_…"}" aria-label="GitHub token">
-        <button type="button" class="btn pri m11" id="ghConnect">${GH.connected ? "Replace" : "Connect"}</button>
-        ${GH.connected ? `<button type="button" class="btn m11" id="ghVerify">Verify</button><button type="button" class="btn danger m11" id="ghDisc">${ghConfirm === "disconnect" ? "Disconnect: sure?" : "Disconnect"}</button>` : ""}</div>
-      ${ghConfirm === "disconnect" ? '<span class="sub m11">The token is deleted from this computer. Registered repositories, assignments and folders stay.</span>' : ""}</div>
+      ${GH.connected ? `<div class="ghline"><button type="button" class="btn m11" id="ghVerify">Verify</button><button type="button" class="btn danger m11" id="ghDisc">${ghConfirm === "disconnect" ? "Disconnect: sure?" : "Disconnect"}</button>${viaApp && app.installUrl ? `<a class="linkbtn m11" href="${esc(app.installUrl)}" target="_blank" rel="noopener noreferrer" id="ghChoose">Choose repositories on GitHub ↗</a>` : ""}</div>
+        ${ghConfirm === "disconnect" ? `<span class="sub m11">${viaApp ? "The sign-in is deleted from this computer and revoked at GitHub." : "The token is deleted from this computer."} Registered repositories, assignments and folders stay.</span>` : ""}
+        ${viaApp ? `<details class="ghswitch"><summary class="m12">Use a personal access token instead</summary>${tokenForm}</details>` : `<details class="ghswitch"${app.configured ? "" : " hidden"}><summary class="m12">Connect with GitHub instead</summary>${appCard}</details>${tokenForm}`}`
+      : `<div class="ghopts">${appCard}${tokenCard}</div>`}</div>
     <div class="wf"><span class="lab">Registered repositories</span><span class="sub m11">Assign one to a workspace whose folder is its checkout; give workers access in their definitions (Repositories).</span>
       <ul class="ghlist">${GH.repos.length ? GH.repos.map(repoRow).join("") : '<li class="sub m11">None yet. Find one below, or register it by name.</li>'}</ul></div>
     <div class="wf"><span class="lab">Add a repository</span>
       <div class="ghline"><button type="button" class="btn m11" id="ghFind" ${GH.connected ? "" : "disabled"}>${ghFound.state === "loading" ? "Looking…" : ghFound.state === "done" ? "Look again" : "Find my repositories"}</button>
         <input class="wfield" id="ghName" placeholder="owner/name" autocomplete="off" spellcheck="false" aria-label="Repository owner/name"><button type="button" class="btn m11" id="ghReg" ${GH.connected ? "" : "disabled"}>Register</button></div>
       ${!GH.connected ? '<span class="sub m11">Connect first.</span>' : ghFound.state === "error" ? `<span class="err m11">${esc(ghFound.error)}</span>`
-        : ghFound.state === "done" ? (ghFound.list.length ? `<ul class="ghlist">${ghFound.list.map((r) => `<li class="ghfound"><span class="ell">${esc(r.fullName)}</span><span class="meta m11">${r.private ? "private" : "public"}${r.access ? ` · token: ${esc(r.access)}` : ""}</span>
-            ${r.registered ? '<span class="sub m11">registered</span>' : `<button type="button" class="btn m11" data-gh-reg="${esc(r.fullName)}">Register</button>`}</li>`).join("")}</ul>` : '<span class="sub m11">This token can\'t see any repositories.</span>') : ""}</div>`;
+        : ghFound.state === "done" ? (ghFound.list.length ? `${viaApp ? '<span class="sub m11">The repositories you chose for the app on GitHub. Registering one doesn\'t give any worker access.</span>' : ""}<ul class="ghlist">${ghFound.list.map((r) => `<li class="ghfound"><span class="ell">${esc(r.fullName)}</span><span class="meta m11">${r.private ? "private" : "public"}${r.access ? ` · ${viaApp ? "you" : "token"}: ${esc(r.access)}` : ""}</span>
+            ${r.registered ? '<span class="sub m11">registered</span>' : `<button type="button" class="btn m11" data-gh-reg="${esc(r.fullName)}">Register</button>`}</li>`).join("")}</ul>` : viaApp ? `<span class="sub m11">The app can't see any repositories yet. ${app.installUrl ? `<a class="linkbtn" href="${esc(app.installUrl)}" target="_blank" rel="noopener noreferrer">Choose them on GitHub ↗</a>, then look again.` : "Choose them on GitHub, then look again."}</span>` : '<span class="sub m11">This token can\'t see any repositories.</span>') : ""}</div>`;
   b.onclick = ghClick;
 }
 function ghDetail(r, gitWs) {
@@ -1536,7 +1570,9 @@ async function ghClick(e) {
   const t = e.target.closest("button"); if (!t) return;
   const d = t.dataset;
   if (t.id === "ghConnect") { const v = $("ghToken").value; if (!v.trim()) return ghSay("Paste a token first.", true); t.disabled = true; await ghDo(() => api("POST", "/github/connection", { token: v }), (r) => `Connected as @${r.connection.login}.`); ghConfirm = null; return renderGithub(); }
-  if (t.id === "ghVerify") return ghDo(() => api("POST", "/github/connection/verify"), "The token works.");
+  if (t.id === "ghVerify") return ghDo(() => api("POST", "/github/connection/verify"), GH?.method === "app" ? "The GitHub sign-in works." : "The token works.");
+  // Connect with GitHub: the console starts a one-time sign-in and this tab goes to GitHub; GitHub sends it back.
+  if (t.id === "ghAppConnect") { t.disabled = true; try { const r = await api("POST", "/github/app/start"); location.assign(r.url); } catch (err) { ghSay(err.message, true); t.disabled = false; } return; }
   if (t.id === "ghDisc") { if (ghConfirm !== "disconnect") { ghConfirm = "disconnect"; return renderGithub(); } ghConfirm = null; ghFound = { state: "idle", list: [], error: "" }; return ghDo(() => api("DELETE", "/github/connection"), "Disconnected. The token was deleted from this computer."); }
   if (t.id === "ghFind") {
     ghFound = { state: "loading", list: [], error: "" }; renderGithub();
@@ -2713,6 +2749,7 @@ $("devBridgeSw").onclick = () => toggleDevServer("bridge", $("devBridgeSw"));
   await Promise.all([loadPrompts().catch(notice), loadRuns()]);
   loadTree(); loadGit(); await loadWorkers(); await loadTeams(); loadGithub();
   if (ACTIVE) openRun(ACTIVE.id); else openNewChat();
+  githubLanding();
   pollDevServers();
   setInterval(() => { if (!document.hidden) { loadRuns(); syncWorkspaces(); pollDevServers(); } }, 4000);
 })();

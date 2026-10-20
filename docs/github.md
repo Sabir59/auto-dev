@@ -5,8 +5,9 @@
 ## 1. How it fits together
 The chain is: **GitHub connection → repository registry → workspace assignment → worker access → the run**.
 
-- **Connection** (`worker-ui/github.mjs`)
-  - One token for the whole platform, used by the console only: to verify the connection, discover the repositories the token can see, and read their metadata.
+- **Connection** (`worker-ui/github.mjs`, `worker-ui/github-app.mjs`)
+  - One connection for the whole platform, made one of two ways (§1a): **Connect with GitHub** (the console's GitHub App) or **a pasted token**.
+  - It's used by the console only: to verify the connection, discover the repositories it can see, and read their metadata.
   - It's stored outside the repo and outside every workspace, in `~/.github-connector/credentials.json` (`GITHUB_CONNECTOR_DIR` overrides the folder).
   - It never goes to the page, a worker, a log, an error or `github.json`.
   - Git itself (clone, push) keeps using the person's own Git sign-in (Git Credential Manager or SSH), exactly as the Versions view always has. The token isn't given to Git.
@@ -26,6 +27,76 @@ The chain is: **GitHub connection → repository registry → workspace assignme
     - whether shell commands stay on;
     - whether workers may commit to the default branch.
 - **Worker access** (a worker definition's `repos: [{ repo, level }]`): none unless granted, per repository.
+
+## 1a. Connect with GitHub (2026-10-20)
+
+### Which mechanism, and why
+| | GitHub App (chosen) | OAuth App | Fine-grained token (kept) |
+|---|---|---|---|
+| Who chooses the repositories | the person, on GitHub's install page ("Only select repositories") | nobody: scopes are account-wide | the person, when creating the token |
+| Narrowest permission for this job | **Metadata: read** (no code, no push) | `repo` (full read/write to every private repository): far too broad | Metadata: read |
+| Pasting a secret | no: sign-in on github.com | no | yes |
+| Expiry and revocation | user token expires (8 h), refreshed; revoked on Disconnect | long-lived | as set by the person |
+
+**Decision: a GitHub App, with the person authorizing it in their browser.**
+- The OAuth App would need `repo`, which is wrong for a console that only lists and checks repositories.
+- The pasted fine-grained token stays as the alternative: it needs no app registration.
+
+### The flow (GitHub's web flow for GitHub Apps, with a loopback redirect)
+1. **Start.** On the GitHub page, Connect with GitHub calls `POST /github/app/start` (same-origin only, like every change).
+2. **Prepare.** The console makes:
+   - a one-time **state** (256 random bits; ten minutes; in memory);
+   - a **PKCE** verifier.
+
+   It returns GitHub's authorize URL, which carries the client id, the redirect `http://<this console's host:port>/github/callback`, the state and the S256 challenge.
+3. **Authorize.** The tab goes to github.com. The person signs in there (the console never sees a password) and authorizes the app.
+4. **Callback.** GitHub sends the browser to `/github/callback?code&state`. The console:
+   - checks the state: known, unused (one-time even on failure), unexpired, and started by this same console address;
+   - exchanges the code server-to-server, with the client secret and the PKCE verifier in the request body, never a URL;
+   - checks the token with `GET /user` and stores it.
+
+   Then it redirects to `/?github=<outcome>`, never echoing the code or GitHub's raw error. The page shows the outcome once and removes it from the address.
+5. **Discovery.** Discovery uses `/user/installations` and their repositories: exactly what the person chose for the app, intersected with what they can see.
+   - Registering one still gives no worker any access (§2).
+   - "Choose repositories on GitHub" opens the app's installation page to change the selection.
+
+### Where things are kept
+- **The user token and refresh token:** `~/.github-connector/credentials.json` (mode 600, outside the repo and every workspace), the same file as a pasted token, with `method: "app"`.
+  - An expiring token is refreshed before use.
+  - A refused refresh says "Connect with GitHub again".
+  - Disconnect deletes it and revokes it at GitHub.
+- **The app's client id, secret and slug:** `~/.github-connector/app.json`, or `GITHUB_APP_CLIENT_ID` / `GITHUB_APP_CLIENT_SECRET` / `GITHUB_APP_SLUG`.
+  - They're read by the console only; the page sees whether it's set up and the app's public install link.
+  - On Windows these files are protected by the user profile's permissions only. This matches the existing token's storage, and isn't an OS credential vault.
+- **What's never stored or logged:** the code and the state. A rejected request is logged without its query string.
+
+### Git and workers are unchanged
+- Clone, commit and push still use the person's own Git sign-in. The app's token isn't given to Git and has no Contents permission.
+- Worker access is still per registered repository, per worker.
+
+### What you set up once (not done for you)
+1. **Register a GitHub App** (github.com → Settings → Developer settings → GitHub Apps → New; for an organisation, in the organisation's settings):
+   - **Callback URLs:** `http://127.0.0.1/github/callback` and `http://localhost/github/callback`. Both, because the console uses whichever address you opened it on. GitHub lets a loopback callback use any port, so 8799 and a second developer's port both work.
+   - **Expire user authorization tokens:** on.
+   - **Request user authorization (OAuth) during installation:** off. With it on, GitHub returns from the install page with a code but without this console's state, and the console (rightly) refuses it.
+   - **Setup URL (optional):** `http://127.0.0.1:8799/github/callback`, with "Redirect on update" on. You come back from GitHub's repository selection to "GitHub updated the app's repositories". This is one fixed port; other developers simply return to their console themselves.
+   - **Webhook:** off (Active unchecked).
+   - **Repository permissions:** Metadata: Read-only, and nothing else.
+   - **Where can it be installed:** "Only on this account" (your organisation's account).
+2. **Generate a client secret** on the app's page.
+3. **On each developer's computer**, create `~/.github-connector/app.json`:
+   `{ "clientId": "Iv1.…", "clientSecret": "…", "slug": "<the app's URL name>" }`
+   Keep it out of the repo; it's a secret.
+4. **Install the app** on the account or organisation and choose the repositories (or use "Choose repositories on GitHub" after connecting).
+5. **Restart the console**, then GitHub page → Connect with GitHub.
+
+### Multiple developers
+- One app per organisation is enough. Each developer:
+  - puts its client id and secret in their own `app.json`;
+  - signs in as themselves;
+  - sees only the repositories the installation includes that they can access.
+- Each console's callback is its own loopback address, so nothing is exposed to the network and no public callback service is needed.
+- The client secret is shared across the team's machines. That's acceptable here because it can't access anything without a person authorizing, but rotate it if a machine is lost.
 
 ## 2. What each access level gives a worker
 The levels are cumulative.
@@ -93,6 +164,18 @@ The levels are cumulative.
 - **Access changes apply at the worker's next start.** A worker process already running keeps the tools it started with.
 
 ## 5. Tests
+- `bash bench/workspace-ui/run-suite.sh github-app` (13 checks, mock github.com and API, real browser):
+  - not set up;
+  - connect and come back;
+  - no secret in the page, API answers, log or any URL;
+  - discovery only of the installation's repositories, with no worker access from registering;
+  - forged, replayed, expired and cross-console states refused;
+  - a cancelled sign-in and a bad code;
+  - an installation change;
+  - refresh, and a refused refresh;
+  - disconnect revokes;
+  - the token way beside it.
+- The mock enforces GitHub's documented rules. It proves the console's side, not GitHub's: the real flow needs the app from §1a, and **has not been run against github.com**.
 - **`node bench/github/repo-tools-test.mjs`: 7/7.** The repo tools for real, on a local checkout with a bare "GitHub" remote. Covers:
   - the tools each level has;
   - commit refused on the default branch, and a real commit on a work branch;
