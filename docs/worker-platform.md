@@ -141,26 +141,59 @@ Not all work has a project folder. A Figma design job's target is the Figma file
 
 Teams group workers with shared knowledge, resources, instructions, prompts, requirements and enforced policies. They're built on this platform and add no new runtime. See `docs/team-platform.md`.
 
-## 13. Templates and setup (added 2026-10-22)
+## 13. A worker for the work a person describes (added 2026-10-22)
 
-**Problem.** The worker form exposed every capability with its tool names (`Bash(node:*)`, `figma-executor`…) to everyone, and the four shared definitions in `workers/` were only reachable through `doctor --seed-workers`. A person wanting a Builder.io editor saw Figma and shell settings; a frontend engineer saw Builder publishing.
+**Journey.** The person never picks a job title. It goes: describe → tools and systems → review → create → first task.
+1. **Describe.** "What would you like your AI worker to do?", answered in their own words. Examples are only inspiration.
+2. **Tools and systems.** The console recognises the ones the description names, shown as chips the person can remove, add to, or extend with "something else".
+3. **Questions.** Only those integrations' questions are asked. A required one with no default is a follow-up the person must answer; the console doesn't guess.
+4. **Review.** Name and mission (their words), where it works, the tools it gets in that workspace, its requirements checked now, what's not possible today, what stays with the person, and its steps, knowledge and limits.
+5. **Create.** A normal definition in `workers.json`, then the new-task screen with their request as the first task.
 
-**Model.** A shared definition can carry a `template` block. Nothing else changes: the definition, `normalizeWorker()` and `workerRuntime()` are the same ones.
+**Registry: integrations, not roles** (`worker-ui/integrations.mjs`). Each integration declares:
+- whether a real connector exists;
+- the questions it needs;
+- what each answer adds:
+  - capabilities and requirements, from the fixed catalogues only;
+  - steps, knowledge and limits (instructions to the worker);
+  - an approval note;
+  - or another integration (`adds`).
 
-```js
-template: { summary, category, workspace: "project" | "scratch" | "any", examples: [task, …],
-  options: [{ id, label, help, default, choices: [{ id, label, capabilities: [...], requirements: [...] }] }] }
-// a worker added from it records: fromTemplate: { id, choices }
-```
+| Integration | Connector | What it really does today |
+|---|---|---|
+| Code repository | yes | files, Node scripts (node and curl only), browser checks; commits and pushes stay the person's |
+| Builder.io | yes | read / drafts / publish (test spaces only, enforced by the adapter) |
+| Figma | yes | the open file through the plugin (edit or only look); other files by link with a token |
+| Websites in a browser | yes | read pages (Inspect); click, fill, screenshot (Work); no saved logins |
+| Web research | yes | search and fetch |
+| Files in a folder | yes | read or edit CSV, Markdown, JSON, text |
+| Shopify | **no** | products and orders through an exported CSV (Files); theme code in a repository (Code); store pages and the live store aren't possible |
+| Google Sheets | **no** | CSV downloads and imports (Files); live sheets aren't possible |
+| WordPress | **no** | public pages in a browser; theme or plugin code in a repository; posts, pages, media and settings aren't possible |
+| Notion, Slack, Gmail, Airtable, HubSpot, Salesforce, Stripe, Jira, Trello, Webflow, Wix, Squarespace, Mailchimp, WhatsApp | **no** | named honestly; nothing composed |
 
-- **Only that worker's settings.** The page renders the options of the chosen template and nothing else. The Builder.io Content Editor has *Publishing* (drafts only / may publish / read only) and *Check the page on the site*. The Frontend Engineer has *Run scripts* and *Check its work in a browser*.
-- **A choice maps to catalogue ids.** Capabilities = the definition's capabilities, minus every capability any option could turn on, plus the chosen ones (requirements likewise). So a setup can change back and forth, and edits made in the full definition to anything else are kept.
-- **Checked at load and on every request.** A template naming an unknown capability or requirement is skipped. Unknown settings and choices are refused (400). Capabilities sent alongside a setup are ignored: the server computes them.
-- **A choice isn't authorization.** The result goes through the same intersection as any worker: capabilities ∩ workspace mode ∩ Team scope ∩ platform. "May publish" in an Inspect workspace gets the read-only Builder adapter. Without keys, its requirement says Not connected. With a production space it says "writes refused", and the adapter refuses them below the tool layer.
-- **Preview is the console's.** `POST /templates/:id/preview {choices, workspace}` returns what the setup would load in that workspace (usable, blocked, not available on this platform) and its requirement states now. The page never decides access.
+Any other system the person names under "something else" is listed as having no connector.
 
-**API.** `GET /templates?workspace=` (catalogue, default setup per workspace, workers already added from each); `POST /templates/:id/preview`; `POST /templates/:id/workers {choices, name}`; `PUT /workers/:id/setup {choices}` (a new version; only for a worker added from that template).
+**Composition** (`compose()`; server-side only):
+- Capabilities start from `files.read`; each answered question adds its own.
+- The page sends the description, the integration ids and the answers. Capability lists in the request are never read.
+- Unknown integrations, questions and choices are refused (400).
+- `POST /workers/from-request` is refused while a required follow-up is unanswered, or when nothing asked for has a connector.
+- A Shopify request answered "products and inventory" is still a "Shopify worker". It gets the Files integration (edit), the knowledge that products come from a CSV export, and "not possible: changing the live store".
 
-**Templates today** (each backed by a proven implementation): Frontend Engineer, QA Engineer, Research Worker, Senior UI/UX Design Engineer (Figma: edit / only look; links; browser), Builder.io Content Editor (proven against real Builder on 2026-10-09, `builder-real` suite).
+**Security is unchanged.** The result is an ordinary definition run through `workerRuntime`: capabilities ∩ workspace mode ∩ Team scope ∩ platform.
+- Requirements are checked, never satisfied, by an answer.
+- Missing access makes the worker write `NEEDS`.
+- The Builder adapter refuses production spaces, whatever was chosen.
+- The registry is checked against the catalogues at start-up (`checkRegistry`): a bad entry stops the console.
 
-**Tests:** `bash bench/workspace-ui/run-suite.sh templates` (API, run-time adapter profiles, page).
+**API:**
+- `GET /integrations`
+- `POST /worker-drafts/preview {description, integrations?, answers?, others?, workspace?}`: the composition, the tools it would get in that workspace, and its requirement states
+- `POST /workers/from-request {…, name?, mission?}`: the worker records `fromRequest {description, integrations, answers, others, workspace, unsupported, starters}`
+
+After creation, the worker's full definition is its editor, as for any worker. The shared definitions in `workers/*.json` are still added with `doctor --seed-workers`; they're internal starting points, not the creation journey.
+
+**Replaced:** a short-lived catalogue of five worker templates (2026-10-22, `d413e6b`). It made people choose one of our job titles instead of describing their work (`docs/ux-sprint.md` §0).
+
+**Tests:** `bash bench/workspace-ui/run-suite.sh create`. It covers the ten scenarios: Shopify, Sheets, WordPress, Next.js, Builder.io, a combination, no connector, missing credentials, denied permissions, and a real run of a created worker. Also `node bench/hosted/journey-test.mjs`.

@@ -49,7 +49,7 @@ Machine-readable companion: `docs/PROJECT_MEMORY.json`.
 
 > **2026-10-22: UX and product validation sprint** (`docs/ux-sprint.md`). It added:
 > - a getting-started guide;
-> - worker templates with a short, worker-specific setup (`workers/*.json` `template` blocks; `worker-platform.md` §13);
+> - creating a worker from the work a person describes: the tools and systems involved are recognised, only their questions are asked, and integrations with no connector (Shopify, Google Sheets, WordPress…) are answered honestly (`worker-ui/integrations.mjs`; `worker-platform.md` §13). This replaced a short-lived catalogue of five worker templates (`docs/ux-sprint.md` §0);
 > - a readiness check before a task;
 > - a result at the end of each message, linking to the diff;
 > - an end-to-end journey test (`bench/hosted/journey-test.mjs`, scripted model).
@@ -138,11 +138,11 @@ Organisations have real work inside real systems: a codebase, a Figma file, a we
     - **Tests:** `bash bench/workspace-ui/run-suite.sh remediation`.
 12. **UX sprint** (2026-10-22, `docs/ux-sprint.md`):
     - first-run guide;
-    - worker catalogue and template setup (only the settings that matter for that worker; choices map to catalogue capabilities and never grant access);
+    - a new worker from a description of the work: recognised integrations, only their questions, a review of what it can and can't do; answers map to catalogue capabilities on the server and never grant access (the first version, a template catalogue, was replaced the same day);
     - "Before you start" readiness;
     - per-message result with "Review the changes";
     - a Versions race fix.
-    - **Tests:** `run-suite.sh templates`, `node bench/hosted/journey-test.mjs`.
+    - **Tests:** `run-suite.sh create`, `node bench/hosted/journey-test.mjs`.
 
 Details in §11.
 
