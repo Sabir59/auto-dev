@@ -1,5 +1,5 @@
 {
- "when": "2026-10-22T15:11:23.022Z",
+ "when": "2026-10-22T20:17:10.691Z",
  "results": [
   {
    "step": "created through the existing flow: described in words, recognised as Git branch sync, read-only Git tools only, a starting configuration from the answers",
@@ -65,6 +65,33 @@
    }
   },
   {
+   "step": "setup reads the repository: real branches and origin, relationships suggested from branch names, the actual commit authors grouped by person with all their emails; Fetch now works",
+   "ok": true,
+   "detail": {
+    "branches": 10,
+    "suggested": [
+     "dev-main>sabir-dev:sync",
+     "sabir-uat>preprod-main:promote",
+     "uat-main>sabir-uat:sync"
+    ],
+    "authors": [
+     "Sameem (2 emails, 6)",
+     "Sabir (1 email, 4)",
+     "Ali (1 email, 2)",
+     "Dev Bot (1 email, 1)"
+    ]
+   }
+  },
+  {
+   "step": "a remote URL instead of a folder: the console clones it into the worker's data, and the analysis matches git on that remote",
+   "ok": true,
+   "detail": {
+    "cloned": true,
+    "pending": 12,
+    "refusedCredentialsInUrl": "Give the repository's URL (https://…, git@…:…, or file:///… for a local mirror), without a password or token in it."
+   }
+  },
+  {
    "step": "one commit: files, a browsable diff and the raw Git evidence",
    "ok": true,
    "detail": {
@@ -122,8 +149,8 @@
    "step": "execution is guarded: a blocked plan is refused; an approved ready plan creates only a NEW branch (copies record their originals); no existing branch, remote-tracking branch or origin ref changes",
    "ok": true,
    "detail": {
-    "branch": "gitflow/sabir-dev-20261022-151007",
-    "recovery": "Nothing that existed was changed. To discard: git branch -D gitflow/sabir-dev-20261022-151007. To use it: review it, push it yourself and open a pull request into sabir-dev."
+    "branch": "gitflow/sabir-dev-20261022-201620",
+    "recovery": "Nothing that existed was changed. To discard: git branch -D gitflow/sabir-dev-20261022-201620. To use it: review it, push it yourself and open a pull request into sabir-dev."
    }
   },
   {
@@ -136,7 +163,9 @@
      "config",
      "preview",
      "refused",
-     "execute"
+     "execute",
+     "clone",
+     "fetch"
     ]
    }
   },
@@ -177,7 +206,7 @@
    "ok": true,
    "detail": {
     "status": "Ready",
-    "outcome": "Created gitflow/sabir-dev-20261022-151104"
+    "outcome": "Created gitflow/sabir-dev-20261022-201656"
    }
   },
   {
@@ -186,6 +215,22 @@
    "detail": {
     "blocked": true,
     "approveDisabled": true
+   }
+  },
+  {
+   "step": "page: Setup shows the repository and its authors; giving 'Dev Bot' a team from the list and saving adds them to the rules with their email",
+   "ok": true,
+   "detail": {
+    "added": {
+     "id": "dev-bot",
+     "name": "Dev Bot",
+     "team": "innovax",
+     "github": "",
+     "emails": [
+      "bot@ci.test"
+     ],
+     "names": []
+    }
    }
   },
   {

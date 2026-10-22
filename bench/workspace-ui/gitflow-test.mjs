@@ -84,6 +84,31 @@ await step("configuration changes the results: moving Sameem to Innovax makes PR
   return { movedS1: moved.confidence, overriddenN1: n1.confidence };
 });
 
+await step("setup reads the repository: real branches and origin, relationships suggested from branch names, the actual commit authors grouped by person with all their emails; Fetch now works", async () => {
+  const r = (await gf("GET", "/repo")).body, names = r.branches.map((x) => x.name);
+  assert(["dev-main", "uat-main", "preprod-main", "sabir-dev", "sabir-uat"].every((x) => names.includes(x)) && r.remotes[0]?.name === "origin", JSON.stringify(names));
+  const fresh = new GitFlow({ root: fx.repo, dir: join(DATA, "suggest-check"), config: normalizeConfig({ refs: "remote" }) });
+  const sugg = fresh.suggestMappings(r.branches).map((s) => `${s.source}>${s.destination}:${s.kind}`).sort();
+  assert(sugg.join() === "dev-main>sabir-dev:sync,sabir-uat>preprod-main:promote,uat-main>sabir-uat:sync", sugg.join());
+  const au = (await gf("GET", "/authors")).body.authors, sameem = au.find((a) => a.name === "Sameem");
+  assert(sameem && sameem.emails.sort().join() === "sameem.k@gmail.test,sameem@matw.test" && sameem.configured?.team === "bau" && au.some((a) => a.name === "Dev Bot" && !a.configured), JSON.stringify(au));
+  const f = await gf("POST", "/fetch");
+  assert(f.status === 200 && refsOf(fx.origin) === originRefs0, JSON.stringify(f.body));
+  return { branches: names.length, suggested: sugg, authors: au.map((a) => `${a.name} (${a.emails.length} email${a.emails.length > 1 ? "s" : ""}, ${a.commits})`) };
+});
+
+await step("a remote URL instead of a folder: the console clones it into the worker's data, and the analysis matches git on that remote", async () => {
+  const c = (await gf("GET", "/config")).body.config;
+  const url = "file:///" + fx.origin.replace(/\\/g, "/");
+  const r = await gf("PUT", "/config", { ...c, source: "remote", url });
+  assert(r.status === 200 && r.body.config.refs === "local", JSON.stringify(r.body));
+  const a = await analysis(), git = execFileSync("git", ["rev-list", "--count", "sabir-dev..dev-main"], { cwd: fx.origin, encoding: "utf8" }).trim();
+  const bad = await gf("PUT", "/config", { ...c, source: "remote", url: "https://user:token@github.com/x/y.git" });
+  await gf("PUT", "/config", c);
+  assert(String(a.pendingCount) === git && existsSync(join(DATA, "gitflow", W.id, "remote.git", "HEAD")) && bad.status === 400, JSON.stringify({ pending: a.pendingCount, git, bad: bad.body }));
+  return { cloned: true, pending: a.pendingCount, refusedCredentialsInUrl: bad.body.error };
+});
+
 await step("one commit: files, a browsable diff and the raw Git evidence", async () => {
   const d = (await gf("GET", `/commit/${S.S3}`)).body;
   assert(d.numstat.map((f) => f.path).join() === "src/cart.js" && /banner/.test(d.diff) && /^commit /.test(d.raw) && d.author.email === "sameem@matw.test", JSON.stringify({ files: d.numstat, raw: d.raw.slice(0, 80) }));
@@ -222,6 +247,18 @@ await step("page: S3 alone is blocked with the predicted conflict and the cross-
   await page.click('[data-gf-tab="history"]'); await page.waitForSelector(".gfaudit"); const hist = await page.locator(".gfaudit").innerText();
   assert(/Blocked/.test(txt) && /Conflicts: src\/cart.js/.test(txt) && /another team/.test(txt) && disabled && /execute/.test(hist), JSON.stringify({ txt: txt.slice(0, 400), disabled }));
   return { blocked: true, approveDisabled: disabled };
+});
+await step("page: Setup shows the repository and its authors; giving 'Dev Bot' a team from the list and saving adds them to the rules with their email", async () => {
+  await page.click('[data-gf-tab="setup"]'); await page.waitForSelector(".gfauth"); await page.waitForSelector(".gfrepo");
+  const repoCard = await page.locator(".gfrepo").innerText();
+  const idx = await page.locator('.gfauth tr:has-text("Dev Bot") select').getAttribute("data-gf-auth");
+  await page.selectOption(`[data-gf-auth="${idx}"]`, "innovax");
+  await page.click("#gfSave"); await page.waitForFunction(() => /Saved/.test(document.querySelector("#gfMsg")?.textContent || ""));
+  const people = (await gf("GET", "/config")).body.config.people, bot = people.find((p) => p.name === "Dev Bot");
+  await shot("setup");
+  assert(/origin/.test(repoCard) && /Fetch now/.test(repoCard) && bot?.team === "innovax" && bot.emails.join() === "bot@ci.test", JSON.stringify({ repoCard, bot }));
+  const c = (await gf("GET", "/config")).body.config; await gf("PUT", "/config", { ...c, people: c.people.filter((p) => p.name !== "Dev Bot") });
+  return { added: bot };
 });
 await b.close();
 

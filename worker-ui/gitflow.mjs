@@ -81,8 +81,14 @@ export function normalizeConfig(b = {}, prev = {}) {
     return { ref, team: o.team, note: clip(o.note, 200) };
   });
   const tickets = list(b.tickets ?? prev.tickets ?? ["[A-Z][A-Z0-9]+-\\d+"], 5, 60).filter((r) => { try { new RegExp(r); return true; } catch { throw new Error(`Ticket pattern "${r}" isn't a valid pattern.`); } });
+  // Where the repository comes from: a workspace (a folder on this computer), or a URL the console
+  // clones into this worker's own data. A URL never carries a password or token.
+  const source = (b.source ?? prev.source) === "remote" ? "remote" : "workspace";
+  const url = clip(b.url ?? prev.url, 300);
+  if (source === "remote" && !/^(https:\/\/[^\s@]+|git@[\w.-]+:[\w./-]+|ssh:\/\/[^\s]+|file:\/\/\/[^\s]+)$/.test(url)) throw new Error("Give the repository's URL (https://…, git@…:…, or file:///… for a local mirror), without a password or token in it.");
   return {
-    workspace: clip(b.workspace ?? prev.workspace, 80), refs: (b.refs ?? prev.refs) === "local" ? "local" : "remote",
+    source, url: source === "remote" ? url : "",
+    workspace: clip(b.workspace ?? prev.workspace, 80), refs: source === "remote" ? "local" : (b.refs ?? prev.refs) === "local" ? "local" : "remote",
     teams, people, mappings, overrides, tickets,
     exclude: { otherTeams: !!ex.otherTeams, uncertain: !!ex.uncertain, reverted: !!ex.reverted, merges: !!ex.merges },
     shared: list(b.shared ?? prev.shared ?? DEFAULT_SHARED, 30, 120),
@@ -112,6 +118,61 @@ export class GitFlow {
     this.synced = true;
   }
   run(args, o) { return out(this.scratch, args, o); }
+
+  // ---- the repository, as Setup shows it ----
+  // Where it is, its remotes, when it was last fetched, and its branches (newest first).
+  async repoInfo() {
+    if (!this.synced) await this.sync();
+    const remotes = (await git(this.root, ["remote", "-v"], { allowFail: true })).out.split("\n").filter((l) => /\(fetch\)$/.test(l)).map((l) => { const [name, url] = l.split(/\s+/); return { name, url: url.replace(/\/\/[^@/]+@/, "//") }; });
+    const gd = (await out(this.root, ["rev-parse", "--git-dir"])).trim(), fh = join(isAbsolute(gd) ? gd : resolve(this.root, gd), "FETCH_HEAD");
+    const prefix = this.config.refs === "remote" ? "refs/remotes/origin/" : "refs/heads/";
+    const branches = (await this.run(["for-each-ref", "--sort=-committerdate", "--format=%(refname)%09%(committerdate:iso-strict)", prefix])).split("\n").filter(Boolean)
+      .map((l) => { const [ref, date] = l.split("\t"); return { name: ref.slice(prefix.length), date }; }).filter((b) => b.name !== "HEAD");
+    const { statSync } = await import("node:fs");
+    return { root: this.root, remotes, lastFetched: existsSync(fh) ? statSync(fh).mtime.toISOString() : null, refs: this.config.refs, branches };
+  }
+  // Branch relationships suggested from the branch names: a person's or team's lane "<name>-dev" fed by
+  // the shared "dev-main", "<name>-uat" by "uat-main", and that UAT lane promoted to "preprod-main".
+  suggestMappings(branches) {
+    const names = new Set(branches.map((b) => b.name)), out = [];
+    for (const b of names) {
+      const m = /^([^/]+)-(dev|uat)$/.exec(b); if (!m || b.endsWith("-main")) continue; // lanes are top-level, not feature branches (bau/x-dev)
+      const shared = `${m[2]}-main`; if (names.has(shared)) out.push({ source: shared, destination: b, kind: "sync", strategy: "selective" });
+      if (m[2] === "uat" && names.has("preprod-main")) out.push({ source: b, destination: "preprod-main", kind: "promote", strategy: "feature" });
+    }
+    return out.filter((s) => !this.config.mappings.some((m) => m.source === s.source && m.destination === s.destination)).slice(0, 12);
+  }
+  // Everyone who has committed to these branches (recent history), grouped into people: one person
+  // per name, with all their emails; a GitHub login where a GitHub no-reply email gives it away.
+  async authors(branches, { limit = 4000 } = {}) {
+    if (!this.synced) await this.sync();
+    const refs = []; for (const b of branches) { try { refs.push(await this.tip(b)); } catch {} }
+    if (!refs.length) return [];
+    const raw = await this.run(["log", `--max-count=${limit}`, "--no-merges", "--format=%an%x1f%ae%x1f%aI", ...refs], { timeout: 120000 });
+    const people = new Map();
+    for (const line of raw.split("\n").filter(Boolean)) {
+      const [name, emailRaw, date] = line.split("\x1f"), email = emailRaw.toLowerCase();
+      const gh = /^(?:\d+\+)?([^@]+)@users\.noreply\.github\.com$/.exec(email)?.[1] || "";
+      const key = name.trim().toLowerCase().replace(/\s+/g, " ");
+      const p = people.get(key) || people.set(key, { name: name.trim(), emails: new Map(), github: "", commits: 0, last: date }).get(key);
+      p.commits++; if (date > p.last) p.last = date; p.emails.set(email, (p.emails.get(email) || 0) + 1); if (gh && !p.github) p.github = gh;
+    }
+    const cfg = this.config.people;
+    return [...people.values()].map((p) => {
+      const emails = [...p.emails.keys()], known = cfg.find((x) => x.emails.some((e) => emails.includes(e)) || x.name.toLowerCase() === p.name.toLowerCase());
+      return { name: p.name, emails, github: p.github, commits: p.commits, last: p.last, configured: known ? { id: known.id, team: known.team } : null };
+    }).sort((a, b) => b.commits - a.commits);
+  }
+  // `git fetch origin` in the repository: it updates origin/… (what "as last fetched" means) and
+  // nothing else; no branch of the person's moves. Only when the person asks.
+  async fetchOrigin() {
+    // The console's own clone of a URL keeps the remote's branches as its branches.
+    const spec = this.config.source === "remote" ? ["+refs/heads/*:refs/heads/*"] : [];
+    const r = await git(this.root, ["fetch", "--prune", "--no-tags", "origin", ...spec], { allowFail: true, timeout: 600000 });
+    if (r.code) throw new Error(/Authentication|could not read|terminal prompts|403|401/i.test(r.err) ? "Git has no working sign-in for origin on this computer: run git fetch once in a terminal, then try again." : `git fetch failed: ${r.err.slice(0, 300)}`);
+    this.synced = false;
+    return { ok: true };
+  }
   async tip(branch) {
     const r = await git(this.scratch, ["rev-parse", "--verify", "-q", `${this.ref(branch)}^{commit}`], { allowFail: true });
     if (r.code) throw new Error(`Branch "${branch}" isn't in the repository${this.config.refs === "remote" ? " as origin/" + branch + " (as last fetched)" : ""}.`);
@@ -377,6 +438,15 @@ export class GitFlow {
     this.audit({ action: "note", sha, by: "worker", run });
     return n[sha];
   }
+}
+// A repository given by URL: cloned once (bare: history and branches, no files) into `dir`, with the
+// person's own Git sign-in, never a prompt.
+export async function cloneRemote(url, dir) {
+  if (existsSync(join(dir, "HEAD"))) return { cloned: false };
+  mkdirSync(dir, { recursive: true });
+  const r = await git(dir, ["clone", "--bare", "--no-tags", url, "."], { allowFail: true, timeout: 1800000 });
+  if (r.code) throw new Error(/Authentication|could not read|terminal prompts|403|401|not found/i.test(r.err) ? "Git couldn't sign in to that repository on this computer (or it doesn't exist): clone it once in a terminal so your Git sign-in is stored, then try again." : `git clone failed: ${r.err.slice(0, 300)}`);
+  return { cloned: true };
 }
 // Simulated and executed commits keep the original author; the committer is the person running it.
 function commitEnv(c, identity) {

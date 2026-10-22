@@ -222,7 +222,7 @@ const MCP_SERVERS = {
   },
   // The Git workflow worker's read-only tools, on the run's workspace and this worker's own data.
   gitflow: (profile, scope = {}, usable = [], root = null, def = null) => ({ command: process.execPath, args: [join(REPO, "mcp", "gitflow-server.mjs")],
-    env: { GITFLOW_ROOT: root, GITFLOW_DIR: gitflowDir(def?.id) } }),
+    env: { GITFLOW_ROOT: (() => { try { const c = readGitflowConfig(def?.id); return c ? gitflowRoot(def.id, c) : root; } catch { return root; } })(), GITFLOW_DIR: gitflowDir(def?.id) } }),
   // The workspace's registered repository, at this worker's access (mcp/repo-server.mjs registers
   // only the tools that access allows). It gets the checkout and the expected remote, no token.
   repo: (profile, scope = {}, usable = [], root = null) => ({ command: process.execPath, args: [join(REPO, "mcp", "repo-server.mjs")],
@@ -422,10 +422,14 @@ function gitflowDir(id) { if (!/^[\w-]+$/.test(String(id || ""))) throw new Erro
 function readGitflowConfig(id) { const f = join(gitflowDir(id), "config.json"); try { return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; } catch { return null; } }
 function writeGitflowConfig(id, cfg) { mkdirSync(gitflowDir(id), { recursive: true }); writeAtomic(join(gitflowDir(id), "config.json"), JSON.stringify(cfg, null, 1)); }
 const gitflowAudit = (id, e) => new gitflow.GitFlow({ root: null, dir: gitflowDir(id), config: {} }).audit(e);
+// The repository a Git workflow reads: a workspace's folder, or the console's own clone of a URL.
+function gitflowRoot(id, cfg) {
+  if (cfg.source === "remote") { const d = join(gitflowDir(id), "remote.git"); if (!existsSync(join(d, "HEAD"))) throw new Error("The repository hasn't been cloned yet: save the setup with its URL."); return d; }
+  if (!cfg.workspace) throw new Error("Choose the repository in the Git workflow setup.");
+  return resolveWorkspace(cfg.workspace).root;
+}
 function gitflowEngine(id, cfg, noRepo = false) {
-  if (noRepo) return new gitflow.GitFlow({ root: null, dir: gitflowDir(id), config: cfg });
-  if (!cfg.workspace) throw new Error("Choose the repository's workspace in the Git workflow setup.");
-  return new gitflow.GitFlow({ root: resolveWorkspace(cfg.workspace).root, dir: gitflowDir(id), config: cfg });
+  return new gitflow.GitFlow({ root: noRepo ? null : gitflowRoot(id, cfg), dir: gitflowDir(id), config: cfg });
 }
 // A draft as the page shows it: the composition, what it would get in a workspace, and its
 // requirements checked now.
@@ -2239,7 +2243,14 @@ http.createServer(async (req, res) => {
       if (parts[2] === "config" && req.method === "GET") return json(res, 200, { config: cfg, strategies: gitflow.STRATEGIES, worker: { id: w.id, name: w.name } });
       if (parts[2] === "config" && req.method === "PUT") {
         const next = gitflow.normalizeConfig(await body(req), cfg || {});
-        if (next.workspace) resolveWorkspace(next.workspace);
+        if (next.source === "workspace" && next.workspace) resolveWorkspace(next.workspace);
+        // A URL: cloned once into this worker's data (a different URL starts a new clone).
+        if (next.source === "remote") {
+          const d = join(gitflowDir(w.id), "remote.git");
+          if (cfg?.url && cfg.url !== next.url && existsSync(d)) rmSync(d, { recursive: true, force: true });
+          const r = await gitflow.cloneRemote(next.url, d);
+          if (r.cloned) gitflowAudit(w.id, { action: "clone", url: next.url });
+        }
         writeGitflowConfig(w.id, next); gitflowAudit(w.id, { action: "config", by: "person", mappings: next.mappings.length, people: next.people.length, proposals: next.proposals });
         return json(res, 200, { config: next });
       }
@@ -2247,6 +2258,15 @@ http.createServer(async (req, res) => {
       if (parts[2] === "audit" && req.method === "GET") return json(res, 200, { audit: gitflowEngine(w.id, cfg, true).auditLog() });
       const gf = gitflowEngine(w.id, cfg);
       const mapping = (id) => { const m = cfg.mappings.find((x) => x.id === id); if (!m) throw new Error("Choose one of the configured branch relationships."); return m; };
+      // The repository as Setup shows it: where, its remotes, last fetch, real branches, suggested
+      // relationships; its actual commit authors; fetching origin when the person asks.
+      if (parts[2] === "repo" && req.method === "GET") { const info = await gf.repoInfo(); return json(res, 200, { ...info, suggestions: gf.suggestMappings(info.branches) }); }
+      if (parts[2] === "authors" && req.method === "GET") {
+        const info = await gf.repoInfo(), names = new Set(info.branches.map((b) => b.name));
+        const wanted = [...new Set([...cfg.mappings.flatMap((m) => [m.source, m.destination]), ...cfg.shared])].filter((b) => names.has(b));
+        return json(res, 200, { branches: wanted.length ? wanted : info.branches.slice(0, 10).map((b) => b.name), authors: await gf.authors(wanted.length ? wanted : info.branches.slice(0, 10).map((b) => b.name)) });
+      }
+      if (parts[2] === "fetch" && req.method === "POST") { const r = await gf.fetchOrigin(); gitflowAudit(w.id, { action: "fetch", by: "person" }); return json(res, 200, r); }
       if (parts[2] === "analysis" && req.method === "GET") return json(res, 200, await gf.analyse(mapping(url.searchParams.get("mapping")), { scope: url.searchParams.get("scope") === "recent" ? "recent" : "pending" }));
       if (parts[2] === "commit" && parts[3] && req.method === "GET") return json(res, 200, await gf.commit(parts[3]));
       if (parts[2] === "preview" && req.method === "POST") { const b = await body(req); return json(res, 200, await gf.preview(mapping(b.mapping), { strategy: b.strategy, select: Array.isArray(b.select) ? b.select.slice(0, 200).map(String) : [] })); }

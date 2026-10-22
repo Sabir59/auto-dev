@@ -699,7 +699,15 @@ span.ok { color: var(--ok); } span.warn { color: var(--warn); } span.bad { color
 .gffiles { list-style: none; margin: 0; padding: 0; } .gffiles .plus { color: var(--ok); } .gffiles .minus { color: var(--err); }
 .gfraw { white-space: pre-wrap; font: 11px/16px var(--mono); color: var(--t2); margin: 6px 0 0; }
 .gfrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; } .gfrow .wfield { height: 30px; flex: 1 1 140px; min-width: 0; }
-.gfline { display: flex; gap: 8px; flex-wrap: wrap; } .gfline select { height: 30px; }
+.gfline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; } .gfline select, .gfline input { height: 30px; }
+.gfrepo { margin-top: 4px; padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--r2); background: var(--surf); display: flex; flex-direction: column; gap: 4px; color: var(--t2); max-width: 760px; }
+.gfsugg { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 4px 0; }
+.gfauth { max-height: 360px; overflow: auto; border: 1px solid var(--line2); border-radius: var(--r2); margin-top: 6px; }
+.gfauth table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.gfauth th { position: sticky; top: 0; background: var(--high); text-align: left; padding: 6px 8px; color: var(--t3); font: 600 11px/16px var(--sans); }
+.gfauth td { padding: 4px 8px; border-top: 1px solid var(--line); color: var(--t2); vertical-align: middle; }
+.gfauth tr.on td { background: var(--ok-soft); } .gfauth select { height: 26px; min-width: 120px; }
+.gfauth td.mono { max-width: 280px; overflow-wrap: anywhere; }
 .gfchk { display: flex; gap: 6px; align-items: center; color: var(--t2); }
 .gfstrats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
 .gfstrat { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--r3); background: var(--low); cursor: pointer; }
@@ -1611,7 +1619,8 @@ const CONCEPTS = `<div class="concepts"><div class="concept"><b>Worker</b><span>
   <div class="concept"><b>Workspace</b><span>Where it works: a folder on this computer, read-only (Inspect) or editable (Work). It can't reach outside it.</span></div>
   <div class="concept"><b>Team</b><span>Optional. Shared documents, a Figma file, instructions and enforced rules for several workers.</span></div></div>`;
 const EXAMPLES = ["Manage products and inventory in my Shopify store", "Update and organise our Google Sheets", "Maintain my WordPress website",
-  "Build features in my Next.js repository", "Create and maintain landing pages in Builder.io", "Research competitors and keep a research spreadsheet up to date"];
+  "Build features in my Next.js repository", "Create and maintain landing pages in Builder.io", "Research competitors and keep a research spreadsheet up to date",
+  "Keep our team's Git branches in sync and promote approved changes to pre-production"];
 const exampleChips = (attr) => `<div class="exs" role="group" aria-label="Examples">${EXAMPLES.map((x) => `<button type="button" class="exchip m12" ${attr}="${esc(x)}">${esc(x)}</button>`).join("")}</div>`;
 async function loadRegistry() { if (!REG?.length) { try { REG = (await api("GET", "/integrations")).integrations; } catch { REG = []; } } }
 // Where it works, in plain words: the workspace against what the work needs ("project": a codebase).
@@ -1826,8 +1835,9 @@ async function openGitflow(wid, tab) {
   try { const r = await gfApi("GET", "/config"); GF.cfg = r.config; GF.strategies = r.strategies; GF.name = r.worker.name; } catch (e) { return notice(e); }
   if (!GF.cfg || !GF.cfg.workspace || !GF.cfg.mappings.length) GF.tab = "setup";
   GF.mapping = GF.cfg?.mappings[0]?.id || null;
+  if (GF.cfg) GF.cfg.urlSaved = GF.cfg.url;
   gfRender();
-  if (GF.tab === "commits") gfLoad();
+  if (GF.tab === "commits") gfLoad(); else gfLoadRepo();
 }
 async function gfLoad() {
   if (!GF.mapping) return;
@@ -1853,22 +1863,42 @@ const gfRow = (kind, i, cells) => `<div class="gfrow" data-row="${kind}" data-i=
 const inp = (k, v, ph = "", w = "") => `<input class="wfield" data-k="${k}" value="${esc(Array.isArray(v) ? v.join(", ") : v ?? "")}" placeholder="${esc(ph)}" autocomplete="off"${w ? ` style="width:${w}"` : ""}>`;
 const teamSel = (k, v, none = true) => `<select class="wfield" data-k="${k}">${none ? '<option value="">No team</option>' : ""}${GF.cfg.teams.map((t) => `<option value="${esc(t.id)}" ${t.id === v ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>`;
 function gfSetup() {
-  const c = GF.cfg || { teams: [], people: [], mappings: [], overrides: [], exclude: {}, shared: [], tickets: [] };
+  const c = GF.cfg || { source: "workspace", teams: [], people: [], mappings: [], overrides: [], exclude: {}, shared: [], tickets: [] };
   GF.cfg = c;
-  const repos = WS.filter((w) => !isScratch(w));
+  const repos = WS.filter((w) => !isScratch(w)), r = GF.repo, br = r?.branches || [];
+  const branchSel = (k, v) => br.length ? `<select class="wfield" data-k="${k}"><option value="">${k === "source" ? "source branch…" : "destination branch…"}</option>${br.some((b) => b.name === v) || !v ? "" : `<option value="${esc(v)}" selected>${esc(v)} (not found)</option>`}${br.map((b) => `<option value="${esc(b.name)}" ${b.name === v ? "selected" : ""}>${esc(b.name)}</option>`).join("")}</select>` : inp(k, v, k, "140px");
+  const repoCard = GF.repoBusy ? `<div class="gfrepo m12">${esc(GF.repoBusy)}</div>` : r ? `<div class="gfrepo m12"><div><span class="sub">Folder</span> <span class="mono m11">${esc(r.root)}</span></div>
+      ${r.remotes.map((x) => `<div><span class="sub">${esc(x.name)}</span> <span class="mono m11">${esc(x.url)}</span></div>`).join("")}
+      <div><span class="sub">Branches</span> ${br.length} ${r.refs === "remote" ? "(origin/…, as last fetched)" : ""} · <span class="sub">last fetched</span> ${r.lastFetched ? esc(ago(r.lastFetched)) : "never"}</div>
+      <div class="gfline"><button type="button" class="btn m11" id="gfFetch">Fetch now</button><span class="sub m11">Runs git fetch origin${c.source === "remote" ? " in the console's copy" : " in that folder: it updates origin/… and moves none of your branches"}.</span></div></div>`
+    : c.source === "remote" ? (c.url ? '<div class="gfrepo m12 sub">Save the setup to clone it.</div>' : "") : c.workspace ? '<div class="gfrepo m12 sub">Reading the repository…</div>' : "";
+  const auth = GF.authors, q = (GF.authorQ || "").toLowerCase();
+  const authRows = (auth?.authors || []).filter((a) => !q || a.name.toLowerCase().includes(q) || a.emails.some((e) => e.includes(q)) || a.github.toLowerCase().includes(q)).slice(0, 80);
+  const inCfg = (a) => c.people.find((p) => p.emails.some((e) => a.emails.includes(e)) || p.name.toLowerCase() === a.name.toLowerCase());
   return `<form class="wform" id="gfSetup" novalidate>
-    <div class="wf"><span class="lab">Repository</span><span class="sub m11">A workspace that is a Git checkout (use a separate clone, not the one you work in). Analysis and simulations happen in a private copy of its history; the only thing ever written to it is a new proposal branch you approve.</span>
-      <div class="gfline"><select class="wfield" id="gfWs"><option value="">Choose a workspace…</option>${repos.map((w) => `<option value="${esc(w.id)}" ${w.id === c.workspace ? "selected" : ""}>${esc(w.name)} · ${modeOf(w)}</option>`).join("")}</select>
-      <select class="wfield" id="gfRefs"><option value="remote" ${c.refs !== "local" ? "selected" : ""}>Branches as last fetched (origin/…)</option><option value="local" ${c.refs === "local" ? "selected" : ""}>Local branches</option></select></div></div>
+    <div class="wf"><span class="lab">Repository</span>
+      <div class="seg" role="radiogroup" aria-label="Where the repository is" style="align-self:flex-start"><button type="button" class="m11" role="radio" data-gf-source="workspace" aria-checked="${c.source !== "remote"}">A folder on this computer</button><button type="button" class="m11" role="radio" data-gf-source="remote" aria-checked="${c.source === "remote"}">A remote URL</button></div>
+      ${c.source === "remote" ? `<span class="sub m11">The console clones it (history and branches, no files) into this worker's own data, with your Git sign-in on this computer. Saving starts the clone: a large repository takes a few minutes.</span>
+        <div class="gfline">${inp("url", c.url, "https://github.com/org/repo.git", "460px").replace('data-k="url"', 'id="gfUrl"')}</div>`
+      : `<span class="sub m11">A workspace that is a Git checkout. The worker only reads it: analysis and simulations happen in a private copy of its history.</span>
+        <div class="gfline"><select class="wfield" id="gfWs"><option value="">Choose a workspace…</option>${repos.map((w) => `<option value="${esc(w.id)}" ${w.id === c.workspace ? "selected" : ""}>${esc(w.name)} · ${modeOf(w)}</option>`).join("")}</select>
+        <select class="wfield" id="gfRefs"><option value="remote" ${c.refs !== "local" ? "selected" : ""}>Branches as last fetched (origin/…)</option><option value="local" ${c.refs === "local" ? "selected" : ""}>Local branches</option></select>
+        <button type="button" class="linkbtn m11" data-gs="addws">Add another folder</button></div>`}
+      ${repoCard}</div>
+    <div class="wf"><span class="lab">Branch relationships</span><span class="sub m11">Each one is independent: a source, the branch it feeds, and the default strategy. A synchronisation keeps an isolated lane up to date with a shared branch; a promotion moves approved work into a shared branch.</span>
+      ${c.mappings.map((m, i) => gfRow("mappings", i, `${branchSel("source", m.source)}<span class="m12">→</span>${branchSel("destination", m.destination)}<select class="wfield" data-k="kind"><option value="sync" ${m.kind === "sync" ? "selected" : ""}>synchronise</option><option value="promote" ${m.kind === "promote" ? "selected" : ""}>promote</option></select><select class="wfield" data-k="strategy">${Object.entries(GF.strategies).map(([k, s]) => `<option value="${k}" ${m.strategy === k ? "selected" : ""}>${esc(s.label)}</option>`).join("")}</select>`)).join("") || '<span class="sub m12">None yet: the Commits page needs at least one.</span>'}
+      ${r?.suggestions?.length ? `<div class="gfsugg"><span class="sub m11">Found in your branch names:</span>${r.suggestions.map((s, i) => `<button type="button" class="exchip m12" data-gf-sugg="${i}">+ ${esc(s.source)} → ${esc(s.destination)} <span class="sub">(${s.kind === "promote" ? "promote" : "synchronise"})</span></button>`).join("")}</div>` : ""}
+      <button type="button" class="row add" data-gf-add="mappings" style="width:auto"><span>+ Add relationship</span></button></div>
     <div class="wf"><span class="lab">Teams</span><span class="sub m11">One is yours. A branch pattern (for example bau/*) attributes pull requests from matching branches to the team.</span>
       ${c.teams.map((t, i) => gfRow("teams", i, `${inp("name", t.name, "Team name", "160px")}<label class="m12 gfchk"><input type="radio" name="gfOurs" data-k="ours" ${t.ours ? "checked" : ""}> yours</label>${inp("branchPatterns", t.branchPatterns, "PR branch patterns, e.g. bau/*, sabir-*")}`)).join("")}
       <button type="button" class="row add" data-gf-add="teams" style="width:auto"><span>+ Add team</span></button></div>
-    <div class="wf"><span class="lab">People</span><span class="sub m11">Their identities in commits. An email match is strong evidence; a name alone is weak (names aren't unique), so it's never enough to confirm ownership.</span>
-      ${c.people.map((p, i) => gfRow("people", i, `${inp("name", p.name, "Name", "120px")}${teamSel("team", p.team)}${inp("github", p.github, "GitHub login", "120px")}${inp("emails", p.emails, "Commit emails")}${inp("names", p.names, "Other author names", "150px")}`)).join("") || '<span class="sub m11">No one yet.</span>'}
-      <button type="button" class="row add" data-gf-add="people" style="width:auto"><span>+ Add person</span></button></div>
-    <div class="wf"><span class="lab">Branch relationships</span><span class="sub m11">Each one is independent: a source, the branch it feeds, and the default strategy. A synchronisation keeps an isolated lane up to date with a shared branch; a promotion moves approved work into a shared branch.</span>
-      ${c.mappings.map((m, i) => gfRow("mappings", i, `${inp("source", m.source, "source", "140px")}<span class="m12">→</span>${inp("destination", m.destination, "destination", "140px")}<select class="wfield" data-k="kind"><option value="sync" ${m.kind === "sync" ? "selected" : ""}>synchronise</option><option value="promote" ${m.kind === "promote" ? "selected" : ""}>promote</option></select><select class="wfield" data-k="strategy">${Object.entries(GF.strategies).map(([k, s]) => `<option value="${k}" ${m.strategy === k ? "selected" : ""}>${esc(s.label)}</option>`).join("")}</select>`)).join("")}
-      <button type="button" class="row add" data-gf-add="mappings" style="width:auto"><span>+ Add relationship</span></button></div>
+    <div class="wf"><span class="lab">People</span><span class="sub m11">Who wrote the commits, read from the repository${auth ? ` (${esc(auth.branches.join(", "))})` : ""}. Give each person their team: their commit emails become strong evidence. One person can have several emails; a name alone is weak evidence.</span>
+      ${auth ? `<div class="gfline"><input class="wfield" id="gfAuthQ" placeholder="Filter by name, email or GitHub login" value="${esc(GF.authorQ || "")}" style="max-width:320px"><span class="sub m11">${auth.authors.length} author${auth.authors.length === 1 ? "" : "s"}</span></div>
+        <div class="gfauth"><table><thead><tr><th>Author</th><th>Emails in commits</th><th>GitHub</th><th>Commits</th><th>Last</th><th>Team</th></tr></thead><tbody>${authRows.map((a) => { const p = inCfg(a), idx = auth.authors.indexOf(a); return `<tr class="${p?.team ? "on" : ""}"><td>${esc(a.name)}</td><td class="mono m11">${esc(a.emails.slice(0, 2).join(", "))}${a.emails.length > 2 ? ` +${a.emails.length - 2}` : ""}</td><td class="m11">${esc(a.github || "–")}</td><td>${a.commits}</td><td class="m11">${esc(ago(a.last))}</td><td><select class="wfield" data-gf-auth="${idx}" aria-label="Team for ${esc(a.name)}"><option value="">No team</option>${c.teams.map((t) => `<option value="${esc(t.id)}" ${p?.team === t.id ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select></td></tr>`; }).join("")}</tbody></table></div>`
+        : GF.authorsBusy ? `<span class="sub m12">${esc(GF.authorsBusy)}</span>` : '<span class="sub m12">Choose the repository (and save) to see its authors.</span>'}
+      <details ${c.people.length ? "" : ""}><summary class="m12">People in your rules (${c.people.length}): edit identities, or add someone with no commits yet</summary>
+      ${c.people.map((p, i) => gfRow("people", i, `${inp("name", p.name, "Name", "120px")}${teamSel("team", p.team)}${inp("github", p.github, "GitHub login", "120px")}${inp("emails", p.emails, "Commit emails")}${inp("names", p.names, "Other author names", "150px")}`)).join("")}
+      <button type="button" class="row add" data-gf-add="people" style="width:auto"><span>+ Add person</span></button></details></div>
     <div class="wf"><span class="lab">Rules</span><span class="sub m11">What blocks a plan. When a rule is off, the same changes still need your explicit review before approval.</span>
       <label class="m12 gfchk"><input type="checkbox" id="gfExOther" ${c.exclude.otherTeams !== false ? "checked" : ""}> Block other teams' changes</label>
       <label class="m12 gfchk"><input type="checkbox" id="gfExUnc" ${c.exclude.uncertain !== false ? "checked" : ""}> Block changes whose ownership is uncertain or unknown</label>
@@ -1880,12 +1910,25 @@ function gfSetup() {
     <div class="wrow2"><label class="wf"><span class="lab">Ticket patterns</span>${inp("tickets", c.tickets, "e.g. [A-Z][A-Z0-9]+-\\d+").replace('data-k="tickets"', 'id="gfTickets"')}</label>
       <label class="wf"><span class="lab">Shared branches (never written)</span>${inp("shared", c.shared, "dev-main, uat-main, …").replace('data-k="shared"', 'id="gfShared"')}</label></div>
     <div class="wf"><label class="m12 gfchk"><input type="checkbox" id="gfProposals" ${c.proposals ? "checked" : ""}> Allow proposal branches: after I approve a plan, create a new branch with its result (never pushed; never an existing branch)</label></div>
-    <div class="wfoot"><span class="msg m11" id="gfMsg" role="status"></span><button type="submit" class="btn pri m11">Save setup</button></div></form>`;
+    <div class="wfoot"><span class="msg m11" id="gfMsg" role="status"></span><button type="submit" class="btn pri m11" id="gfSave">Save setup</button></div></form>`;
 }
+const listOf = (v) => (Array.isArray(v) ? v : String(v || "").split(",")).map((x) => x.trim()).filter(Boolean);
 function gfReadSetup() {
   const rows = (kind) => [...document.querySelectorAll(`[data-row="${kind}"]`)].map((r) => Object.fromEntries([...r.querySelectorAll("[data-k]")].map((x) => [x.dataset.k, x.type === "radio" || x.type === "checkbox" ? x.checked : x.value])));
-  return { workspace: $("gfWs").value, refs: $("gfRefs").value, teams: rows("teams").map((t, i) => ({ ...t, id: GF.cfg.teams[i]?.id })), people: rows("people"), mappings: rows("mappings"), overrides: rows("overrides"),
+  const remote = GF.cfg.source === "remote";
+  return { source: remote ? "remote" : "workspace", url: remote ? $("gfUrl")?.value ?? GF.cfg.url : "", workspace: remote ? GF.cfg.workspace || "" : $("gfWs")?.value ?? GF.cfg.workspace, refs: remote ? "local" : $("gfRefs")?.value ?? GF.cfg.refs,
+    teams: rows("teams").map((t, i) => ({ ...t, id: GF.cfg.teams[i]?.id })), mappings: rows("mappings"), overrides: rows("overrides"),
+    people: rows("people").map((p) => ({ ...p, emails: listOf(p.emails).map((e) => e.toLowerCase()), names: listOf(p.names) })),
     exclude: { otherTeams: $("gfExOther").checked, uncertain: $("gfExUnc").checked, reverted: $("gfExRev").checked, merges: true }, tickets: $("gfTickets").value, shared: $("gfShared").value, proposals: $("gfProposals").checked };
+}
+// The repository card, its branches and suggested relationships, and its authors (for Setup).
+async function gfLoadRepo() {
+  if (!GF.cfg || (GF.cfg.source !== "remote" && !GF.cfg.workspace) || (GF.cfg.source === "remote" && !GF.cfg.url)) return;
+  GF.repoBusy = "Reading the repository…"; GF.authorsBusy = "Reading the commit authors…"; gfRender();
+  try { GF.repo = await gfApi("GET", "/repo"); } catch (e) { GF.repo = null; GF.error = e.message; }
+  GF.repoBusy = ""; gfRender();
+  try { GF.authors = GF.repo ? await gfApi("GET", "/authors") : null; } catch (e) { GF.authors = null; GF.error = e.message; }
+  GF.authorsBusy = ""; gfRender();
 }
 
 // ---- 2. commits ----
@@ -1982,7 +2025,14 @@ function gfExplain(shas) {
 $("canvas").addEventListener("click", async (e) => {
   if (view !== "gitflow" || !GF) return;
   const t = e.target, q = (s) => t.closest(s);
-  if (q("[data-gf-tab]")) { GF.tab = q("[data-gf-tab]").dataset.gfTab; if (GF.tab === "history") { try { GF.audit = (await gfApi("GET", "/audit")).audit; } catch (er) { GF.error = er.message; } } gfRender(); if (GF.tab === "commits" && !GF.analysis) gfLoad(); return; }
+  if (q("[data-gf-tab]")) { GF.tab = q("[data-gf-tab]").dataset.gfTab; if (GF.tab === "history") { try { GF.audit = (await gfApi("GET", "/audit")).audit; } catch (er) { GF.error = er.message; } } gfRender(); if (GF.tab === "commits" && !GF.analysis) gfLoad(); if (GF.tab === "setup" && !GF.repo) gfLoadRepo(); return; }
+  if (q("[data-gf-source]")) { GF.cfg = { ...GF.cfg, ...gfReadSetup(), source: q("[data-gf-source]").dataset.gfSource }; GF.repo = null; GF.authors = null; return gfRender(); }
+  if (q("[data-gf-sugg]")) { const s = GF.repo.suggestions[+q("[data-gf-sugg]").dataset.gfSugg]; GF.cfg = { ...GF.cfg, ...gfReadSetup() }; GF.cfg.mappings = [...GF.cfg.mappings, s]; GF.repo.suggestions = GF.repo.suggestions.filter((x) => x !== s); return gfRender(); }
+  if (q("#gfFetch")) {
+    GF.cfg = { ...GF.cfg, ...gfReadSetup() }; GF.repoBusy = "Fetching from origin…"; gfRender();
+    try { await gfApi("POST", "/fetch"); GF.analysis = null; } catch (er) { GF.error = er.message; }
+    GF.repoBusy = ""; return gfLoadRepo();
+  }
   if (q("[data-gf-add]")) { const k = q("[data-gf-add]").dataset.gfAdd; GF.cfg = { ...GF.cfg, ...gfReadSetup() }; GF.cfg[k] = [...GF.cfg[k], k === "teams" ? { name: "", ours: false, branchPatterns: [] } : k === "people" ? { name: "", team: "", github: "", emails: [], names: [] } : k === "mappings" ? { source: "", destination: "", kind: "sync", strategy: "selective" } : { ref: "", team: GF.cfg.teams[0]?.id || "", note: "" }]; gfRender(); return; }
   if (q("[data-gf-del]")) { const [k, i] = q("[data-gf-del]").dataset.gfDel.split(":"); GF.cfg = { ...GF.cfg, ...gfReadSetup() }; GF.cfg[k] = GF.cfg[k].filter((_, n) => n !== +i); gfRender(); return; }
   if (q("[data-gf-scope]")) { GF.scope = q("[data-gf-scope]").dataset.gfScope; return gfLoad(); }
@@ -2011,17 +2061,37 @@ $("canvas").addEventListener("click", async (e) => {
 $("canvas").addEventListener("change", (e) => {
   if (view !== "gitflow" || !GF) return;
   const t = e.target;
+  // A team for an author from the repository: they become (or update) a person in the rules,
+  // with all the emails they commit with. Saved with the setup.
+  if (t.dataset.gfAuth) {
+    const a = GF.authors.authors[+t.dataset.gfAuth]; GF.cfg = { ...GF.cfg, ...gfReadSetup() };
+    const p = GF.cfg.people.find((x) => x.emails.some((e) => a.emails.includes(e)) || x.name.toLowerCase() === a.name.toLowerCase());
+    if (p) { p.team = t.value; p.emails = [...new Set([...p.emails, ...a.emails])]; p.github = p.github || a.github; }
+    else if (t.value) GF.cfg.people = [...GF.cfg.people, { name: a.name, team: t.value, github: a.github, emails: a.emails, names: [] }];
+    return gfRender();
+  }
   if (t.id === "gfMapping") { GF.mapping = t.value; GF.selected.clear(); GF.detail = null; GF.plan = null; return gfLoad(); }
   if (t.dataset.gfSel) { t.checked ? GF.selected.add(t.dataset.gfSel) : GF.selected.delete(t.dataset.gfSel); return gfRender(); }
   if (t.dataset.gfTask) { const task = GF.analysis.tasks.find((x) => x.id === t.dataset.gfTask); task.shas.forEach((s) => (t.checked ? GF.selected.add(s) : GF.selected.delete(s))); return gfRender(); }
   if (t.name === "gfStrat") { GF.strategy = t.value; GF.plan = null; return gfRender(); }
   if (t.id === "gfAck") { GF.ack = t.checked; return gfRender(); }
 });
+$("canvas").addEventListener("input", (e) => {
+  if (view !== "gitflow" || e.target.id !== "gfAuthQ") return;
+  GF.cfg = { ...GF.cfg, ...gfReadSetup() }; GF.authorQ = e.target.value; gfRender();
+  const q = $("gfAuthQ"); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+});
 $("canvas").addEventListener("submit", async (e) => {
   if (view !== "gitflow" || e.target.id !== "gfSetup") return;
   e.preventDefault();
-  try { const r = await gfApi("PUT", "/config", gfReadSetup()); GF.cfg = r.config; GF.analysis = null; GF.plan = null; if (!GF.mapping || !GF.cfg.mappings.some((m) => m.id === GF.mapping)) GF.mapping = GF.cfg.mappings[0]?.id || null; gfRender(); $("gfMsg").textContent = "Saved. Commits and plans use it from now on."; }
-  catch (er) { $("gfMsg").innerHTML = `<span class="err">${esc(er.message)}</span>`; }
+  const next = gfReadSetup(), cloning = next.source === "remote" && next.url !== GF.cfg.urlSaved;
+  $("gfSave").disabled = true; $("gfMsg").textContent = cloning ? "Cloning the repository (a large one takes a few minutes)…" : "Saving…";
+  try {
+    const r = await gfApi("PUT", "/config", next); GF.cfg = { ...r.config, urlSaved: r.config.url }; GF.analysis = null; GF.plan = null; GF.repo = null; GF.authors = null;
+    if (!GF.mapping || !GF.cfg.mappings.some((m) => m.id === GF.mapping)) GF.mapping = GF.cfg.mappings[0]?.id || null;
+    gfRender(); $("gfMsg").textContent = "Saved. Commits and plans use it from now on."; gfLoadRepo().then(() => { if ($("gfMsg")) $("gfMsg").textContent = "Saved. Commits and plans use it from now on."; });
+  }
+  catch (er) { $("gfSave").disabled = false; $("gfMsg").innerHTML = `<span class="err">${esc(er.message)}</span>`; }
 });
 
 // ---------------- github ----------------
