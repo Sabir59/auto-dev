@@ -47,6 +47,15 @@ Where this document and the code disagree, **the code wins**. Fix this document.
 
 Machine-readable companion: `docs/PROJECT_MEMORY.json`.
 
+> **2026-10-22: UX and product validation sprint** (`docs/ux-sprint.md`). It added:
+> - a getting-started guide;
+> - worker templates with a short, worker-specific setup (`workers/*.json` `template` blocks; `worker-platform.md` §13);
+> - a readiness check before a task;
+> - a result at the end of each message, linking to the diff;
+> - an end-to-end journey test (`bench/hosted/journey-test.mjs`, scripted model).
+>
+> The local Claude sign-in had expired that day, so the real-worker suites still need re-running.
+>
 > **2026-10-20: hosted pilot.** The product can now also run as a website for a few trusted people: a gateway (`worker-ui/gateway.mjs`) signs people in, runs one console per person as their own Linux user, and holds the Anthropic API key (the claude.ai subscription can't back a hosted product). Where this document says "local only", "no auth" or "the owner's subscription", that's still true of the local console; the hosted mode is described in `docs/HOSTED_ARCHITECTURE.md` and `docs/CLOUD_DEPLOYMENT.md`.
 
 ---
@@ -127,6 +136,13 @@ Organisations have real work inside real systems: a codebase, a Figma file, a we
     - **Server:** a per-turn outcome (replied / done / needs / error) while a run waits; deliverables (ARTIFACT:) kept apart from files written; busy-worker refusals name the run.
     - **Page:** guarded drafts and consequential actions, a separate Stop, explicit run replacement, view-only teams, one state vocabulary and one counting rule.
     - **Tests:** `bash bench/workspace-ui/run-suite.sh remediation`.
+12. **UX sprint** (2026-10-22, `docs/ux-sprint.md`):
+    - first-run guide;
+    - worker catalogue and template setup (only the settings that matter for that worker; choices map to catalogue capabilities and never grant access);
+    - "Before you start" readiness;
+    - per-message result with "Review the changes";
+    - a Versions race fix.
+    - **Tests:** `run-suite.sh templates`, `node bench/hosted/journey-test.mjs`.
 
 Details in §11.
 

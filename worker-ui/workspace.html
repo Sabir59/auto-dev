@@ -2431,7 +2431,7 @@ function capChips(k) {
 function gettingStarted(w) {
   const project = WS.some((x) => !isScratch(x) && x.id !== "console");
   return `<div class="emptyst" id="gsGuide"><div class="eyebrow m12">Getting started</div><h1>Give a specialist a real task</h1>
-    <p>AI Workforce runs specialised AI workers on your own projects. They use real tools (your files, a browser, Figma, Builder.io) inside limits the platform enforces, and you can watch every step they take.</p>
+    <p>Here you give specialised AI workers real tasks on your own projects. They use real tools (your files, a browser, Figma, Builder.io) inside limits the platform enforces, and you can watch every step they take.</p>
     ${CONCEPTS}
     <ol class="gs-steps m12"><li class="${project ? "ok" : ""}"><span>Choose where it works: your project folder, or Scratch for work that needs none.</span>${project ? "" : '<button type="button" class="btn" data-gs="addws">Add project folder</button>'}</li>
       <li><span>Pick a specialist and set it up. You only see the settings that matter for it.</span></li>
