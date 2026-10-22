@@ -650,6 +650,15 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
 .where { padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--r2); background: var(--surf); color: var(--t2); max-width: 680px; }
 .where b { color: var(--t1); font-weight: 600; }
 .ready-box { margin-top: 18px; width: 100%; display: flex; flex-direction: column; gap: 8px; }
+/* the result of one message: what the worker reported, what failed, what to do next */
+.xres { margin: 2px 0 6px; padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--r3); background: var(--low); display: flex; flex-direction: column; gap: 8px; max-width: 760px; }
+.xres .xh { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--t1); }
+.xres .xh .m11 { font-weight: 400; color: var(--t3); }
+.xres ul { margin: 0; padding: 0 0 0 16px; color: var(--t2); }
+.xres .sec > .m11 { color: var(--t3); display: block; margin-bottom: 2px; }
+.xres .nx { display: flex; gap: 6px; flex-wrap: wrap; }
+.xres .nx .btn { height: 26px; padding: 0 10px; }
+.xres.needs { border-color: rgba(242,178,92,.45); } .xres.error { border-color: rgba(255,155,146,.45); } .xres.done { border-color: rgba(79,214,156,.35); }
 
 /* ---- smaller windows ---- */
 .scrim { display: none; }
@@ -2123,7 +2132,8 @@ async function openVersion(rev, { keepScroll } = {}) {
   const c = $("canvas"), top = keepScroll ? $("vBody")?.scrollTop : 0;
   if (!keepScroll) c.innerHTML = versionShell(rev === "WORKTREE" ? "Working copy" : `Version ${rev}`, "", '<div class="vnote m11">Loading…</div>');
   let v; try { v = await api("GET", verUrl("version", rev)); } catch (e) { c.innerHTML = versionShell("Version", "", `<div class="vnote m11">${esc(e.message)}</div>`); wireViewer(); return; }
-  if (view !== "version" || verOpen?.rev !== rev) return;
+  // Still the view this was opened for: not another version, and not one of its files opened meanwhile.
+  if (view !== "version" || verOpen?.rev !== rev || verOpen.path) return;
   const g = GIT || {}, wt = rev === "WORKTREE";
   const files = v.files.length ? `<ul class="vfiles">${v.files.map((x) => `<li><button class="vfile" data-path="${esc(x.path)}" data-st="${esc(x.status)}" title="${esc(STLABEL[x.status] || x.status)}">
       <span class="st st-${esc(x.status)}">${esc(x.status)}</span><span class="ell" style="flex:1">${esc(x.path)}</span>
@@ -2267,7 +2277,7 @@ function onEvent(ev) {
     T.items.push(handoff ? { k: "h", text: ev.summary, from: meta.continuedFrom } : { k: "u", text: ev.summary, atts: ev.attachments || [], mentions: ev.mentions || [] });
     T.turnStart = at; T.n++; addTurn(ev);
     // this message's work, summarised in the conversation once it ends (counted from real events)
-    T.x = { k: "x", tools: 0, fails: 0, secs: null, done: false, arts: [], decl: [], tags: new Set() }; T.items.push(T.x);
+    T.x = { k: "x", tools: 0, fails: 0, secs: null, done: false, arts: [], decl: [], tags: new Set(), verif: [], needs: [], failNotes: [], doneText: "" }; T.items.push(T.x);
   }
   else if (t === "reply") T.items.push({ k: "w", text: ev.summary });
   else if (t === "tool") {
@@ -2284,9 +2294,11 @@ function onEvent(ev) {
       setCardMeta(card, `${ok ? "Success" : "Failed"} · ${dur(at - card.start)}`, ok ? "ok" : "bad");
       if (!ok) card.el.insertAdjacentHTML("beforeend", `<div class="cx">${esc(ev.summary)}</div>`);
     }
-  } else if (t === "failure") { T.x?.tags.add("failure"); addCard({ title: "Failure", meta: "", body: esc(ev.summary), metaCls: "bad", kind: "alert" }); }
+  } else if (t === "failure") { T.x?.tags.add("failure"); T.x?.failNotes.push(ev.summary); addCard({ title: "Failure", meta: "", body: esc(ev.summary), metaCls: "bad", kind: "alert" }); }
   else if (["plan", "observation", "decision", "verification", "recovery", "done"].includes(t)) {
     T.x?.tags.add(t);
+    if (T.x && t === "verification") T.x.verif.push(ev.summary);
+    if (T.x && t === "done") T.x.doneText = ev.summary;
     addCard({ title: t[0].toUpperCase() + t.slice(1), meta: t === "done" ? "Reported done" : t === "verification" ? "Check" : "", metaCls: t === "done" || t === "verification" ? "ok" : "", body: esc(ev.summary), kind: t === "done" || t === "verification" ? "done" : "note" });
   } else if (t === "artifact") {
     // One link per file in Activity: on the tool row that wrote it, or, for a file the worker
@@ -2337,9 +2349,9 @@ function onEvent(ev) {
     const list = JSON.parse(ev.detail || "[]");
     addCard({ title: "Requirements", meta: ev.summary, metaCls: list.some((r) => !r.ok && r.need === "required") ? "bad" : "ok", body: list.length ? list.map((r) => `<div class="wstat ${r.ok ? "ok" : "bad"} m11"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)}${r.source === "team" ? " (Team)" : ""} · ${esc(r.need)} · ${esc(r.state)}${r.detail ? " " + esc(r.detail) : ""}</div>`).join("") : "None declared" });
   } else if (t === "needs") {
-    T.x?.tags.add("needs");
+    T.x?.tags.add("needs"); T.x?.needs.push(ev.summary);
+    // In the conversation it's part of the message's result (What it needs from you).
     addCard({ title: "Needs access", meta: "Needs your action", metaCls: "bad", body: esc(ev.summary), kind: "alert" });
-    T.items.push({ k: "e", text: `Needs: ${ev.summary}` });
   } else if (t === "memory") {
     addCard({ title: ev.ok === false ? "Not remembered" : "Remembered", meta: "", metaCls: ev.ok === false ? "bad" : "ok", body: esc(ev.summary) });
   } else if (t === "commit") {
@@ -2389,6 +2401,7 @@ function endTurn({ secs = null, err = false, stopped = false }) {
   const x = T.x; if (!x || x.done) return;
   Object.assign(x, { done: true, secs, err, stopped: stopped && secs == null });
   if (x.arts.length || x.decl.length) T.items.push({ k: "a", list: [...x.arts], decl: [...x.decl] });
+  T.items.push({ k: "r", x });
   T.x = null;
 }
 function setCardMeta(card, text, cls) { const m = card.el.querySelector(".cm"); m.className = `cm m11 ${cls}`; m.textContent = text; }
@@ -2467,6 +2480,30 @@ const xarts = (it) => {
   const other = it.list.filter((p) => !it.decl.includes(p));
   return `${it.decl.length ? `<div class="xarts"><span class="lab">Deliverables</span><ul>${it.decl.map((p) => artBtn(p, "artchip")).join("")}</ul></div>` : ""}${other.length ? `<details class="xfiles"><summary class="m12">${plural(other.length, it.decl.length ? "other file" : "file")} written</summary><ul>${other.map((p) => artBtn(p, "artchip")).join("")}</ul></details>` : ""}`;
 };
+// The result of one message, from that message's own events. Two kinds of fact, kept apart: what
+// the worker reported (its DONE, VERIFICATION and NEEDS lines: its own words, not checked by the
+// console), and what the console saw (tool calls that failed, files written). A plain answer
+// (nothing reported, nothing written, nothing failed) needs no result block: the reply says it all.
+const RESULT = { done: ["Reported done", "done"], needs: ["Needs your action", "needs"], error: ["Ended with a problem", "error"], replied: ["Replied", ""], stopped: ["Stopped", "error"] };
+function xres(x, last) {
+  const out = x.stopped ? "stopped" : guessOutcome(x.tags, x.err), [label, cls] = RESULT[out];
+  const files = new Set([...x.arts, ...x.decl]).size, failed = x.fails + x.failNotes.length;
+  if (out === "replied" && !files && !failed && !x.verif.length) return "";
+  const list = (a) => `<ul>${a.map((s) => `<li>${inline(s)}</li>`).join("")}</ul>`;
+  const facts = [files ? plural(files, "file") + " written (listed above)" : "", x.fails ? `<span class="bad">${plural(x.fails, "tool call")} failed</span> (see Activity)` : ""].filter(Boolean);
+  const w = WS.find((v) => v.id === runWs(meta)), git = !!(w && !isScratch(w) && gitFor === w.id && GIT?.repo);
+  const next = last ? [files && git ? '<button type="button" class="btn" data-res="review">Review the changes</button>' : "", '<button type="button" class="btn" data-res="new">New task</button>'].filter(Boolean) : [];
+  return `<div class="xres ${cls}" role="group" aria-label="Result: ${esc(label)}"><div class="xh"><span class="dot ${cls === "done" ? "" : cls === "needs" ? "warn" : cls === "error" ? "red" : "grey"}" aria-hidden="true"></span>${esc(label)}${facts.length ? `<span class="m11">· ${facts.join(" · ")}</span>` : ""}</div>
+    ${x.doneText ? `<div class="sec"><span class="m11">It reported</span>${inline(x.doneText)}</div>` : ""}
+    ${x.verif.length ? `<div class="sec"><span class="m11">Checks it reported (its own words; each tool call it made is in Activity)</span>${list(x.verif)}</div>` : ""}
+    ${x.needs.length ? `<div class="sec"><span class="m11">What it needs from you</span>${list(x.needs)}</div>` : ""}
+    ${x.failNotes.length ? `<div class="sec"><span class="m11">Problems it reported</span>${list(x.failNotes)}</div>` : ""}
+    ${last ? `<div class="nx">${next.join("")}<span class="m11" style="color:var(--t3);align-self:center">${out === "needs" ? "Reply below once you've done it, and it carries on." : "Reply below to continue this task."}</span></div>` : ""}</div>`;
+}
+$("canvas").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-res]"); if (!b) return;
+  if (b.dataset.res === "review") openVersion("WORKTREE"); else $("newTask").click();
+});
 // The run's files, pinned at the top of Activity: named deliverables first (open), otherwise files written (folded).
 function renderArts() {
   const list = T ? [...T.arts, ...[...T.declared].filter((p) => !T.arts.has(p))] : [], decl = T ? [...T.declared] : [];
@@ -2512,12 +2549,13 @@ function renderCanvas() {
     return;
   }
   const atEnd = c.scrollHeight - c.scrollTop - c.clientHeight < 80;
-  const working = ["starting", "running"].includes(T.status);
+  const working = ["starting", "running"].includes(T.status), lastR = working ? null : [...T.items].reverse().find((it) => it.k === "r");
   c.innerHTML = `<div class="thread" role="log" aria-label="Conversation">${T.items.map((it) =>
     it.k === "u" ? `${it.atts?.length ? `<div class="msg-att">${it.atts.map(attLink).join("")}</div>` : ""}${it.text ? `<div class="msg-u">${withMentions(it.text, it.mentions)}</div>` : ""}`
     : it.k === "w" ? `<div class="msg-w">${md(it.text)}</div>`
     : it.k === "x" ? (it.done && (it.tools || it.secs != null) ? xsum(it) : "")
     : it.k === "a" ? xarts(it)
+    : it.k === "r" ? xres(it.x, it === lastR)
     : it.k === "h" ? `<div class="handoff"><div class="hh m12">${svgIcon("steps", 12, 12)}<span>Continued from <button type="button" class="linkbtn" data-open-run="${esc(it.from)}">the previous session</button>. The worker started with this handoff instead of the whole conversation.</span></div><details><summary class="m12">Show the handoff</summary><div class="msg-w hbody">${md(it.text)}</div></details></div>`
     : `<div class="sys m11 ${it.k === "e" ? "err" : ""}">${esc(it.text)}</div>`).join("")}
     ${working ? `<div class="working m11"><span class="dot pulse"></span><span class="ell">${T.status === "starting" ? "Starting the worker…" : `Working${T.current ? ` · ${esc(T.current)}` : "…"}`}</span></div>` : ""}</div>`;

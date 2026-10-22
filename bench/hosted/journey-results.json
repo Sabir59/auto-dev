@@ -1,0 +1,77 @@
+{
+ "when": "2026-10-22T09:32:42.735Z",
+ "platform": "win32",
+ "model": "FAKE (scripted)",
+ "results": [
+  {
+   "step": "Discover: after sign-in a new person sees what this is, the three pieces, and specialists with their real readiness",
+   "ok": true,
+   "detail": {
+    "h1": "Give a specialist a real task",
+    "concepts": [
+     "Worker",
+     "Workspace",
+     "Team"
+    ],
+    "designReadiness": "Needs: Figma: change the open file (not available in the hosted product)"
+   }
+  },
+  {
+   "step": "Connect: the guide's first step adds a project folder (Work); it's a Git repository with one commit",
+   "ok": true,
+   "detail": {
+    "workspace": "Shop",
+    "firstStepDone": true
+   }
+  },
+  {
+   "step": "Configure: New worker → the catalogue → Frontend Engineer's setup shows only its settings and marks what this platform doesn't provide",
+   "ok": true,
+   "detail": {
+    "settings": [
+     "Run scripts",
+     "Check its work in a browser"
+    ],
+    "notAvailableHere": [
+     "Run node and curl\n · not available here"
+    ]
+   }
+  },
+  {
+   "step": "Delegate: the new task names the worker and workspace, what it may change, and offers its example tasks",
+   "ok": true,
+   "detail": {
+    "composer": "Frontend Engineer · Shop",
+    "readiness": "Before you startShop · Work: it can change files in this folder. Commit and push stay your actions, in Changes & versions.Workspace folder: edit files: Availabl"
+   }
+  },
+  {
+   "step": "Observe: an example task runs for real (a failed read, a read, an edit) with each step live in Activity",
+   "ok": true,
+   "detail": {
+    "toolCalls": [
+     "Failed · 194ms",
+     "Success · 45ms",
+     "Success · 74ms"
+    ]
+   }
+  },
+  {
+   "step": "Review: the result separates what the worker reported from what failed, lists the file, and the next actions are real",
+   "ok": true,
+   "detail": {
+    "result": "Reported done · 1 file written (listed above) · 1 tool call failed (see Activity) It reported Added a loading state to the checkout button in src/Button.jsx. I didn't run it in a browser. Checks it reported (its own words; each tool call it",
+    "review": "working copy lists src/Button.jsx from this conversation; its diff shows the edit"
+   }
+  },
+  {
+   "step": "Continue: a follow-up the worker can't finish alone ends as Needs your action, saying what the person has to do",
+   "ok": true,
+   "detail": {
+    "result": "Needs your action What it needs from you browser use: start the dev server (npm start in the Shop folder), then tell me its address. New task Reply below once you've done it, and it carries on.",
+    "olderResultsHaveNoButtons": true
+   }
+  }
+ ],
+ "pageErrors": []
+}
