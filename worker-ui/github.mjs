@@ -79,12 +79,12 @@ export const saveToken = (t) => saveCredentials({ method: "token", token: checkT
 export const clearToken = () => { const c = readCred(); rmSync(CRED_FILE, { force: true }); return c; };
 
 // One GitHub API request. Errors say what to do, never what the token is.
-async function gh(path, token) {
+async function gh(path, token, { method = "GET", body: payload } = {}) {
   token ||= await currentToken();
   if (!token) throw new GitHubError("GitHub isn't connected. Connect on the GitHub page.", { kind: "auth" });
   let res;
   try {
-    res = await fetch(API + path, { headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "ai-workspace-console" }, signal: AbortSignal.timeout(15000) });
+    res = await fetch(API + path, { method, headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "ai-workspace-console", ...(payload ? { "content-type": "application/json" } : {}) }, ...(payload ? { body: JSON.stringify(payload) } : {}), signal: AbortSignal.timeout(15000) });
   } catch (e) { throw new GitHubError(`Couldn't reach GitHub (${e.name === "TimeoutError" ? "timed out" : "network error"}).`, { kind: "network" }); }
   const body = await res.json().catch(() => null);
   if (res.ok) return { body, headers: res.headers };
@@ -134,6 +134,13 @@ export async function discover() {
     if (body.length < 100) break;
   }
   return out;
+}
+// Opens a pull request (head → base). The Git workflow worker's only way into a shared branch: it
+// never pushes to one. GitHub's own branch protection and reviews then apply.
+export async function createPullRequest(fullName, { head, base, title, body }) {
+  if (!FULL_NAME.test(String(fullName || ""))) throw new GitHubError("Give the repository as owner/name.", { kind: "input" });
+  const { body: pr } = await gh(`/repos/${fullName}/pulls`, null, { method: "POST", body: { head, base, title, body } });
+  return { number: pr.number, url: pr.html_url, state: pr.state };
 }
 export async function repoInfo(fullName) {
   if (!FULL_NAME.test(String(fullName || ""))) throw new GitHubError("Give the repository as owner/name.", { kind: "input" });

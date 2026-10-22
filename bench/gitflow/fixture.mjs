@@ -20,7 +20,7 @@ import { join } from "node:path";
 
 export const PEOPLE = {
   sameem: { name: "Sameem", email: "sameem@matw.test" }, sabir: { name: "Sabir", email: "sabir@matw.test" },
-  ali: { name: "Ali", email: "ali@innovax.test" }, bot: { name: "Dev Bot", email: "bot@ci.test" }, sameemPersonal: { name: "Sameem", email: "sameem.k@gmail.test" },
+  ali: { name: "Ali", email: "ali@innovax.test" }, prodOnly: { name: "Prod Hotfixer", email: "hotfix@prod.test" }, bot: { name: "Dev Bot", email: "bot@ci.test" }, sameemPersonal: { name: "Sameem", email: "sameem.k@gmail.test" },
 };
 
 export function buildFixture(dir) {
@@ -70,6 +70,8 @@ export function buildFixture(dir) {
   g(["checkout", "-q", "-b", "bau/from-dev", "dev-main"]);
   file("src/thanks.js", "export const thanks = () => 'thanks';\n"); s.FD = commit(PEOPLE.sabir, "DON-21 thank-you page");
   s.PR202 = pr("sabir-uat", 202, "bau/from-dev", PEOPLE.sabir);
+  // prod-main (off-limits): a hotfix by someone who appears nowhere else, so "never read" is testable.
+  g(["checkout", "-q", "-b", "prod-main", "preprod-main"]); file("src/hotfix.js", "export const hotfix = 1;\n"); s.PROD = commit(PEOPLE.prodOnly, "Production hotfix");
   g(["checkout", "-q", "preprod-main"]);
   g(["remote", "add", "origin", origin]); g(["push", "-q", "origin", "--all"]); g(["fetch", "-q", "origin"]);
   return { dir, origin, repo: work, base, shas: s };

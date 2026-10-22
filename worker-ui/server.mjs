@@ -419,7 +419,9 @@ drafts.checkRegistry(CAPABILITIES, RESOURCES);
 // A Git workflow worker's data: <data>/gitflow/<worker id>/ (config.json, plans/, audit.jsonl,
 // notes.json, and scratch/: the private repository its analysis and simulations write to).
 function gitflowDir(id) { if (!/^[\w-]+$/.test(String(id || ""))) throw new Error("No worker for the Git workflow tools."); return join(DATA, "gitflow", id); }
-function readGitflowConfig(id) { const f = join(gitflowDir(id), "config.json"); try { return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; } catch { return null; } }
+// Read through normalizeConfig, so a configuration saved by an earlier version gets today's rules
+// (e.g. off-limits branches) without anyone re-saving it.
+function readGitflowConfig(id) { const f = join(gitflowDir(id), "config.json"); try { if (!existsSync(f)) return null; const raw = JSON.parse(readFileSync(f, "utf8")); try { return { ...gitflow.normalizeConfig({}, raw), updatedAt: raw.updatedAt }; } catch { return raw; } } catch { return null; } }
 function writeGitflowConfig(id, cfg) { mkdirSync(gitflowDir(id), { recursive: true }); writeAtomic(join(gitflowDir(id), "config.json"), JSON.stringify(cfg, null, 1)); }
 const gitflowAudit = (id, e) => new gitflow.GitFlow({ root: null, dir: gitflowDir(id), config: {} }).audit(e);
 // The repository a Git workflow reads: a workspace's folder, or the console's own clone of a URL.
@@ -2248,7 +2250,7 @@ http.createServer(async (req, res) => {
         if (next.source === "remote") {
           const d = join(gitflowDir(w.id), "remote.git");
           if (cfg?.url && cfg.url !== next.url && existsSync(d)) rmSync(d, { recursive: true, force: true });
-          const r = await gitflow.cloneRemote(next.url, d);
+          const r = await gitflow.cloneRemote(next.url, d, next.forbidden);
           if (r.cloned) gitflowAudit(w.id, { action: "clone", url: next.url });
         }
         writeGitflowConfig(w.id, next); gitflowAudit(w.id, { action: "config", by: "person", mappings: next.mappings.length, people: next.people.length, proposals: next.proposals });
@@ -2265,6 +2267,12 @@ http.createServer(async (req, res) => {
         const info = await gf.repoInfo(), names = new Set(info.branches.map((b) => b.name));
         const wanted = [...new Set([...cfg.mappings.flatMap((m) => [m.source, m.destination]), ...cfg.shared])].filter((b) => names.has(b));
         return json(res, 200, { branches: wanted.length ? wanted : info.branches.slice(0, 10).map((b) => b.name), authors: await gf.authors(wanted.length ? wanted : info.branches.slice(0, 10).map((b) => b.name)) });
+      }
+      // A created proposal branch → pushed under its own name, and a pull request into the
+      // destination (GitHub connected) or GitHub's link to open it. The person's second approval.
+      if (parts[2] === "pr" && req.method === "POST") {
+        const b = await body(req);
+        return json(res, 200, await gf.openPullRequest(String(b.branch || ""), { createPullRequest: github.hasToken() ? github.createPullRequest : null, approvedBy: HOSTED ? process.env.AIW_USER_EMAIL || "person" : "person at this console" }));
       }
       if (parts[2] === "fetch" && req.method === "POST") { const r = await gf.fetchOrigin(); gitflowAudit(w.id, { action: "fetch", by: "person" }); return json(res, 200, r); }
       if (parts[2] === "analysis" && req.method === "GET") return json(res, 200, await gf.analyse(mapping(url.searchParams.get("mapping")), { scope: url.searchParams.get("scope") === "recent" ? "recent" : "pending" }));

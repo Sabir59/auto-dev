@@ -34,7 +34,7 @@ const S = fx.shas, name = (sha) => Object.entries(S).find(([, v]) => v === sha)?
 execFileSync("git", ["config", "user.name", "Sabir"], { cwd: fx.repo }); execFileSync("git", ["config", "user.email", "sabir@matw.test"], { cwd: fx.repo });
 const ws = (await call("POST", "/workspaces", { name: "MATW fixture", path: fx.repo, mode: "inspect" })).body;
 const originRefs0 = refsOf(fx.origin);
-let W, cfgPath;
+let W, cfgPath, createdBranch;
 const gf = (m, p, b) => call(m, `/gitflow/${W.id}${p}`, b);
 const analysis = async (mapping = "dev-main-to-sabir-dev") => (await gf("GET", `/analysis?mapping=${mapping}`)).body;
 const preview = async (b) => { const r = await gf("POST", "/preview", { mapping: "dev-main-to-sabir-dev", strategy: "selective", ...b }); assert(r.status === 200, JSON.stringify(r.body)); return r.body; };
@@ -97,6 +97,22 @@ await step("setup reads the repository: real branches and origin, relationships 
   return { branches: names.length, suggested: sugg, authors: au.map((a) => `${a.name} (${a.emails.length} email${a.emails.length > 1 ? "s" : ""}, ${a.commits})`) };
 });
 
+await step("prod-main is off-limits: refused as a relationship, never copied into the private repository, never listed or used for authors; an older saved setup is upgraded", async () => {
+  const c = (await gf("GET", "/config")).body.config;
+  const refused = await gf("PUT", "/config", { ...c, mappings: [...c.mappings, { source: "sabir-uat", destination: "prod-main", kind: "promote" }] });
+  const names = (await gf("GET", "/repo")).body.branches.map((x) => x.name), au = (await gf("GET", "/authors")).body;
+  const scratchRefs = execFileSync("git", ["for-each-ref", "--format=%(refname)"], { cwd: join(DATA, "gitflow", W.id, "scratch"), encoding: "utf8" });
+  // a configuration saved by the first version: prod-main, main and master in "shared", nothing off-limits
+  const f = join(DATA, "gitflow", W.id, "config.json"), raw = JSON.parse(readFileSync(f, "utf8"));
+  writeFileSync(f, JSON.stringify({ ...raw, shared: ["dev-main", "uat-main", "preprod-main", "prod-main", "main", "master"], forbidden: undefined }));
+  const upgraded = (await gf("GET", "/config")).body.config;
+  writeFileSync(f, JSON.stringify(raw));
+  assert(refused.status === 400 && /off-limits/.test(refused.body.error), JSON.stringify(refused.body));
+  assert(!names.includes("prod-main") && !/^refs\/(heads|remotes\/origin)\/prod-main$/m.test(scratchRefs) && !au.branches.includes("prod-main") && !au.authors.some((a) => a.name === "Prod Hotfixer"), JSON.stringify({ names, branches: au.branches }));
+  assert(upgraded.shared.join() === "dev-main,uat-main,preprod-main" && upgraded.forbidden.join() === "prod-main", JSON.stringify(upgraded));
+  return { refused: refused.body.error, listed: names.includes("prod-main"), upgraded: { shared: upgraded.shared, forbidden: upgraded.forbidden } };
+});
+
 await step("a remote URL instead of a folder: the console clones it into the worker's data, and the analysis matches git on that remote", async () => {
   const c = (await gf("GET", "/config")).body.config;
   const url = "file:///" + fx.origin.replace(/\\/g, "/");
@@ -144,7 +160,7 @@ await step("strategies: merging dev-main (keeping history) is blocked because it
   assert(anc.status === "blocked" && anc.blockers.some((b) => /Innovax/.test(b)), JSON.stringify(anc.blockers));
   assert(f1.status === "ready" && f1.items.some((i) => i.sha === S.RC), JSON.stringify(f1.items));
   assert(f2.status === "blocked" && f2.items.some((i) => i.sha === S.I1 && i.status === "blocked"), JSON.stringify(f2.blockers));
-  assert(f1.destination.shared && /nothing is ever written to it/.test(f1.execution), f1.execution);
+  assert(f1.destination.shared && /nothing is ever pushed or written to it/.test(f1.execution) && /pull request into preprod-main/.test(f1.execution), f1.execution);
   return { ancestry: anc.blockers.length + " blockers", feature201: f1.status, feature202: f2.blockers[0] };
 });
 
@@ -160,7 +176,19 @@ await step("execution is guarded: a blocked plan is refused; an approved ready p
   const log = execFileSync("git", ["log", "--format=%an|%cn|%B", `origin/sabir-dev..${r.body.branch}`], { cwd: fx.repo, encoding: "utf8" });
   assert(log.includes(`cherry picked from commit ${S.S1}`) && log.includes(`cherry picked from commit ${S.S2}`) && log.startsWith("Sameem|Sabir|"), log.slice(0, 300));
   assert(refsOf(fx.origin) === originRefs0, "origin changed");
+  createdBranch = r.body.branch;
   return { branch: r.body.branch, recovery: r.body.recovery };
+});
+
+await step("into a destination only by pull request: the approved proposal branch is pushed under its own new name (no other origin branch changes); anything else is refused", async () => {
+  const bad = await Promise.all([gf("POST", "/pr", { branch: "sabir-dev" }), gf("POST", "/pr", { branch: "gitflow/not-from-a-plan" }), gf("POST", "/pr", { branch: "preprod-main" })]);
+  assert(bad.every((x) => x.status === 400), JSON.stringify(bad.map((x) => x.body)));
+  const r = await gf("POST", "/pr", { branch: createdBranch });
+  const now = refsOf(fx.origin).split("\n"), was = originRefs0.split("\n");
+  const added = now.filter((l) => l && !was.includes(l));
+  assert(r.status === 200 && r.body.pushed && r.body.base === "sabir-dev" && added.length === 1 && added[0].startsWith(`refs/heads/${createdBranch} `) && was.every((l) => !l || now.includes(l)), JSON.stringify({ body: r.body, added }));
+  assert(/plan /.test(r.body.title) && /Review before merging/.test(r.body.body), r.body.title);
+  return { pushed: createdBranch, base: r.body.base, originAdded: added.length, refused: bad.map((x) => x.body.error) };
 });
 
 await step("a stale plan (the destination moved) and a preview-only worker are refused; the audit trail records previews, refusals and the execution", async () => {
@@ -234,8 +262,11 @@ await step("page: select PR #101's task → plan Ready → approve (confirm) →
   await page.waitForFunction(() => /Created gitflow\//.test(document.querySelector("#gfBody").innerText));
   const out = await page.locator(".gfstatus").last().innerText();
   await shot("plan-created");
-  assert(/^Ready/.test(status) && /Existing branches changed: none/.test(out), JSON.stringify({ status, out }));
-  return { status: status.split("\n")[0], outcome: out.split("\n")[0] };
+  await page.click("#gfPR"); await page.waitForSelector("#dlg[open]"); const dlg = await page.locator("#dlgB").innerText(); await page.click('[data-dlg="go"]');
+  await page.waitForSelector("#gfPrDone"); const pr = await page.locator("#gfPrDone").innerText();
+  await shot("plan-pr");
+  assert(/^Ready/.test(status) && /Existing branches changed: none/.test(out) && /Nothing is pushed to sabir-dev/.test(dlg) && /Pushed gitflow\//.test(pr), JSON.stringify({ status, out, dlg, pr }));
+  return { status: status.split("\n")[0], outcome: out.split("\n")[0], pr: pr.split("\n")[0] };
 });
 
 await step("page: S3 alone is blocked with the predicted conflict and the cross-team dependency, and can't be approved; History lists what happened", async () => {

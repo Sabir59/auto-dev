@@ -53,6 +53,20 @@ The findings behind it are in the branch-sync assessment (2026-10-22): copies, r
 
 Rules can relax "other teams", "uncertain" and "reverted" from *blocks* to *needs your review*. Merge commits and predicted conflicts always block.
 
+## Branch rules (2026-10-23)
+- **Off-limits** (default `prod-main`): never read and never written.
+  - It's excluded from every fetch into the private copy, and removed if it was copied earlier.
+  - It's never listed, suggested or used for authors.
+  - It's refused as a source or destination, and the worker's tools refuse it too.
+- **Shared** (default `dev-main`, `uat-main`, `preprod-main`): never pushed or written. A change reaches a shared branch only through a pull request:
+  1. An approved plan becomes a new `gitflow/…` branch.
+  2. With a second approval, only that new branch is pushed.
+  3. A pull request into the destination is opened: through the API when GitHub is connected, otherwise as GitHub's link to open it.
+
+  It's merged on GitHub, where its own branch protection and reviews apply.
+- **Lanes** such as `sabir-dev` get the same treatment: everything goes through a pull request, never a direct push.
+- A configuration saved earlier (with `prod-main`, `main` and `master` in "shared") is read under these rules automatically.
+
 ## Safety
 - **Analysis and simulations run in a private bare copy** (`<data>/gitflow/<worker>/scratch`). It borrows the repository's objects and copies its branch refs, so the repository is only read.
 - **Execution** needs proposal branches allowed in Setup and your approval.

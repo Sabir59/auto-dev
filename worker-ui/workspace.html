@@ -1907,8 +1907,9 @@ function gfSetup() {
     <div class="wf"><span class="lab">Ownership overrides</span><span class="sub m11">Your decision for one commit or pull request, recorded with a note. It's the only "confirmed" without two independent signals.</span>
       ${c.overrides.map((o, i) => gfRow("overrides", i, `${inp("ref", o.ref, "commit id or #PR", "140px")}${teamSel("team", o.team, false)}${inp("note", o.note, "Why")}`)).join("")}
       <button type="button" class="row add" data-gf-add="overrides" style="width:auto"><span>+ Add override</span></button></div>
-    <div class="wrow2"><label class="wf"><span class="lab">Ticket patterns</span>${inp("tickets", c.tickets, "e.g. [A-Z][A-Z0-9]+-\\d+").replace('data-k="tickets"', 'id="gfTickets"')}</label>
-      <label class="wf"><span class="lab">Shared branches (never written)</span>${inp("shared", c.shared, "dev-main, uat-main, …").replace('data-k="shared"', 'id="gfShared"')}</label></div>
+    <div class="wrow2"><label class="wf"><span class="lab">Shared branches</span><span class="sub m11">Never pushed or written: changes reach them only through a pull request you review and merge on GitHub.</span>${inp("shared", c.shared, "dev-main, uat-main, preprod-main").replace('data-k="shared"', 'id="gfShared"')}</label>
+      <label class="wf"><span class="lab">Off-limits branches</span><span class="sub m11">Never read and never written: not copied, listed, suggested or used, by the page or the worker.</span>${inp("forbidden", c.forbidden, "prod-main").replace('data-k="forbidden"', 'id="gfForbidden"')}</label></div>
+    <div class="wrow2"><label class="wf"><span class="lab">Ticket patterns</span>${inp("tickets", c.tickets, "e.g. [A-Z][A-Z0-9]+-\\d+").replace('data-k="tickets"', 'id="gfTickets"')}</label></div>
     <div class="wf"><label class="m12 gfchk"><input type="checkbox" id="gfProposals" ${c.proposals ? "checked" : ""}> Allow proposal branches: after I approve a plan, create a new branch with its result (never pushed; never an existing branch)</label></div>
     <div class="wfoot"><span class="msg m11" id="gfMsg" role="status"></span><button type="submit" class="btn pri m11" id="gfSave">Save setup</button></div></form>`;
 }
@@ -1919,7 +1920,7 @@ function gfReadSetup() {
   return { source: remote ? "remote" : "workspace", url: remote ? $("gfUrl")?.value ?? GF.cfg.url : "", workspace: remote ? GF.cfg.workspace || "" : $("gfWs")?.value ?? GF.cfg.workspace, refs: remote ? "local" : $("gfRefs")?.value ?? GF.cfg.refs,
     teams: rows("teams").map((t, i) => ({ ...t, id: GF.cfg.teams[i]?.id })), mappings: rows("mappings"), overrides: rows("overrides"),
     people: rows("people").map((p) => ({ ...p, emails: listOf(p.emails).map((e) => e.toLowerCase()), names: listOf(p.names) })),
-    exclude: { otherTeams: $("gfExOther").checked, uncertain: $("gfExUnc").checked, reverted: $("gfExRev").checked, merges: true }, tickets: $("gfTickets").value, shared: $("gfShared").value, proposals: $("gfProposals").checked };
+    exclude: { otherTeams: $("gfExOther").checked, uncertain: $("gfExUnc").checked, reverted: $("gfExRev").checked, merges: true }, tickets: $("gfTickets").value, shared: $("gfShared").value, forbidden: $("gfForbidden").value, proposals: $("gfProposals").checked };
 }
 // The repository card, its branches and suggested relationships, and its authors (for Setup).
 async function gfLoadRepo() {
@@ -1996,7 +1997,9 @@ function gfPlan() {
       ${p.status === "review" ? `<label class="m12 gfchk"><input type="checkbox" id="gfAck" ${GF.ack ? "checked" : ""}> I've reviewed the points above</label>` : ""}
       <div><button type="button" class="btn pri" id="gfApprove" ${(p.status === "ready" || (p.status === "review" && GF.ack)) && GF.cfg.proposals ? "" : "disabled"}>Approve and create the proposal branch</button>
       ${!GF.cfg.proposals ? '<span class="sub m11"> Preview only: allow proposal branches in Setup to enable this.</span>' : ""}</div></div>
-    ${GF.outcome ? `<div class="gfstatus ok" role="status"><b>Created ${esc(GF.outcome.branch)}</b><div class="m12">${esc(GF.outcome.applied)} step(s), commit <span class="mono">${esc(GF.outcome.commit.slice(0, 12))}</span>. Existing branches changed: ${GF.outcome.changedExisting.length ? esc(GF.outcome.changedExisting.join(", ")) : "none"}.</div><div class="sub m12">${esc(GF.outcome.recovery)}</div></div>` : ""}` : "";
+    ${GF.outcome ? `<div class="gfstatus ok" role="status"><b>Created ${esc(GF.outcome.branch)}</b><div class="m12">${esc(GF.outcome.applied)} step(s), commit <span class="mono">${esc(GF.outcome.commit.slice(0, 12))}</span>. Existing branches changed: ${GF.outcome.changedExisting.length ? esc(GF.outcome.changedExisting.join(", ")) : "none"}.</div><div class="sub m12">${esc(GF.outcome.recovery)}</div>
+      ${GF.prResult ? `<div class="m12" id="gfPrDone">${GF.prResult.pr ? `Pull request opened: <a href="${esc(GF.prResult.pr)}" target="_blank" rel="noopener">${esc(GF.prResult.pr)}</a>` : GF.prResult.compare ? `Pushed ${esc(GF.prResult.branch)}. <a href="${esc(GF.prResult.compare)}" target="_blank" rel="noopener">Open the pull request into ${esc(GF.prResult.base)} on GitHub</a>${GF.prResult.prError ? ` <span class="sub">(GitHub didn't open it automatically: ${esc(GF.prResult.prError)})</span>` : '<span class="sub"> (connect GitHub in the sidebar to have it opened for you)</span>'}` : `Pushed ${esc(GF.prResult.branch)} to origin. Open a pull request into ${esc(GF.prResult.base)} there.`}</div>`
+        : `<div class="gfline" style="margin-top:6px"><button type="button" class="btn pri" id="gfPR">Push it and open a pull request into ${esc(p.destination.branch)}</button><span class="sub m11">Pushes only ${esc(GF.outcome.branch)}, a new branch; ${esc(p.destination.branch)} changes only when the pull request is merged.</span></div>`}</div>` : ""}` : "";
   return `<div class="wform"><div class="wf"><span class="lab">${esc(m.source)} → ${esc(m.destination)}</span><span class="m12">${what}</span></div>
     <div class="wf"><span class="lab">Strategy</span><div class="gfstrats" role="radiogroup" aria-label="Strategy">${Object.entries(GF.strategies).map(([k, s]) => `<label class="gfstrat ${strategy === k ? "on" : ""}"><input type="radio" name="gfStrat" value="${k}" ${strategy === k ? "checked" : ""}><b>${esc(s.label)}${k === m.strategy ? ' <span class="sub m11">(this relationship\'s default)</span>' : ""}</b><span class="sub m11">${esc(s.about)}</span></label>`).join("")}</div></div>
     <div><button type="button" class="btn pri" id="gfPreview">${GF.busy ? esc(GF.busy) : "Generate the plan"}</button> <span class="sub m11">Simulated with Git in a private copy: no branch changes.</span></div>${plan}</div>`;
@@ -2054,7 +2057,14 @@ $("canvas").addEventListener("click", async (e) => {
   if (q("#gfApprove")) {
     const p = GF.plan, r = await ask({ title: "Create the proposal branch?", body: `<p>${esc(p.execution)}</p><p>Plan ${p.id}: ${p.result.applied} step(s) onto ${esc(p.destination.branch)}. It's checked again against the current branches first; if anything changed, nothing is created. Nothing is pushed.</p>`, actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Create the branch", kind: "pri" }], focus: "cancel" });
     if (r !== "go") return;
-    try { GF.outcome = await gfApi("POST", "/execute", { plan: p.id, acknowledge: GF.ack }); } catch (er) { GF.error = er.message; }
+    try { GF.outcome = await gfApi("POST", "/execute", { plan: p.id, acknowledge: GF.ack }); GF.prResult = null; } catch (er) { GF.error = er.message; }
+    return gfRender();
+  }
+  if (q("#gfPR")) {
+    const o = GF.outcome, base = GF.plan.destination.branch;
+    const r = await ask({ title: `Open a pull request into ${base}?`, body: `<p>This pushes <b>${esc(o.branch)}</b> (a new branch) to origin, then opens a pull request into <b>${esc(base)}</b>. Nothing is pushed to ${esc(base)} or any other existing branch: it changes only when the pull request is reviewed and merged on GitHub.</p>`, actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Push and open the pull request", kind: "pri" }], focus: "cancel" });
+    if (r !== "go") return;
+    try { GF.prResult = await gfApi("POST", "/pr", { branch: o.branch }); } catch (er) { GF.error = er.message; }
     return gfRender();
   }
 });

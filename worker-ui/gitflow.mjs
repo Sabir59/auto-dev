@@ -15,7 +15,7 @@
 // approval, a NEW branch gitflow/<destination>-<time> is fetched into it. No existing branch is ever
 // updated, nothing is pushed, nothing is rewritten.
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, renameSync, rmSync } from "node:fs";
 import { join, resolve, isAbsolute } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 
@@ -48,7 +48,13 @@ export const STRATEGIES = {
   ancestry: { label: "Merge, keeping history", short: "Merge", about: "Merges the source branch into the destination. The destination gets the original commits, so later merges recognise them, and nothing is duplicated. It brings everything the source has that the destination doesn't, so it's only safe when all of it is eligible." },
   feature: { label: "Promote feature branches", short: "Feature branches", about: "Merges the reviewed feature branches behind the selected pull requests into the destination. The same commits reach each environment, so later merges recognise them. Safe only when a feature branch was cut from the destination (or an older branch), not from a shared branch that carries other teams' unreleased work." },
 };
-export const DEFAULT_SHARED = ["dev-main", "uat-main", "preprod-main", "prod-main", "main", "master"];
+// Shared branches: never written by the worker; changes reach them only through a pull request.
+export const DEFAULT_SHARED = ["dev-main", "uat-main", "preprod-main"];
+// Off-limits branches: never read and never written, not even listed (production).
+export const DEFAULT_FORBIDDEN = ["prod-main"];
+const OLD_SHARED = "dev-main,uat-main,preprod-main,prod-main,main,master"; // the first version's default
+// Refspec exclusions so an off-limits branch is never copied anywhere (local and remote-tracking).
+const exclude = (forbidden, ...prefixes) => forbidden.flatMap((b) => prefixes.map((p) => `^${p}${b}`));
 const clip = (s, n) => String(s ?? "").trim().slice(0, n);
 const list = (v, n = 20, len = 120) => (Array.isArray(v) ? v : String(v || "").split(/[,\n]/)).map((x) => clip(x, len)).filter(Boolean).slice(0, n);
 const slug = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "x";
@@ -68,8 +74,10 @@ export function normalizeConfig(b = {}, prev = {}) {
   const ids = new Set(teams.map((t) => t.id));
   const people = (Array.isArray(b.people) ? b.people : prev.people || []).slice(0, 200).map((p) => ({ id: slug(p.id || p.name || p.github), name: clip(p.name, 80), team: ids.has(p.team) ? p.team : "",
     github: clip(p.github, 60).replace(/^@/, ""), emails: list(p.emails, 10, 120).map((e) => e.toLowerCase()), names: list(p.names, 10, 80) })).filter((p) => p.name || p.github);
+  const forbidden = list(b.forbidden ?? prev.forbidden ?? DEFAULT_FORBIDDEN, 20, 120).filter((x) => BRANCH.test(x));
   const mappings = (Array.isArray(b.mappings) ? b.mappings : prev.mappings || []).slice(0, 20).map((m) => {
     if (!BRANCH.test(m.source || "") || !BRANCH.test(m.destination || "")) throw new Error(`"${m.source} → ${m.destination}" isn't a valid branch pair.`);
+    for (const x of [m.source, m.destination]) if (forbidden.includes(x)) throw new Error(`${x} is off-limits: the worker never reads or writes it.`);
     if (m.source === m.destination) throw new Error(`"${m.source}" can't be its own destination.`);
     return { id: slug(`${m.source}-to-${m.destination}`), source: m.source, destination: m.destination, kind: m.kind === "promote" ? "promote" : "sync", strategy: STRATEGIES[m.strategy] ? m.strategy : m.kind === "promote" ? "feature" : "selective" };
   });
@@ -91,7 +99,7 @@ export function normalizeConfig(b = {}, prev = {}) {
     workspace: clip(b.workspace ?? prev.workspace, 80), refs: source === "remote" ? "local" : (b.refs ?? prev.refs) === "local" ? "local" : "remote",
     teams, people, mappings, overrides, tickets,
     exclude: { otherTeams: !!ex.otherTeams, uncertain: !!ex.uncertain, reverted: !!ex.reverted, merges: !!ex.merges },
-    shared: list(b.shared ?? prev.shared ?? DEFAULT_SHARED, 30, 120),
+    forbidden, shared: list(b.shared ?? (String(prev.shared) === OLD_SHARED ? null : prev.shared) ?? DEFAULT_SHARED, 30, 120).filter((x) => !forbidden.includes(x)),
     proposals: !!(b.proposals ?? prev.proposals), updatedAt: new Date().toISOString(),
   };
 }
@@ -114,7 +122,10 @@ export class GitFlow {
     if (!existsSync(join(this.scratch, "HEAD"))) { mkdirSync(this.scratch, { recursive: true }); await out(this.scratch, ["init", "-q", "--bare"]); }
     mkdirSync(join(this.scratch, "objects", "info"), { recursive: true });
     writeFileSync(join(this.scratch, "objects", "info", "alternates"), objects.replace(/\\/g, "/") + "\n");
-    await out(this.scratch, ["fetch", "-q", "--prune", "--no-tags", "--no-write-fetch-head", this.root, "+refs/heads/*:refs/heads/*", "+refs/remotes/*:refs/remotes/*"], { timeout: 180000 });
+    const off = this.config.forbidden || DEFAULT_FORBIDDEN;
+    await out(this.scratch, ["fetch", "-q", "--prune", "--no-tags", "--no-write-fetch-head", this.root, "+refs/heads/*:refs/heads/*", "+refs/remotes/*:refs/remotes/*", ...exclude(off, "refs/heads/", "refs/remotes/origin/")], { timeout: 180000 });
+    // Off-limits branches copied before they were off-limits are removed from the private copy.
+    for (const b of off) for (const r of [`refs/heads/${b}`, `refs/remotes/origin/${b}`]) await git(this.scratch, ["update-ref", "-d", r], { allowFail: true });
     this.synced = true;
   }
   run(args, o) { return out(this.scratch, args, o); }
@@ -167,13 +178,17 @@ export class GitFlow {
   // nothing else; no branch of the person's moves. Only when the person asks.
   async fetchOrigin() {
     // The console's own clone of a URL keeps the remote's branches as its branches.
-    const spec = this.config.source === "remote" ? ["+refs/heads/*:refs/heads/*"] : [];
-    const r = await git(this.root, ["fetch", "--prune", "--no-tags", "origin", ...spec], { allowFail: true, timeout: 600000 });
+    // Off-limits branches are excluded. In a folder of the person's, nothing is pruned: their other
+    // remote-tracking refs stay exactly as they were.
+    const off = this.config.forbidden || DEFAULT_FORBIDDEN, remote = this.config.source === "remote";
+    const spec = remote ? ["--prune", "+refs/heads/*:refs/heads/*"] : ["+refs/heads/*:refs/remotes/origin/*"];
+    const r = await git(this.root, ["fetch", "--no-tags", "origin", ...spec, ...exclude(off, "refs/heads/")], { allowFail: true, timeout: 600000 });
     if (r.code) throw new Error(/Authentication|could not read|terminal prompts|403|401/i.test(r.err) ? "Git has no working sign-in for origin on this computer: run git fetch once in a terminal, then try again." : `git fetch failed: ${r.err.slice(0, 300)}`);
     this.synced = false;
     return { ok: true };
   }
   async tip(branch) {
+    if ((this.config.forbidden || DEFAULT_FORBIDDEN).includes(branch)) throw new Error(`${branch} is off-limits: the worker never reads or writes it.`);
     const r = await git(this.scratch, ["rev-parse", "--verify", "-q", `${this.ref(branch)}^{commit}`], { allowFail: true });
     if (r.code) throw new Error(`Branch "${branch}" isn't in the repository${this.config.refs === "remote" ? " as origin/" + branch + " (as last fetched)" : ""}.`);
     return r.out.trim();
@@ -388,7 +403,7 @@ export class GitFlow {
       source: a.source, destination: { ...a.destination, shared }, status, items, blockers, reviews, hazards, dependencies: deps,
       result: applied ? { commit: cur, applied, files } : null,
       build: { status: "not-run", text: "No build or test command is configured: this plan is checked by Git only. A clean merge can still break the build." },
-      execution: shared ? `${mapping.destination} is a shared branch: nothing is ever written to it. If you approve, a new branch is created from it with this result, for you to push and open a pull request.` : `If you approve, a new branch is created with this result, for you to review, push and merge into ${mapping.destination}. ${mapping.destination} itself isn't changed.` };
+      execution: `${shared ? `${mapping.destination} is a shared branch: nothing is ever pushed or written to it.` : `${mapping.destination} itself isn't changed.`} If you approve, a new branch is created with this result. Then, with your approval again, that new branch is pushed and a pull request into ${mapping.destination} is opened: the change reaches ${mapping.destination} only when the pull request is reviewed and merged on GitHub.` };
     this.savePlan(plan); this.audit({ action: "preview", plan: plan.id, mapping: mapping.id, strategy, select: plan.select, status, applied, blockers: blockers.length });
     return plan;
   }
@@ -422,6 +437,40 @@ export class GitFlow {
     if (changed.length) throw new Error(`Unexpected: existing branches changed (${changed.join(", ")}). Stop and check the repository.`);
     return { ...entry, plan };
   }
+  // The only way a change reaches its destination: the proposal branch (created from an approved
+  // plan) is pushed under its own new name, and a pull request into the destination is opened, on
+  // GitHub when it's connected, otherwise as GitHub's "open a pull request" link. Never a push to an
+  // existing branch, never a force push; the repository's own push hooks run.
+  async openPullRequest(branch, { createPullRequest = null, approvedBy = "person" } = {}) {
+    if (!this.config.proposals) throw new Error("This worker is set to preview only.");
+    const done = this.auditLog(2000).find((e) => e.action === "execute" && e.branch === branch);
+    if (!/^gitflow\//.test(branch) || !done) throw new Error("Only a proposal branch this worker created from an approved plan can be pushed.");
+    const mapping = this.config.mappings.find((m) => m.id === done.mapping);
+    if (!mapping) throw new Error("The plan's branch relationship no longer exists.");
+    const off = this.config.forbidden || DEFAULT_FORBIDDEN, base = mapping.destination;
+    if ([...this.config.shared, ...off].includes(branch) || off.includes(base)) throw new Error("Refused: that branch can't be pushed or targeted.");
+    if ((await git(this.root, ["rev-parse", "--verify", "-q", `refs/heads/${branch}`], { allowFail: true })).code) throw new Error(`${branch} doesn't exist any more.`);
+    const remote = (await git(this.root, ["remote", "get-url", "origin"], { allowFail: true })).out.trim();
+    if (!remote) throw new Error("The repository has no origin to push to.");
+    const before = await this.refs();
+    const p = await git(this.root, ["push", "--porcelain", "origin", `refs/heads/${branch}:refs/heads/${branch}`], { allowFail: true, timeout: 300000 });
+    if (p.code) throw new Error(/Authentication|could not read|terminal prompts|403|401/i.test(p.err) ? "Git has no working sign-in for origin on this computer: push once in a terminal, then try again." : /rejected|already exists|non-fast-forward/i.test(p.err + p.out) ? `${branch} already exists on origin: nothing was changed.` : `git push failed: ${p.err.slice(0, 300)}`);
+    const after = await this.refs();
+    const changed = [...before].filter(([r, s]) => after.get(r) !== s).map(([r]) => r);
+    if (changed.length) { this.audit({ action: "pr", branch, error: "existing refs changed", changed }); throw new Error(`Unexpected: existing refs changed (${changed.join(", ")}). Stop and check the repository.`); }
+    const full = /github\.com[:/]([\w.-]+\/[\w.-]+?)(?:\.git)?\/?$/.exec(remote)?.[1] || null;
+    const compare = full ? `https://github.com/${full}/compare/${encodeURIComponent(base)}...${encodeURIComponent(branch)}?expand=1` : null;
+    const plan = this.loadPlan(done.plan);
+    const title = `${STRATEGIES[done.strategy]?.short || "Changes"} into ${base}: ${done.applied} step${done.applied === 1 ? "" : "s"} (plan ${done.plan})`;
+    const body = [`Prepared by the Git workflow worker from plan \`${done.plan}\` (${mapping.source} → ${base}, ${STRATEGIES[done.strategy]?.label || done.strategy}), approved by ${done.approvedBy}.`, "",
+      ...(plan ? ["**Applied**", ...plan.items.filter((i) => i.status === "apply").map((i) => `- ${i.short} ${i.subject}`), "", ...(plan.hazards.length ? ["**Hazards**", ...plan.hazards.map((h) => `- ${h.text}`), ""] : []), `Build and tests: ${plan.build.text}`] : []),
+      "", "Review before merging: the plan was checked by Git only."].join("\n");
+    let pr = null, prError = null;
+    if (createPullRequest && full) { try { pr = await createPullRequest(full, { head: branch, base, title, body }); } catch (e) { prError = e.message; } }
+    const entry = { action: "pr", branch, base, pushed: true, pr: pr?.url || null, compare, prError, approvedBy };
+    this.audit(entry);
+    return { ...entry, title, body, prNumber: pr?.number || null };
+  }
   async refs() { const r = await out(this.root, ["for-each-ref", "--format=%(refname) %(objectname)", "refs/heads", "refs/remotes"]); return new Map(r.split("\n").filter(Boolean).map((l) => l.split(" "))); }
 
   // ---- records: plans, audit trail, the worker's notes ----
@@ -441,10 +490,13 @@ export class GitFlow {
 }
 // A repository given by URL: cloned once (bare: history and branches, no files) into `dir`, with the
 // person's own Git sign-in, never a prompt.
-export async function cloneRemote(url, dir) {
+export async function cloneRemote(url, dir, forbidden = DEFAULT_FORBIDDEN) {
   if (existsSync(join(dir, "HEAD"))) return { cloned: false };
   mkdirSync(dir, { recursive: true });
-  const r = await git(dir, ["clone", "--bare", "--no-tags", url, "."], { allowFail: true, timeout: 1800000 });
+  // init + fetch rather than clone, so off-limits branches are never downloaded.
+  await out(dir, ["init", "-q", "--bare"]); await out(dir, ["remote", "add", "origin", url]);
+  const r = await git(dir, ["fetch", "--no-tags", "origin", "+refs/heads/*:refs/heads/*", ...exclude(forbidden, "refs/heads/")], { allowFail: true, timeout: 1800000 });
+  if (r.code) rmSync(dir, { recursive: true, force: true });
   if (r.code) throw new Error(/Authentication|could not read|terminal prompts|403|401|not found/i.test(r.err) ? "Git couldn't sign in to that repository on this computer (or it doesn't exist): clone it once in a terminal so your Git sign-in is stored, then try again." : `git clone failed: ${r.err.slice(0, 300)}`);
   return { cloned: true };
 }

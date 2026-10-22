@@ -11,14 +11,15 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { GitFlow, STRATEGIES } from "../worker-ui/gitflow.mjs";
+import { GitFlow, STRATEGIES, normalizeConfig } from "../worker-ui/gitflow.mjs";
 
 const ROOT = process.env.GITFLOW_ROOT, DIR = process.env.GITFLOW_DIR;
 if (!ROOT || !DIR) { console.error("gitflow-server: GITFLOW_ROOT and GITFLOW_DIR are required"); process.exit(1); }
 const engine = () => {
   const f = join(DIR, "config.json");
   if (!existsSync(f)) throw new Error("This worker has no Git workflow configuration yet: the person sets it up on its Git workflow page.");
-  return new GitFlow({ root: ROOT, dir: DIR, config: JSON.parse(readFileSync(f, "utf8")) });
+  // Through normalizeConfig: today's rules (off-limits branches) apply to a configuration saved earlier.
+  return new GitFlow({ root: ROOT, dir: DIR, config: normalizeConfig({}, JSON.parse(readFileSync(f, "utf8"))) });
 };
 const mappingOf = (gf, id) => { const m = gf.config.mappings.find((x) => x.id === id || `${x.source}->${x.destination}` === id); if (!m) throw new Error(`No branch relationship "${id}". Known: ${gf.config.mappings.map((x) => x.id).join(", ")}`); return m; };
 const text = (o) => ({ content: [{ type: "text", text: typeof o === "string" ? o : JSON.stringify(o, null, 1) }] });
@@ -27,7 +28,7 @@ const wrap = (fn) => async (a) => { try { return text(await fn(a || {})); } catc
 
 const server = new McpServer({ name: "gitflow", version: "1.0.0" });
 server.registerTool("gitflow_overview", { description: "This worker's Git workflow configuration: the teams (which is the person's), the people and their identities, the branch relationships with their strategies, the exclusion rules, and the shared branches that are never written. Read it first." },
-  wrap(async () => { const { config: c } = engine(); return { teams: c.teams, people: c.people, mappings: c.mappings, exclude: c.exclude, shared: c.shared, proposals: c.proposals, strategies: Object.fromEntries(Object.entries(STRATEGIES).map(([k, v]) => [k, v.about])) }; }));
+  wrap(async () => { const { config: c } = engine(); return { teams: c.teams, people: c.people, mappings: c.mappings, exclude: c.exclude, shared: c.shared, offLimits: c.forbidden, rule: "Shared branches are never pushed or written: changes reach them only by pull request. Off-limits branches are never read or written: don't discuss their contents.", proposals: c.proposals, strategies: Object.fromEntries(Object.entries(STRATEGIES).map(([k, v]) => [k, v.about])) }; }));
 server.registerTool("gitflow_commits", { description: "The changes a destination branch is missing from its source (one branch relationship), newest first, with their kind (pull-request merge, revert, cherry-picked copy, duplicate, direct), pull request, ticket references, whether an equivalent copy is already in the destination, reverts, and ownership (team, confidence and the evidence). Optionally only one person's.", inputSchema: { mapping: z.string().describe("A branch relationship id from gitflow_overview"), person: z.string().optional().describe("A person's id, to list only their commits"), limit: z.number().int().min(1).max(300).optional() } },
   wrap(async ({ mapping, person, limit }) => {
     const gf = engine(), a = await gf.analyse(mappingOf(gf, mapping), { limit: limit || 200 });

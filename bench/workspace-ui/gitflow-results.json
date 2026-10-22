@@ -1,5 +1,5 @@
 {
- "when": "2026-10-22T20:17:10.691Z",
+ "when": "2026-10-22T20:44:00.993Z",
  "results": [
   {
    "step": "created through the existing flow: described in words, recognised as Git branch sync, read-only Git tools only, a starting configuration from the answers",
@@ -83,6 +83,24 @@
    }
   },
   {
+   "step": "prod-main is off-limits: refused as a relationship, never copied into the private repository, never listed or used for authors; an older saved setup is upgraded",
+   "ok": true,
+   "detail": {
+    "refused": "prod-main is off-limits: the worker never reads or writes it.",
+    "listed": false,
+    "upgraded": {
+     "shared": [
+      "dev-main",
+      "uat-main",
+      "preprod-main"
+     ],
+     "forbidden": [
+      "prod-main"
+     ]
+    }
+   }
+  },
+  {
    "step": "a remote URL instead of a folder: the console clones it into the worker's data, and the analysis matches git on that remote",
    "ok": true,
    "detail": {
@@ -149,8 +167,22 @@
    "step": "execution is guarded: a blocked plan is refused; an approved ready plan creates only a NEW branch (copies record their originals); no existing branch, remote-tracking branch or origin ref changes",
    "ok": true,
    "detail": {
-    "branch": "gitflow/sabir-dev-20261022-201620",
-    "recovery": "Nothing that existed was changed. To discard: git branch -D gitflow/sabir-dev-20261022-201620. To use it: review it, push it yourself and open a pull request into sabir-dev."
+    "branch": "gitflow/sabir-dev-20261022-204222",
+    "recovery": "Nothing that existed was changed. To discard: git branch -D gitflow/sabir-dev-20261022-204222. To use it: review it, push it yourself and open a pull request into sabir-dev."
+   }
+  },
+  {
+   "step": "into a destination only by pull request: the approved proposal branch is pushed under its own new name (no other origin branch changes); anything else is refused",
+   "ok": true,
+   "detail": {
+    "pushed": "gitflow/sabir-dev-20261022-204222",
+    "base": "sabir-dev",
+    "originAdded": 1,
+    "refused": [
+     "Only a proposal branch this worker created from an approved plan can be pushed.",
+     "Only a proposal branch this worker created from an approved plan can be pushed.",
+     "Only a proposal branch this worker created from an approved plan can be pushed."
+    ]
    }
   },
   {
@@ -163,6 +195,7 @@
      "config",
      "preview",
      "refused",
+     "pr",
      "execute",
      "clone",
      "fetch"
@@ -206,7 +239,8 @@
    "ok": true,
    "detail": {
     "status": "Ready",
-    "outcome": "Created gitflow/sabir-dev-20261022-201656"
+    "outcome": "Created gitflow/sabir-dev-20261022-204334",
+    "pr": "Pushed gitflow/sabir-dev-20261022-204334 to origin. Open a pull request into sabir-dev there."
    }
   },
   {
