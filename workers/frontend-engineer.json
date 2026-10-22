@@ -19,5 +19,57 @@
   "Never put secrets or credentials into code, logs or memory."
  ],
  "requirements": [{ "resource": "workspace", "access": "write", "need": "required" }],
- "onMissing": "Say what is missing and what the person has to do, in one or two plain sentences, then stop."
+ "onMissing": "Say what is missing and what the person has to do, in one or two plain sentences, then stop.",
+ "template": {
+  "summary": "Builds and fixes features in your codebase, following the repository's own architecture and conventions.",
+  "category": "Engineering",
+  "workspace": "project",
+  "examples": [
+   "Add a loading state to the checkout button, then check it in the browser.",
+   "Find why the cart total is wrong on mobile and fix it.",
+   "Explain how this repository handles authentication, with the files involved."
+  ],
+  "options": [
+   {
+    "id": "commands",
+    "label": "Run scripts",
+    "help": "Lets it run node and curl in the workspace, for example a test or a build script. A protected-branch policy turns this off whatever you choose.",
+    "default": "on",
+    "choices": [
+     {
+      "id": "on",
+      "label": "Allowed",
+      "capabilities": [
+       "shell"
+      ]
+     },
+     {
+      "id": "off",
+      "label": "Not allowed",
+      "capabilities": []
+     }
+    ]
+   },
+   {
+    "id": "browser",
+    "label": "Check its work in a browser",
+    "help": "Opens pages (your local dev server, or a site) to look at the result.",
+    "default": "on",
+    "choices": [
+     {
+      "id": "on",
+      "label": "Yes",
+      "capabilities": [
+       "browser"
+      ]
+     },
+     {
+      "id": "off",
+      "label": "No",
+      "capabilities": []
+     }
+    ]
+   }
+  ]
+ }
 }

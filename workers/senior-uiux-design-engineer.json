@@ -29,5 +29,94 @@
   { "resource": "figma", "access": "edit", "need": "required" },
   { "resource": "figma", "access": "read", "need": "optional" }
  ],
- "onMissing": "If Figma isn't available, call figma_executor_status and follow it: the bridge starts by itself. When it says userActionRequired, tell the person its nextStep in one plain sentence (usually: open the file in the Figma desktop app and run Plugins → Development → AI Executor (POC); Figma only runs a plugin when a person runs it), then write NEEDS and stop. If the brief lacks something that truly blocks correct work, ask one precise question; otherwise make the senior decision and proceed."
+ "onMissing": "If Figma isn't available, call figma_executor_status and follow it: the bridge starts by itself. When it says userActionRequired, tell the person its nextStep in one plain sentence (usually: open the file in the Figma desktop app and run Plugins → Development → AI Executor (POC); Figma only runs a plugin when a person runs it), then write NEEDS and stop. If the brief lacks something that truly blocks correct work, ask one precise question; otherwise make the senior decision and proceed.",
+ "template": {
+  "summary": "Designs and refines interfaces directly in your Figma file, then inspects and corrects its own work.",
+  "category": "Design",
+  "workspace": "scratch",
+  "examples": [
+   "Redesign the pricing page in the open Figma file: clearer hierarchy, same brand.",
+   "Audit the open file for spacing and typography inconsistencies and fix them.",
+   "Create a mobile version of the selected frame."
+  ],
+  "options": [
+   {
+    "id": "figma",
+    "label": "In Figma it may",
+    "help": "Works in the file open in the Figma desktop app, through the AI Executor plugin. Editing needs a Work workspace (Scratch is one).",
+    "default": "edit",
+    "choices": [
+     {
+      "id": "edit",
+      "label": "Edit the open file",
+      "capabilities": [
+       "figma.plugin.read",
+       "figma.plugin.edit"
+      ],
+      "requirements": [
+       {
+        "resource": "figma",
+        "access": "edit",
+        "need": "required"
+       }
+      ]
+     },
+     {
+      "id": "look",
+      "label": "Only look",
+      "capabilities": [
+       "figma.plugin.read"
+      ]
+     }
+    ]
+   },
+   {
+    "id": "links",
+    "label": "Read designs from Figma links",
+    "help": "Reads a file by its link through Figma's API. Needs a Figma token on this computer: a link alone grants nothing.",
+    "default": "on",
+    "choices": [
+     {
+      "id": "on",
+      "label": "Yes",
+      "capabilities": [
+       "figma.read"
+      ],
+      "requirements": [
+       {
+        "resource": "figma",
+        "access": "read",
+        "need": "optional"
+       }
+      ]
+     },
+     {
+      "id": "off",
+      "label": "No",
+      "capabilities": []
+     }
+    ]
+   },
+   {
+    "id": "browser",
+    "label": "Look at live web pages",
+    "help": "Opens a site for reference or to compare a design with what's built.",
+    "default": "on",
+    "choices": [
+     {
+      "id": "on",
+      "label": "Yes",
+      "capabilities": [
+       "browser"
+      ]
+     },
+     {
+      "id": "off",
+      "label": "No",
+      "capabilities": []
+     }
+    ]
+   }
+  ]
+ }
 }

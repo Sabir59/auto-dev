@@ -42,7 +42,7 @@ await page.click(`#wsList [data-ws="${canary.id}"]`);
 let wid, run1;
 
 await step("define a Figma Specialist in the UI and save it", async () => {
-  await page.click("#addWk"); await page.waitForSelector("#wkForm");
+  await page.click("#addWk"); await page.click("#wkBlank"); await page.waitForSelector("#wkForm");
   await page.fill("#wkN", "Figma Specialist");
   await page.fill("#wkS", "Figma design and implementation");
   await page.fill("#wkM", "Help stakeholders understand, inspect and implement Figma designs.");

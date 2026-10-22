@@ -479,8 +479,8 @@ button.cbadge.pick:disabled .chev { display: none; }
 #footL:not(:empty) + #footHint { display: none; }
 .foot kbd { font: 500 10.5px/14px var(--sans); padding: 0 4px; border: 1px solid var(--line2); border-radius: 3px; color: var(--t2); }
 /* management pages: defining work, not doing it, so there's no composer */
-body[data-view="worker"] .composer, body[data-view="team"] .composer, body[data-view="github"] .composer, body[data-view="figma"] .composer,
-body[data-view="worker"] .ctx, body[data-view="team"] .ctx, body[data-view="github"] .ctx, body[data-view="figma"] .ctx { display: none; }
+body[data-view="worker"] .composer, body[data-view="team"] .composer, body[data-view="github"] .composer, body[data-view="figma"] .composer, body[data-view="catalog"] .composer, body[data-view="setup"] .composer,
+body[data-view="worker"] .ctx, body[data-view="team"] .ctx, body[data-view="github"] .ctx, body[data-view="figma"] .ctx, body[data-view="catalog"] .ctx, body[data-view="setup"] .ctx { display: none; }
 
 /* ---- right: activity ---- */
 aside.right { background: var(--low); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
@@ -611,6 +611,46 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
 .rfoot { height: 36px; flex: none; border-top: 1px solid var(--line); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; color: var(--t3); }
 .rfoot .s { display: flex; align-items: center; gap: 8px; }
 
+/* ---- getting started, the worker catalogue and a worker's setup ---- */
+.concepts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; margin-top: 18px; }
+.concept { padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--r3); background: var(--low); }
+.concept b { display: block; font-weight: 600; color: var(--t1); margin-bottom: 2px; }
+.concept span { color: var(--t3); font-size: 12px; line-height: 18px; }
+.gs-steps { margin: 18px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; width: 100%; counter-reset: gs; }
+.gs-steps li { display: flex; align-items: center; gap: 10px; color: var(--t2); counter-increment: gs; }
+.gs-steps li::before { content: counter(gs); width: 20px; height: 20px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; background: var(--surf); border: 1px solid var(--line2); color: var(--t3); font: 600 11px/1 var(--sans); }
+.gs-steps li.ok::before { content: "✓"; color: var(--ok); border-color: rgba(79,214,156,.4); background: var(--ok-soft); }
+.gs-steps .btn { height: 24px; padding: 0 9px; margin-left: auto; }
+.gs-foot { margin-top: 14px; color: var(--t3); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.tcards-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; width: 100%; }
+.tcard { display: flex; flex-direction: column; gap: 8px; height: 100%; padding: 14px; border: 1px solid var(--line2); border-radius: var(--r3); background: var(--surf); }
+.tcard .th { display: flex; gap: 10px; align-items: center; }
+.tcard .th b { font-weight: 600; color: var(--t1); display: block; } .tcard .th .m11 { color: var(--t3); }
+.tcard p { margin: 0; color: var(--t2); font-size: 12.5px; line-height: 19px; flex: 1; }
+.tcard .uses { display: flex; flex-wrap: wrap; gap: 4px; }
+.tcard .uses span { height: 20px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: 20px; border: 1px solid var(--line2); color: var(--t2); font-size: 11.5px; }
+.tcard .ready { display: flex; align-items: center; gap: 6px; color: var(--t3); }
+.tcard .ready.bad { color: var(--warn); }
+.tcard .acts { display: flex; gap: 6px; align-items: center; }
+.tav { width: 32px; height: 32px; border-radius: var(--r2); background: var(--pri-soft); color: var(--pri); display: flex; align-items: center; justify-content: center; font: 600 12px/1 var(--sans); flex: none; }
+.cat-intro { padding: 16px 20px 4px; display: flex; flex-direction: column; gap: 6px; }
+.cat-intro h1 { margin: 0; font: 600 18px/26px var(--sans); color: var(--t1); }
+.cat-intro p { margin: 0; color: var(--t2); max-width: 680px; }
+.cat-body { padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+.cat-foot { color: var(--t3); border-top: 1px solid var(--line); padding-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.opt { display: flex; flex-direction: column; gap: 6px; }
+.opt .seg { align-self: flex-start; flex-wrap: wrap; }
+.opt .seg button { flex: none; padding: 4px 10px; }
+.opt .seg button[aria-checked="true"] { background: var(--high); color: var(--t1); }
+.oplist { display: flex; flex-direction: column; gap: 6px; }
+.oprow { display: flex; gap: 8px; align-items: flex-start; color: var(--t2); }
+.oprow .dot { margin-top: 6px; }
+.oprow .how { color: var(--t3); display: block; font-size: 12px; line-height: 18px; }
+.oprow.bad { color: var(--t1); }
+.where { padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--r2); background: var(--surf); color: var(--t2); max-width: 680px; }
+.where b { color: var(--t1); font-weight: 600; }
+.ready-box { margin-top: 18px; width: 100%; display: flex; flex-direction: column; gap: 8px; }
+
 /* ---- smaller windows ---- */
 .scrim { display: none; }
 @media (max-width: 1240px) { body { grid-template-columns: 244px minmax(0, 1fr) 300px; } .view { padding: 0 18px; } .canvas { margin: 0 -18px; padding: 0 18px; } }
@@ -632,6 +672,9 @@ aside.right { background: var(--low); border-left: 1px solid var(--line); displa
   .wrow2, .tsum dl { grid-template-columns: 1fr; } .trow { grid-template-columns: 1fr; }
   .req { grid-template-columns: minmax(0, 1fr) 100px 26px; } .req .wstat { display: none; }
   .msg-u { max-width: 92%; }
+  /* the composer's choices wrap onto their own line instead of overlapping */
+  .urow { flex-wrap: wrap; row-gap: 6px; } .urow .l { flex-wrap: wrap; row-gap: 6px; } .urow .r { margin-left: auto; }
+  .concepts { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) { .switcher { display: none; } .brand .name { display: none; } .pill #wState { display: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
@@ -866,13 +909,13 @@ function ask({ title, body, actions, focus }) {
 // The worker and Team pages are drafts until saved. Leaving one with changes asks first: save,
 // discard, or keep editing. Nothing else on the page navigates without going through this.
 let draft = null; // { kind: "worker" | "team", clean: <snapshot>, save: () => Promise<boolean> }
-const formSnap = () => { const f = $("wkForm") || $("tmForm"); if (!f) return ""; return JSON.stringify([[...f.querySelectorAll("input,textarea,select")].map((x) => (x.type === "checkbox" ? x.checked : x.value)), wkEdit && { r: wkEdit.reqs }, tmEdit && { k: tmEdit.knowledge.map((k) => k.path || k.name), p: tmEdit.policies, q: tmEdit.prompts, r: tmEdit.reqs }]); };
-const isDirty = () => !!draft && (view === "worker" || view === "team") && formSnap() !== draft.clean;
+const formSnap = () => { if (view === "setup") return setupEdit ? JSON.stringify([setupEdit.choices, $("setN")?.value ?? null]) : ""; const f = $("wkForm") || $("tmForm"); if (!f) return ""; return JSON.stringify([[...f.querySelectorAll("input,textarea,select")].map((x) => (x.type === "checkbox" ? x.checked : x.value)), wkEdit && { r: wkEdit.reqs }, tmEdit && { k: tmEdit.knowledge.map((k) => k.path || k.name), p: tmEdit.policies, q: tmEdit.prompts, r: tmEdit.reqs }]); };
+const isDirty = () => !!draft && (view === "worker" || view === "team" || view === "setup") && formSnap() !== draft.clean;
 function trackDraft(kind, save) { draft = { kind, save, clean: formSnap() }; }
 // Resolves true when it's safe to go on (nothing to lose, saved, or discarded on purpose).
 async function leaveDraft() {
   if (!isDirty()) return true;
-  const what = draft.kind === "team" ? "this team" : "this worker";
+  const what = draft.kind === "team" ? "this team" : draft.kind === "setup" ? "this worker's setup" : "this worker";
   const r = await ask({ title: "Unsaved changes", body: `<p>You changed ${what} and haven't saved it. Leaving now loses those changes.</p>`,
     actions: [{ id: "keep", label: "Keep editing" }, { id: "discard", label: "Discard changes", kind: "danger" }, { id: "save", label: "Save", kind: "pri" }], focus: "keep" });
   if (r === "discard") { draft = null; return true; }
@@ -1357,7 +1400,7 @@ async function openFile({ path, workspace, run }) {
 }
 let opener = null; // what opened the current page, so closing it returns focus there
 function closeFile() {
-  wkEdit = null; tmEdit = null; draft = null;
+  wkEdit = null; tmEdit = null; setupEdit = null; draft = null;
   const back = opener; opener = null;
   setTimeout(() => (back && document.contains(back) ? back : $("input")).focus(), 0);
   verOpen = null; renderVersions();
@@ -1374,6 +1417,7 @@ let WK = { workers: [], capabilities: [], resources: [], profile: "full" }, wkId
 const wk = () => WK.workers.find((x) => x.id === wkId) || null;
 async function loadWorkers() {
   try { WK = await api("GET", `/workers?workspace=${encodeURIComponent(wsId || "console")}`); } catch { return; }
+  await loadTemplates();
   if (wkId && !wk()) { wkId = null; store.set("worker", ""); }
   renderWorkers();
   if (view === "chat" && !runId) renderCanvas();
@@ -1394,14 +1438,16 @@ function renderWorkers() {
 }
 $("wkList").onclick = (e) => {
   const ed = e.target.closest("[data-wk-edit]"), b = e.target.closest("[data-wk]");
-  if (ed) { opener = ed; return openWorkerEditor(ed.dataset.wkEdit); }
+  if (ed) { opener = ed; return editWorker(ed.dataset.wkEdit); }
   if (b) {
     wkId = b.dataset.wk || null; store.set("worker", wkId || "");
     if (tm() && !tm().workers.includes(wkId)) { const name = tm().name; leaveTeam(); notice(`Left the ${name} team: ${wk()?.name || "General"} isn't a member.`, { info: true }); }
     renderWorkers(); openNewChat();
   }
 };
-$("addWk").onclick = () => openWorkerEditor(null);
+$("addWk").onclick = () => openCatalog();
+// A worker set up from a template opens on its short setup (the full definition is one click away).
+const editWorker = (id) => (WK.workers.find((w) => w.id === id)?.fromTemplate ? openSetup({ worker: id }) : openWorkerEditor(id));
 const BLANK = { name: "", mission: "", specialization: "", capabilities: ["files.read"], knowledge: "", workflow: [], limitations: [], requirements: [], onMissing: "" };
 // Defining a worker. Every field here reaches the run: identity, tools, steps, knowledge, limits
 // and requirements go into its context, capabilities decide its tools, requirements are checked.
@@ -1494,6 +1540,143 @@ async function loadMemory(id) {
     loadMemory(id); loadWorkers();
   };
 }
+
+// ---------------- worker catalogue and setup ----------------
+// Templates are the shared definitions (workers/*.json) with a short setup: only the settings that
+// matter for that worker. What a setup gives in the selected workspace, and whether its requirements
+// are met, comes from the console (POST /templates/:id/preview); the page never decides access.
+let TPL = [], setupEdit = null;
+const USES = { "files.read": "Files", "files.write": "Files", shell: "Scripts", web: "Web", browser: "Browser", "figma.read": "Figma", "figma.plugin.read": "Figma", "figma.plugin.edit": "Figma", "builder.read": "Builder.io", "builder.write": "Builder.io", "builder.write.draft": "Builder.io" };
+const usesOf = (caps) => [...new Set((caps || []).map((c) => USES[c]).filter(Boolean))];
+const WHERE = { project: "a project folder", scratch: "Scratch (no project needed)", any: "any workspace" };
+const capLabel = (id) => WK.capabilities.find((c) => c.id === id)?.label || id;
+const missingReq = (status) => (status || []).filter((r) => !r.ok && r.need === "required");
+const CAT_ORDER = ["Engineering", "Design", "Content", "Research"], catRank = (c) => (CAT_ORDER.indexOf(c) + 1 || 99);
+async function loadTemplates() { try { TPL = (await api("GET", `/templates?workspace=${encodeURIComponent(wsId || "console")}`)).templates.sort((a, b) => catRank(a.category) - catRank(b.category) || a.name.localeCompare(b.name)); } catch { TPL = []; } }
+const tplOf = (w) => w && TPL.find((t) => t.workers.some((x) => x.id === w.id));
+const CONCEPTS = `<div class="concepts"><div class="concept"><b>Worker</b><span>Who does the work: a specialist with its own tools, steps and hard limits.</span></div>
+  <div class="concept"><b>Workspace</b><span>Where it works: a folder on this computer, read-only (Inspect) or editable (Work). It can't reach outside it.</span></div>
+  <div class="concept"><b>Team</b><span>Optional. Shared documents, a Figma file, instructions and enforced rules for several workers.</span></div></div>`;
+function tplCard(t) {
+  const miss = missingReq(t.defaults.status), have = t.workers[0];
+  return `<li><div class="tcard"><div class="th"><span class="tav" aria-hidden="true">${esc(initials(t.name))}</span><span><b>${esc(t.name)}</b><span class="m11">${esc(t.category)} · works in ${esc(WHERE[t.workspace] || WHERE.any)}</span></span></div>
+    <p>${esc(t.summary)}</p>
+    <div class="uses" aria-label="Uses">${usesOf(t.defaults.capabilities).map((u) => `<span>${esc(u)}</span>`).join("")}</div>
+    <div class="ready m11 ${miss.length ? "bad" : ""}"><span class="dot ${miss.length ? "warn" : ""}" aria-hidden="true"></span><span>${miss.length ? `Needs: ${esc(miss.map((r) => `${r.label} (${r.state.toLowerCase()})`).join(", "))}` : "Its requirements are met on this computer"}</span></div>
+    <div class="acts">${have ? `<button type="button" class="btn pri" data-tpl-open="${esc(have.id)}">Open ${esc(have.name)}</button><button type="button" class="btn" data-tpl-setup="${esc(t.id)}">Add another</button>` : `<button type="button" class="btn pri" data-tpl-setup="${esc(t.id)}">Set up</button>`}</div></div></li>`;
+}
+async function openCatalog() {
+  setView("catalog"); verOpen = null; renderVersions(); wkEdit = null; tmEdit = null; setupEdit = null; draft = null;
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="Add a worker"><div class="vbar m11"><span class="ell">Add a worker</span><span class="ro">Specialists that use real tools</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
+    <div class="vbody"><div class="cat-intro"><h1>Choose a specialist</h1><p>Each worker does one kind of work with real tools, inside the limits of the workspace you run it in. Set it up with a few choices, then give it a task and watch every step.</p>${CONCEPTS}</div>
+    <div class="cat-body"><ul class="tcards-grid" id="tplList"><li class="sub m11">Loading…</li></ul>
+    <div class="cat-foot m12">Need a different specialist? <button type="button" class="linkbtn" id="wkBlank">Define a worker from scratch</button><span>Every setting: tools, steps, knowledge, limits and requirements.</span></div></div></div></div>`;
+  wireViewer();
+  $("wkBlank").onclick = () => openWorkerEditor(null);
+  await loadTemplates();
+  if (view !== "catalog") return;
+  $("tplList").innerHTML = TPL.length ? TPL.map(tplCard).join("") : '<li class="sub m11">No worker templates found (workers/*.json).</li>';
+}
+const optHtml = (o, picked) => `<div class="opt" style="margin-top:12px"><span id="opl-${esc(o.id)}" style="color:var(--t1);font-weight:500">${esc(o.label)}</span>${o.help ? `<span class="sub m11" style="max-width:680px">${esc(o.help)}</span>` : ""}
+  <div class="seg" role="radiogroup" aria-labelledby="opl-${esc(o.id)}">${o.choices.map((c) => `<button type="button" role="radio" class="m11" data-opt="${esc(o.id)}" data-choice="${esc(c.id)}" aria-checked="${picked === c.id}" tabindex="${picked === c.id ? 0 : -1}">${esc(c.label)}</button>`).join("")}</div></div>`;
+// Where it works, in plain words: the selected workspace against what this worker is for.
+function whereHtml(t, w) {
+  const mode = w.profile === "inspect" ? "Inspect (read-only)" : "Work";
+  const safe = "Commit and push stay your actions, in Changes &amp; versions.";
+  if (t.workspace === "project" && isScratch(w)) return `<b>It needs a project folder.</b> It works on a codebase, and Scratch has none. <button type="button" class="linkbtn" data-gs="addws">Add your project folder</button> or pick one in the sidebar.`;
+  if (t.workspace === "project") return w.profile === "inspect" ? `<b>${esc(w.name)}</b> is ${mode}: it can read and explain the code here, not change it. For changes, add the folder again in Work mode.` : `<b>${esc(w.name)}</b> · ${mode}: it can change files in this folder. ${safe}`;
+  if (t.workspace === "scratch") return isScratch(w) ? `<b>Scratch</b>: each task gets its own empty folder. No project needed.` : `It doesn't need a project: <b>Scratch</b> gives each task its own empty folder. <button type="button" class="linkbtn" data-gs="scratch">Use Scratch</button> (now: ${esc(w.name)}, ${mode}).`;
+  return `<b>${esc(w.name)}</b> · ${mode}${w.profile === "inspect" ? ": it can read, not change anything." : `. ${safe}`}`;
+}
+async function openSetup({ tpl, worker, note } = {}) {
+  if (!TPL.length || worker) await loadTemplates();
+  const w = worker ? WK.workers.find((x) => x.id === worker) : null;
+  const t = tpl ? TPL.find((x) => x.id === tpl) : tplOf(w);
+  if (!t) return w ? openWorkerEditor(w.id) : openCatalog();
+  setView("setup"); verOpen = null; renderVersions(); wkEdit = null; tmEdit = null;
+  const mine = t.workers.find((x) => x.id === w?.id);
+  setupEdit = { tpl: t, worker: w?.id || null, choices: Object.fromEntries(t.options.map((o) => [o.id, mine?.choices?.[o.id] || o.default])) };
+  const title = w ? `${w.name} · setup` : `Set up ${t.name}`;
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="${esc(title)}"><div class="vbar m11"><span class="ell">${esc(title)}</span><span class="ro">${w ? `v${w.version} · changes apply to new conversations` : "Nothing runs until you give it a task"}</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
+    <div class="vbody"><form class="wform" id="setupForm" novalidate>
+      <div class="wf"><div style="display:flex;gap:12px;align-items:center"><span class="tav" aria-hidden="true">${esc(initials(w ? w.name : t.name))}</span><span><b style="font:600 16px/22px var(--sans);color:var(--t1)">${esc(w ? w.name : t.name)}</b><span class="sub m11" style="display:block">${esc(t.specialization || t.category)}</span></span></div>
+        <p style="margin:8px 0 0;color:var(--t2);max-width:680px">${esc(t.mission)}</p>
+        ${w ? "" : `<label class="wf" style="margin-top:10px;max-width:360px"><span class="sub m11">Name (you can keep it)</span><input class="wfield" id="setN" maxlength="60" value="${esc(t.name)}" autocomplete="off"></label>`}</div>
+      <div class="wf"><span class="lab">Where it works</span><div class="where m12" id="setWhere">${whereHtml(t, ws())}</div></div>
+      ${t.options.length ? `<div class="wf"><span class="lab">Settings</span><span class="sub m11">Only what matters for this worker. A setting turns tools on or off; it never connects an account or grants access.</span>${t.options.map((o) => optHtml(o, setupEdit.choices[o.id])).join("")}</div>` : ""}
+      <div class="wf"><span class="lab" id="setCapsH">What it can do in ${esc(ws().name)}</span><span class="sub m11">Worked out by the console for this workspace's mode. A Team or a protected branch can only take more away.</span><div class="chips" id="setCaps" style="display:flex;flex-wrap:wrap;gap:6px"><span class="sub m11">Checking…</span></div></div>
+      <div class="wf"><span class="lab">Connections it needs</span><span class="sub m11">Checked now, on this computer. A missing one doesn't block a task: the worker stops and tells you what to do.</span><div class="oplist" id="setReqs"></div></div>
+      ${t.examples.length ? `<div class="wf"><span class="lab">Tasks it's built for</span><ul style="margin:0;padding-left:18px;color:var(--t2)">${t.examples.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+      <div class="wfoot">${w ? '<button type="button" class="btn m11" id="setAdv" title="Every setting: tools, steps, knowledge, limits, requirements and memory">Full definition…</button>' : ""}<span class="msg m11" id="setMsg" role="status">${esc(note || "")}</span><button type="button" class="btn m11" id="setCancel">${w ? "Close" : "Cancel"}</button>${w ? '<button type="button" class="btn m11" id="setStart">Start a task</button>' : ""}<button type="submit" class="btn pri m11" id="setSave">${w ? "Save setup" : "Add worker"}</button></div>
+    </form></div></div>`;
+  wireViewer();
+  $("setCancel").onclick = closeFile;
+  if (w) { $("setAdv").onclick = () => openWorkerEditor(w.id); $("setStart").onclick = () => startWith(w.id); }
+  $("setupForm").onsubmit = (e) => { e.preventDefault(); saveSetup(); };
+  $("setupForm").onclick = (e) => {
+    const b = e.target.closest("[data-opt]"); if (!b) return;
+    setupEdit.choices[b.dataset.opt] = b.dataset.choice;
+    b.parentElement.querySelectorAll("[data-opt]").forEach((x) => { const on = x === b; x.setAttribute("aria-checked", String(on)); x.tabIndex = on ? 0 : -1; });
+    previewSetup();
+  };
+  // Arrow keys move between a setting's choices (a radio group).
+  $("setupForm").onkeydown = (e) => {
+    const b = e.target.closest("[data-opt]"); if (!b || !["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(e.key)) return;
+    e.preventDefault(); const all = [...b.parentElement.querySelectorAll("[data-opt]")], i = all.indexOf(b), n = all[(i + (["ArrowRight", "ArrowDown"].includes(e.key) ? 1 : -1) + all.length) % all.length];
+    n.focus(); n.click();
+  };
+  trackDraft("setup", saveSetup);
+  await previewSetup();
+}
+// A requirement as people read it: what, its state now, and what to do when it isn't met.
+const reqRow = (r) => `<div class="oprow ${r.ok ? "" : "bad"}"><span class="dot ${r.ok ? "" : r.need === "required" ? "red" : "warn"}" aria-hidden="true"></span><span><span>${esc(r.label)}${r.source === "team" ? " (Team)" : ""}: <b style="font-weight:500">${esc(r.state)}</b>${r.detail ? ` <span class="sub">${esc(r.detail)}</span>` : ""}${r.need === "optional" ? ' <span class="sub">(optional)</span>' : ""}</span>${r.ok ? "" : `<span class="how">${esc(r.how)}</span>`}</span></div>`;
+async function previewSetup() {
+  const s = setupEdit; if (!s) return;
+  let p;
+  try { p = await api("POST", `/templates/${encodeURIComponent(s.tpl.id)}/preview`, { choices: s.choices, workspace: wsId, ...(s.worker ? { worker: s.worker } : {}) }); }
+  catch (e) { if ($("setMsg")) $("setMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; return; }
+  if (setupEdit !== s || view !== "setup") return;
+  const mode = modeOf(ws());
+  $("setCapsH").textContent = `What it can do in ${ws().name}`; $("setWhere").innerHTML = whereHtml(s.tpl, ws());
+  $("setCaps").innerHTML = [...p.usable.map((c) => `<span class="cchip">${esc(capLabel(c))}</span>`),
+    ...p.blocked.map((c) => `<span class="cchip off" title="This workspace is ${esc(mode)}: needs a Work workspace">${esc(capLabel(c))}<span class="sub">&nbsp;· not in ${esc(mode)}</span></span>`),
+    ...p.byPlatform.map((c) => `<span class="cchip off">${esc(capLabel(c))}<span class="sub">&nbsp;· not available here</span></span>`)].join("") || '<span class="sub m11">Nothing beyond reading what you send it.</span>';
+  $("setReqs").innerHTML = p.status.length ? p.status.map(reqRow).join("")
+    : '<span class="sub m11">None: it only needs the workspace.</span>';
+}
+async function saveSetup() {
+  const s = setupEdit; if (!s) return false;
+  try {
+    const w = s.worker ? await api("PUT", `/workers/${encodeURIComponent(s.worker)}/setup`, { template: s.tpl.id, choices: s.choices })
+      : await api("POST", `/templates/${encodeURIComponent(s.tpl.id)}/workers`, { choices: s.choices, name: $("setN")?.value || "" });
+    draft = null; await loadWorkers(); await loadTemplates();
+    if (!s.worker) { startWith(w.id, `Added ${w.name}. Give it a task below.`); return true; }
+    openSetup({ worker: w.id, note: `Saved v${w.version}. New conversations use it; open ones keep the version they started with.` });
+    return true;
+  } catch (e) { $("setMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; return false; }
+}
+// Selecting a worker for a new task works the same from anywhere: as if picked in the sidebar.
+function startWith(id, msg) {
+  closeFile();
+  const b = $("wkList").querySelector(`[data-wk="${CSS.escape(id)}"]`);
+  if (b) b.click(); else openNewChat();
+  if (msg) notice(msg, { info: true });
+}
+// Getting-started actions on the new-task screen and the setup page.
+$("canvas").addEventListener("click", (e) => {
+  const s = e.target.closest("[data-tpl-setup]"), o = e.target.closest("[data-tpl-open]"), g = e.target.closest("[data-gs]");
+  if (s) { opener = s; openSetup({ tpl: s.dataset.tplSetup }); }
+  else if (o) { opener = o; openSetup({ worker: o.dataset.tplOpen }); }
+  else if (g) {
+    const a = g.dataset.gs;
+    if (a === "catalog") openCatalog();
+    else if (a === "addws") { document.body.classList.add("show-nav"); const f = document.querySelector('.sect[data-sect="workspaces"]'); f?.classList.remove("folded"); $("addWs").click(); $("fName")?.focus(); }
+    else if (a === "scratch") { selectWorkspace("scratch", { newChat: view === "chat" }); if (view === "setup") previewSetup(); }
+    else if (a === "hide") { store.set("gsHidden", "1"); renderCanvas(); }
+    else if (a === "show") { store.set("gsHidden", ""); renderCanvas(); }
+    else if (a === "example") { $("input").value = g.dataset.text; autosize(); $("input").focus(); }
+  }
+});
 
 // ---------------- github ----------------
 // The platform's one GitHub connection, the registered repositories and the workspace each one is
@@ -1703,7 +1886,7 @@ function renderComposerWho() {
     $(id).title = runId ? "This conversation's worker and workspace are fixed. Start a new task to change them." : id === "wkPick" ? "Choose the worker for a new task" : "Choose the workspace for a new task";
   }
 }
-$("cEdit").onclick = () => { if ($("cEdit").dataset.editWk) { opener = $("cEdit"); openWorkerEditor($("cEdit").dataset.editWk); } };
+$("cEdit").onclick = () => { if ($("cEdit").dataset.editWk) { opener = $("cEdit"); editWorker($("cEdit").dataset.editWk); } };
 $("cLeave").onclick = () => leaveTeam();
 function renderTeamPrompts() {
   const t = tm(); $("tpSect").hidden = !t;
@@ -2230,6 +2413,31 @@ function capChips(k) {
   return `<div class="caplist"><span class="lab">Can use</span><div class="chips">${caps.map((c) => { const off = !c.profiles.includes(WK.profile);
     return `<span class="cchip${off ? " off" : ""}" title="${esc(c.tools)}${off ? " · not in this workspace" : ""}">${esc(c.label)}${off ? '<span class="sr"> (not in this workspace)</span>' : ""}</span>`; }).join("")}</div></div>`;
 }
+// The first-run guide: what this is, the three pieces, and the next step (real state: a project
+// folder added, specialists that can be set up here and whether their requirements are met).
+function gettingStarted(w) {
+  const project = WS.some((x) => !isScratch(x) && x.id !== "console");
+  return `<div class="emptyst" id="gsGuide"><div class="eyebrow m12">Getting started</div><h1>Give a specialist a real task</h1>
+    <p>AI Workforce runs specialised AI workers on your own projects. They use real tools (your files, a browser, Figma, Builder.io) inside limits the platform enforces, and you can watch every step they take.</p>
+    ${CONCEPTS}
+    <ol class="gs-steps m12"><li class="${project ? "ok" : ""}"><span>Choose where it works: your project folder, or Scratch for work that needs none.</span>${project ? "" : '<button type="button" class="btn" data-gs="addws">Add project folder</button>'}</li>
+      <li><span>Pick a specialist and set it up. You only see the settings that matter for it.</span></li>
+      <li><span>Describe the task in the box below. Activity shows each step; the result says what changed and what to check.</span></li></ol>
+    <div class="starters"><span class="lab">Specialists you can set up</span><ul class="tcards-grid">${TPL.map(tplCard).join("") || '<li class="sub m11">No worker templates found.</li>'}</ul></div>
+    <div class="gs-foot m12"><span>Or ask the General worker below: no setup, every tool ${esc(w.name)} allows.</span><button type="button" class="linkbtn" data-gs="hide">Hide this guide</button></div></div>`;
+}
+// Before a defined worker starts: where it works and what that allows, and each requirement with
+// what to do when it isn't met (checked by the console for this workspace).
+function readiness(k, w) {
+  const t = tplOf(k), st = k.status || [];
+  const where = t ? whereHtml(t, w) : w.profile === "inspect" ? `<b>${esc(w.name)}</b> is Inspect (read-only): it can read, not change anything.` : isScratch(w) ? "<b>Scratch</b>: this task gets its own empty folder." : `<b>${esc(w.name)}</b> · Work: it can change files in this folder. Commit and push stay your actions, in Changes &amp; versions.`;
+  return `<div class="ready-box" id="readyBox"><span class="lab">Before you start</span><div class="where m12">${where}</div>${st.length ? `<div class="oplist">${st.map(reqRow).join("")}</div>` : ""}</div>`;
+}
+// Example tasks from the worker's template: picking one fills the box; nothing is sent.
+function examples(k) {
+  const t = tplOf(k); if (!t?.examples.length) return "";
+  return `<div class="starters"><span class="lab">Tasks it's built for</span><ul>${t.examples.map((x) => `<li><button type="button" class="starter" data-gs="example" data-text="${esc(x)}"><span class="st-t" style="white-space:normal;font-weight:400">${esc(x)}</span></button></li>`).join("")}</ul></div>`;
+}
 // Saved prompts to start from: the Team's, then your Favourites. Picking one fills the box; nothing is sent.
 function starters(t) {
   const list = [...(t ? t.prompts.map((p) => ({ key: `tp:${p.id}`, ...p, team: true })) : []), ...PROMPTS.map((p) => ({ key: `fav:${p.id}`, ...p }))].slice(0, 4);
@@ -2292,11 +2500,15 @@ function renderCanvas() {
   }
   if (!runId) {
     const k = wk();
+    // First run: no specialist defined yet. What this is, how the pieces fit, and the next step.
+    if (!k && !WK.workers.length && !store.get("gsHidden")) { c.innerHTML = gettingStarted(w); return; }
     c.innerHTML = `<div class="emptyst"><div class="motif" aria-hidden="true">${k ? esc(initials(k.name)) : svgIcon("terminalLg", 20, 16)}</div><div class="eyebrow m12">New task${k ? ` · v${k.version}` : ""} · in ${esc(w.name)}</div><h1>${esc(k ? k.name : "General worker")}</h1>
       <p>${k ? esc(k.mission || k.specialization || "") : `No definition: it can use every tool this workspace allows. ${w.id === "scratch" ? "Use it for work that needs no project folder: Figma, Builder, a web page, research." : w.profile === "inspect" ? "Ask it to inspect this repository: read code, trace an implementation or review a component." : "Ask it to inspect your repository, change code, debug an issue or test components."}`}</p>
       ${isScratch(w) ? `<div class="scratchnote" id="scratchNote"><b>Scratch, no project.</b> This conversation gets its own empty folder when you send. Files the worker writes stay with this conversation (and with a fresh session that continues it); other conversations don't see them. No project files, no Git: for code, choose a project folder.</div>` : ""}
-      <div class="tagline m11">${isScratch(w) ? `<span><span class="dot grey"></span>New folder for this conversation</span>` : `<span title="${esc(w.root)}"><span class="dot grey"></span><span class="ell mono" style="max-width:360px">${esc(w.root)}</span></span>`}<span title="Access mode">${svgIcon("bolt", 9, 11)}${modeOf(w)}</span>${(k?.status || []).map((r) => `<span title="${esc(r.ok ? "" : r.how)}"><span class="dot ${r.ok ? "" : "red"}"></span>${esc(r.label)}: ${esc(r.state)}</span>`).join("")}</div>
-      ${k ? capChips(k) : ""}${starters(null)}</div>`;
+      <div class="tagline m11">${isScratch(w) ? `<span><span class="dot grey"></span>New folder for this conversation</span>` : `<span title="${esc(w.root)}"><span class="dot grey"></span><span class="ell mono" style="max-width:360px">${esc(w.root)}</span></span>`}<span title="Access mode">${svgIcon("bolt", 9, 11)}${modeOf(w)}</span></div>
+      ${k ? readiness(k, w) : ""}
+      ${k ? capChips(k) : ""}${k ? examples(k) : ""}${starters(null)}
+      ${!k && !WK.workers.length ? `<div class="gs-foot m12"><button type="button" class="linkbtn" data-gs="show">Show the getting-started guide</button></div>` : !k ? `<div class="gs-foot m12">Want a specialist instead? <button type="button" class="linkbtn" data-gs="catalog">Add a worker</button></div>` : ""}</div>`;
     return;
   }
   const atEnd = c.scrollHeight - c.scrollTop - c.clientHeight < 80;
@@ -2666,7 +2878,7 @@ $("scrim").onclick = closeDrawers;
 
 // Every way of leaving a worker or Team page goes through the unsaved-changes check: sidebar,
 // header, pickers, page buttons, Alt+N. (A click it holds back is replayed once it's safe.)
-const NAV = "[data-ws],[data-run],[data-wk],[data-wk-edit],[data-tm],[data-p],[data-tp],[data-rev],[data-pick],[data-starter],[data-open-run],[data-open-active],[data-edit-wk],#ghOpen,#newTask,#addWk,#addTm,#wPill,#vClose,#wkCancel,#tmCancel,#cEdit,[data-tchat],[data-quse],#tree [data-path]:not([data-dir])";
+const NAV = "[data-ws],[data-run],[data-wk],[data-wk-edit],[data-tm],[data-p],[data-tp],[data-rev],[data-pick],[data-starter],[data-open-run],[data-open-active],[data-edit-wk],#ghOpen,#newTask,#addWk,#addTm,#wPill,#vClose,#wkCancel,#tmCancel,#cEdit,#setCancel,#setAdv,#wkBlank,[data-tpl-setup],[data-tpl-open],[data-gs],[data-tchat],[data-quse],#tree [data-path]:not([data-dir])";
 let replaying = false;
 document.addEventListener("click", async (e) => {
   if (replaying || !isDirty()) return;

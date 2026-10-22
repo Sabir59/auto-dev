@@ -1,0 +1,191 @@
+{
+ "when": "2026-10-22T09:31:07.747Z",
+ "results": [
+  {
+   "step": "the catalogue: every template's settings name only real capabilities and requirements; each worker has only its own settings",
+   "ok": true,
+   "detail": {
+    "templates": 5,
+    "settings": {
+     "builder-content-editor": [
+      "publishing",
+      "browser"
+     ],
+     "frontend-engineer": [
+      "commands",
+      "browser"
+     ],
+     "qa-engineer": [
+      "browser",
+      "commands"
+     ],
+     "research-worker": [
+      "web"
+     ],
+     "senior-uiux-design-engineer": [
+      "figma",
+      "links",
+      "browser"
+     ]
+    }
+   }
+  },
+  {
+   "step": "refused: an unknown choice, an unknown setting, an unknown template; capabilities sent alongside are ignored",
+   "ok": true,
+   "detail": {
+    "badChoice": "\"everything\" isn't a choice for Publishing.",
+    "badSetting": "\"commands\" isn't a setting of Builder.io Content Editor.",
+    "smuggled": [
+     "builder.read"
+    ]
+   }
+  },
+  {
+   "step": "choices become the definition: publish → builder.write, drafts → builder.write.draft, read only → neither; browser off → no browser",
+   "ok": true,
+   "detail": {
+    "publish": [
+     "builder.read",
+     "builder.write",
+     "browser"
+    ],
+    "drafts": [
+     "builder.read",
+     "builder.write.draft",
+     "browser"
+    ],
+    "readOnly": [
+     "builder.read"
+    ]
+   }
+  },
+  {
+   "step": "\"May publish\" is not authorization: an Inspect workspace cuts the write tools; the requirement stays unmet without keys, and a production space is refused",
+   "ok": true,
+   "detail": {
+    "inspect": {
+     "usable": [
+      "builder.read",
+      "browser"
+     ],
+     "blocked": [
+      "builder.write"
+     ]
+    },
+    "noKeys": "read:Not connected,write:Not connected",
+    "production": "read:Connected,write:Production space: writes refused",
+    "testSpace": "read:Connected,write:Test space"
+   }
+  },
+  {
+   "step": "at run time the console decides the adapter's profile: publish in Inspect → read; drafts in Work → draft; publish in Work → full",
+   "ok": true,
+   "detail": {
+    "inspect": "read",
+    "draft": "draft",
+    "full": "full"
+   }
+  },
+  {
+   "step": "Figma \"Only look\": no edit capability, and the run gets the read-only Executor",
+   "ok": true,
+   "detail": {
+    "capabilities": [
+     "files.read",
+     "figma.plugin.read",
+     "browser"
+    ],
+    "executor": "read"
+   }
+  },
+  {
+   "step": "changing a setup: a new version with the new capabilities; edits made in the full definition are kept, and so is the template link",
+   "ok": true,
+   "detail": {
+    "versions": [
+     1,
+     2,
+     3
+    ],
+    "capabilities": [
+     "builder.read",
+     "builder.write.draft",
+     "browser"
+    ],
+    "notFromTemplate": "This worker wasn't set up from a template: edit its full definition instead."
+   }
+  },
+  {
+   "step": "first run: the guide explains Worker, Workspace and Team and lists the specialists with their real readiness",
+   "ok": true,
+   "detail": {
+    "concepts": [
+     "Worker",
+     "Workspace",
+     "Team"
+    ],
+    "cards": [
+     "Frontend Engineer",
+     "QA Engineer",
+     "Senior UI/UX Design Engineer",
+     "Builder.io Content Editor",
+     "Research Worker"
+    ],
+    "builderReady": "Needs: Builder.io: read content (not connected), Builder.io: change content (not connected)"
+   }
+  },
+  {
+   "step": "setup pages show only their worker's settings: Frontend has Run scripts, not Publishing; Builder the reverse",
+   "ok": true,
+   "detail": {
+    "frontend": [
+     "Run scripts",
+     "Check its work in a browser"
+    ],
+    "builder": [
+     "Publishing",
+     "Check the page on the site"
+    ]
+   }
+  },
+  {
+   "step": "a choice updates what the console says it can do; in an Inspect workspace publishing shows as not available",
+   "ok": true,
+   "detail": {
+    "work": "Read Builder.io content | Create, change and publish Builder.io content (test spaces only) | Use a browser",
+    "inspectOff": [
+     "Create, change and publish Builder.io content (test spaces only)\n · not in Inspect"
+    ]
+   }
+  },
+  {
+   "step": "adding a worker lands on its new task: readiness, example tasks, and the composer set to it",
+   "ok": true,
+   "detail": {
+    "composer": "QA Engineer",
+    "examples": 3,
+    "capabilities": [
+     "files.read",
+     "browser"
+    ]
+   }
+  },
+  {
+   "step": "its pencil opens the short setup; Full definition opens every setting; Define from scratch opens the blank form",
+   "ok": true,
+   "detail": {
+    "setupShows": "Not allowed",
+    "fullDefinition": "QA Engineer"
+   }
+  },
+  {
+   "step": "an unsaved setup change asks before leaving",
+   "ok": true,
+   "detail": {
+    "asked": "Unsaved changes"
+   }
+  }
+ ],
+ "pageErrors": []
+}

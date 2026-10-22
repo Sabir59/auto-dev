@@ -85,7 +85,7 @@ await step("a task from the composer runs on the server: live activity, the file
   return { chip: await page.textContent("#runChip") };
 });
 await step("the worker editor marks what the hosted platform doesn't provide", async () => {
-  await page.click("#addWk"); await page.waitForSelector("#wkForm");
+  await page.click("#addWk"); await page.click("#wkBlank"); await page.waitForSelector("#wkForm");
   const marks = await page.$$eval(".cap .needs.off", (els) => els.map((e) => e.closest(".cap").textContent.replace(/\s+/g, " ").slice(0, 60)));
   must(marks.length === 3 && marks.some((m) => /node and curl/.test(m)) && marks.some((m) => /Change the open Figma file/.test(m)), JSON.stringify(marks));
   await shot("hosted-worker-editor.png");

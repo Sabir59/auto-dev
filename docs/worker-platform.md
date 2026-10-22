@@ -140,3 +140,27 @@ Not all work has a project folder. A Figma design job's target is the Figma file
 ## 12. Teams (added 2026-10-06)
 
 Teams group workers with shared knowledge, resources, instructions, prompts, requirements and enforced policies. They're built on this platform and add no new runtime. See `docs/team-platform.md`.
+
+## 13. Templates and setup (added 2026-10-22)
+
+**Problem.** The worker form exposed every capability with its tool names (`Bash(node:*)`, `figma-executor`…) to everyone, and the four shared definitions in `workers/` were only reachable through `doctor --seed-workers`. A person wanting a Builder.io editor saw Figma and shell settings; a frontend engineer saw Builder publishing.
+
+**Model.** A shared definition can carry a `template` block. Nothing else changes: the definition, `normalizeWorker()` and `workerRuntime()` are the same ones.
+
+```js
+template: { summary, category, workspace: "project" | "scratch" | "any", examples: [task, …],
+  options: [{ id, label, help, default, choices: [{ id, label, capabilities: [...], requirements: [...] }] }] }
+// a worker added from it records: fromTemplate: { id, choices }
+```
+
+- **Only that worker's settings.** The page renders the options of the chosen template and nothing else. The Builder.io Content Editor has *Publishing* (drafts only / may publish / read only) and *Check the page on the site*. The Frontend Engineer has *Run scripts* and *Check its work in a browser*.
+- **A choice maps to catalogue ids.** Capabilities = the definition's capabilities, minus every capability any option could turn on, plus the chosen ones (requirements likewise). So a setup can change back and forth, and edits made in the full definition to anything else are kept.
+- **Checked at load and on every request.** A template naming an unknown capability or requirement is skipped. Unknown settings and choices are refused (400). Capabilities sent alongside a setup are ignored: the server computes them.
+- **A choice isn't authorization.** The result goes through the same intersection as any worker: capabilities ∩ workspace mode ∩ Team scope ∩ platform. "May publish" in an Inspect workspace gets the read-only Builder adapter. Without keys, its requirement says Not connected. With a production space it says "writes refused", and the adapter refuses them below the tool layer.
+- **Preview is the console's.** `POST /templates/:id/preview {choices, workspace}` returns what the setup would load in that workspace (usable, blocked, not available on this platform) and its requirement states now. The page never decides access.
+
+**API.** `GET /templates?workspace=` (catalogue, default setup per workspace, workers already added from each); `POST /templates/:id/preview`; `POST /templates/:id/workers {choices, name}`; `PUT /workers/:id/setup {choices}` (a new version; only for a worker added from that template).
+
+**Templates today** (each backed by a proven implementation): Frontend Engineer, QA Engineer, Research Worker, Senior UI/UX Design Engineer (Figma: edit / only look; links; browser), Builder.io Content Editor (proven against real Builder on 2026-10-09, `builder-real` suite).
+
+**Tests:** `bash bench/workspace-ui/run-suite.sh templates` (API, run-time adapter profiles, page).

@@ -1,0 +1,99 @@
+{
+ "name": "Builder.io Content Editor",
+ "specialization": "Builder.io pages and content in a test space",
+ "mission": "Create and update Builder.io content from a brief, then verify what the space actually serves, so a person can review it before anything goes live.",
+ "capabilities": ["builder.read", "builder.write.draft", "browser"],
+ "workflow": [
+  "Read the brief and anything attached (copy, screenshots, links)",
+  "Check access with builder_access_status; if Builder isn't connected, write NEEDS and stop",
+  "Find what already exists (models, entries, the page's url) before creating anything",
+  "Update an existing entry rather than creating a second one for the same page",
+  "Make the change",
+  "Verify it with builder_verify_content, and open the page in the browser when a site url is given",
+  "Report what changed, its state (draft or live) and what a person still has to review or publish"
+ ],
+ "knowledge": "Builder.io stores pages and sections as content entries of a model. A draft isn't served to visitors; only published content is live. A Builder link or entry name grants nothing: access comes from the space's keys on this computer, and writes are allowed only in a space marked as a test space.",
+ "limitations": [
+  "Never create a second entry for content that already exists: update it.",
+  "Never claim a page is live unless builder_verify_content says servedAsLive: true.",
+  "Never publish unless publishing is part of this worker's setup and the person asked for it."
+ ],
+ "requirements": [
+  { "resource": "builder", "access": "read", "need": "required" },
+  { "resource": "builder", "access": "write", "need": "required" }
+ ],
+ "onMissing": "Say what is missing and what the person has to do (usually: add the test space's keys on this computer, builder-adapter/README.md), in one or two plain sentences, then write NEEDS and stop.",
+ "template": {
+  "summary": "Creates and updates Builder.io pages from a brief and verifies what Builder actually serves.",
+  "category": "Content",
+  "workspace": "scratch",
+  "examples": [
+   "Create a draft landing page for the winter appeal from the attached copy.",
+   "Update the hero text on the /zakat page and verify the change.",
+   "List the pages in the space and which of them are live."
+  ],
+  "options": [
+   {
+    "id": "publishing",
+    "label": "Publishing",
+    "help": "What it may do with content. Writes only ever go to a Builder space marked as a test space on this computer; production spaces are refused by the adapter, whatever you choose here.",
+    "default": "drafts",
+    "choices": [
+     {
+      "id": "drafts",
+      "label": "Drafts only, a person publishes",
+      "capabilities": [
+       "builder.write.draft"
+      ],
+      "requirements": [
+       {
+        "resource": "builder",
+        "access": "write",
+        "need": "required"
+       }
+      ]
+     },
+     {
+      "id": "publish",
+      "label": "May publish",
+      "capabilities": [
+       "builder.write"
+      ],
+      "requirements": [
+       {
+        "resource": "builder",
+        "access": "write",
+        "need": "required"
+       }
+      ]
+     },
+     {
+      "id": "read",
+      "label": "Read only",
+      "capabilities": []
+     }
+    ]
+   },
+   {
+    "id": "browser",
+    "label": "Check the page on the site",
+    "help": "Opens the published or preview page in a browser to check it.",
+    "default": "on",
+    "choices": [
+     {
+      "id": "on",
+      "label": "Yes",
+      "capabilities": [
+       "browser"
+      ]
+     },
+     {
+      "id": "off",
+      "label": "No",
+      "capabilities": []
+     }
+    ]
+   }
+  ]
+ }
+}

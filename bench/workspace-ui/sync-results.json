@@ -1,5 +1,5 @@
 {
- "when": "2026-10-19T19:44:54.170Z",
+ "when": "2026-10-22T09:22:03.965Z",
  "results": [
   {
    "step": "Executor: remove it (it has a run) → off the list, its run hidden",
@@ -7,13 +7,13 @@
    "detail": {
     "runsShownBefore": 1,
     "after": {
-     "wsId": "work-test-1fba",
+     "wsId": "work-test-62bb",
      "rows": [
       "scratch",
-      "work-test-1fba"
+      "work-test-62bb"
      ],
      "current": [
-      "work-test-1fba"
+      "work-test-62bb"
      ],
      "cName": "Work test",
      "runs": 0,
@@ -36,13 +36,13 @@
    "step": "the other tab corrects itself within the refresh (it had Executor open)",
    "ok": true,
    "detail": {
-    "wsId": "work-test-1fba",
+    "wsId": "work-test-62bb",
     "rows": [
      "scratch",
-     "work-test-1fba"
+     "work-test-62bb"
     ],
     "current": [
-     "work-test-1fba"
+     "work-test-62bb"
     ],
     "cName": "Work test",
     "runs": 0,
@@ -63,7 +63,7 @@
      "rows": [
       "scratch",
       "console",
-      "work-test-1fba"
+      "work-test-62bb"
      ],
      "current": [
       "console"
@@ -109,14 +109,14 @@
    "ok": true,
    "detail": {
     "A": {
-     "wsId": "work-test-3866",
+     "wsId": "work-test-059f",
      "rows": [
       "scratch",
-      "work-test-3866",
+      "work-test-059f",
       "console"
      ],
      "current": [
-      "work-test-3866"
+      "work-test-059f"
      ],
      "cName": "Work test",
      "runs": 0,
@@ -131,7 +131,7 @@
      "wsId": "console",
      "rows": [
       "scratch",
-      "work-test-3866",
+      "work-test-059f",
       "console"
      ],
      "current": [
@@ -166,7 +166,7 @@
      "tree": [],
      "consistent": true
     },
-    "heading": "General worker",
+    "heading": "Give a specialist a real task",
     "noRemoveButton": 0,
     "refused": {
      "status": 400,

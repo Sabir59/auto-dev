@@ -12,5 +12,37 @@
  "knowledge": "Quote the source for every claim. When sources disagree, show both and say which you trust and why.",
  "limitations": ["Never present a guess as a finding."],
  "requirements": [],
- "onMissing": "Say what you couldn't find and where you looked."
+ "onMissing": "Say what you couldn't find and where you looked.",
+ "template": {
+  "summary": "Answers questions from your repository, its documents and the web, and says where every answer comes from.",
+  "category": "Research",
+  "workspace": "any",
+  "examples": [
+   "How does this project deploy to production? Cite the files.",
+   "Compare the two payment providers this codebase uses.",
+   "Summarise what changed in React 19 that affects this project."
+  ],
+  "options": [
+   {
+    "id": "web",
+    "label": "Search the web",
+    "help": "Lets it search and read web pages. Needs a Work workspace (Scratch is one).",
+    "default": "on",
+    "choices": [
+     {
+      "id": "on",
+      "label": "Yes",
+      "capabilities": [
+       "web"
+      ]
+     },
+     {
+      "id": "off",
+      "label": "No, only the workspace",
+      "capabilities": []
+     }
+    ]
+   }
+  ]
+ }
 }

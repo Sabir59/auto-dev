@@ -16,5 +16,64 @@
   "Never mark something as verified that you didn't actually check."
  ],
  "requirements": [{ "resource": "browser", "access": "use", "need": "optional" }],
- "onMissing": "Say which check couldn't be run and why, and what would make it possible."
+ "onMissing": "Say which check couldn't be run and why, and what would make it possible.",
+ "template": {
+  "summary": "Checks that a change does what was asked and doesn't break what's around it, and reports precisely what it found.",
+  "category": "Engineering",
+  "workspace": "project",
+  "examples": [
+   "Review the last change to the checkout page against the ticket and report problems.",
+   "Open the donation form in the browser and check every validation message.",
+   "List the places this change could break, with the files involved."
+  ],
+  "options": [
+   {
+    "id": "browser",
+    "label": "Test in a browser",
+    "help": "Opens and clicks through pages to check behaviour, not just code.",
+    "default": "on",
+    "choices": [
+     {
+      "id": "on",
+      "label": "Yes",
+      "capabilities": [
+       "browser"
+      ],
+      "requirements": [
+       {
+        "resource": "browser",
+        "access": "use",
+        "need": "optional"
+       }
+      ]
+     },
+     {
+      "id": "off",
+      "label": "No",
+      "capabilities": []
+     }
+    ]
+   },
+   {
+    "id": "commands",
+    "label": "Run scripts",
+    "help": "Lets it run node and curl, for example the project's tests. It never gets edit tools: QA reports, it doesn't change code.",
+    "default": "on",
+    "choices": [
+     {
+      "id": "on",
+      "label": "Allowed",
+      "capabilities": [
+       "shell"
+      ]
+     },
+     {
+      "id": "off",
+      "label": "Not allowed",
+      "capabilities": []
+     }
+    ]
+   }
+  ]
+ }
 }

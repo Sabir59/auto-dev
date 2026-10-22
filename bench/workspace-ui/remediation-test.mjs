@@ -40,7 +40,7 @@ await page.click(`#wsList [data-ws="${work.id}"]`);
 
 // ---- A. drafts and destructive actions (no worker) ----
 await step("UX-001: Escape on a worker page with unsaved changes asks; Keep editing keeps the draft", async () => {
-  await page.click("#addWk"); await page.waitForSelector("#wkForm");
+  await page.click("#addWk"); await page.click("#wkBlank"); await page.waitForSelector("#wkForm");
   await page.fill("#wkN", "Draft Worker"); await page.fill("#wkK", "Knowledge typed but not saved");
   await page.keyboard.press("Escape");
   const t = await dialog(); must(t === "Unsaved changes", `dialog: ${t}`);
@@ -61,7 +61,7 @@ await step("UX-001: leaving through the sidebar asks; Discard leaves without sav
   return { view: "chat", workspace: canary.name, saved };
 });
 await step("UX-001: New task (Alt+N) from a changed page asks; Save keeps the work, then goes on", async () => {
-  await page.click("#addWk"); await page.waitForSelector("#wkForm");
+  await page.click("#addWk"); await page.click("#wkBlank"); await page.waitForSelector("#wkForm");
   await page.fill("#wkN", "Saved On Leave"); await page.fill("#wkM", "Made by the remediation test");
   await page.keyboard.press("Alt+N");
   must((await dialog()) === "Unsaved changes", "Alt+N didn't ask");

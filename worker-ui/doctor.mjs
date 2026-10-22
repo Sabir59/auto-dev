@@ -82,7 +82,9 @@ if (process.argv.includes("--seed-workers")) {
     for (const f of readdirSync(join(REPO, "workers")).filter((x) => x.endsWith(".json"))) {
       const w = JSON.parse(readFileSync(join(REPO, "workers", f), "utf8"));
       if (have.has(w.name)) continue;
-      const r = await fetch(`http://127.0.0.1:${CONSOLE}/workers`, { method: "POST", headers: H, body: JSON.stringify(w) });
+      // A definition with a template block is added through it, so the page offers its short setup.
+      const r = w.template ? await fetch(`http://127.0.0.1:${CONSOLE}/templates/${f.slice(0, -5)}/workers`, { method: "POST", headers: H, body: "{}" })
+        : await fetch(`http://127.0.0.1:${CONSOLE}/workers`, { method: "POST", headers: H, body: JSON.stringify(w) });
       if (r.ok) added.push(w.name); else add("required", `Seed ${w.name}`, false, (await r.json()).error, "");
     }
     add("optional", "Shared worker definitions", true, added.length ? `added: ${added.join(", ")}` : "all present", "");
