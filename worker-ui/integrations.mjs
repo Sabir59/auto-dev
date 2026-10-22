@@ -26,6 +26,24 @@ const YES = (caps, extra = {}) => ({ id: "yes", label: "Yes", caps, ...extra });
 const NO = { id: "no", label: "No", caps: [] };
 
 export const INTEGRATIONS = [
+  { id: "gitsync", label: "Git branch sync and promotion", short: "Git sync", connector: true, workspace: "project",
+    summary: "Shows which changes each branch is missing and who they belong to, and plans synchronisation and promotion between branches, simulated with Git before anything happens (worker-ui/gitflow.mjs).",
+    detect: ["sync", "synchroni[sz]e", "synchroni[sz]ation", "in sync", "cherry-?picks?", "promote", "promotion", "branches"], absorbs: ["code"],
+    caps: ["gitflow.read"], name: (a) => (a.team ? `${a.team} branch sync worker` : "Branch sync worker"), specialization: () => "Git branch synchronisation and promotion between teams",
+    steps: ["Read the Git workflow configuration (gitflow_overview) before anything else", "Base every statement about a commit on gitflow_commits / gitflow_commit evidence, and say when ownership or a relationship is uncertain", "Explain plans from gitflow_preview: what is blocked, why, and what a person must decide"],
+    limits: ["Never claim a change is safe to apply because it looks like it belongs to the team: the plan's evidence decides.", "Never invent a ticket, pull request or relationship between commits that the evidence doesn't show.", "You can't create branches, merge or push: the person approves and runs plans on the Git workflow page."],
+    starters: ["Explain the changes waiting for each branch relationship: who they belong to, which are blocked and why. Don't change anything."],
+    questions: [
+      { id: "team", type: "text", label: "Your team", placeholder: "e.g. BAU", knowledge: "Team" },
+      { id: "others", type: "text", label: "Other teams in the repository", placeholder: "e.g. Innovax", knowledge: "Other teams" },
+      { id: "mappings", type: "text", label: "Branch relationships", placeholder: "dev-main → sabir-dev; uat-main → sabir-uat; sabir-uat → preprod-main", knowledge: "Branch relationships",
+        prefill: [["sabir-dev|sabir-uat", "dev-main → sabir-dev; uat-main → sabir-uat; sabir-uat → preprod-main"]] },
+      { id: "writes", type: "choice", label: "What may it prepare?", default: "preview", help: "Analysis and plans are simulated with Git and change nothing. A proposal branch is a NEW branch with a plan's result, created only when you approve that plan; nothing is ever pushed or written to an existing branch.", choices: [
+        { id: "preview", label: "Previews and reports only", approval: "It changes nothing in the repository." },
+        { id: "propose", label: "Also proposal branches, when I approve", approval: "Each proposal branch needs your approval on the Git workflow page; you push it and open the pull request yourself." }] },
+      { id: "setup", type: "info", label: "After creating it", text: "Its Git workflow page has the rest: people and their identities, branch patterns, overrides and exclusion rules." },
+    ] },
+
   { id: "code", label: "Code repository", short: "Code", connector: true, workspace: "project",
     summary: "Reads and changes code in a project folder on this computer (a Git checkout).",
     detect: ["repo", "repository", "codebase", "source code", "react", "next\\.?js", "vue", "nuxt", "angular", "svelte", "typescript", "javascript", "frontend", "front-end", "backend", "pull request", "refactor", "unit tests?"],

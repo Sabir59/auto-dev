@@ -1,0 +1,204 @@
+{
+ "when": "2026-10-22T15:11:23.022Z",
+ "results": [
+  {
+   "step": "created through the existing flow: described in words, recognised as Git branch sync, read-only Git tools only, a starting configuration from the answers",
+   "ok": true,
+   "detail": {
+    "worker": "BAU branch sync worker",
+    "capabilities": [
+     "files.read",
+     "gitflow.read"
+    ],
+    "mappings": [
+     "dev-main → sabir-dev (sync, selective)",
+     "uat-main → sabir-uat (sync, selective)",
+     "sabir-uat → preprod-main (promote, feature)"
+    ]
+   }
+  },
+  {
+   "step": "configured: people, identities and branch patterns saved and validated (a bad branch pair, two 'our' teams and a bad override are refused)",
+   "ok": true,
+   "detail": {
+    "people": [
+     "Sameem (bau)",
+     "Sabir (bau)",
+     "Ali (innovax)"
+    ],
+    "refused": [
+     "\"a..b → x\" isn't a valid branch pair.",
+     "Only one team can be yours.",
+     "Override \"not-a-sha\": use a commit id or a pull request number (#123)."
+    ]
+   }
+  },
+  {
+   "step": "explorer: dev-main → sabir-dev from real Git state; Sameem's four commits by email (plus one only by name, uncertain); PR and ticket grouping; copy, revert and unknown author found",
+   "ok": true,
+   "detail": {
+    "pending": 12,
+    "sameem": [
+     "N1:uncertain",
+     "S1:confirmed",
+     "S2:confirmed",
+     "S3:confirmed",
+     "S5:likely"
+    ],
+    "tasks": [
+     "pr:PR103+S3",
+     "pr:PR102+I1",
+     "pr:PR101+S2+S1",
+     "ticket:R1+S4",
+     "single:N1",
+     "single:U1",
+     "single:S5"
+    ]
+   }
+  },
+  {
+   "step": "configuration changes the results: moving Sameem to Innovax makes PR #101 uncertain (the evidence disagrees); an override confirms N1",
+   "ok": true,
+   "detail": {
+    "movedS1": "uncertain",
+    "overriddenN1": "confirmed"
+   }
+  },
+  {
+   "step": "one commit: files, a browsable diff and the raw Git evidence",
+   "ok": true,
+   "detail": {
+    "files": [
+     {
+      "path": "src/cart.js",
+      "added": "1",
+      "deleted": "0"
+     }
+    ],
+    "rawHead": "commit 25419dab2895062d3ca381402d88a919ea69355f"
+   }
+  },
+  {
+   "step": "plans (simulated with Git): S1+S2 ready; S3 blocked by a predicted conflict and its cross-team dependency; S4 blocked as reverted; S5 already present; N1 blocked as uncertain",
+   "ok": true,
+   "detail": {
+    "ready": "6e69638e5b863599",
+    "s3": [
+     "25419dab2: predicted conflict",
+     "25419dab2 may depend on 17b06a82f (Innovax, not selected): both change src/cart.js"
+    ],
+    "s4": [
+     "4e4550cb7: reverted later"
+    ],
+    "s5": [
+     "An equivalent change is already in the destination (d998616a9, same patch, different commit)"
+    ],
+    "n1": [
+     "25985c059: Ownership is uncertain",
+     "25985c059 may depend on f46897449 (Innovax, not selected): both change src/app.js"
+    ]
+   }
+  },
+  {
+   "step": "rules decide block vs review: with 'block reverted changes' off, S4 needs review (not ready)",
+   "ok": true,
+   "detail": {
+    "status": "review",
+    "reviews": [
+     "4e4550cb7: reverted later"
+    ]
+   }
+  },
+  {
+   "step": "strategies: merging dev-main (keeping history) is blocked because it carries Innovax's work; promoting PR #201 to preprod-main is ready; PR #202 (cut from dev-main) is blocked",
+   "ok": true,
+   "detail": {
+    "ancestry": "4 blockers",
+    "feature201": "ready",
+    "feature202": "17b06a82f: Ownership is uncertain (carried by #202 bau/from-dev)"
+   }
+  },
+  {
+   "step": "execution is guarded: a blocked plan is refused; an approved ready plan creates only a NEW branch (copies record their originals); no existing branch, remote-tracking branch or origin ref changes",
+   "ok": true,
+   "detail": {
+    "branch": "gitflow/sabir-dev-20261022-151007",
+    "recovery": "Nothing that existed was changed. To discard: git branch -D gitflow/sabir-dev-20261022-151007. To use it: review it, push it yourself and open a pull request into sabir-dev."
+   }
+  },
+  {
+   "step": "a stale plan (the destination moved) and a preview-only worker are refused; the audit trail records previews, refusals and the execution",
+   "ok": true,
+   "detail": {
+    "stale": "The branches changed since this plan was made (or its decisions did): look at the new preview and approve that one.",
+    "previewOnly": "This worker is set to preview only: allow it to create proposal branches in its setup first.",
+    "audit": [
+     "config",
+     "preview",
+     "refused",
+     "execute"
+    ]
+   }
+  },
+  {
+   "step": "the worker's tools (MCP): read-only on Git (no branch, merge or push tool); it reads Sameem's commits and saves an explanation the explorer shows as its own",
+   "ok": true,
+   "detail": {
+    "tools": [
+     "gitflow_commit",
+     "gitflow_commits",
+     "gitflow_overview",
+     "gitflow_preview",
+     "gitflow_save_note"
+    ],
+    "sameemCommits": 5
+   }
+  },
+  {
+   "step": "a real run of the worker (Claude): its runtime gets the gitflow tools, not Write or Bash, and it answers from gitflow_overview",
+   "ok": true,
+   "detail": {
+    "used": [
+     "ToolSearch",
+     "mcp__gitflow__gitflow_overview"
+    ],
+    "reply": "BAU, Innovax"
+   }
+  },
+  {
+   "step": "page: the worker's new task offers its Git workflow; Commits lists real changes; choosing Sameem shows his commits; a commit shows evidence, its diff and the worker's explanation",
+   "ok": true,
+   "detail": {
+    "sameemRows": 5
+   }
+  },
+  {
+   "step": "page: select PR #101's task → plan Ready → approve (confirm) → the new branch and 'existing branches changed: none'",
+   "ok": true,
+   "detail": {
+    "status": "Ready",
+    "outcome": "Created gitflow/sabir-dev-20261022-151104"
+   }
+  },
+  {
+   "step": "page: S3 alone is blocked with the predicted conflict and the cross-team dependency, and can't be approved; History lists what happened",
+   "ok": true,
+   "detail": {
+    "blocked": true,
+    "approveDisabled": true
+   }
+  },
+  {
+   "step": "real MATW repository, read-only: dev-main → sabir-dev analysed in a private copy; the count matches git; no ref in MATW changed",
+   "ok": true,
+   "detail": {
+    "pending": 216,
+    "git": "216",
+    "prs": 18,
+    "copiesInDestination": 0,
+    "refsUnchanged": true
+   }
+  }
+ ],
+ "pageErrors": []
+}

@@ -29,6 +29,7 @@ import * as github from "./github.mjs";
 import * as ghApp from "./github-app.mjs";
 import { resolveProvider } from "./provider.mjs";
 import * as drafts from "./integrations.mjs";
+import * as gitflow from "./gitflow.mjs";
 github.setRefresher(ghApp.refreshToken); // an expiring "Connect with GitHub" token is refreshed with the app's secret
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -190,6 +191,9 @@ const CAPABILITIES = {
   // builder.mjs's assertPublishAllowed). A worker can't turn this into "builder.write": that would
   // require editing this file, which no worker capability grants access to.
   "builder.write.draft": { label: "Create and change Builder.io content as drafts only (test spaces only) — publishing is not available", tools: "builder: create draft, update as a draft (inline or from a file), upload assets", mcp: "builder", allow: BUILDER_DRAFT_TOOLS, profiles: ["full"] },
+  // Read-only on Git (worker-ui/gitflow.mjs does the Git work): commits, evidence, simulated plans,
+  // and the worker's own notes. Creating a branch from a plan is the person's action on the page.
+  "gitflow.read": { label: "Inspect branches and simulate synchronisation plans (read-only)", tools: "gitflow: overview, commits, commit, preview, save note", mcp: "gitflow", allow: ["mcp__gitflow"], profiles: ["full", "inspect"] },
 };
 // A Team's Figma resource locks the Figma tools of its runs to that one file: the Executor refuses
 // commands while another file is open, and the Reader refuses links to other files.
@@ -216,6 +220,9 @@ const MCP_SERVERS = {
     return { command: process.execPath, args: [join(REPO, "mcp", "builder-server.mjs")],
       env: { BUILDER_ADAPTER_PROFILE: builderProfile, ...((full || draft) && root ? { BUILDER_UPLOAD_ROOT: root } : {}), ...(process.env.BUILDER_ADAPTER_DIR ? { BUILDER_ADAPTER_DIR: process.env.BUILDER_ADAPTER_DIR } : {}) } };
   },
+  // The Git workflow worker's read-only tools, on the run's workspace and this worker's own data.
+  gitflow: (profile, scope = {}, usable = [], root = null, def = null) => ({ command: process.execPath, args: [join(REPO, "mcp", "gitflow-server.mjs")],
+    env: { GITFLOW_ROOT: root, GITFLOW_DIR: gitflowDir(def?.id) } }),
   // The workspace's registered repository, at this worker's access (mcp/repo-server.mjs registers
   // only the tools that access allows). It gets the checkout and the expected remote, no token.
   repo: (profile, scope = {}, usable = [], root = null) => ({ command: process.execPath, args: [join(REPO, "mcp", "repo-server.mjs")],
@@ -409,6 +416,17 @@ function normalizeWorker(b, prev) {
 // catalogues, and the result runs through the same workerRuntime as any worker (capabilities ∩
 // workspace mode ∩ Team scope ∩ platform). Integrations without a connector are answered honestly.
 drafts.checkRegistry(CAPABILITIES, RESOURCES);
+// A Git workflow worker's data: <data>/gitflow/<worker id>/ (config.json, plans/, audit.jsonl,
+// notes.json, and scratch/: the private repository its analysis and simulations write to).
+function gitflowDir(id) { if (!/^[\w-]+$/.test(String(id || ""))) throw new Error("No worker for the Git workflow tools."); return join(DATA, "gitflow", id); }
+function readGitflowConfig(id) { const f = join(gitflowDir(id), "config.json"); try { return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; } catch { return null; } }
+function writeGitflowConfig(id, cfg) { mkdirSync(gitflowDir(id), { recursive: true }); writeAtomic(join(gitflowDir(id), "config.json"), JSON.stringify(cfg, null, 1)); }
+const gitflowAudit = (id, e) => new gitflow.GitFlow({ root: null, dir: gitflowDir(id), config: {} }).audit(e);
+function gitflowEngine(id, cfg, noRepo = false) {
+  if (noRepo) return new gitflow.GitFlow({ root: null, dir: gitflowDir(id), config: cfg });
+  if (!cfg.workspace) throw new Error("Choose the repository's workspace in the Git workflow setup.");
+  return new gitflow.GitFlow({ root: resolveWorkspace(cfg.workspace).root, dir: gitflowDir(id), config: cfg });
+}
 // A draft as the page shows it: the composition, what it would get in a workspace, and its
 // requirements checked now.
 async function draftPreview(b) {
@@ -1316,7 +1334,7 @@ function spawnWorker(run, { resume }) {
   if (def) {
     const rt = workerRuntime(def, ws.profile, scope);
     mcpFile = join(RUNS, `${run.meta.id}.mcp.json`);
-    writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(rt.servers.map((n) => [n, MCP_SERVERS[n](ws.profile, scope, rt.usable, ws.root)])) }, null, 1));
+    writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(rt.servers.map((n) => [n, MCP_SERVERS[n](ws.profile, scope, rt.usable, ws.root, def)])) }, null, 1));
     profileArgs = rt.args;
     if (scope.protect.length) {
       run.enforced = { noShell: true, noWrite: scope.onProtected };
@@ -2202,7 +2220,41 @@ http.createServer(async (req, res) => {
     // worker drafts: the integrations registry, a draft for a request, creating the worker
     if (url.pathname === "/integrations" && req.method === "GET") return json(res, 200, { integrations: drafts.publicRegistry() });
     if (url.pathname === "/worker-drafts/preview" && req.method === "POST") return json(res, 200, await draftPreview(await body(req)));
-    if (url.pathname === "/workers/from-request" && req.method === "POST") { const w = workerFromRequest(await body(req)); writeWorkers([...readWorkers(), w]); return json(res, 200, w); }
+    if (url.pathname === "/workers/from-request" && req.method === "POST") {
+      const b = await body(req), w = workerFromRequest(b);
+      writeWorkers([...readWorkers(), w]);
+      // A Git workflow worker starts with a configuration from its answers (editable on its page).
+      const g = w.fromRequest.integrations.includes("gitsync") ? w.fromRequest.answers.gitsync || {} : null;
+      if (g) writeGitflowConfig(w.id, gitflow.initialConfig({ team: g.team, others: g.others, mappings: g.mappings, proposals: g.writes === "propose", workspace: typeof b.workspace === "string" ? b.workspace : "" }));
+      return json(res, 200, w);
+    }
+
+    // The Git workflow of a worker with gitflow.read: its configuration, the commits a destination is
+    // missing (with evidence), one commit, a simulated plan, an approved plan's execution (a new
+    // branch only), and the audit trail. Everything Git-related is decided by worker-ui/gitflow.mjs.
+    if (parts[0] === "gitflow" && parts[1]) {
+      const w = readWorkers().find((x) => x.id === parts[1]);
+      if (!w || !w.capabilities.includes("gitflow.read")) return json(res, 404, { error: "No Git workflow worker with that id." });
+      const cfg = readGitflowConfig(w.id);
+      if (parts[2] === "config" && req.method === "GET") return json(res, 200, { config: cfg, strategies: gitflow.STRATEGIES, worker: { id: w.id, name: w.name } });
+      if (parts[2] === "config" && req.method === "PUT") {
+        const next = gitflow.normalizeConfig(await body(req), cfg || {});
+        if (next.workspace) resolveWorkspace(next.workspace);
+        writeGitflowConfig(w.id, next); gitflowAudit(w.id, { action: "config", by: "person", mappings: next.mappings.length, people: next.people.length, proposals: next.proposals });
+        return json(res, 200, { config: next });
+      }
+      if (!cfg) return json(res, 400, { error: "Set up the Git workflow first." });
+      if (parts[2] === "audit" && req.method === "GET") return json(res, 200, { audit: gitflowEngine(w.id, cfg, true).auditLog() });
+      const gf = gitflowEngine(w.id, cfg);
+      const mapping = (id) => { const m = cfg.mappings.find((x) => x.id === id); if (!m) throw new Error("Choose one of the configured branch relationships."); return m; };
+      if (parts[2] === "analysis" && req.method === "GET") return json(res, 200, await gf.analyse(mapping(url.searchParams.get("mapping")), { scope: url.searchParams.get("scope") === "recent" ? "recent" : "pending" }));
+      if (parts[2] === "commit" && parts[3] && req.method === "GET") return json(res, 200, await gf.commit(parts[3]));
+      if (parts[2] === "preview" && req.method === "POST") { const b = await body(req); return json(res, 200, await gf.preview(mapping(b.mapping), { strategy: b.strategy, select: Array.isArray(b.select) ? b.select.slice(0, 200).map(String) : [] })); }
+      if (parts[2] === "execute" && req.method === "POST") {
+        const b = await body(req), id = (k) => (spawnSync("git", ["config", k], { cwd: gf.root, encoding: "utf8", windowsHide: true }).stdout || "").trim();
+        return json(res, 200, await gf.execute(String(b.plan || ""), { approvedBy: HOSTED ? process.env.AIW_USER_EMAIL || "person" : "person at this console", acknowledge: b.acknowledge === true, identity: { name: id("user.name"), email: id("user.email") } }));
+      }
+    }
 
     // workers: definitions (with live requirement status for a workspace) and their memory
     if (url.pathname === "/workers" && req.method === "GET") {
