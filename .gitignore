@@ -34,3 +34,6 @@ exports/*.jpg
 # Credentials and environment files, wherever they appear
 .env
 *.env
+
+# Git workflow workers: configuration, plans, audit, notes and private repository copies (per console)
+worker-ui/gitflow/
