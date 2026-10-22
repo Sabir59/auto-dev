@@ -97,6 +97,14 @@ const SCRATCH_NOTE = ["## Workspace: Scratch",
   "This conversation has no project folder. Your working directory is its own scratch folder: it started empty, only this conversation (and any session that continues it) uses it, and it isn't under version control. There are no project files here to find.",
   "Keep intermediate files here. Report anything the person should keep or open with an ARTIFACT: line."].join("\n");
 if (!existsSync(PROMPTS)) writeFileSync(PROMPTS, "[]\n");
+// Files rewritten while the console runs (a run's record, its state, memory, prompts) are written to
+// a temporary file and renamed over the old one, so stopping the console mid-write (closing its
+// window) leaves the old version, not an empty file. Windows can refuse the rename while another
+// program has the file open: then it's written in place, as before.
+const writeAtomic = (p, text) => {
+  try { writeFileSync(p + ".tmp", text); renameSync(p + ".tmp", p); }
+  catch { writeFileSync(p, text); try { rmSync(p + ".tmp", { force: true }); } catch {} }
+};
 
 // Tools the worker may use: MCP environments, files, node/curl in the shell, web.
 const ALLOWED = [
@@ -460,7 +468,7 @@ function workerFromTemplate(tpl, body = {}) {
 // definition, shown to the person, and given to its later runs as a labelled section.
 const memPath = (id) => join(MEMORY, `${id}.memory.json`);
 const readMemory = (id) => (/^[\w-]+$/.test(id) && existsSync(memPath(id)) ? JSON.parse(readFileSync(memPath(id), "utf8")) : []);
-const writeMemory = (id, list) => { mkdirSync(MEMORY, { recursive: true }); writeFileSync(memPath(id), JSON.stringify(list, null, 1)); };
+const writeMemory = (id, list) => { mkdirSync(MEMORY, { recursive: true }); writeAtomic(memPath(id), JSON.stringify(list, null, 1)); };
 const SECRETISH = /(figd_|ghp_|github_pat_|sk-[a-z0-9]|xox[bp]-|AKIA[0-9A-Z]{8}|-----BEGIN|password\s*[:=]|api[_-]?key\s*[:=]|token\s*[:=])/i;
 
 // The worker's context for one run: the shared instructions, then this worker, then what was
@@ -1183,7 +1191,7 @@ function resultText(content) {
 const runs = new Map(); // id -> { meta, child?, toolUses, file, raw }
 const listeners = new Map(); // id -> Set(res)
 const metaPath = (id) => join(RUNS, `${id}.meta.json`);
-const saveMeta = (run) => { run.meta.updatedAt = new Date().toISOString(); writeFileSync(metaPath(run.meta.id), JSON.stringify(run.meta, null, 1)); };
+const saveMeta = (run) => { run.meta.updatedAt = new Date().toISOString(); writeAtomic(metaPath(run.meta.id), JSON.stringify(run.meta, null, 1)); };
 
 function emit(run, ev) {
   const line = JSON.stringify({ ts: new Date().toISOString(), ...ev });
@@ -1453,7 +1461,7 @@ const telOf = (run) => (run.meta.telemetry ||= newTelemetry());
 const statePath = (id) => join(RUNS, `${id}.state.json`);
 const readTaskState = (id) => (existsSync(statePath(id)) ? JSON.parse(readFileSync(statePath(id), "utf8")) : null);
 const stateOf = (run) => (run.state ||= readTaskState(run.meta.id) || { runId: run.meta.id, objective: String(run.meta.prompt || "").slice(0, 4000), requests: [], figma: null, created: [], batches: [], milestones: [], errors: [], visualChecks: [], sessions: [], compactions: 0, ...(run.meta.continuedFrom ? { continuedFrom: run.meta.continuedFrom } : {}) });
-const saveTaskState = (run) => { if (run.state) writeFileSync(statePath(run.meta.id), JSON.stringify(run.state, null, 1)); };
+const saveTaskState = (run) => { if (run.state) writeAtomic(statePath(run.meta.id), JSON.stringify(run.state, null, 1)); };
 const pushMax = (list, item, max) => { list.push(item); if (list.length > max) list.splice(0, list.length - max); };
 const kTok = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n));
 const parseJson = (s) => { try { return JSON.parse(s); } catch { return null; } };
@@ -1710,10 +1718,15 @@ function lastLoggedStatus(file) {
   for (let i = lines.length - 1; i >= 0; i--) if (lines[i].includes('"type":"status"')) { try { return JSON.parse(lines[i]).summary; } catch {} }
   return null;
 }
+// One unreadable run record mustn't take the whole list (and the page) down: it's left out and
+// logged once; its other files are kept, so it can be recovered.
+const badMeta = new Set();
 function loadRun(id) {
   if (runs.has(id)) return runs.get(id);
   if (!/^[\w-]+$/.test(id) || !existsSync(metaPath(id))) return null;
-  const meta = JSON.parse(readFileSync(metaPath(id), "utf8"));
+  let meta;
+  try { meta = JSON.parse(readFileSync(metaPath(id), "utf8")); }
+  catch (e) { if (!badMeta.has(id)) { badMeta.add(id); console.log(`run ${id}: its record (runs/${id}.meta.json) can't be read (${e.message}); it's left out of the list`); } return null; }
   const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
   if (["starting", "running", "waiting"].includes(meta.status)) { meta.status = "interrupted"; saveMeta(run); } // server restarted under it
   // The log has to say so too: the page rebuilds a run's state by replaying it, and a log still
@@ -1724,7 +1737,7 @@ function loadRun(id) {
   return run;
 }
 function allMetas() {
-  return readdirSync(RUNS).filter((f) => f.endsWith(".meta.json")).map((f) => loadRun(f.replace(".meta.json", "")).meta).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return readdirSync(RUNS).filter((f) => f.endsWith(".meta.json")).map((f) => loadRun(f.replace(".meta.json", ""))?.meta).filter(Boolean).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 // ---- versions (git) ----------------------------------------------------------------
@@ -1965,7 +1978,7 @@ async function gitPush(wsId, runId) {
 
 // ---- prompts ---------------------------------------------------------------
 const readPrompts = () => JSON.parse(readFileSync(PROMPTS, "utf8"));
-const writePrompts = (p) => writeFileSync(PROMPTS, JSON.stringify(p, null, 1) + "\n");
+const writePrompts = (p) => writeAtomic(PROMPTS, JSON.stringify(p, null, 1) + "\n");
 
 // ---- http --------------------------------------------------------------------
 const TYPES = { ".html": "text/html; charset=utf-8", ".json": "application/json", ".md": "text/plain; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8", ".mjs": "text/plain; charset=utf-8", ".csv": "text/plain; charset=utf-8", ".css": "text/css" };
