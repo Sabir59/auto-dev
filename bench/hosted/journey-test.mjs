@@ -1,7 +1,7 @@
 // The first-time customer journey in a real browser, end to end: Discover → Configure → Connect →
-// Delegate → Observe → Review → continue. Sign in, the getting-started guide, a project folder, the
-// Frontend Engineer from its template (with what the platform doesn't provide marked), an example
-// task run by the real runtime, live activity, the result (what it reported, what failed, files
+// Delegate → Observe → Review → continue. Sign in, the getting-started guide, a project folder, a worker
+// described in the person's own words and configured from it (with what the platform doesn't provide
+// marked), their request run by the real runtime, live activity, the result (what it reported, what failed, files
 // written), the real diff from "Review the changes", and a follow-up that needs the person.
 // The gateway, the console, the Claude Code CLI and the tools are real; the MODEL IS THE FAKE
 // PROVIDER (fake-anthropic.mjs), scripted, so this proves the product's side of each step, not what
@@ -38,19 +38,18 @@ page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on("pageerror", (e) => errors.push(e.message));
 let ws;
 
-await step("Discover: after sign-in a new person sees what this is, the three pieces, and specialists with their real readiness", async () => {
+await step("Discover: after sign-in a new person sees what this is, the three pieces, and is asked what they'd like a worker to do", async () => {
   await page.goto(O + "/");
   await page.fill("#email", "dana@pilot.test"); await page.fill("#password", "correct-horse-battery-1"); await page.click("#go");
-  await page.waitForURL(O + "/"); await page.waitForSelector("#gsGuide .tcard");
-  const h1 = await page.textContent("#gsGuide h1"), concepts = await page.locator("#gsGuide .concept b").allInnerTexts();
-  const design = await page.locator('#gsGuide .tcard:has-text("Senior UI/UX Design Engineer") .ready').innerText();
-  must(concepts.join() === "Worker,Workspace,Team" && /Needs: Figma/.test(design), JSON.stringify({ concepts, design }));
+  await page.waitForURL(O + "/"); await page.waitForSelector("#gsGuide #gsDesc");
+  const h1 = await page.textContent("#gsGuide h1"), concepts = await page.locator("#gsGuide .concept b").allInnerTexts(), ask = await page.textContent("#gsGuide .gs-ask .lab");
+  must(concepts.join() === "Worker,Workspace,Team" && /What would you like your AI worker to do/.test(ask), JSON.stringify({ concepts, ask }));
   await shot("1-guide");
-  return { h1, concepts, designReadiness: design };
+  return { h1, concepts, ask };
 });
 
-await step("Connect: the guide's first step adds a project folder (Work); it's a Git repository with one commit", async () => {
-  await page.click('[data-gs="addws"]');
+await step("Connect: their project folder (Work), a Git repository with one commit", async () => {
+  await page.click("#addWs");
   await page.fill("#fName", "Shop"); await page.click('.seg [data-mode="work"]'); await page.click('#addForm button[type="submit"]');
   await page.waitForFunction(() => [...document.querySelectorAll("#wsList [data-ws]")].some((b) => /Shop/.test(b.textContent)));
   ws = await page.evaluate(async () => (await (await fetch("/workspaces")).json()).find((w) => w.name === "Shop"));
@@ -58,28 +57,29 @@ await step("Connect: the guide's first step adds a project folder (Work); it's a
   writeFileSync(join(ws.root, "src", "Button.jsx"), "export function CheckoutButton({ onClick }) {\n  return <button onClick={onClick}>Donate now</button>;\n}\n");
   git(ws.root, "init", "-q", "-b", "main"); git(ws.root, "add", "-A"); git(ws.root, "commit", "-q", "-m", "Checkout button");
   await page.click(`#wsList [data-ws="${ws.id}"]`);
-  await page.waitForSelector("#gsGuide .gs-steps li.ok");
-  return { workspace: ws.name, firstStepDone: true };
+  await page.waitForSelector("#gsGuide #gsDesc");
+  return { workspace: ws.name };
 });
 
-await step("Configure: New worker → the catalogue → Frontend Engineer's setup shows only its settings and marks what this platform doesn't provide", async () => {
-  await page.click("#addWk"); await page.waitForSelector("#tplList .tcard");
-  await shot("2-catalog");
-  await page.click('[data-tpl-setup="frontend-engineer"]'); await page.waitForSelector("#setupForm");
-  await page.waitForFunction(() => document.querySelector("#setCaps .cchip"));
-  const settings = await page.locator("#setupForm .opt > span:first-child").allInnerTexts();
-  const off = await page.locator("#setCaps .cchip.off").allInnerTexts(), where = await page.textContent("#setWhere");
-  must(settings.join() === "Run scripts,Check its work in a browser" && off.some((x) => /node and curl[\s\S]*not available here/.test(x)) && /Shop/.test(where), JSON.stringify({ settings, off, where }));
-  await shot("3-setup");
-  await page.click("#setSave"); await page.waitForSelector("#readyBox");
-  return { settings, notAvailableHere: off };
+await step("Configure: their own words → the code repository's questions only (stack recognised); the review marks what this platform doesn't provide and works in Shop", async () => {
+  await page.fill("#gsDesc", "Add a loading state to the checkout button in my React app's repository");
+  await page.click('[data-gs="describe"]'); await page.waitForSelector('.isec:has-text("Code repository")');
+  const chips = await page.locator(".ichip").allInnerTexts(), questions = await page.locator(".isec .qlab").allInnerTexts(), stack = await page.inputValue('[data-q="code.stack"]');
+  must(chips.length === 1 && /Code repository/.test(chips[0]) && stack === "React" && questions.includes("Run Node scripts, such as tests and builds") && !questions.some((q) => /publish|Shopify|Figma/i.test(q)), JSON.stringify({ chips, questions, stack }));
+  await shot("2-questions");
+  await page.click('[data-next="3"]'); await page.waitForSelector("#crName");
+  const off = await page.locator("#crCaps .cchip.off").allInnerTexts(), where = await page.inputValue("#crWs"), name = await page.inputValue("#crName");
+  must(off.some((x) => /node and curl[\s\S]*not available here/.test(x)) && where === ws.id && name === "React engineer", JSON.stringify({ off, where, name }));
+  await shot("3-review");
+  await page.click('[data-next="4"]'); await page.waitForSelector("#readyBox");
+  return { tools: chips.map((c) => c.split("\n")[0]), questions, notAvailableHere: off };
 });
 
-await step("Delegate: the new task names the worker and workspace, what it may change, and offers its example tasks", async () => {
-  const ready = await page.textContent("#readyBox"), who = await page.textContent("#wkName"), where = await page.textContent("#bName");
-  must(/Shop/.test(ready) && /change files/.test(ready) && who === "Frontend Engineer" && where === "Shop", JSON.stringify({ ready, who, where }));
+await step("Delegate: the new task names the worker and workspace, what it may change, and offers their own request as the first task", async () => {
+  const ready = await page.textContent("#readyBox"), who = await page.textContent("#wkName"), where = await page.textContent("#bName"), first = await page.locator('[data-gs="example"]').first().innerText();
+  must(/Shop/.test(ready) && /change files/.test(ready) && who === "React engineer" && where === "Shop" && /loading state/.test(first), JSON.stringify({ ready, who, where, first }));
   await shot("4-new-task");
-  return { composer: `${who} · ${where}`, readiness: ready.replace(/\s+/g, " ").slice(0, 160) };
+  return { composer: `${who} · ${where}`, readiness: ready.replace(/\s+/g, " ").slice(0, 160), firstTask: first.split("\n")[0] };
 });
 
 await step("Observe: an example task runs for real (a failed read, a read, an edit) with each step live in Activity", async () => {

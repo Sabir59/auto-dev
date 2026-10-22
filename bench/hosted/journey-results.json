@@ -1,10 +1,10 @@
 {
- "when": "2026-10-22T09:32:42.735Z",
+ "when": "2026-10-22T10:39:21.542Z",
  "platform": "win32",
  "model": "FAKE (scripted)",
  "results": [
   {
-   "step": "Discover: after sign-in a new person sees what this is, the three pieces, and specialists with their real readiness",
+   "step": "Discover: after sign-in a new person sees what this is, the three pieces, and is asked what they'd like a worker to do",
    "ok": true,
    "detail": {
     "h1": "Give a specialist a real task",
@@ -13,24 +13,30 @@
      "Workspace",
      "Team"
     ],
-    "designReadiness": "Needs: Figma: change the open file (not available in the hosted product)"
+    "ask": "What would you like your AI worker to do?"
    }
   },
   {
-   "step": "Connect: the guide's first step adds a project folder (Work); it's a Git repository with one commit",
+   "step": "Connect: their project folder (Work), a Git repository with one commit",
    "ok": true,
    "detail": {
-    "workspace": "Shop",
-    "firstStepDone": true
+    "workspace": "Shop"
    }
   },
   {
-   "step": "Configure: New worker → the catalogue → Frontend Engineer's setup shows only its settings and marks what this platform doesn't provide",
+   "step": "Configure: their own words → the code repository's questions only (stack recognised); the review marks what this platform doesn't provide and works in Shop",
    "ok": true,
    "detail": {
-    "settings": [
-     "Run scripts",
-     "Check its work in a browser"
+    "tools": [
+     "Code repository"
+    ],
+    "questions": [
+     "Framework and stack",
+     "Conventions or documents it must follow",
+     "What may it do with the code?",
+     "Run Node scripts, such as tests and builds",
+     "Check the result in a browser",
+     "Commits and pushes"
     ],
     "notAvailableHere": [
      "Run node and curl\n · not available here"
@@ -38,11 +44,12 @@
    }
   },
   {
-   "step": "Delegate: the new task names the worker and workspace, what it may change, and offers its example tasks",
+   "step": "Delegate: the new task names the worker and workspace, what it may change, and offers their own request as the first task",
    "ok": true,
    "detail": {
-    "composer": "Frontend Engineer · Shop",
-    "readiness": "Before you startShop · Work: it can change files in this folder. Commit and push stay your actions, in Changes & versions.Workspace folder: edit files: Availabl"
+    "composer": "React engineer · Shop",
+    "readiness": "Before you startShop · Work: it can change files in this folder. Commit and push stay your actions, in Changes & versions.Workspace folder: edit files: Availabl",
+    "firstTask": "Add a loading state to the checkout button in my React app's repository"
    }
   },
   {
@@ -50,9 +57,9 @@
    "ok": true,
    "detail": {
     "toolCalls": [
-     "Failed · 194ms",
-     "Success · 45ms",
-     "Success · 74ms"
+     "Failed · 116ms",
+     "Success · 37ms",
+     "Success · 47ms"
     ]
    }
   },

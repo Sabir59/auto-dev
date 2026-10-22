@@ -1,0 +1,268 @@
+{
+ "when": "2026-10-22T10:44:27.092Z",
+ "results": [
+  {
+   "step": "1. Shopify: recognised as having no connector; asks what to work on (no guess); products → an exported CSV, and the live store stays out of reach",
+   "ok": true,
+   "detail": {
+    "questions": [
+     "Store",
+     "What should it work on?",
+     "Files it works on",
+     "What may it do with them?"
+    ],
+    "capabilities": [
+     "files.read",
+     "files.write"
+    ],
+    "notPossible": [
+     "Shopify",
+     "Shopify: Products and inventory"
+    ]
+   }
+  },
+  {
+   "step": "2. Google Sheets: its own questions only; no Builder.io publishing or any Builder setting",
+   "ok": true,
+   "detail": {
+    "questions": [
+     "Which spreadsheets",
+     "What should it do with them?",
+     "Files it works on",
+     "What may it do with them?"
+    ],
+    "capabilities": [
+     "files.read",
+     "files.write"
+    ]
+   }
+  },
+  {
+   "step": "3. WordPress: asks what part of the site; content has no connector (pages read in a browser), theme or plugin code gets repository questions",
+   "ok": true,
+   "detail": {
+    "questions": [
+     "Site address",
+     "What part of the site?",
+     "Start address",
+     "Framework and stack",
+     "Conventions or documents it must follow",
+     "What may it do with the code?",
+     "Run Node scripts, such as tests and builds",
+     "Check the result in a browser"
+    ],
+    "notPossible": [
+     "WordPress",
+     "WordPress: Posts, pages and media"
+    ]
+   }
+  },
+  {
+   "step": "4. Next.js: repository, stack (recognised), conventions, editing, Node scripts, browser checks; answers change the tools",
+   "ok": true,
+   "detail": {
+    "questions": [
+     "Framework and stack",
+     "Conventions or documents it must follow",
+     "What may it do with the code?",
+     "Run Node scripts, such as tests and builds",
+     "Check the result in a browser"
+    ],
+    "default": [
+     "files.read",
+     "files.write",
+     "shell",
+     "browser"
+    ],
+    "readOnly": [
+     "files.read"
+    ]
+   }
+  },
+  {
+   "step": "5. Builder.io: space, models, and what it may do with content (read / drafts / publish); drafts by default",
+   "ok": true,
+   "detail": {
+    "questions": [
+     "Builder space",
+     "Models and pages it works on",
+     "What may it do with content?",
+     "Check pages on the site",
+     "Site address"
+    ],
+    "drafts": [
+     "files.read",
+     "builder.read",
+     "builder.write.draft",
+     "browser"
+    ],
+    "publish": [
+     "files.read",
+     "builder.read",
+     "builder.write",
+     "browser"
+    ]
+   }
+  },
+  {
+   "step": "6. a combination: research competitors, keep a spreadsheet, check their sites — three tools composed, not a role",
+   "ok": true,
+   "detail": {
+    "integrations": [
+     "browser",
+     "web",
+     "files"
+    ],
+    "name": "Browser and Research worker",
+    "capabilities": [
+     "files.read",
+     "browser",
+     "web",
+     "files.write"
+    ]
+   }
+  },
+  {
+   "step": "7. no connector: Gmail (and a named \"Zendesk\") are explained, and no worker is created from them alone",
+   "ok": true,
+   "detail": {
+    "notPossible": [
+     {
+      "id": "gmail",
+      "label": "Gmail",
+      "why": "There's no Gmail connector yet: a worker can't sign in to Gmail or read or change anything in it."
+     },
+     {
+      "id": "other:Zendesk",
+      "label": "Zendesk",
+      "why": "There's no Zendesk connector: a worker can't sign in to it or use it."
+     }
+    ],
+    "refused": "Nothing in this request can be done with the connectors this platform has: Gmail, Zendesk."
+   }
+  },
+  {
+   "step": "8. missing credentials: Builder says Not connected and what to do; with a production space, writes are refused; only a test space is ready",
+   "ok": true,
+   "detail": {
+    "noKeys": [
+     "Builder.io: read content: Not connected → Add the Builder space's keys once on this computer (builder-adapter/README.md). A Builder link alone grants nothing.",
+     "Builder.io: change content: Not connected → Builder writes are only allowed in a space marked as a test space in builder-adapter's credentials; production spaces are never written by this adapter."
+    ],
+    "production": "read:Connected,write:Production space: writes refused",
+    "testSpace": "read:Connected,write:Test space"
+   }
+  },
+  {
+   "step": "9. what the workspace or platform doesn't allow stays denied: Inspect cuts edits and scripts; capabilities sent by the page are ignored; unknown answers are refused",
+   "ok": true,
+   "detail": {
+    "inspectBlocked": [
+     "files.write",
+     "shell"
+    ],
+    "smuggledIgnored": [
+     "files.read",
+     "web"
+    ],
+    "refused": [
+     "\"shopify-admin\" isn't an integration this platform knows. Name it under \"Something else\".",
+     "\"sudo\" isn't a question for Code repository.",
+     "\"everything\" isn't a choice for \"What may it do with the code?\".",
+     "Describe what the worker should do."
+    ],
+    "runInInspect": [
+     "files.read",
+     "browser"
+    ]
+   }
+  },
+  {
+   "step": "10. the created worker is stored with its request and runs through the existing runtime (real run): the runtime reports its tools",
+   "ok": true,
+   "detail": {
+    "status": "waiting",
+    "worker": {
+     "id": "next-js-engineer-c46d",
+     "name": "Next.js engineer",
+     "version": 1
+    },
+    "tools": [
+     "Bash",
+     "Edit",
+     "Glob",
+     "Grep",
+     "Read",
+     "ToolSearch",
+     "Write"
+    ],
+    "reply": "OK"
+   }
+  },
+  {
+   "step": "page: the guide asks what the worker should do; a Shopify example leads to Shopify's questions, which must be answered before review",
+   "ok": true,
+   "detail": {
+    "chips": [
+     "Shopify\nno connector yet"
+    ],
+    "questions": [
+     "Store",
+     "What should it work on? Needs an answer",
+     "Review"
+    ]
+   }
+  },
+  {
+   "step": "page: answering brings in what works today (a CSV in Files, marked “for Shopify”), the review says what's not possible, and Create lands on a first task",
+   "ok": true,
+   "detail": {
+    "name": "Shopify worker",
+    "notPossible": "Shopify",
+    "firstTask": "Manage products and inventory in my Shopify store"
+   }
+  },
+  {
+   "step": "page: Google Sheets shows no Builder.io or publishing setting; Next.js shows repository, editing, scripts and browser; Builder.io shows space, models and publishing",
+   "ok": true,
+   "detail": {
+    "nextjs": [
+     "Framework and stack",
+     "Conventions or documents it must follow",
+     "What may it do with the code?",
+     "Run Node scripts, such as tests and builds",
+     "Check the result in a browser",
+     "Commits and pushes"
+    ],
+    "builder": [
+     "Builder space",
+     "Models and pages it works on",
+     "What may it do with content?",
+     "Check pages on the site",
+     "Site address"
+    ]
+   }
+  },
+  {
+   "step": "page: a request with no connector (Gmail) can't go to review, and says why; a combination shows each of its tools",
+   "ok": true,
+   "detail": {
+    "gmail": "Nothing here can be done with today's connectors. Add something that's connected, or answer the questions above to see what can be done instead.",
+    "combination": [
+     "Websites in a browser",
+     "Web research",
+     "Files in a folder"
+    ]
+   }
+  },
+  {
+   "step": "page: tools can be removed and added; something unknown is named and marked as not connected; every setting is still one link away; leaving a typed request asks first",
+   "ok": true,
+   "detail": {
+    "other": "Zendesk no connector",
+    "leaving": "Unsaved changes"
+   }
+  }
+ ],
+ "pageErrors": []
+}

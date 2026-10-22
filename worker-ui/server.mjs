@@ -28,6 +28,7 @@ import * as builderApi from "../builder-adapter/builder.mjs";
 import * as github from "./github.mjs";
 import * as ghApp from "./github-app.mjs";
 import { resolveProvider } from "./provider.mjs";
+import * as drafts from "./integrations.mjs";
 github.setRefresher(ghApp.refreshToken); // an expiring "Connect with GitHub" token is refreshed with the app's secret
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -396,73 +397,36 @@ function normalizeWorker(b, prev) {
     mission: String(b.mission || "").trim().slice(0, 600), specialization: String(b.specialization || "").trim().slice(0, 200),
     capabilities, knowledge: String(b.knowledge || "").trim().slice(0, 20000), workflow: lines(b.workflow, 30, 600), limitations: lines(b.limitations, 30, 300),
     requirements: requirements.filter((r, i) => requirements.findIndex((x) => x.resource === r.resource && x.access === r.access) === i), onMissing: String(b.onMissing || "").trim().slice(0, 1000),
-    // The template it was set up from, and the choices made (only ever set by the console: see templates).
-    ...(prev?.fromTemplate ? { fromTemplate: prev.fromTemplate } : {}),
+    // The request it was created from (only ever set by the console: see worker drafts).
+    ...(prev?.fromRequest ? { fromRequest: prev.fromRequest } : {}),
     version: (prev?.version || 0) + 1, createdAt: prev?.createdAt || now, updatedAt: now };
 }
 
-// ---------------- worker templates ----------------
-// The shared definitions in workers/*.json double as templates: a definition with a "template"
-// block can be added from the page with a short setup instead of the full form. The block names the
-// few settings that matter for that worker; each choice maps to capabilities and requirements from
-// the fixed catalogues above, and nothing else. So the setup a person sees depends on the worker
-// (a Builder editor has Publishing, a frontend engineer has Run scripts), and still:
-//  - a choice can only turn on tools the catalogue has; unknown settings or choices are refused;
-//  - the result is an ordinary definition (normalizeWorker), run through the same workerRuntime:
-//    capabilities ∩ workspace mode ∩ Team scope ∩ platform. "May publish" loads the publish tool;
-//    whether a write succeeds is still decided by the Builder adapter (test spaces only);
-//  - a choice never grants access: requirements are checked, never satisfied, by choosing.
-const TEMPLATES_DIR = join(REPO, "workers");
-const reqKey = (r) => `${r.resource}:${r.access}`;
-function readTemplates() {
-  if (!existsSync(TEMPLATES_DIR)) return [];
-  return readdirSync(TEMPLATES_DIR).filter((f) => /^[a-z0-9-]+\.json$/.test(f)).flatMap((f) => {
-    try {
-      const def = JSON.parse(readFileSync(join(TEMPLATES_DIR, f), "utf8")), t = def.template;
-      if (!t) return [];
-      const choices = (t.options || []).flatMap((o) => o.choices || []);
-      for (const c of [...(def.capabilities || []), ...choices.flatMap((ch) => ch.capabilities || [])]) if (!CAPABILITIES[c]) throw new Error(`unknown capability ${c}`);
-      for (const r of [...(def.requirements || []), ...choices.flatMap((ch) => ch.requirements || [])]) if (!RESOURCES[r.resource]?.access[r.access]) throw new Error(`unknown requirement ${reqKey(r)}`);
-      for (const o of t.options || []) if (!/^[a-z]+$/.test(o.id) || !o.choices?.some((ch) => ch.id === o.default)) throw new Error(`option ${o.id}: bad id or default`);
-      return [{ id: f.slice(0, -5), def }];
-    } catch (e) { console.log(`worker template ${f} skipped: ${e.message}`); return []; }
-  });
+// ---------------- worker drafts: a worker for the work a person describes ----------------
+// The person says what the worker should do; the registry (integrations.mjs) recognises the tools
+// and systems involved, asks only their questions, and composes an ordinary definition. The page
+// sends the description and the answers, never capabilities: they're computed here, from the fixed
+// catalogues, and the result runs through the same workerRuntime as any worker (capabilities ∩
+// workspace mode ∩ Team scope ∩ platform). Integrations without a connector are answered honestly.
+drafts.checkRegistry(CAPABILITIES, RESOURCES);
+// A draft as the page shows it: the composition, what it would get in a workspace, and its
+// requirements checked now.
+async function draftPreview(b) {
+  const d = drafts.compose(b);
+  let w = { profile: "full", root: null, name: "" }; try { w = resolveWorkspace(b.workspace || "scratch"); } catch {}
+  const rt = workerRuntime({ capabilities: d.definition.capabilities }, w.profile);
+  return { ...d, profile: w.profile, usable: rt.usable, blocked: rt.blocked, byPlatform: rt.byPlatform,
+    status: await requirementStatus({ requirements: d.definition.requirements }, { profile: w.profile, root: w.root }) };
 }
-const templateById = (id) => readTemplates().find((t) => t.id === id) || null;
-// The capabilities and requirements for a set of choices. Whatever any of the template's options
-// could turn on is taken off the base first, then the chosen ones are added, so a setup can be
-// changed back and forth, and edits made in the full definition to anything else are kept.
-function templateSetup(tpl, base, choices = {}) {
-  const opts = tpl.def.template.options || [];
-  if (choices === null || typeof choices !== "object" || Array.isArray(choices)) throw new Error("Choices must be an object.");
-  for (const k of Object.keys(choices)) if (!opts.some((o) => o.id === k)) throw new Error(`"${k}" isn't a setting of ${tpl.def.name}.`);
-  const picked = {}, caps = [], reqs = [];
-  for (const o of opts) {
-    const ch = o.choices.find((x) => x.id === String(choices[o.id] ?? o.default));
-    if (!ch) throw new Error(`"${choices[o.id]}" isn't a choice for ${o.label}.`);
-    picked[o.id] = ch.id; caps.push(...(ch.capabilities || [])); reqs.push(...(ch.requirements || []));
-  }
-  const optCaps = new Set(opts.flatMap((o) => o.choices.flatMap((ch) => ch.capabilities || [])));
-  const optReqs = new Set(opts.flatMap((o) => o.choices.flatMap((ch) => (ch.requirements || []).map(reqKey))));
-  const capabilities = [...new Set([...(base.capabilities || []).filter((c) => !optCaps.has(c)), ...caps])];
-  const requirements = [...(base.requirements || []).filter((r) => !optReqs.has(reqKey(r))), ...reqs].filter((r, i, a) => a.findIndex((x) => reqKey(x) === reqKey(r)) === i);
-  return { capabilities, requirements, choices: picked };
-}
-// A worker belongs to a template when it was set up from it, or (added before templates existed,
-// e.g. by doctor --seed-workers) has the template's name and no other origin.
-const fromTemplate = (w, tpl) => w.fromTemplate?.id === tpl.id || (!w.fromTemplate && w.name === tpl.def.name);
-// What the person sees for a setup in a workspace: the tools it would get there, and its requirements now.
-async function templatePreview(setup, workspaceId) {
-  let w = { profile: "full", root: null }; try { w = resolveWorkspace(workspaceId || "console"); } catch {}
-  const rt = workerRuntime({ capabilities: setup.capabilities }, w.profile);
-  return { ...setup, profile: w.profile, usable: rt.usable, blocked: rt.blocked, byPlatform: rt.byPlatform,
-    status: await requirementStatus({ requirements: setup.requirements }, { profile: w.profile, root: w.root }) };
-}
-function workerFromTemplate(tpl, body = {}) {
-  const { template, ...def } = tpl.def;
-  const setup = templateSetup(tpl, def, body.choices || {});
-  const name = String(body.name || "").trim() || def.name;
-  return { ...normalizeWorker({ ...def, name, capabilities: setup.capabilities, requirements: setup.requirements }), fromTemplate: { id: tpl.id, choices: setup.choices } };
+// Creating it: refused while a required follow-up is unanswered, or when nothing asked for can be
+// done with today's connectors. The person can rename it and reword its mission; nothing else.
+function workerFromRequest(b) {
+  const d = drafts.compose(b);
+  if (d.pending.length) throw Object.assign(new Error(`Answer first: ${d.pending.map((x) => x.label).join("; ")}.`), { status: 400 });
+  if (d.nothingSupported) throw Object.assign(new Error(`Nothing in this request can be done with the connectors this platform has: ${d.unsupported.map((u) => u.label).join(", ") || "no tools or systems named"}.`), { status: 400 });
+  const name = String(b.name || "").trim() || d.definition.name, mission = String(b.mission || "").trim() || d.definition.mission;
+  return { ...normalizeWorker({ ...d.definition, name, mission }), fromRequest: { description: d.description, integrations: d.integrations, answers: d.answers, others: d.others,
+    workspace: d.workspace, unsupported: d.unsupported.map((u) => u.label), starters: d.starters, at: new Date().toISOString() } };
 }
 // Memory: what a worker chose to remember from its work (REMEMBER: lines), kept apart from its
 // definition, shown to the person, and given to its later runs as a labelled section.
@@ -2235,30 +2199,10 @@ http.createServer(async (req, res) => {
     if (parts[0] === "workspaces" && parts[1] && parts[2] === "repo" && parts.length === 3 && req.method === "PUT") return json(res, 200, assignRepo(decodeURIComponent(parts[1]), await body(req)));
     if (parts[0] === "workspaces" && parts[1] && parts[2] === "repo" && parts.length === 3 && req.method === "DELETE") return json(res, 200, unassignRepo(decodeURIComponent(parts[1])));
 
-    // worker templates (workers/*.json with a template block): the catalogue with each one's default
-    // setup in a workspace, what a setup would give (preview), adding a worker from one
-    if (url.pathname === "/templates" && req.method === "GET") {
-      const wsq = url.searchParams.get("workspace") || "console", workers = readWorkers();
-      const templates = await Promise.all(readTemplates().map(async (tpl) => {
-        const { template: t, ...def } = tpl.def;
-        return { id: tpl.id, name: def.name, specialization: def.specialization, mission: def.mission, summary: t.summary, category: t.category, workspace: t.workspace || "any",
-          examples: t.examples || [], options: t.options || [], defaults: await templatePreview(templateSetup(tpl, def), wsq),
-          workers: workers.filter((w) => fromTemplate(w, tpl)).map((w) => ({ id: w.id, name: w.name, version: w.version, choices: w.fromTemplate?.choices || null })) };
-      }));
-      return json(res, 200, { templates });
-    }
-    if (parts[0] === "templates" && parts[1] && parts.length === 3 && req.method === "POST") {
-      const tpl = templateById(decodeURIComponent(parts[1]));
-      if (!tpl) return json(res, 404, { error: "no such template" });
-      const b = await body(req);
-      if (parts[2] === "preview") {
-        // For a worker already set up from it, the setup applies to that worker's definition.
-        const w = b.worker ? readWorkers().find((x) => x.id === b.worker && fromTemplate(x, tpl)) : null;
-        if (b.worker && !w) return json(res, 404, { error: "no such worker for this template" });
-        return json(res, 200, await templatePreview(templateSetup(tpl, w || tpl.def, b.choices || {}), b.workspace));
-      }
-      if (parts[2] === "workers") { const w = workerFromTemplate(tpl, b); writeWorkers([...readWorkers(), w]); return json(res, 200, w); }
-    }
+    // worker drafts: the integrations registry, a draft for a request, creating the worker
+    if (url.pathname === "/integrations" && req.method === "GET") return json(res, 200, { integrations: drafts.publicRegistry() });
+    if (url.pathname === "/worker-drafts/preview" && req.method === "POST") return json(res, 200, await draftPreview(await body(req)));
+    if (url.pathname === "/workers/from-request" && req.method === "POST") { const w = workerFromRequest(await body(req)); writeWorkers([...readWorkers(), w]); return json(res, 200, w); }
 
     // workers: definitions (with live requirement status for a workspace) and their memory
     if (url.pathname === "/workers" && req.method === "GET") {
@@ -2276,15 +2220,6 @@ http.createServer(async (req, res) => {
       if (parts[2] === "memory") {
         if (req.method === "GET") return json(res, 200, readMemory(parts[1]));
         if (req.method === "DELETE") { const m = readMemory(parts[1]); if (parts[3] !== undefined) m.splice(Number(parts[3]), 1); else m.length = 0; writeMemory(parts[1], m); return json(res, 200, m); }
-      }
-      // Its setup (the template's settings): a new version with the chosen capabilities and
-      // requirements; everything else in the definition stays as it is.
-      if (parts[2] === "setup" && req.method === "PUT") {
-        const b = await body(req), tpl = templateById(String(b.template || list[i].fromTemplate?.id || ""));
-        if (!tpl || !fromTemplate(list[i], tpl)) return json(res, 400, { error: "This worker wasn't set up from a template: edit its full definition instead." });
-        const setup = templateSetup(tpl, list[i], b.choices || {});
-        list[i] = { ...normalizeWorker({ ...list[i], capabilities: setup.capabilities, requirements: setup.requirements }, list[i]), fromTemplate: { id: tpl.id, choices: setup.choices } };
-        writeWorkers(list); return json(res, 200, list[i]);
       }
       if (!parts[2] && req.method === "PUT") { list[i] = normalizeWorker(await body(req), list[i]); writeWorkers(list); return json(res, 200, list[i]); }
       // Its runs keep their snapshots (definition and context), so they stay readable and resumable.

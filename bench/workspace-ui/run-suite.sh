@@ -2,7 +2,7 @@
 # Runs one Workspace UI suite against its own fresh test console: port 8797, a new data dir, an
 # empty Figma Reader dir. Your own console (8799) and its data are not touched.
 #   bash bench/workspace-ui/run-suite.sh <suite>
-#   suite: workflow | manage | sync | attach | versions | mentions | workers | designer | teams | devctl | builder | builder-real (real Builder + real worker; SITE=) | remediation | github-app | templates
+#   suite: workflow | manage | sync | attach | versions | mentions | workers | designer | teams | devctl | builder | builder-real (real Builder + real worker; SITE=) | remediation | github-app | create
 # Windows + Git Bash (uses cygpath and mklink). Fixtures live under $FIXROOT (default %TEMP%\wsui,
 # kept short because the Teams suite clones MATW, whose paths are long); fixtures.mjs builds them
 # on first use. The real worker runs, so most suites take minutes and use your Claude subscription.
@@ -30,7 +30,7 @@ if curl -s -o /dev/null http://127.0.0.1:8797/; then echo "port 8797 is in use: 
 # Builder keys; the builder suite also points the console's Builder checks at its local mock.
 # builder-real is the exception: it uses the person's real Builder credentials (~/.builder-adapter,
 # a space they marked "test") against real Builder, and a site that renders that space (SITE).
-if [ "$suite" = builder ] || [ "$suite" = templates ]; then export BUILDER_ADMIN_BASE=http://127.0.0.1:8789 BUILDER_CONTENT_BASE=http://127.0.0.1:8789 BUILDER_WRITE_BASE=http://127.0.0.1:8789; fi
+if [ "$suite" = builder ] || [ "$suite" = create ]; then export BUILDER_ADMIN_BASE=http://127.0.0.1:8789 BUILDER_CONTENT_BASE=http://127.0.0.1:8789 BUILDER_WRITE_BASE=http://127.0.0.1:8789; fi
 BDIR="$(cygpath -w "$D/builder")"; [ "$suite" = builder-real ] && BDIR="$(cygpath -w "$HOME/.builder-adapter")"
 # Likewise an empty GitHub credentials folder per test console; the github suite also points the
 # console at its local mock GitHub API.
@@ -54,7 +54,7 @@ case $suite in
   designer) node bench/workspace-ui/designer-worker-test.mjs 8797 ;;
   teams) TFIX="$(cygpath -w "$FIXROOT/tf")" node bench/workspace-ui/teams-test.mjs 8797 ;;
   builder) node bench/workspace-ui/builder-access-test.mjs 8797 ;;
-  templates) node bench/workspace-ui/templates-test.mjs 8797 ;;
+  create) node bench/workspace-ui/create-test.mjs 8797 ;;
   account) node bench/workspace-ui/account-test.mjs 8797 ;;
   model) node bench/workspace-ui/model-test.mjs 8797 ;;
   context) node bench/workspace-ui/context-test.mjs 8797 ;;

@@ -29,8 +29,6 @@ COPY mcp/*.mjs mcp/
 COPY browser-adapter/server.mjs browser-adapter/
 COPY figma-reader/ figma-reader/
 COPY builder-adapter/ builder-adapter/
-# The shared worker definitions, which are also the page's worker templates.
-COPY workers/ workers/
 COPY deploy/entrypoint.sh deploy/egress-firewall.sh deploy/
 # The platform's code is read-only and readable by every person's uid; nothing of a person's lives here.
 # .dockerignore keeps local state out of the build context; this fails the build if any ever slips in.
