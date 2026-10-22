@@ -12,39 +12,114 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const BRIDGE_URL = process.env.FIGMA_BRIDGE_URL || "http://localhost:8787/command";
+import { ensureBridge, bridgeStatus, waitForPlugin, BRIDGE_PROTOCOL } from "../bridge/launcher.mjs";
+import { parseFigmaUrl } from "../figma-reader/reader.mjs";
+
+const BRIDGE_URL = process.env.FIGMA_BRIDGE_URL || `http://localhost:${Number(process.env.FIGMA_BRIDGE_PORT) || 8787}/command`;
+const BRIDGE_BASE = new URL("/", BRIDGE_URL).origin;
+// The bridge starts itself: the first call that finds nothing listening starts bridge/server.js
+// (bridge/launcher.mjs). On for the default local bridge; FIGMA_BRIDGE_AUTOSTART=0 turns it off, =1
+// turns it on for a FIGMA_BRIDGE_URL that's set explicitly.
+const AUTOSTART = process.env.FIGMA_BRIDGE_AUTOSTART === "1" || (process.env.FIGMA_BRIDGE_AUTOSTART !== "0" && !process.env.FIGMA_BRIDGE_URL);
+// How long a call waits for a plugin that's on its way back (a bridge that just started, or a
+// plugin that just dropped: plugin/ui.html reconnects within a few seconds).
+const PLUGIN_WAIT_MS = Number(process.env.FIGMA_PLUGIN_WAIT_MS) || 12000;
+
+// FIGMA_EXECUTOR_PROFILE=read: the server itself is read-only. Only the read tools are registered,
+// and any command that could change the document is refused below the tool layer too. The console
+// sets it for every run that may only read Figma, whatever its allow list says.
+const READ_ONLY = process.env.FIGMA_EXECUTOR_PROFILE === "read";
+// Commands a read-only run may send: they read the document and change neither it nor what the
+// person sees (no page switching) nor anything on disk (no exports).
+const READ_ONLY_TYPES = new Set(["PING", "GET_FILE_INFO", "LIST_PAGES", "GET_SELECTION", "SEARCH_NODES", "GET_DOCUMENT_STATE", "GET_VARIABLES", "GET_STYLES", "GET_ICON_COMPONENTS", "GET_COMPONENT_TREE", "GET_SCREEN_TREE", "GET_PROTOTYPE"]);
 
 // A Team's Figma resource: in the Team's runs the console sets FIGMA_EXPECTED_FILE_KEY, and then
 // every command except checking the connection and which file is open is refused while another
-// file is open (the plugin reports the open file's key). Without it, nothing changes.
+// file is open (the plugin reports the open file's key). Without it, a run can still pin itself to
+// one file with figma_use_file; with it, only to that file. The bridge routes every command to the
+// pinned file's plugin and refuses when it isn't open; the GET_FILE_INFO check stays as well (it's
+// what protects against an older bridge that doesn't route).
 const EXPECTED_FILE_KEY = process.env.FIGMA_EXPECTED_FILE_KEY || "";
+let pinnedFile = null; // { fileKey, url? } from figma_use_file
+const targetKey = () => EXPECTED_FILE_KEY || pinnedFile?.fileKey || "";
 const ANY_FILE = new Set(["PING", "GET_FILE_INFO"]);
+
+// Every failure has a code (the first word of the message, and in figma_executor_status), so the
+// worker can tell what's wrong and who can fix it:
+//   BRIDGE_UNAVAILABLE, BRIDGE_START_FAILED, MISSING_DEPENDENCY, PORT_IN_USE: the local bridge;
+//   PLUGIN_NOT_CONNECTED, FILE_NOT_OPEN, AMBIGUOUS_SESSION: the person has to run the plugin
+//     (in the right file) — Figma only runs a plugin when a person runs it;
+//   WRONG_FILE, READ_ONLY: refused by this run's scope; COMMAND_FAILED: Figma refused the edit;
+//   TIMEOUT, PLUGIN_DISCONNECTED: the outcome is unknown, check before retrying.
+const USER_RUNS_PLUGIN = "The person has to open the file in the Figma desktop app and run Plugins → Development → AI Executor (POC); Figma has no API that starts a plugin from outside the editor. Once it's running, the bridge connects by itself.";
+const NEXT = {
+  PLUGIN_NOT_CONNECTED: USER_RUNS_PLUGIN,
+  FILE_NOT_OPEN: USER_RUNS_PLUGIN,
+  AMBIGUOUS_SESSION: "Call figma_use_file with the file's link or key, so commands go to that file.",
+  WRONG_FILE: "Work only on this run's file; ask the person to open it and run the plugin there.",
+  READ_ONLY: "This run may only read Figma. Report what should change instead.",
+  TIMEOUT: "Check the node (figma_verify_nodes or figma_get_document_state) before sending the command again.",
+  PLUGIN_DISCONNECTED: "Check the node once the plugin is back (figma_executor_status), before sending the command again.",
+};
+function failure(code, message, { nextStep = NEXT[code] || "" } = {}) {
+  return Object.assign(new Error(`${code}: ${message}${nextStep ? ` ${nextStep}` : ""}`), { code, nextStep });
+}
+
 async function callBridge(type, params) {
-  if (EXPECTED_FILE_KEY && !ANY_FILE.has(type)) {
+  if (READ_ONLY && !READ_ONLY_TYPES.has(type)) throw failure("READ_ONLY", `Refused: this run may only read Figma, and ${type} isn't a read.`);
+  const key = targetKey();
+  if (key && !ANY_FILE.has(type)) {
+    const team = !!EXPECTED_FILE_KEY, whose = team ? "the Team's" : "this run's";
     const info = await post("GET_FILE_INFO", {});
-    if (!info?.fileKey) throw new Error(`Refused: this run may only work on the Team's Figma file (${EXPECTED_FILE_KEY}), and the open file's key can't be read.`);
-    if (info.fileKey !== EXPECTED_FILE_KEY) throw new Error(`Refused: the open Figma file is "${info.fileName}" (${info.fileKey}), not the Team's file (${EXPECTED_FILE_KEY}). This run may only work on the Team's file: ask the person to open it in Figma and run the plugin there.`);
+    if (!info?.fileKey) throw failure("WRONG_FILE", `Refused: this run may only work on ${whose} Figma file (${key}), and the open file's key can't be read.`);
+    if (info.fileKey !== key) throw failure("WRONG_FILE", `Refused: the open Figma file is "${info.fileName}" (${info.fileKey}), not ${whose} file (${key}). This run may only work on ${team ? "the Team's file: ask the person to open it in Figma and run the plugin there" : "the file figma_use_file chose"}.`);
   }
   const result = await post(type, params);
   if (!READ_TYPES.has(type)) lastReads.clear(); // the document may have changed: no "unchanged" answers
   return result;
 }
+
+// One command to the bridge. A bridge that isn't running is started; a plugin that's on its way
+// back is waited for. Nothing is ever retried once the plugin may have received it.
 async function post(type, params) {
+  const body = JSON.stringify({ type, params: params || {}, ...(targetKey() ? { fileKey: targetKey() } : {}) });
+  const send = () => fetch(BRIDGE_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body });
   let res;
   try {
-    res = await fetch(BRIDGE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, params: params || {} }),
-    });
+    res = await send();
   } catch (err) {
-    throw new Error(`Could not reach the Figma bridge at ${BRIDGE_URL} (is bridge/server.js running?): ${err.message}`);
+    if (!AUTOSTART) throw failure("BRIDGE_UNAVAILABLE", `Could not reach the Figma bridge at ${BRIDGE_URL}: ${err.cause?.code || err.message}.`, { nextStep: "Start it: node bridge/server.js, or the dashboard's Figma Bridge switch." });
+    const up = await ensureBridge(BRIDGE_BASE);
+    if (!up.ok) throw failure(up.code, up.error, { nextStep: up.nextStep });
+    await waitForPlugin(BRIDGE_BASE, { fileKey: targetKey() || null, timeout: PLUGIN_WAIT_MS });
+    try { res = await send(); } catch (e) { throw failure("BRIDGE_UNAVAILABLE", `The Figma bridge started but can't be reached: ${e.message}.`); }
   }
-  const data = await res.json();
+  let data = await readReply(res);
+  // Nothing reached a plugin, so it's safe to wait for one that's on its way back and send again.
+  if (!data.ok && ["PLUGIN_NOT_CONNECTED", "FILE_NOT_OPEN"].includes(data.code) && (await reconnecting())) {
+    await waitForPlugin(BRIDGE_BASE, { fileKey: targetKey() || null, timeout: PLUGIN_WAIT_MS });
+    data = await readReply(await send());
+  }
   if (!data.ok) {
-    throw new Error(typeof data.error === "string" ? data.error : JSON.stringify(data.error));
+    const msg = data.code === "PLUGIN_NOT_CONNECTED" ? "No Figma plugin is connected to the bridge." : typeof data.error === "string" ? data.error : JSON.stringify(data.error);
+    const open = data.openFiles?.length ? ` Open with the plugin running: ${data.openFiles.map((f) => `"${f.fileName}" (${f.fileKey || "key unknown"})`).join(", ")}.` : "";
+    throw failure(data.code, msg + open);
   }
   return data.result;
+}
+// An older bridge (protocol 1) has no codes: its 503 is "no plugin", 504 a timeout.
+async function readReply(res) {
+  let data; try { data = await res.json(); } catch { data = { ok: false, code: "BRIDGE_UNAVAILABLE", error: `The bridge answered HTTP ${res.status} with no JSON.` }; }
+  if (!data.ok && !data.code) data.code = res.status === 503 ? "PLUGIN_NOT_CONNECTED" : res.status === 504 ? "TIMEOUT" : res.status === 403 ? "REFUSED" : "COMMAND_FAILED";
+  return data;
+}
+// Whether a plugin is likely to come back by itself soon: the bridge just started, or a plugin
+// just dropped (Figma tearing down the plugin's iframe, a bridge restart).
+async function reconnecting() {
+  const s = await bridgeStatus(BRIDGE_BASE);
+  if (!s.isBridge || !s.status.startedAt) return false;
+  const since = Math.max(Date.parse(s.status.startedAt), s.status.lastDisconnect ? Date.parse(s.status.lastDisconnect.at) : 0);
+  return Date.now() - since < 30000;
 }
 
 // Every tool returns its bridge result the same way: JSON text content.
@@ -143,7 +218,10 @@ const Padding = z.object({ top: z.number().optional(), right: z.number().optiona
 const server = new McpServer({ name: "figma-executor", version: "0.1.0" });
 // Every tool's definition by name, so figma_batch can check each step with that tool's own schema.
 const REGISTRY = new Map();
-{ const register = server.registerTool.bind(server); server.registerTool = (name, cfg, handler) => { REGISTRY.set(name, { cfg, handler }); return register(name, cfg, handler); }; }
+// Read-only, a tool that isn't a read is never registered: the worker can't even see it.
+const READ_TOOLS = new Set([...["ping", "get_file_info", "list_pages", "get_selection", "search_nodes", "get_document_state", "get_variables", "get_styles", "get_icon_components", "get_component_tree", "get_screen_tree", "get_prototype"].map((t) => `figma_${t}`),
+  "figma_executor_status", "figma_use_file", "figma_verify_nodes"]);
+{ const register = server.registerTool.bind(server); server.registerTool = (name, cfg, handler) => { if (READ_ONLY && !READ_TOOLS.has(name)) return null; REGISTRY.set(name, { cfg, handler }); return register(name, cfg, handler); }; }
 
 server.registerTool("figma_ping", { description: "Liveness check for the Figma plugin connection." }, tool("PING"));
 
@@ -153,7 +231,93 @@ server.registerTool(
   tool("GET_FILE_INFO")
 );
 
-server.registerTool("figma_list_pages", { description: "List every page in the file (id + name), without loading their contents." }, tool("LIST_PAGES"));
+// ---- Availability, which file, and verification -------------------------------------------
+// Machine-readable: what works now, what doesn't, and whether only the person can fix it. Starts
+// the bridge if it isn't running (so a plugin that's already open can connect). Never shows a
+// credential: the Executor path has none (the plugin acts as the person who ran it).
+async function executorStatus() {
+  const key = targetKey();
+  const out = { profile: READ_ONLY ? "read" : "edit", fileScope: EXPECTED_FILE_KEY ? { fileKey: EXPECTED_FILE_KEY, source: "team" } : pinnedFile ? { ...pinnedFile, source: "figma_use_file" } : null,
+    bridge: { url: BRIDGE_BASE, autostart: AUTOSTART } };
+  const verdict = (state, ready, userActionRequired, message, nextStep = NEXT[state] || "") => ({ state, ready, canEdit: ready && !READ_ONLY, userActionRequired, message, ...(nextStep ? { nextStep } : {}), ...out });
+  if (AUTOSTART) {
+    const up = await ensureBridge(BRIDGE_BASE);
+    if (!up.ok) return verdict(up.code, false, up.code !== "BRIDGE_START_FAILED", up.error, up.nextStep);
+    out.bridge.started = up.started; out.bridge.restarted = up.restarted;
+  }
+  let s = await bridgeStatus(BRIDGE_BASE);
+  if (!s.isBridge) return verdict("BRIDGE_UNAVAILABLE", false, true, s.reachable ? `Something else answers at ${BRIDGE_BASE}: ${s.error}.` : `No bridge at ${BRIDGE_BASE} (${s.error}).`, "Start it: node bridge/server.js, or the dashboard's Figma Bridge switch.");
+  if (!s.status.pluginConnected || (key && s.status.sessions && !s.status.sessions.some((x) => x.fileKey === key))) s = (await reconnecting()) || out.bridge.started ? await waitForPlugin(BRIDGE_BASE, { fileKey: key || null, timeout: 6000 }) : s;
+  const st = s.status || {};
+  Object.assign(out.bridge, { running: true, protocol: st.protocol || 1, pid: st.pid ?? null, startedAt: st.startedAt ?? null, ...(s.outdated ? { outdated: true, note: `An older bridge is running (protocol ${st.protocol || 1}, current ${BRIDGE_PROTOCOL}). It's kept while a plugin is connected; restart it (the dashboard's switch) to update it.` } : {}) });
+  const sessions = st.sessions || (st.pluginConnected ? [{ fileName: null, fileKey: null, note: "an older bridge doesn't report files" }] : []);
+  out.plugin = { connected: !!st.pluginConnected, sessions, lastDisconnect: st.lastDisconnect ?? null };
+  if (!sessions.length) return verdict("PLUGIN_NOT_CONNECTED", false, true, "The bridge is running, but no Figma plugin is connected.");
+  if (key) {
+    if (!st.sessions || sessions.some((x) => x.fileKey === key)) return verdict("READY", true, false, `The plugin is running in this run's file (${key}).`, "");
+    return verdict("FILE_NOT_OPEN", false, true, `The plugin is running, but not in this run's file (${key}). Open: ${sessions.map((x) => `"${x.fileName}" (${x.fileKey || "key unknown"})`).join(", ")}.`);
+  }
+  if (new Set(sessions.map((x) => x.fileKey || x.session)).size > 1) return verdict("AMBIGUOUS_SESSION", false, false, `The plugin is running in ${sessions.length} files.`);
+  return verdict("READY", true, false, `The plugin is running in "${sessions[0].fileName ?? "the open file"}".`, "");
+}
+
+server.registerTool(
+  "figma_executor_status",
+  { description: "Whether Figma work can start now, machine-readable: state (READY, PLUGIN_NOT_CONNECTED, FILE_NOT_OPEN, AMBIGUOUS_SESSION, BRIDGE_UNAVAILABLE, BRIDGE_START_FAILED, MISSING_DEPENDENCY, PORT_IN_USE), whether only the person can fix it (userActionRequired) and the next step; the files that have the plugin running; this run's profile (read or edit) and file scope. Starts the local bridge if it isn't running. Call it first, and whenever a Figma call fails with one of these codes." },
+  async () => toolResult(await executorStatus())
+);
+
+server.registerTool(
+  "figma_use_file",
+  {
+    description: "Point this run's Figma tools at one file, by its link or key: every command then goes to the plugin running in that file, and is refused while it isn't. Use it when you're given a Figma link, or when several files have the plugin running (AMBIGUOUS_SESSION). In a Team run, only the Team's file is allowed. It doesn't open the file or start the plugin (Figma doesn't allow that from outside): it returns the status, which says what the person has to do.",
+    inputSchema: { url: z.string().optional().describe("A figma.com design link."), fileKey: z.string().regex(/^[A-Za-z0-9]{10,}$/).optional().describe("The file key, if you have no link.") },
+  },
+  async ({ url, fileKey }) => {
+    let ref = null;
+    if (url) { try { ref = parseFigmaUrl(url); } catch (e) { throw failure("BAD_REQUEST", e.message); } }
+    const key = ref?.fileKey || fileKey;
+    if (!key) throw failure("BAD_REQUEST", "Give the file's link (url) or its key (fileKey).");
+    if (EXPECTED_FILE_KEY && key !== EXPECTED_FILE_KEY) throw failure("WRONG_FILE", `Refused: this run may only work on the Team's Figma file (${EXPECTED_FILE_KEY}), not ${key}.`);
+    pinnedFile = { fileKey: key, ...(url ? { url: String(url).slice(0, 500) } : {}) };
+    lastReads.clear();
+    return toolResult({ ...(ref?.nodeId ? { nodeId: ref.nodeId } : {}), ...(await executorStatus()) });
+  }
+);
+
+// After an edit: read each node back from Figma, fresh, and compare it with what was meant. This is
+// proof that the document holds the change (not just that a command returned), not a visual check.
+const near = (a, b) => typeof a === "number" && Math.abs(a - b) <= 0.5;
+server.registerTool(
+  "figma_verify_nodes",
+  {
+    description: "Verify edits by reading the nodes back from Figma now: each id exists, and has the expected values (name, type, characters, visible, x, y, width, height within 0.5px, fill as #rrggbb, the first visible fill). Returns verified:true only if every check passed, with each mismatch (expected vs actual). It proves the document holds the change; export and look for visual quality.",
+    inputSchema: {
+      checks: z.array(z.object({
+        id: z.string(),
+        expect: z.object({ name: z.string(), type: z.string(), characters: z.string(), visible: z.boolean(), x: z.number(), y: z.number(), width: z.number(), height: z.number(), fill: z.string().regex(/^#?[0-9a-fA-F]{6}$/) }).partial().optional(),
+      })).min(1).max(50),
+    },
+  },
+  async ({ checks }) => toolResult(await verifyNodes(checks))
+);
+async function verifyNodes(checks) {
+  const results = [];
+  for (const { id, expect = {} } of checks) {
+    let n;
+    try { n = (await callBridge("GET_DOCUMENT_STATE", { id, depth: 1 })).node; }
+    catch (e) { results.push({ id, ok: false, exists: /not found/i.test(e.message) ? false : null, error: String(e.message).slice(0, 300) }); continue; }
+    const actual = (k) => (k === "fill" ? n.fills?.[0]?.hex ?? null : k === "visible" ? n.visible !== false : n[k] ?? null);
+    const mismatches = Object.entries(expect).filter(([k, v]) => {
+      const a = actual(k);
+      return k === "fill" ? String(a).toLowerCase() !== `#${String(v).replace(/^#/, "").toLowerCase()}` : typeof v === "number" ? !near(a, v) : a !== v;
+    }).map(([k, v]) => ({ field: k, expected: v, actual: actual(k) }));
+    results.push({ id, ok: !mismatches.length, exists: true, name: n.name, type: n.type, ...(mismatches.length ? { mismatches } : {}) });
+  }
+  return { verified: results.every((r) => r.ok), checked: results.length, failed: results.filter((r) => !r.ok).length, results, method: "Read back from Figma after the edit. Not a visual check." };
+}
+
+server.registerTool("figma_list_pages",{ description: "List every page in the file (id + name), without loading their contents." }, tool("LIST_PAGES"));
 
 server.registerTool(
   "figma_create_page",
@@ -629,13 +793,14 @@ const refsIn = (v) => { const out = []; mapStrings(v, (s) => { const m = REF.exe
 if (!LEGACY) server.registerTool(
   "figma_batch",
   {
-    description: `Run many Figma edits in ONE call (up to ${MAX_OPS}), in order: create a whole section, then style and lay it out, instead of one tool call per element. Each op is {tool, args, ref?}: tool is one of ${BATCHABLE.map((t) => t.replace("figma_", "")).join(", ")} (with or without the figma_ prefix); args are that tool's own arguments; ref names the node the op creates, and later ops write "$ref" wherever they need its id (parentId, id, ...). Every op is validated before anything runs; an invalid batch changes nothing. If an op fails, ops that use its ref are skipped and the rest continue (stopOnError:true stops instead). Returns a compact report: per op ok/failed/skipped, the created ids by ref, and the errors. The report confirms what Figma did; it is not visual verification: export the finished section (figma_export_node) and look at it. Don't re-read the document after a batch just to confirm it.`,
+    description: `Run many Figma edits in ONE call (up to ${MAX_OPS}), in order: create a whole section, then style and lay it out, instead of one tool call per element. Each op is {tool, args, ref?}: tool is one of ${BATCHABLE.map((t) => t.replace("figma_", "")).join(", ")} (with or without the figma_ prefix); args are that tool's own arguments; ref names the node the op creates, and later ops write "$ref" wherever they need its id (parentId, id, ...). Every op is validated before anything runs; an invalid batch changes nothing. If an op fails, ops that use its ref are skipped and the rest continue (stopOnError:true stops instead). Returns a compact report: per op ok/failed/skipped, the created ids by ref, and the errors. The report confirms what Figma did; it is not visual verification: export the finished section (figma_export_node) and look at it. Don't re-read the document after a batch just to confirm it; verify:true reads every node the batch created or changed back from Figma at the end (figma_verify_nodes) and reports any that are missing.`,
     inputSchema: {
       ops: z.array(z.object({ tool: z.string(), args: z.record(z.string(), z.any()).optional(), ref: z.string().regex(/^[A-Za-z_][\w-]{0,40}$/).optional() })).min(1).max(MAX_OPS),
       stopOnError: z.boolean().optional(),
+      verify: z.boolean().optional().describe("After the batch, read back every node it created or changed, and report verified:true only if all of them exist."),
     },
   },
-  async ({ ops, stopOnError = false }) => {
+  async ({ ops, stopOnError = false, verify = false }) => {
     const started = Date.now();
     if (JSON.stringify(ops).length > MAX_BATCH_CHARS) return { isError: true, content: [{ type: "text", text: `Refused: the batch is larger than ${MAX_BATCH_CHARS} characters. Split it into smaller batches.` }] };
     // Validate everything first: tools, arguments (against each tool's schema), refs.
@@ -674,6 +839,11 @@ if (!LEGACY) server.registerTool(
     const count = (s) => results.filter((r) => r.status === s).length;
     const report = { ops: results.length, ok: count("ok"), failed: count("failed"), skipped: count("skipped"), created, ms: Date.now() - started,
       results, verification: "Not visually verified: these are Figma's confirmations of each edit. Export the section and look at it to verify." };
+    if (verify) {
+      const deleted = new Set(plan.filter((p) => p.type === "DELETE_NODE").map((p) => { const m = REF.exec(String(p.args.id || "")); return m ? created[m[1]] : p.args.id; }));
+      const ids = [...new Set(results.filter((r) => r.status === "ok" && r.id && !deleted.has(r.id)).map((r) => r.id))].slice(0, 50);
+      if (ids.length) { const v = await verifyNodes(ids.map((id) => ({ id }))); report.readBack = { verified: v.verified, checked: v.checked, ...(v.failed ? { failed: v.results.filter((r) => !r.ok) } : {}) }; }
+    }
     return { ...(report.failed ? { isError: false } : {}), content: [{ type: "text", text: JSON.stringify(report, null, 1) }] };
   }
 );

@@ -1,7 +1,8 @@
 {
- "when": "2026-10-20T18:45:53.261Z",
+ "when": "2026-10-21T18:18:10.311Z",
  "platform": "win32",
  "isolation": "none",
+ "tag": null,
  "egressFirewall": false,
  "node": "v22.23.2",
  "results": [
@@ -84,10 +85,10 @@
    "step": "hosted workspace: a new one is a folder of the person's own; a path from the page is ignored; Executor, folder browsing and the platform's files don't exist",
    "ok": true,
    "detail": {
-    "root": "<data>\\users\\u-d9490c93-c0a\\data\\workspaces\\site-ddde",
+    "root": "<data>\\users\\u-062130ab-895\\data\\workspaces\\site-3435",
     "list": [
      "scratch",
-     "site-ddde"
+     "site-3435"
     ]
    }
   },
@@ -97,8 +98,8 @@
    "detail": {
     "outcome": "done",
     "refusals": [
-     "C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-3oXA3x\\users\\u-49f2735c-86a\\data\\bob-secret.txt ",
-     "C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-3oXA3x\\control\\users.json is outside C:\\Users\\hp",
+     "C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-tWE1qB\\users\\u-e5450781-ce0\\data\\bob-secret.txt ",
+     "C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-tWE1qB\\control\\users.json is outside C:\\Users\\hp",
      "<tool_use_error>Error: No such tool available: Bash. Bash is disabled for this session, in",
      "WebFetch denied access to domain:169.254.169.254."
     ]
@@ -133,7 +134,7 @@
    "step": "Scratch (the default with no workspace): the conversation gets its own folder under the person's data; the worker writes there; it's listed only through the conversation",
    "ok": true,
    "detail": {
-    "folder": "<data>\\users\\u-d9490c93-c0a\\data\\scratch-runs\\2026-10-20T18-45-11-189Z"
+    "folder": "<data>\\users\\u-062130ab-895\\data\\scratch-runs\\2026-10-21T18-17-07-001Z"
    }
   },
   {
@@ -141,7 +142,7 @@
    "ok": true,
    "detail": {
     "status": "stopped",
-    "ms": 536
+    "ms": 549
    }
   },
   {
@@ -159,7 +160,7 @@
    "detail": {
     "status": "waiting",
     "outcome": "error",
-    "seconds": 5
+    "seconds": 6
    }
   },
   {

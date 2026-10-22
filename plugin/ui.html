@@ -28,14 +28,23 @@
       logEl.textContent = (new Date().toLocaleTimeString() + " " + line + "\n" + logEl.textContent).slice(0, 2000);
     }
 
+    // The file this plugin runs in, from code.js (sent once at start). Part of every hello.
+    let fileInfo = null;
+
     function setStatus(connected) {
-      statusEl.textContent = connected ? "connected" : "disconnected — retrying…";
+      statusEl.textContent = connected ? "connected" + (fileInfo ? " — " + fileInfo.fileName : "") : "waiting for the bridge — retrying…";
       statusEl.className = connected ? "connected" : "disconnected";
+    }
+
+    function hello() {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "__hello__", role: "plugin", file: fileInfo }));
     }
 
     let ws;
     let reconnectDelay = 1000;
 
+    // Retries for as long as the plugin is open, so a bridge started later (or restarted) is
+    // picked up within a few seconds without running the plugin again.
     function connect() {
       ws = new WebSocket(BRIDGE_URL);
 
@@ -43,14 +52,14 @@
         setStatus(true);
         reconnectDelay = 1000;
         log("ws open");
-        ws.send(JSON.stringify({ type: "__hello__", role: "plugin" }));
+        hello();
       };
 
       ws.onclose = () => {
         setStatus(false);
         log("ws closed, reconnecting in " + reconnectDelay + "ms");
         setTimeout(connect, reconnectDelay);
-        reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+        reconnectDelay = Math.min(reconnectDelay * 2, 4000);
       };
 
       ws.onerror = () => {
@@ -125,6 +134,11 @@
     window.onmessage = (event) => {
       const msg = event.data && event.data.pluginMessage;
       if (!msg) return;
+      if (msg.__fileInfo__) {
+        fileInfo = msg.__fileInfo__;
+        if (ws && ws.readyState === WebSocket.OPEN) { setStatus(true); hello(); }
+        return;
+      }
       log("<- sandbox: " + (msg.ok ? "ok" : "err") + " (" + msg.id + ")");
 
       if (msg.ok && msg.result && msg.result.__binaryBytes) {

@@ -1,5 +1,5 @@
 {
- "when": "2026-10-18T14:05:53.599Z",
+ "when": "2026-10-21T18:11:07.383Z",
  "results": [
   {
    "step": "1. one batch creates dependent elements: a frame, then children that use its ref",
@@ -32,7 +32,7 @@
      "skipped",
      "ok"
     ],
-    "failedError": "Node not found: 9:999",
+    "failedError": "COMMAND_FAILED: Node not found: 9:999",
     "skipped": "depends on $bad, which failed",
     "stopOnError": "stopped after op 0 failed"
    }
@@ -110,7 +110,7 @@
    "detail": {
     "repeated": {
      "unchanged": true,
-     "readAt": "2026-10-18T14:05:52.736Z",
+     "readAt": "2026-10-21T18:11:06.380Z",
      "note": "Identical to what you were given at readAt (checked against a fresh read). Pass fresh:true if you no longer have it."
     },
     "afterEdit": "Pricing v2",

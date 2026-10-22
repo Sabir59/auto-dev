@@ -25,10 +25,10 @@ They talk to each other only via `figma.ui.postMessage` / `figma.ui.onmessage`. 
 
 ## One-time setup per Figma session
 
-1. Start the bridge: `node bridge/server.js` (from `figma-ai-executor/`). Listens on `http://localhost:8787`.
+1. Start the bridge: `node bridge/server.js` (from `figma-ai-executor/`). Listens on `http://localhost:8787`. Through the MCP server this is automatic: the first Figma call starts it (`bridge/launcher.mjs`).
 2. Open the target Figma file in the desktop app.
 3. Run the plugin manually: **Plugins → Development → AI Executor (POC)**. Figma has no auto-launch API — this must be done by a human once per file-open. If Figma kills the plugin's iframe (it does this unpredictably), just re-run it from the same menu.
-4. Confirm connection: `GET http://localhost:8787/status` → `{"pluginConnected": true}`, or watch the plugin's own UI panel, which shows "connected" and logs each command.
+4. Confirm connection: `GET http://localhost:8787/status` → `{"pluginConnected": true, "sessions": [{"fileName", "fileKey", ...}]}` (or the `figma_executor_status` tool), or watch the plugin's own UI panel, which shows "connected" and logs each command.
 
 ## Sending commands
 

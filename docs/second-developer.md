@@ -70,9 +70,9 @@
    - Then, in `browser-adapter`: `npx playwright install chromium`.
 3. **Set your Git identity:** `git config --global user.name "…"` and `git config --global user.email …`.
 4. **Start the services.**
-   - `node worker-ui/devctl.mjs`, which gives the dashboard switches; or start them yourself with `node worker-ui/server.mjs` and `cd bridge && npm start`.
+   - `node worker-ui/devctl.mjs`, which gives the dashboard switches; or start them yourself with `node worker-ui/server.mjs` (the Figma bridge starts itself when Figma work begins; `cd bridge && npm start` also works).
    - Open `http://localhost:8799`.
-5. **Connect Figma.** In Figma desktop: Plugins > Development > Import plugin from manifest > `plugin/manifest.json`. Open your file and run "AI Executor (POC)".
+5. **Connect Figma.** In Figma desktop: Plugins > Development > Import plugin from manifest > `plugin/manifest.json`. Open your file and run "AI Executor (POC)". A person has to do this in each file they open: Figma has no API for it.
 6. **Check everything:** `node worker-ui/doctor.mjs --seed-workers`. It checks all of the above and adds the shared worker definitions. It shows no tokens and changes nothing else.
 7. **Optional, GitHub.** Sidebar > GitHub > paste your own fine-grained token. Register the repository, and add your clone as a workspace and assign it (`docs/github.md`).
 

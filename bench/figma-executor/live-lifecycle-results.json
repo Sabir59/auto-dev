@@ -1,0 +1,59 @@
+{
+ "at": "2026-10-21T18:21:17.377Z",
+ "passed": 5,
+ "total": 5,
+ "note": "Live Figma desktop app, reads only; the document was not changed.",
+ "results": [
+  {
+   "step": "1. status: READY, with the real file the plugin is running in",
+   "ok": true,
+   "detail": {
+    "state": "READY",
+    "file": {
+     "name": "Test Space",
+     "key": "duF0rXIX8dmXRFILdgvZA0"
+    },
+    "bridgePid": 17736
+   }
+  },
+  {
+   "step": "2. figma_use_file with the file's link pins the run to it; file info confirms the same file",
+   "ok": true,
+   "detail": {
+    "pinned": "duF0rXIX8dmXRFILdgvZA0",
+    "open": "Test Space"
+   }
+  },
+  {
+   "step": "3. read-back verification on a real node: right values verify, a wrong one is reported",
+   "ok": true,
+   "detail": {
+    "node": {
+     "id": "4002:594",
+     "name": "Winter Campaign / 1536P Screen Dimensions | Covering all Scenarios",
+     "type": "SECTION"
+    },
+    "good": true,
+    "wrongNameCaught": true
+   }
+  },
+  {
+   "step": "4. scope: a run locked to another file is refused before anything reaches Figma; read-only has no edit tools",
+   "ok": true,
+   "detail": {
+    "otherFile": "FILE_NOT_OPEN: The plugin isn't running in the file NotTheOpenFile00000000. Open that file in the Fi",
+    "readOnlyTools": 15
+   }
+  },
+  {
+   "step": "5. recovery: the bridge stops; the next call starts a new one and the real plugin reconnects by itself",
+   "ok": true,
+   "detail": {
+    "oldPid": 17736,
+    "newPid": 10032,
+    "msUntilAnswered": 1285,
+    "answeredBy": "Test Space"
+   }
+  }
+ ]
+}

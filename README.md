@@ -39,9 +39,11 @@ Figma document  →  result flows back up the same path  →  HTTP response
 
 ## Known limitation (can't be engineered away)
 
-Figma requires a human to launch the plugin once per session (Plugins menu).
-There is no public API to auto-launch a plugin from outside Figma. After that
-one-time launch, the AI drives it directly — no further manual steps.
+Figma requires a human to launch the plugin once per opened file (Plugins menu).
+There is no public API to auto-launch a plugin from outside Figma, and the REST
+API has no endpoint that edits design nodes (docs/figma-autonomy.md). After that
+one launch, the AI drives it directly. The bridge starts itself on the first
+Figma call (bridge/launcher.mjs), and the plugin reconnects to it by itself.
 
 Separately, Figma has been observed to occasionally tear down a running
 plugin's iframe runtime (not a WebSocket timeout — the whole JS context gets
@@ -50,7 +52,7 @@ killed). `ui.html` has basic auto-reconnect for this; if the bridge reports
 
 ## Setup
 
-1. **Start the bridge:**
+1. **Start the bridge** (optional: the MCP server starts it on the first Figma call):
    ```
    cd figma-ai-executor/bridge
    npm install

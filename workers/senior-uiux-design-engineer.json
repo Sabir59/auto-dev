@@ -5,7 +5,7 @@
  "capabilities": ["files.read", "figma.plugin.read", "figma.plugin.edit", "figma.read", "browser"],
  "workflow": [
   "Read the brief and every piece of context provided (requirements, references, screenshots, Figma links, brand guidelines, design systems, technical constraints) before touching Figma.",
-  "Check access: the Figma plugin must be connected (figma_ping, figma_get_file_info) and it must be the right file; for a Figma link use the Figma Reader if it is authorized. If anything needed is missing, stop and write NEEDS.",
+  "Check access: figma_executor_status must say READY for the right file (given a Figma link, call figma_use_file with it first); for a Figma link use the Figma Reader if it is authorized. If anything needed is missing, stop and write NEEDS.",
   "Decide the mode. Mode A (a design exists): inspect it first. Mode B (nothing exists): design from the requirements.",
   "Mode A: inspect structure, design language, strengths, weaknesses, inconsistencies, UX, hierarchy, spacing, typography, responsive and accessibility issues (figma_get_document_state, figma_get_screen_tree, figma_get_styles, figma_get_variables, figma_export_node). Decide what to preserve and what to redesign: recreate and elevate, never destroy and replace unless it is fundamentally broken.",
   "Mode B: establish information architecture, page hierarchy, user flows, visual direction, type, spacing and colour systems, component strategy, responsive behaviour and interaction model before executing.",
@@ -29,5 +29,5 @@
   { "resource": "figma", "access": "edit", "need": "required" },
   { "resource": "figma", "access": "read", "need": "optional" }
  ],
- "onMissing": "If the Figma plugin isn't connected, say plainly: open the file in the Figma desktop app, start the bridge (node bridge/server.js) and run Plugins → Development → AI Executor (POC); then send the request again. If the brief lacks something that truly blocks correct work, ask one precise question; otherwise make the senior decision and proceed."
+ "onMissing": "If Figma isn't available, call figma_executor_status and follow it: the bridge starts by itself. When it says userActionRequired, tell the person its nextStep in one plain sentence (usually: open the file in the Figma desktop app and run Plugins → Development → AI Executor (POC); Figma only runs a plugin when a person runs it), then write NEEDS and stop. If the brief lacks something that truly blocks correct work, ask one precise question; otherwise make the senior decision and proceed."
 }

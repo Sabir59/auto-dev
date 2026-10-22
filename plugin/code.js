@@ -3,6 +3,9 @@
 // available in this context) — that's why we need ui.html as the network leg.
 
 figma.showUI(__html__, { visible: true, width: 260, height: 160 });
+// The file this plugin instance runs in (it never changes): ui.html sends it with its hello, so the
+// bridge can route each command to the right file's plugin.
+figma.ui.postMessage({ __fileInfo__: { fileName: figma.root.name, fileKey: figma.fileKey, editorType: figma.editorType, rootId: figma.root.id } });
 
 // --- Helpers -------------------------------------------------------------
 

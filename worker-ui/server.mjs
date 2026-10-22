@@ -113,7 +113,8 @@ const ALLOWED = [
 // in Figma), browser click/fill/screenshot.
 const INSPECT_BUILTINS = ["Read", "Glob", "Grep", "ToolSearch"];
 const INSPECT_MCP = [
-  ...["ping", "get_file_info", "list_pages", "get_selection", "search_nodes", "get_document_state", "get_variables", "get_styles", "get_icon_components", "get_component_tree", "get_screen_tree", "get_prototype"].map((t) => `mcp__figma-executor__figma_${t}`),
+  ...["ping", "get_file_info", "list_pages", "get_selection", "search_nodes", "get_document_state", "get_variables", "get_styles", "get_icon_components", "get_component_tree", "get_screen_tree", "get_prototype",
+    "executor_status", "use_file", "verify_nodes"].map((t) => `mcp__figma-executor__figma_${t}`),
   "mcp__browser-executor__browser_navigate", "mcp__browser-executor__browser_get_dom_state",
 ];
 // Both profiles skip user settings, so a worker's capabilities never depend on which config dir's
@@ -138,11 +139,15 @@ const PROFILES = {
   full: { browser: "full", args: ["--settings", WORKER_SETTINGS, "--setting-sources", "project,local", "--allowedTools", ...ALLOWED] },
   inspect: { browser: "inspect", args: ["--settings", WORKER_SETTINGS, "--restricted", "--tools", INSPECT_BUILTINS.join(","), "--allowedTools", ...INSPECT_BUILTINS, ...INSPECT_MCP, "--permission-prompts", "none"] },
 };
+// The Figma Executor's settings: read or edit, the Team's file if any, and the bridge starting
+// itself (never hosted: there, no run gets the Executor at all, see HOSTED_OFF).
+const figmaEnv = (access, fileKey) => ({ FIGMA_EXECUTOR_PROFILE: access, FIGMA_BRIDGE_AUTOSTART: HOSTED ? "0" : "1",
+  ...(fileKey ? { FIGMA_EXPECTED_FILE_KEY: fileKey } : {}), ...(FIGMA_LEGACY ? { FIGMA_EXECUTOR_LEGACY: "1" } : {}), ...(process.env.FIGMA_BRIDGE_PORT ? { FIGMA_BRIDGE_PORT: process.env.FIGMA_BRIDGE_PORT } : {}) });
 // MCP config per profile, with absolute paths (the worker's cwd is its workspace, not this repo).
 const mcpConfig = (profile) => {
   const file = join(DATA, `mcp.${profile}.json`);
   writeFileSync(file, JSON.stringify({ mcpServers: {
-    "figma-executor": { command: process.execPath, args: [join(REPO, "mcp", "server.mjs")], ...(FIGMA_LEGACY ? { env: { FIGMA_EXECUTOR_LEGACY: "1" } } : {}) },
+    "figma-executor": { command: process.execPath, args: [join(REPO, "mcp", "server.mjs")], env: figmaEnv(profile === "full" ? "edit" : "read") },
     "browser-executor": { command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser, BROWSER_BLOCK_PORTS: PLATFORM_PORTS } },
   } }, null, 1));
   return file;
@@ -180,7 +185,10 @@ const CAPABILITIES = {
 // A Team's Figma resource locks the Figma tools of its runs to that one file: the Executor refuses
 // commands while another file is open, and the Reader refuses links to other files.
 const MCP_SERVERS = {
-  "figma-executor": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "server.mjs")], ...(scope.figmaKey || FIGMA_LEGACY ? { env: { ...(scope.figmaKey ? { FIGMA_EXPECTED_FILE_KEY: scope.figmaKey } : {}), ...(FIGMA_LEGACY ? { FIGMA_EXECUTOR_LEGACY: "1" } : {}) } } : {}) }),
+  // Read-only unless figma.plugin.edit is usable here: then the server registers no edit tools and
+  // refuses edit commands itself (FIGMA_EXECUTOR_PROFILE=read), not just the allow list.
+  "figma-executor": (profile, scope = {}, usable = []) => ({ command: process.execPath, args: [join(REPO, "mcp", "server.mjs")],
+    env: figmaEnv(profile === "full" && usable.includes("figma.plugin.edit") ? "edit" : "read", scope.figmaKey) }),
   "figma-reader": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")],
     ...(scope.figmaKey ? { env: { FIGMA_READER_ALLOWED_KEYS: scope.figmaKey, ...(process.env.FIGMA_READER_DIR ? { FIGMA_READER_DIR: process.env.FIGMA_READER_DIR } : {}) } } : {}) }),
   // Hosted: no address on this machine or a private network, and screenshots in the person's own folder.
@@ -265,6 +273,9 @@ const GENERAL = { id: null, name: "General", capabilities: ["files.read", "files
 // Requirements are generic {resource, access, need}; this registry knows how to check each one
 // now, without showing any secret. A missing requirement doesn't block the run: the worker is
 // told, and the tools themselves refuse without access.
+// The bridge launcher (bridge/launcher.mjs) is local-only code: the hosted image doesn't contain it.
+const bridgeLauncher = HOSTED ? null : await import("../bridge/launcher.mjs");
+const FIGMA_BRIDGE_BASE = `http://127.0.0.1:${Number(process.env.FIGMA_BRIDGE_PORT) || 8787}`;
 let figmaCheck = { at: 0, value: null }, builderCheck = { at: 0, value: null };
 const RESOURCES = {
   figma: { label: "Figma", access: {
@@ -276,11 +287,26 @@ const RESOURCES = {
         catch (e) { v = { ok: false, state: e.status === 401 || e.status === 403 ? "Authorization rejected" : "Can't verify", detail: clip(e.message, 120) }; }
         figmaCheck = { at: Date.now(), value: v }; return v;
       } },
-    edit: { label: "change the open file", how: HOSTED ? HOSTED_OFF["figma.plugin.edit"] : "Open the Figma file and run the AI Executor plugin, so it connects to the bridge.",
-      async check() {
+    edit: { label: "change the open file", how: HOSTED ? HOSTED_OFF["figma.plugin.edit"] : "Open the file in the Figma desktop app and run Plugins → Development → AI Executor (POC). The bridge starts by itself; Figma only runs a plugin when a person runs it.",
+      // From the bridge's /status. At a run's start (ctx.start) the bridge is started if it isn't
+      // running, so a plugin that's already open connects before the worker's first Figma call; a
+      // Team run (ctx.figmaKey) needs the plugin in the Team's file.
+      async check(ctx = {}) {
         if (HOSTED) return { ok: false, state: "Not available in the hosted product" };
-        try { const r = await fetch("http://127.0.0.1:8787/command", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "PING", params: {} }), signal: AbortSignal.timeout(2500) }); const j = await r.json(); return j.ok ? { ok: true, state: "Connected" } : { ok: false, state: "Plugin not running" }; }
-        catch { return { ok: false, state: "Bridge not running" }; }
+        let fresh = false;
+        if (ctx.start) {
+          const up = await bridgeLauncher.ensureBridge(FIGMA_BRIDGE_BASE);
+          if (!up.ok) return { ok: false, state: { MISSING_DEPENDENCY: "Bridge not installed", PORT_IN_USE: "Bridge port in use" }[up.code] || "Bridge can't start", detail: clip(`${up.error} ${up.nextStep || ""}`, 200) };
+          fresh = up.started || up.restarted;
+        }
+        let s = await bridgeLauncher.bridgeStatus(FIGMA_BRIDGE_BASE);
+        if (!s.isBridge) return s.reachable ? { ok: false, state: "Bridge port in use", detail: clip(s.error, 120) } : { ok: false, state: "Bridge not running", detail: "It starts by itself on the first Figma call." };
+        if (fresh && !s.status.pluginConnected) s = await bridgeLauncher.waitForPlugin(FIGMA_BRIDGE_BASE, { fileKey: ctx.figmaKey || null, timeout: 6000 });
+        const st = s.status || {}, sessions = st.sessions || [];
+        if (!st.pluginConnected) return { ok: false, state: "Plugin not running", detail: "Run the AI Executor plugin in the Figma file." };
+        const f = ctx.figmaKey ? sessions.find((x) => x.fileKey === ctx.figmaKey) : sessions[0];
+        if (ctx.figmaKey && st.sessions && !f) return { ok: false, state: "Plugin running in another file", detail: clip(sessions.map((x) => x.fileName).join(", "), 120) };
+        return { ok: true, state: "Connected", detail: f?.fileName ? `in "${f.fileName}"${sessions.length > 1 ? ` (+${sessions.length - 1} more)` : ""}` : "" };
       } },
   } },
   workspace: { label: "Workspace folder", access: {
@@ -1557,7 +1583,7 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
   let snap = null;
   if (def) {
     const runtime = workerRuntime(def, workspace.profile, scope);
-    const ctx = { profile: workspace.profile, root: workspace.root };
+    const ctx = { profile: workspace.profile, root: workspace.root, figmaKey: scope.figmaKey, start: true };
     const own = await requirementStatus(def, ctx);
     const shared = team ? (await requirementStatus(team, ctx)).filter((r) => !own.some((x) => x.resource === r.resource && x.access === r.access)).map((r) => ({ ...r, source: "team" })) : [];
     const status = [...own, ...shared];

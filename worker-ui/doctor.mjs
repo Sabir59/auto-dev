@@ -62,8 +62,9 @@ const c = await probe(`http://127.0.0.1:${CONSOLE}/`);
 add("required", `Worker console on http://localhost:${CONSOLE}`, !!c && /AI Workspace/.test(c.text), c ? (/AI Workspace/.test(c.text) ? "running" : "port used by something else") : "not running", "node worker-ui/server.mjs   (or node worker-ui/devctl.mjs for the dashboard switches)");
 const b = await probe(`http://127.0.0.1:${BRIDGE}/status`);
 let bj = null; try { bj = JSON.parse(b?.text || ""); } catch {}
-add("optional", `Figma bridge on localhost:${BRIDGE}`, !!bj, bj ? "running" : b ? "port used by something else" : "not running", "cd bridge && npm start   (needed for Figma work)");
-add("optional", "Figma plugin connected to the bridge", !!bj?.pluginConnected, bj?.pluginConnected ? "connected" : "not connected", "Figma desktop: Plugins > Development > Import plugin from manifest (plugin/manifest.json), open your file and run it");
+// Not running is fine: the Figma tools start the bridge on their first call (bridge/launcher.mjs).
+add("optional", `Figma bridge on localhost:${BRIDGE}`, !!bj || !b, bj ? `running${(bj.protocol || 1) < 2 ? " (an older version: restart it to update)" : ""}` : b ? "port used by something else" : "not running (starts by itself on the first Figma call)", b && !bj ? `free port ${BRIDGE}` : "cd bridge && npm start, if you want it up before any Figma call");
+add("optional", "Figma plugin connected to the bridge", !!bj?.pluginConnected, bj?.pluginConnected ? `connected${bj.sessions?.length ? `: ${bj.sessions.map((x) => x.fileName).join(", ")}` : ""}` : "not connected", "Figma desktop: Plugins > Development > Import plugin from manifest (plugin/manifest.json) once; then open your file and run it (a person has to: Figma has no API for it)");
 const d = await probe(`http://127.0.0.1:${DEVCTL}/`);
 add("optional", `Dashboard switches helper on localhost:${DEVCTL}`, !!d, d ? "running" : "not running", "node worker-ui/devctl.mjs");
 

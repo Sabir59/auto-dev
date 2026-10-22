@@ -1,0 +1,190 @@
+{
+ "at": "2026-10-22T08:55:22.562Z",
+ "passed": 17,
+ "total": 17,
+ "note": "Real bridge and MCP server, fake plugins. Not a live Figma test.",
+ "results": [
+  {
+   "step": "1. no bridge running: the first status call starts it; the plugin isn't running, and only the person can fix that",
+   "ok": true,
+   "detail": {
+    "state": "PLUGIN_NOT_CONNECTED",
+    "started": true,
+    "pid": 3888,
+    "nextStep": "The person has to open the file in the Figma desktop app and run Plugins → Development → A"
+   }
+  },
+  {
+   "step": "2. health: /status is machine-readable (protocol, pid, sessions, last disconnect)",
+   "ok": true,
+   "detail": {
+    "bridge": "figma-ai-executor",
+    "protocol": 2,
+    "pid": 3888,
+    "port": 8790,
+    "startedAt": "2026-10-22T08:54:48.694Z",
+    "pluginConnected": false,
+    "sessions": [],
+    "lastDisconnect": null
+   }
+  },
+  {
+   "step": "3. an edit with no plugin fails with PLUGIN_NOT_CONNECTED (after a short wait, since the bridge just started); nothing claims success",
+   "ok": true,
+   "detail": {
+    "error": "PLUGIN_NOT_CONNECTED: No Figma plugin is connected to the bridge. The person has to open the file in the Figma desktop a",
+    "ms": 6261
+   }
+  },
+  {
+   "step": "4. a plugin connects: status READY names its file; an edit goes through and says which file it hit",
+   "ok": true,
+   "detail": {
+    "state": "READY",
+    "created": "A:1",
+    "routedTo": {
+     "fileName": "Alpha",
+     "fileKey": "AAAAAAAAAAAAAAAAAAAAAA"
+    }
+   }
+  },
+  {
+   "step": "5. a refused write is an error with Figma's reason (COMMAND_FAILED), never a success",
+   "ok": true,
+   "detail": {
+    "error": "COMMAND_FAILED: Node not found: 9:999"
+   }
+  },
+  {
+   "step": "6. verification reads the node back: matching values pass, a wrong one is reported with expected vs actual",
+   "ok": true,
+   "detail": {
+    "good": true,
+    "bad": [
+     [
+      {
+       "field": "name",
+       "expected": "Footer",
+       "actual": "Hero"
+      }
+     ],
+     "COMMAND_FAILED: Node not found: 9:999"
+    ]
+   }
+  },
+  {
+   "step": "7. figma_batch verify:true reads back every node it made or changed, and reports one that isn't there",
+   "ok": true,
+   "detail": {
+    "verified": {
+     "verified": true,
+     "checked": 1
+    },
+    "ghost": {
+     "verified": false,
+     "checked": 1,
+     "failed": [
+      {
+       "id": "A:3",
+       "ok": false,
+       "exists": false,
+       "error": "COMMAND_FAILED: Node not found: A:3"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "step": "8. the plugin drops mid-command: the call fails at once with PLUGIN_DISCONNECTED (outcome unknown), not after 30s",
+   "ok": true,
+   "detail": {
+    "error": "PLUGIN_DISCONNECTED: The Figma plugin disconnected while running CREATE_FRAME. Figma may or may not have appli",
+    "ms": 445,
+    "lastDisconnect": {
+     "at": "2026-10-22T08:55:02.807Z",
+     "fileName": "Beta",
+     "fileKey": "BBBBBBBBBBBBBBBBBBBBBB"
+    }
+   }
+  },
+  {
+   "step": "9. a plugin that stops answering heartbeats is dropped (the bridge's own run, heartbeat 300ms)",
+   "ok": true,
+   "detail": {
+    "deafDropped": true,
+    "answeringKept": true
+   }
+  },
+  {
+   "step": "10. bridge goes away; the next call starts a new one, waits for the plugin to reconnect, and succeeds",
+   "ok": true,
+   "detail": {
+    "reconnects": 1,
+    "ms": 249,
+    "created": "A:4"
+   }
+  },
+  {
+   "step": "11. two files open, no file named: refused as AMBIGUOUS_SESSION; figma_use_file(link) routes to that file only",
+   "ok": true,
+   "detail": {
+    "ambiguous": "AMBIGUOUS_SESSION: The plugin is running in 2 files; name the file (fileKey) this command is for. Op",
+    "pinned": {
+     "fileKey": "BBBBBBBBBBBBBBBBBBBBBB",
+     "url": "https://www.figma.com/design/BBBBBBBBBBBBBBBBBBBBBB/Beta?node-id=12-34",
+     "source": "figma_use_file"
+    },
+    "wentTo": "Beta only"
+   }
+  },
+  {
+   "step": "12. file scope: a Team run can't pin another file, and is refused (nothing sent) while its file isn't open",
+   "ok": true,
+   "detail": {
+    "pinOther": "WRONG_FILE: Refused: this run may only work on the Team's Figma file (CCCCCCCCCCCCCCCCCCCC",
+    "write": "FILE_NOT_OPEN: The plugin isn't running in the file CCCCCCCCCCCCCCCCCCCCCC. Open that file in the Figma deskto",
+    "sentToPlugins": 0
+   }
+  },
+  {
+   "step": "13. read-only profile: no edit tool is registered, and the server itself refuses edits",
+   "ok": true,
+   "detail": {
+    "tools": 15,
+    "editToolsRegistered": [],
+    "editCall": "MCP error -32602: Tool figma_create_frame not found"
+   }
+  },
+  {
+   "step": "14. another program on the port: reported as PORT_IN_USE, nothing started over it",
+   "ok": true,
+   "detail": {
+    "code": "PORT_IN_USE",
+    "error": "Port 8790 is in use by another program (port answers, but not as the Figma bridge (HTTP 404))."
+   }
+  },
+  {
+   "step": "15. an older bridge (protocol 1) is replaced only while no plugin depends on it",
+   "ok": true,
+   "detail": {
+    "whileConnected": "kept",
+    "whenIdle": "replaced by protocol 2"
+   }
+  },
+  {
+   "step": "16. missing dependency: a bridge folder without ws says to run npm install, and starts nothing",
+   "ok": true,
+   "detail": {
+    "code": "MISSING_DEPENDENCY",
+    "nextStep": "Run npm install in the bridge folder once."
+   }
+  },
+  {
+   "step": "17. autostart off (FIGMA_BRIDGE_AUTOSTART=0): BRIDGE_UNAVAILABLE with the command to start it, and no bridge appears",
+   "ok": true,
+   "detail": {
+    "error": "BRIDGE_UNAVAILABLE: Could not reach the Figma bridge at http://localhost:8790/command: ECONNREFUSED. Start it: node brid"
+   }
+  }
+ ]
+}

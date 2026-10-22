@@ -92,7 +92,7 @@
       "path": "Claude Code -> mcp/server.mjs (MCP) -> HTTP POST /command -> bridge/server.js (:8787 loopback) -> WS -> plugin/ui.html -> postMessage -> plugin/code.js -> Figma Plugin API",
       "commands": ["PING", "GET_FILE_INFO", "LIST_PAGES", "SWITCH_PAGE", "CREATE_PAGE", "RENAME_PAGE", "GET_SELECTION", "SEARCH_NODES", "GET_DOCUMENT_STATE", "GET_VARIABLES", "GET_STYLES", "GET_ICON_COMPONENTS", "GET_COMPONENT_TREE", "GET_SCREEN_TREE", "GET_PROTOTYPE", "CREATE_FRAME", "CREATE_COMPONENT", "CREATE_TEXT", "CREATE_VECTOR", "CREATE_ELLIPSE", "CREATE_INSTANCE", "COMBINE_AS_VARIANTS", "SET_AUTO_LAYOUT", "MODIFY_NODE", "DETACH_INSTANCE", "SET_INSTANCE_PROPERTIES", "DELETE_NODE", "BIND_VARIABLE_TO_FILL", "IMPORT_COMPONENT_BY_KEY", "EXPORT_NODE"],
       "mcp_tools": 30,
-      "setup": "cd bridge && npm start; Figma desktop: Plugins > Development > Import plugin from plugin/manifest.json > Run",
+      "setup": "npm install in bridge/ once (the bridge then starts itself on the first Figma call, bridge/launcher.mjs); Figma desktop: Plugins > Development > Import plugin from plugin/manifest.json once, then Run in each opened file (no API can launch a plugin; docs/figma-autonomy.md)",
       "file_lock": "FIGMA_EXPECTED_FILE_KEY: every command except PING/GET_FILE_INFO refused unless plugin's figma.fileKey matches (plugin reports fileKey: VERIFIED)",
       "limitations": ["human must launch plugin", "Figma may kill the plugin iframe", "page-load failures needing a human tab click", "dynamic-page requires async APIs", "vector paths M/L/C/Z only", "resize doesn't keep ratio", "instances can't take children", "Inspect relies on allow-list (adapter has no read-only mode)"]
     },

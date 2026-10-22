@@ -368,15 +368,15 @@ Claude Code ──MCP stdio──► mcp/server.mjs (thin: tool → {type, param
   - B3 and B6 implementation packages verified in a browser;
   - the Senior UI/UX worker redesigning the owner's "trekking hiking" file (2026-10-05, read and edited by the worker).
 - **Set up once per Figma session:**
-  - start the bridge (`cd bridge && npm start`);
-  - in the Figma **desktop** app, use Plugins → Development → Import plugin from `plugin/manifest.json`, then Run "AI Executor (POC)".
-  - Figma requires a human to launch the plugin; there's no API for it.
-- **Access model:** the plugin acts in whatever file is open, with the person's Figma session. There's no separate authentication. The "figma edit" requirement = PING answered.
+  - the bridge starts itself on the first Figma call, or when a run that needs Figma edit access starts (`bridge/launcher.mjs`); `cd bridge && npm start` still works;
+  - in the Figma **desktop** app, use Plugins → Development → Import plugin from `plugin/manifest.json` once, then Run "AI Executor (POC)" in each file you open;
+  - Figma requires a human to launch the plugin; there's no API for it, and the REST API can't edit nodes. `docs/figma-autonomy.md` (2026-10-21) covers what's officially possible and what was automated.
+- **Access model:** the plugin acts in whatever file is open, with the person's Figma session. There's no separate authentication. The "figma edit" requirement = the bridge's `/status` shows a plugin (in a Team run, in the Team's file). `figma_executor_status` gives the same machine-readably, with error codes and who has to act.
 - **File lock (Team runs):** with `FIGMA_EXPECTED_FILE_KEY` set, every command except PING and GET_FILE_INFO first asks the plugin for `figma.fileKey`, and is refused if the open file isn't the Team's.
   - VERIFIED: this dev plugin (`enablePrivatePluginApi`) does report `fileKey`.
-- **Inspect:** only the 12 read tools are allowed. The adapter has no read-only mode of its own; "Inspect" relies on the allow-list.
+- **Inspect / read-only workers:** only the read tools are allowed, and the adapter itself runs read-only (`FIGMA_EXECUTOR_PROFILE=read`: no edit tool registered, edit commands refused). The bridge routes each command to the plugin of the file it names, so a Team run can't reach another open file.
 - **Known limitations** (`docs/how-to-drive.md`, `docs/benchmarks.md`):
-  - a human must launch the plugin;
+  - a human must launch the plugin in each opened file (the bridge no longer needs one);
   - Figma sometimes kills the plugin iframe, and the bridge then reports "No Figma plugin connected";
   - a page sometimes won't load until a human clicks the page tab (B3/B6);
   - `dynamic-page` needs the async APIs;
@@ -945,7 +945,7 @@ The product doesn't need every future feature to launch.
 **Start the system (Windows, Node 22, Claude Code CLI 2.1.283 installed and logged in):**
 ```powershell
 # once: npm install in bridge/, mcp/, browser-adapter/ (Playwright Chromium)
-cd bridge; npm start               # Figma bridge on 127.0.0.1:8787 (only for Figma work)
+cd bridge; npm start               # optional: the Figma bridge (127.0.0.1:8787) also starts itself on the first Figma call
 # Figma desktop → Plugins → Development → Import plugin from manifest (plugin/manifest.json) → Run
 node worker-ui/server.mjs           # console → http://localhost:8799
 ```
