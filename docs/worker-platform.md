@@ -161,6 +161,7 @@ Teams group workers with shared knowledge, resources, instructions, prompts, req
 
 | Integration | Connector | What it really does today |
 |---|---|---|
+| Git branch sync and promotion | yes | read-only Git tools, plus the worker's Git workflow page (commits by developer, ownership evidence, simulated plans, approved proposal branches): `docs/gitflow-worker.md` |
 | Code repository | yes | files, Node scripts (node and curl only), browser checks; commits and pushes stay the person's |
 | Builder.io | yes | read / drafts / publish (test spaces only, enforced by the adapter) |
 | Figma | yes | the open file through the plugin (edit or only look); other files by link with a token |

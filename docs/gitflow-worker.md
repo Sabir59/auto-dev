@@ -1,0 +1,95 @@
+# Git workflow worker (MVP, 2026-10-22)
+
+A worker for synchronising and promoting changes between branches when several teams share them. Two examples, the first configuration (MATW):
+- `dev-main → sabir-dev` and `uat-main → sabir-uat` keep BAU's lanes in step;
+- `sabir-uat → preprod-main` promotes approved work.
+
+The findings behind it are in the branch-sync assessment (2026-10-22): copies, reverts and cross-team dependencies.
+
+## How it fits the platform
+- **Created like any worker.** Describe the work ("keep sabir-dev in sync with dev-main … promote to preprod-main"), and the creation flow recognises **Git branch sync and promotion** (`worker-ui/integrations.mjs`). It asks:
+  - your team and the other teams;
+  - the branch relationships (prefilled for the sabir-* lanes);
+  - whether it may prepare proposal branches.
+- **The worker gets one capability, `gitflow.read`.** These are read-only Git tools (`mcp/gitflow-server.mjs`):
+  - `gitflow_overview`, `gitflow_commits`, `gitflow_commit`, `gitflow_preview`;
+  - `gitflow_save_note`, for its explanations.
+
+  It has no shell, no file editing, and no tool that creates a branch, merges or pushes.
+- **Its page** opens from "Open the Git workflow" on the worker's new task:
+  1. **Setup:** the repository (a workspace that is a Git checkout), teams with pull-request branch patterns, people and their commit identities, branch relationships and their default strategy, rules, ownership overrides, ticket patterns, shared branches, and whether proposal branches are allowed.
+  2. **Commits:** what each destination is missing, filterable by developer and grouped into tasks only on evidence (one pull request, or a ticket reference). Each commit shows:
+     - its kind (PR merge, revert, cherry-picked, duplicate);
+     - whether the destination already has it, as the same commit or an equivalent copy;
+     - ownership with its confidence and evidence;
+     - its files, diff and raw `git show` output;
+     - the worker's explanation, labelled as its own words.
+  3. **Preview & plan:** choose a strategy (with its trade-offs) and generate a plan simulated with Git. It lists:
+     - what will apply and what's already there;
+     - what's blocked or excluded, and why;
+     - predicted conflicts, possible dependencies (earlier changes to the same files, other teams flagged) and hazards;
+     - build and tests ("not run": none is configured);
+     - an approval button.
+  4. **History:** the audit trail: configuration changes, previews, refusals, executions and the worker's notes.
+
+## What decides what (deterministic vs AI)
+- **Git** (`worker-ui/gitflow.mjs`), never the model: the commits, ancestry, patch equivalence (`git patch-id --stable`), PR association (from merge commits), revert detection, merge and cherry-pick simulation (`git merge-tree --write-tree`, with `--merge-base` for a cherry-pick), conflicts, and the plan.
+- **Ownership** comes from configured evidence:
+  - an override = confirmed;
+  - a PR branch pattern plus an author email = confirmed;
+  - one of them = likely;
+  - an author name only, or disagreeing evidence = uncertain;
+  - nothing = unknown.
+
+  A Git author alone is never "confirmed".
+- **The worker (AI)** explains what changes do, suggests related commits (shown as a suggestion, not evidence), and explains plans and risks. Ask it from the Commits page ("Ask the worker to explain").
+
+## Strategies
+| Strategy | What it does | When it's right | What blocks it |
+|---|---|---|---|
+| Apply selected changes | applies chosen commits one by one onto the destination, as copies that record the original (`cherry picked from`) | the destination must stay independent of the source | merges, other teams' or uncertain changes (by rules), changes reverted later (by rules), predicted conflicts, other teams' possible dependencies |
+| Merge, keeping history | merges the source into the destination | everything the source carries is eligible | any other-team or uncertain commit it would carry |
+| Promote feature branches | merges the PRs' reviewed feature branches into the destination | branches cut from the destination (or older) | a feature branch carrying other teams' work (e.g. cut from `dev-main`), conflicts |
+
+Rules can relax "other teams", "uncertain" and "reverted" from *blocks* to *needs your review*. Merge commits and predicted conflicts always block.
+
+## Safety
+- **Analysis and simulations run in a private bare copy** (`<data>/gitflow/<worker>/scratch`). It borrows the repository's objects and copies its branch refs, so the repository is only read.
+- **Execution** needs proposal branches allowed in Setup and your approval.
+  - The plan is recomputed first, and refused if the branches moved (a stale plan), if it's blocked, or if a review wasn't confirmed.
+  - The result becomes a **new** branch, `gitflow/<destination>-<time>`, in the repository.
+  - Before and after, it checks that no existing branch or remote-tracking ref changed.
+  - It never pushes, never rewrites history, and never writes a shared branch.
+- **Every** preview, refusal, execution and note is in `<data>/gitflow/<worker>/audit.jsonl`. Plans are stored by their id in `plans/`.
+
+## Try it
+1. `node worker-ui/server.mjs` (restart it if it was running), then open http://localhost:8799.
+2. Add a workspace for a **separate clone** of the repository (Inspect is enough). For MATW, `git clone` your checkout somewhere, then `git fetch` in it.
+3. **New worker** → "Keep sabir-dev in sync with dev-main and sabir-uat with uat-main, and promote our UAT changes to preprod-main".
+   - Answer *Your team* (BAU) and *Other teams* (Innovax).
+   - Choose the clone as where it works.
+   - Create.
+4. On its new task, choose **Open the Git workflow** → **Setup**:
+   - add people (name, team, commit emails);
+   - add your PR branch patterns (e.g. `bau/*`, `sabir-*`);
+   - save.
+5. **Commits:**
+   - choose a relationship and a developer;
+   - open commits;
+   - select a task or changes;
+   - **Preview a plan**.
+6. To try execution, use the fixture repository rather than MATW. In Setup, allow proposal branches, then approve a Ready plan. The new branch is in the clone; nothing is pushed.
+
+**Tests:** `bash bench/workspace-ui/run-suite.sh gitflow`:
+- a disposable fixture (`bench/gitflow/fixture.mjs`);
+- one real worker run;
+- a read-only pass over the real MATW repository that checks no ref there moves.
+
+## Limits of this MVP
+- **Pull requests** come from merge-commit messages and squash subjects. GitHub's API (PR authors, labels, team membership) isn't used yet.
+- **Dependencies** are file-overlap heuristics: a hint, not proof. Conflicts are Git's prediction.
+- **No build or test command** is run; plans say so.
+- **Runs are on demand only:** no schedule or webhooks.
+- **Resolving conflicts** is out of scope: they block the plan, and no resolution is proposed yet.
+- **The Setup page** has no unsaved-changes guard.
+- **A proposal branch** is created only in the configured clone; pushing it and opening the pull request are yours.
