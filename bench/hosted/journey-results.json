@@ -1,5 +1,5 @@
 {
- "when": "2026-10-22T15:12:22.773Z",
+ "when": "2026-10-24T18:30:07.682Z",
  "platform": "win32",
  "model": "FAKE (scripted)",
  "results": [
@@ -57,9 +57,9 @@
    "ok": true,
    "detail": {
     "toolCalls": [
-     "Failed · 368ms",
-     "Success · 101ms",
-     "Success · 92ms"
+     "Failed · 157ms",
+     "Success · 52ms",
+     "Success · 62ms"
     ]
    }
   },
