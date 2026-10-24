@@ -232,65 +232,136 @@ await step("a real run of the worker (Claude): its runtime gets the gitflow tool
   return { used, reply };
 });
 
-// ---- the page ----
+// ---- the page (design: Figma "Git Sync v2 · Screens") ----
 const b = await chromium.launch();
 const page = await b.newPage({ viewport: { width: 1440, height: 950 } });
 const pageErrors = []; page.on("pageerror", (e) => pageErrors.push(e.message));
 const shot = (n) => page.screenshot({ path: join(HERE, "shots", `gitflow-${n}.png`) });
+const bodyText = () => page.locator("#gfBody").innerText();
 await page.goto(BASE, { waitUntil: "networkidle" });
 await page.click(`#wsList [data-ws="${ws.id}"]`);
 
-await step("page: the worker's new task offers its Git workflow; Commits lists real changes; choosing Sameem shows his commits; a commit shows evidence, its diff and the worker's explanation", async () => {
+await step("page: the worker's new task opens its Git workflow on Overview (counts, branch rules, mode); Changes lists your team's selectable changes; Sameem's two excluded ones appear only when asked, and can't be ticked; a commit shows evidence, its diff and the worker's explanation", async () => {
   await page.click(`#wkList [data-wk="${W.id}"]`); await page.waitForSelector("#gfCard");
-  await page.click('[data-gs="gitflow"]'); await page.waitForSelector(".gfc");
+  await page.click('[data-gs="gitflow"]'); await page.waitForSelector(".gfkpis");
+  await page.waitForFunction(() => /PENDING COMMITS\s*\n?\s*\d+/i.test(document.querySelector(".gfkpis")?.innerText || ""));
+  const ov = await bodyText(); await shot("overview");
+  await page.click('[data-gf-tab="changes"]'); await page.waitForSelector(".gfc");
   await page.click('[data-gf-person="sameem"]'); await sleep(300);
-  const rows = await page.locator(".gfc").count();
+  const selectable = await page.locator(".gfc").count();
+  await page.click("#gfShowEx"); await sleep(300);
+  const all = await page.locator(".gfc").count(), locked = await page.locator(".gfc input:disabled").count();
   await page.click(`[data-gf-open="${S.S3}"]`); await page.waitForFunction(() => /banner/.test(document.querySelector("#gfDetail")?.innerText || ""));
   const detail = await page.locator("#gfDetail").innerText();
-  await shot("commits");
-  assert(rows === 5 && /Ownership: BAU · confirmed/i.test(detail) && /The worker's explanation/i.test(detail) && /banner\(\) helper/.test(detail) && /src\/cart.js/.test(detail), JSON.stringify({ rows, detail: detail.slice(0, 300) }));
-  return { sameemRows: rows };
+  await shot("changes");
+  assert(/prod-main/.test(ov) && /off-limits/i.test(ov) && /Proposals allowed/.test(ov) && /dev-main/.test(ov), ov.slice(0, 400));
+  assert(selectable === 3 && all === 5 && locked === 2, JSON.stringify({ selectable, all, locked }));
+  assert(/Ownership: BAU · confirmed/i.test(detail) && /The worker's explanation/i.test(detail) && /banner\(\) helper/.test(detail) && /src\/cart.js/.test(detail), detail.slice(0, 300));
+  return { sameem: { selectable, all, locked } };
 });
 
-await step("page: select PR #101's task → plan Ready → approve (confirm) → the new branch and 'existing branches changed: none'", async () => {
-  await page.click('[data-gf-person=""]');
-  await page.check('[data-gf-task="pr-101"]');
-  await page.click("#gfToPlan"); await page.waitForSelector("#gfPreview"); await page.click("#gfPreview");
-  await page.waitForSelector(".gfstatus"); const status = await page.locator(".gfstatus").first().innerText();
+await step("page: other teams', reverted and unknown-owner changes can't be ticked; S3 is flagged (same file as Innovax's I1) and its plan is blocked by the conflict and the dependency; Create and Export patch stay disabled, the Git graph is marked planned; leaving S3 out gives a ready plan of PR #101", async () => {
+  await page.click('[data-gf-person=""]'); await page.click('[data-gf-who="all"]'); await sleep(200);
+  const locked = await Promise.all([S.I1, S.U1, S.S4, S.N1].map((s) => page.locator(`[data-gf-sel="${s}"]`).isDisabled()));
+  await page.click("#gfShowEx"); await sleep(200); // hide them again
+  await page.check('[data-gf-task="pr-101"]'); await page.check(`[data-gf-sel="${S.S3}"]`);
+  await page.waitForFunction(() => /blocks the plan/.test(document.querySelector("#gfBody").innerText));
+  const warn = await bodyText();
+  await page.click("#gfToPlan"); await page.waitForSelector(".gfstatus");
+  const blocked = await page.locator(".gfstatus").innerText(), noCreate = (await page.locator("#gfApprove").count()) === 0;
+  const createOff = await page.locator('.gfdock button:has-text("Create proposal branch")').isDisabled(), patchOff = await page.locator('.gfdock button:has-text("Export patch")').isDisabled();
+  const graphOff = await page.locator('[role="tab"]:has-text("Git graph")').isDisabled();
+  await page.click("#gfResolve"); await page.waitForSelector("#gfLeaveOut");
+  const deps = await bodyText(); await shot("plan-blocked");
+  await page.click("#gfLeaveOut"); await page.waitForFunction(() => /^Ready/m.test(document.querySelector(".gfstatus")?.innerText || ""));
+  const ready = await page.locator(".gfstatus").innerText(), items = await page.locator(".gfit").count();
   await shot("plan-ready");
-  await page.click("#gfApprove"); await page.waitForSelector("#dlg[open]"); await page.click('[data-dlg="go"]');
+  assert(locked.every(Boolean), JSON.stringify(locked));
+  assert(/another team's unselected/.test(warn) && /blocks the plan/.test(warn), warn.slice(0, 300));
+  assert(/Blocked/.test(blocked) && /predicted conflict/.test(blocked) && noCreate && createOff && patchOff && graphOff, JSON.stringify({ blocked, noCreate, createOff, patchOff, graphOff }));
+  assert(/conflicts when applied/.test(deps) && /may depend on/.test(deps) && /not in v1/i.test(deps), deps.slice(0, 400));
+  assert(items === 2, String(items));
+  return { blocked: blocked.split("\n")[0], leftOut: "S3", ready: ready.split("\n")[0] };
+});
+
+await step("page: Create asks first (what's created, what isn't), then shows the new branch and 'existing branches changed: none'; pushing asks a second time and pushes only the new branch", async () => {
+  await page.click("#gfApprove"); await page.waitForSelector("#dlg[open]");
+  const dlg1 = await page.locator("#dlgB").innerText(); await page.click('[data-dlg="go"]');
   await page.waitForFunction(() => /Created gitflow\//.test(document.querySelector("#gfBody").innerText));
-  const out = await page.locator(".gfstatus").last().innerText();
-  await shot("plan-created");
-  await page.click("#gfPR"); await page.waitForSelector("#dlg[open]"); const dlg = await page.locator("#dlgB").innerText(); await page.click('[data-dlg="go"]');
+  const out = await bodyText(); await shot("plan-created");
+  await page.click("#gfPR"); await page.waitForSelector("#dlg[open]");
+  const dlg2 = await page.locator("#dlgB").innerText(); await page.click('[data-dlg="go"]');
   await page.waitForSelector("#gfPrDone"); const pr = await page.locator("#gfPrDone").innerText();
   await shot("plan-pr");
-  assert(/^Ready/.test(status) && /Existing branches changed: none/.test(out) && /Nothing is pushed to sabir-dev/.test(dlg) && /Pushed gitflow\//.test(pr), JSON.stringify({ status, out, dlg, pr }));
-  return { status: status.split("\n")[0], outcome: out.split("\n")[0], pr: pr.split("\n")[0] };
+  assert(/It will not/.test(dlg1) && /push anything/.test(dlg1) && /UTC time/.test(dlg1), dlg1);
+  assert(/Existing branches changed: none/.test(out) && /To discard/.test(out), out.slice(0, 400));
+  assert(/Nothing is pushed to sabir-dev/.test(dlg2) && /Pushed gitflow\//.test(pr), JSON.stringify({ dlg2, pr }));
+  return { created: out.match(/Created (gitflow\/\S+)/)?.[1], pr: pr.split("\n")[0] };
 });
 
-await step("page: S3 alone is blocked with the predicted conflict and the cross-team dependency, and can't be approved; History lists what happened", async () => {
-  await page.click('[data-gf-tab="commits"]'); await page.waitForSelector(".gfc");
-  await page.click("#gfClear"); await page.waitForFunction(() => !document.querySelector("[data-gf-sel]:checked"));
-  await page.check(`[data-gf-sel="${S.S3}"]`); await page.click("#gfToPlan"); await page.click("#gfPreview"); await page.waitForSelector(".gfstatus");
-  const txt = await page.locator("#gfBody").innerText(), disabled = await page.locator("#gfApprove").isDisabled();
-  await shot("plan-blocked");
-  await page.click('[data-gf-tab="history"]'); await page.waitForSelector(".gfaudit"); const hist = await page.locator(".gfaudit").innerText();
-  assert(/Blocked/.test(txt) && /Conflicts: src\/cart.js/.test(txt) && /another team/.test(txt) && disabled && /execute/.test(hist), JSON.stringify({ txt: txt.slice(0, 400), disabled }));
-  return { blocked: true, approveDisabled: disabled };
+await step("page: Settings keeps 'uncertain or unknown owner' locked on (D5); turning 'block reverted' off makes S4 need review, and Create stays disabled until the review point is ticked", async () => {
+  await page.click("#gfDone"); await page.waitForSelector(".gfc");
+  await page.click('[data-gf-tab="settings"]'); await page.waitForSelector("#gfExRev");
+  const unc = await page.locator("#gfExUnc").evaluate((x) => ({ checked: x.checked, disabled: x.disabled }));
+  await page.uncheck("#gfExRev"); await page.waitForFunction(() => document.querySelector("#gfDirty")?.textContent === "Unsaved changes");
+  await page.click("#gfSave"); await page.waitForFunction(() => /Saved/.test(document.querySelector("#gfMsg")?.textContent || ""));
+  const saved = (await gf("GET", "/config")).body.config.exclude;
+  await page.click('[data-gf-tab="changes"]'); await page.waitForSelector(`[data-gf-sel="${S.S4}"]`);
+  await page.check(`[data-gf-sel="${S.S4}"]`); await page.click("#gfToPlan");
+  await page.waitForFunction(() => /Needs your review/.test(document.querySelector(".gfstatus")?.innerText || ""));
+  await page.click("#gfApprove"); await page.waitForSelector("#dlg[open]");
+  const before = await page.locator('[data-dlg="go"]').isDisabled();
+  await page.check("[data-gf-ack]"); const after = await page.locator('[data-dlg="go"]').isDisabled();
+  await shot("plan-review-confirm");
+  await page.click('[data-dlg="cancel"]');
+  assert(unc.checked && unc.disabled && saved.uncertain === true && saved.reverted === false, JSON.stringify({ unc, saved }));
+  assert(before === true && after === false, JSON.stringify({ before, after }));
+  return { d5Locked: unc, createDisabledUntilTicked: { before, after } };
 });
-await step("page: Setup shows the repository and its authors; giving 'Dev Bot' a team from the list and saving adds them to the rules with their email", async () => {
-  await page.click('[data-gf-tab="setup"]'); await page.waitForSelector(".gfauth"); await page.waitForSelector(".gfrepo");
+
+await step("page: a stale plan (the destination moved after the preview) is refused and shown as out of date with Preview again; History lists the creation, the push and the refusal", async () => {
+  const moved = execFileSync("git", ["commit-tree", "-p", "refs/remotes/origin/sabir-dev", "-m", "someone else", "refs/remotes/origin/sabir-dev^{tree}"], { cwd: fx.repo, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "x", GIT_AUTHOR_EMAIL: "x@x", GIT_COMMITTER_NAME: "x", GIT_COMMITTER_EMAIL: "x@x" } }).trim();
+  const old = execFileSync("git", ["rev-parse", "refs/remotes/origin/sabir-dev"], { cwd: fx.repo, encoding: "utf8" }).trim();
+  execFileSync("git", ["update-ref", "refs/remotes/origin/sabir-dev", moved], { cwd: fx.repo });
+  let stale;
+  try {
+    await page.click("#gfApprove"); await page.waitForSelector("#dlg[open]"); await page.check("[data-gf-ack]"); await page.click('[data-dlg="go"]');
+    await page.waitForFunction(() => /out of date/.test(document.querySelector("#gfBody").innerText));
+    stale = await bodyText(); await shot("plan-stale");
+  } finally { execFileSync("git", ["update-ref", "refs/remotes/origin/sabir-dev", old], { cwd: fx.repo }); }
+  const again = await page.locator("#gfPreview2").count();
+  await page.click('[data-gf-tab="history"]'); await page.waitForSelector(".gfaudit"); const hist = await page.locator(".gfaudit").innerText();
+  await shot("history");
+  assert(/This plan is out of date/.test(stale) && again === 1 && (await page.locator("#gfApprove").count()) === 0, stale.slice(0, 300));
+  assert(/Branch created/.test(hist) && /Pushed/.test(hist) && /Refused/.test(hist) && /stale/.test(hist), hist.slice(0, 500));
+  return { stale: "refused and shown", history: [...new Set(hist.split("\n").filter((l) => /Branch created|Pushed|Refused|Settings saved|Preview/.test(l)))].slice(0, 6) };
+});
+
+await step("page: Settings shows the repository and its authors; giving 'Dev Bot' a team marks unsaved changes, leaving asks first, and saving adds them with their email", async () => {
+  await page.click('[data-gf-tab="settings"]'); await page.waitForSelector(".gfauth"); await page.waitForSelector(".gfrepo");
   const repoCard = await page.locator(".gfrepo").innerText();
   const idx = await page.locator('.gfauth tr:has-text("Dev Bot") select').getAttribute("data-gf-auth");
   await page.selectOption(`[data-gf-auth="${idx}"]`, "innovax");
+  await page.waitForFunction(() => document.querySelector("#gfDirty")?.textContent === "Unsaved changes");
+  await page.click('[data-gf-tab="overview"]'); await page.waitForSelector("#dlg[open]"); const ask = await page.locator("#dlgB").innerText();
+  await page.click('[data-dlg="keep"]'); await sleep(200); const still = await page.locator("#gfSetup").count();
   await page.click("#gfSave"); await page.waitForFunction(() => /Saved/.test(document.querySelector("#gfMsg")?.textContent || ""));
-  const people = (await gf("GET", "/config")).body.config.people, bot = people.find((p) => p.name === "Dev Bot");
-  await shot("setup");
-  assert(/origin/.test(repoCard) && /Fetch now/.test(repoCard) && bot?.team === "innovax" && bot.emails.join() === "bot@ci.test", JSON.stringify({ repoCard, bot }));
-  const c = (await gf("GET", "/config")).body.config; await gf("PUT", "/config", { ...c, people: c.people.filter((p) => p.name !== "Dev Bot") });
-  return { added: bot };
+  const c = (await gf("GET", "/config")).body.config, bot = c.people.find((p) => p.name === "Dev Bot");
+  await shot("settings");
+  assert(/origin/.test(repoCard) && /Fetch now/.test(repoCard) && /Git workflow settings/.test(ask) && still === 1 && bot?.team === "innovax" && bot.emails.join() === "bot@ci.test", JSON.stringify({ repoCard, ask, still, bot }));
+  await gf("PUT", "/config", { ...c, people: c.people.filter((p) => p.name !== "Dev Bot"), exclude: { ...c.exclude, reverted: true } });
+  return { added: bot, askedBeforeLeaving: true };
 });
+
+await step("page: at 820 px the Changes page doesn't scroll sideways and its action bar stays on screen", async () => {
+  await page.setViewportSize({ width: 820, height: 760 }); await sleep(300);
+  await page.click('[data-gf-tab="changes"]'); await page.waitForSelector(".gfc");
+  const m = await page.evaluate(() => { const b = document.querySelector("#gfBody"), d = document.querySelector(".gfdock").getBoundingClientRect(); return { sw: b.scrollWidth, cw: b.clientWidth, dockTop: Math.round(d.top), dockBottom: Math.round(d.bottom), h: window.innerHeight }; });
+  await shot("narrow");
+  assert(m.sw <= m.cw + 1 && m.dockBottom <= m.h + 1 && m.dockTop < m.h, JSON.stringify(m));
+  return m;
+});
+await step("page: no script errors", async () => { assert(!pageErrors.length, pageErrors.join(" | ")); return { pageErrors: 0 }; });
 await b.close();
 
 const MATW = process.env.MATW_SRC || "C:\\Users\\hp\\Desktop\\MATW\\matw-revamp-main-frontend-site";
