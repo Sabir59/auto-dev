@@ -430,6 +430,20 @@ function gitflowRoot(id, cfg) {
   if (!cfg.workspace) throw new Error("Choose the repository in the Git workflow setup.");
   return resolveWorkspace(cfg.workspace).root;
 }
+// The Git identity of a repository (user.name / user.email), or null.
+function gitIdentity(root) {
+  if (!root) return null;
+  const id = (k) => (spawnSync("git", ["config", k], { cwd: root, encoding: "utf8", windowsHide: true }).stdout || "").trim();
+  const name = id("user.name"), email = id("user.email");
+  return name || email ? { name, email } : null;
+}
+// Who approved or changed something, for the audit and pull requests: the signed-in person (hosted),
+// else this clone's Git identity, else "person at this console".
+function gitflowActor(root) {
+  if (HOSTED) return process.env.AIW_USER_EMAIL || "person";
+  const i = gitIdentity(root);
+  return i ? `${i.name || "?"} <${i.email || "?"}>` : "person at this console";
+}
 function gitflowEngine(id, cfg, noRepo = false) {
   return new gitflow.GitFlow({ root: noRepo ? null : gitflowRoot(id, cfg), dir: gitflowDir(id), config: cfg });
 }
@@ -2253,7 +2267,10 @@ http.createServer(async (req, res) => {
           const r = await gitflow.cloneRemote(next.url, d, next.forbidden);
           if (r.cloned) gitflowAudit(w.id, { action: "clone", url: next.url });
         }
-        writeGitflowConfig(w.id, next); gitflowAudit(w.id, { action: "config", by: "person", mappings: next.mappings.length, people: next.people.length, proposals: next.proposals });
+        // What changed, from what to what, and who changed it (the rules included: auditable).
+        const changes = gitflow.configChanges(cfg, next);
+        writeGitflowConfig(w.id, next);
+        gitflowAudit(w.id, { action: "config", by: gitflowActor((() => { try { return gitflowRoot(w.id, next); } catch { return null; } })()), mappings: next.mappings.length, people: next.people.length, proposals: next.proposals, exclude: next.exclude, changes });
         return json(res, 200, { config: next });
       }
       if (!cfg) return json(res, 400, { error: "Set up the Git workflow first." });
@@ -2272,15 +2289,22 @@ http.createServer(async (req, res) => {
       // destination (GitHub connected) or GitHub's link to open it. The person's second approval.
       if (parts[2] === "pr" && req.method === "POST") {
         const b = await body(req);
-        return json(res, 200, await gf.openPullRequest(String(b.branch || ""), { createPullRequest: github.hasToken() ? github.createPullRequest : null, approvedBy: HOSTED ? process.env.AIW_USER_EMAIL || "person" : "person at this console" }));
+        return json(res, 200, await gf.openPullRequest(String(b.branch || ""), { createPullRequest: github.hasToken() ? github.createPullRequest : null, approvedBy: gitflowActor(gf.root) }));
       }
-      if (parts[2] === "fetch" && req.method === "POST") { const r = await gf.fetchOrigin(); gitflowAudit(w.id, { action: "fetch", by: "person" }); return json(res, 200, r); }
+      // Who is at this console, for "Mine": this clone's Git identity and the configured person it matches.
+      if (parts[2] === "identity" && req.method === "GET") {
+        const i = gitIdentity(gf.root), em = i?.email?.toLowerCase();
+        const p = i && (cfg.people.find((x) => em && x.emails.includes(em)) || cfg.people.find((x) => i.name && x.name.toLowerCase() === i.name.toLowerCase()));
+        return json(res, 200, { identity: i, person: p ? { id: p.id, name: p.name, team: p.team } : null });
+      }
+      if (parts[2] === "fetch" && req.method === "POST") { const r = await gf.fetchOrigin(); gitflowAudit(w.id, { action: "fetch", by: gitflowActor(gf.root) }); return json(res, 200, r); }
       if (parts[2] === "analysis" && req.method === "GET") return json(res, 200, await gf.analyse(mapping(url.searchParams.get("mapping")), { scope: url.searchParams.get("scope") === "recent" ? "recent" : "pending" }));
       if (parts[2] === "commit" && parts[3] && req.method === "GET") return json(res, 200, await gf.commit(parts[3]));
       if (parts[2] === "preview" && req.method === "POST") { const b = await body(req); return json(res, 200, await gf.preview(mapping(b.mapping), { strategy: b.strategy, select: Array.isArray(b.select) ? b.select.slice(0, 200).map(String) : [] })); }
       if (parts[2] === "execute" && req.method === "POST") {
-        const b = await body(req), id = (k) => (spawnSync("git", ["config", k], { cwd: gf.root, encoding: "utf8", windowsHide: true }).stdout || "").trim();
-        return json(res, 200, await gf.execute(String(b.plan || ""), { approvedBy: HOSTED ? process.env.AIW_USER_EMAIL || "person" : "person at this console", acknowledge: b.acknowledge === true, identity: { name: id("user.name"), email: id("user.email") } }));
+        // acknowledge: the ids of the plan's points the person confirmed (execute() wants exactly the plan's list).
+        const b = await body(req), i = gitIdentity(gf.root) || {};
+        return json(res, 200, await gf.execute(String(b.plan || ""), { approvedBy: gitflowActor(gf.root), acknowledge: Array.isArray(b.acknowledge) ? b.acknowledge.slice(0, 200).map(String) : [], identity: { name: i.name || "", email: i.email || "" } }));
       }
     }
 

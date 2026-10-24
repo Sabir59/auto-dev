@@ -51,7 +51,36 @@ The findings behind it are in the branch-sync assessment (2026-10-22): copies, r
 | Merge, keeping history | merges the source into the destination | everything the source carries is eligible | any other-team or uncertain commit it would carry |
 | Promote feature branches | merges the PRs' reviewed feature branches into the destination | branches cut from the destination (or older) | a feature branch carrying other teams' work (e.g. cut from `dev-main`), conflicts |
 
-Rules can relax "other teams", "uncertain" and "reverted" from *blocks* to *needs your review*. Merge commits and predicted conflicts always block.
+Rules can relax "other teams", "uncertain owner", "unknown owner" and "reverted" from *blocks* to *needs your confirmation*. Merge commits and predicted conflicts always block.
+
+### Ownership rules (2026-10-24)
+- **Three separate rules:**
+  - **Unknown owner:** no rule matches the author, e.g. a bot or someone not in People.
+  - **Uncertain owner:** a name only, or evidence that disagrees.
+  - **Other teams' changes:** confirmed or likely evidence for another team.
+- **Unknown has its own setting, on by default.** A configuration saved before it existed keeps blocking unknown owners, whatever its "uncertain" says. Relaxing "uncertain" never lets an unknown author through.
+- **Blocks name the rule** that made them.
+
+### Another team's change to the same file (D1, 2026-10-24)
+A selected change may touch a file that an earlier, unselected change from another team also changed.
+- **It needs your explicit confirmation,** not a block, only when all of these hold:
+  - Git applies the selected change cleanly without it;
+  - nothing else blocks the selected change;
+  - the other change is confirmed or likely another team's.
+
+  The other change is never included.
+- **Everything else still blocks:**
+  - a predicted conflict;
+  - an other change whose owner is unknown or uncertain (fix its attribution first);
+  - selecting the other team's change itself;
+  - merges, reverted changes and the ownership rules.
+- **What you confirm is a list of points, each with an id.** Creating the branch needs exactly that plan's list. A missing, partial, extra or other plan's confirmation is refused and audited. The execution's audit entry records the confirmed points and the approver.
+
+### Confirmations, plans and settings
+- **What a plan id covers:** the relationship, strategy, selection, both tips, every change's outcome, the points to confirm, and a fingerprint of the settings that decide ownership and rules.
+- **A settings change invalidates plans:** after one, an older plan is refused as stale.
+- **Each settings save is audited:** what changed (`from → to`, the rules included) and who changed it.
+- **Who is recorded:** this clone's Git identity locally (`Name <email>`), the signed-in person when hosted.
 
 ## Branch rules (2026-10-23)
 - **Off-limits** (default `prod-main`): never read and never written.
@@ -74,7 +103,12 @@ Rules can relax "other teams", "uncertain" and "reverted" from *blocks* to *need
   - The result becomes a **new** branch, `gitflow/<destination>-<time>`, in the repository.
   - Before and after, it checks that no existing branch or remote-tracking ref changed.
   - It never pushes, never rewrites history, and never writes a shared branch.
-- **Every** preview, refusal, execution and note is in `<data>/gitflow/<worker>/audit.jsonl`. Plans are stored by their id in `plans/`.
+- **Every** preview, refusal, execution, push, settings change, fetch and note is in `<data>/gitflow/<worker>/audit.jsonl`. Plans are stored by their id in `plans/`.
+- **One writer at a time.** Updating the private copy, fetching, creating the branch and pushing it run one at a time per worker:
+  - in the console, requests queue;
+  - across processes (the console and the worker's own tools), a lock file `<data>/gitflow/<worker>/repo.lock` is held;
+  - a lock left by a process that died, or one older than 15 minutes, is taken over.
+- **The pull request's description** names who approved the branch and who approved the push. It lists what was applied, what was confirmed, and what isn't in the pull request and why. Calling it again after GitHub refused the pull request pushes nothing new and tries again.
 
 ## Try it
 1. `node worker-ui/server.mjs` (restart it if it was running), then open http://localhost:8799.
@@ -101,9 +135,8 @@ Rules can relax "other teams", "uncertain" and "reverted" from *blocks* to *need
 
 ## Limits of this MVP
 - **Pull requests** come from merge-commit messages and squash subjects. GitHub's API (PR authors, labels, team membership) isn't used yet.
-- **Dependencies** are file-overlap heuristics: a hint, not proof. Conflicts are Git's prediction.
+- **Dependencies** are file-overlap heuristics: a hint, not proof. A change can depend on another without touching the same file, and that isn't detected. Conflicts are Git's prediction.
 - **No build or test command** is run; plans say so.
 - **Runs are on demand only:** no schedule or webhooks.
 - **Resolving conflicts** is out of scope: they block the plan, and no resolution is proposed yet.
-- **The Setup page** has no unsaved-changes guard.
 - **A proposal branch** is created only in the configured clone; pushing it and opening the pull request are yours.

@@ -15,9 +15,39 @@
 // approval, a NEW branch gitflow/<destination>-<time> is fetched into it. No existing branch is ever
 // updated, nothing is pushed, nothing is rewritten.
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, renameSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, renameSync, rmSync, openSync, writeSync, closeSync, unlinkSync, statSync } from "node:fs";
 import { join, resolve, isAbsolute } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
+
+// ---- one writer at a time ----
+// A worker's private copy (and, for execute and push, its repository) is written by one operation at
+// a time: requests of the console run concurrently, and the worker's own tools run in another
+// process. In-process callers queue; across processes a lock file (<dir>/repo.lock) is held, and one
+// left by a process that died, or older than 15 minutes, is taken over.
+const queues = new Map();
+const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
+const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === "EPERM"; } };
+async function fileLock(path, fn, timeout = 600000) {
+  for (const t0 = Date.now(); ;) {
+    try { const fd = openSync(path, "wx"); writeSync(fd, JSON.stringify({ pid: process.pid, at: Date.now() })); closeSync(fd); break; }
+    catch (e) {
+      if (e.code !== "EEXIST") throw e;
+      let stale = false;
+      try { const o = JSON.parse(readFileSync(path, "utf8")); stale = Date.now() - o.at > 15 * 60e3 || !alive(o.pid); }
+      catch { try { stale = Date.now() - statSync(path).mtimeMs > 60e3; } catch { continue; } } // being written, or just released
+      if (stale) { try { unlinkSync(path); } catch {} continue; }
+      if (Date.now() - t0 > timeout) throw new Error("Another Git workflow operation on this worker is still running: try again in a moment.");
+      await sleep(100);
+    }
+  }
+  try { return await fn(); } finally { try { unlinkSync(path); } catch {} }
+}
+export function withLock(dir, fn) {
+  const run = (queues.get(dir) || Promise.resolve()).then(() => { mkdirSync(dir, { recursive: true }); return fileLock(join(dir, "repo.lock"), fn); });
+  const tail = run.catch(() => {}); queues.set(dir, tail);
+  tail.then(() => { if (queues.get(dir) === tail) queues.delete(dir); });
+  return run;
+}
 
 // ---- git ----
 const ENV_DROP = /^(GIT_|REPO_)/;
@@ -81,7 +111,9 @@ export function normalizeConfig(b = {}, prev = {}) {
     if (m.source === m.destination) throw new Error(`"${m.source}" can't be its own destination.`);
     return { id: slug(`${m.source}-to-${m.destination}`), source: m.source, destination: m.destination, kind: m.kind === "promote" ? "promote" : "sync", strategy: STRATEGIES[m.strategy] ? m.strategy : m.kind === "promote" ? "feature" : "selective" };
   });
-  const ex = { ...{ otherTeams: true, uncertain: true, reverted: true, merges: true }, ...(prev.exclude || {}), ...(b.exclude || {}) };
+  // Unknown owners (no rule matches the author) have their own rule, on unless explicitly turned off:
+  // a configuration saved before it existed keeps blocking them, whatever its "uncertain" says.
+  const ex = { ...{ otherTeams: true, uncertain: true, unknown: true, reverted: true, merges: true }, ...(prev.exclude || {}), ...(b.exclude || {}) };
   const overrides = (Array.isArray(b.overrides) ? b.overrides : prev.overrides || []).slice(0, 200).map((o) => {
     const ref = clip(o.ref, 40).replace(/^#?(\d+)$/, "#$1");
     if (!SHA.test(ref) && !/^#\d+$/.test(ref)) throw new Error(`Override "${o.ref}": use a commit id or a pull request number (#123).`);
@@ -98,10 +130,31 @@ export function normalizeConfig(b = {}, prev = {}) {
     source, url: source === "remote" ? url : "",
     workspace: clip(b.workspace ?? prev.workspace, 80), refs: source === "remote" ? "local" : (b.refs ?? prev.refs) === "local" ? "local" : "remote",
     teams, people, mappings, overrides, tickets,
-    exclude: { otherTeams: !!ex.otherTeams, uncertain: !!ex.uncertain, reverted: !!ex.reverted, merges: !!ex.merges },
+    exclude: { otherTeams: !!ex.otherTeams, uncertain: !!ex.uncertain, unknown: ex.unknown !== false, reverted: !!ex.reverted, merges: !!ex.merges },
     forbidden, shared: list(b.shared ?? (String(prev.shared) === OLD_SHARED ? null : prev.shared) ?? DEFAULT_SHARED, 30, 120).filter((x) => !forbidden.includes(x)),
     proposals: !!(b.proposals ?? prev.proposals), updatedAt: new Date().toISOString(),
   };
+}
+// The settings a plan depends on (who owns what, the rules, the branch rules). A plan records their
+// fingerprint, so a plan made before they changed can't be executed: it's stale.
+export const decisionFingerprint = (c) => createHash("sha256").update(JSON.stringify([c.teams, c.people, c.overrides, c.exclude, c.tickets, c.forbidden, c.shared])).digest("hex").slice(0, 16);
+// What a settings save changed, for the audit trail: [{ field, from, to }], compact.
+export function configChanges(prev, next) {
+  const p = prev ? normalizeConfig({}, prev) : null, out = [];
+  const s = (v) => { const t = typeof v === "string" ? v : JSON.stringify(v ?? null); return t.length > 300 ? t.slice(0, 297) + "…" : t; };
+  const add = (field, a, b) => { if (JSON.stringify(a ?? null) !== JSON.stringify(b ?? null)) out.push({ field, from: p ? s(a) : null, to: s(b) }); };
+  for (const k of ["otherTeams", "uncertain", "unknown", "reverted", "merges"]) add(`exclude.${k}`, p?.exclude[k], next.exclude[k]);
+  add("proposals", p?.proposals, next.proposals);
+  for (const k of ["source", "url", "workspace", "refs"]) add(k, p?.[k], next[k]);
+  add("shared", p?.shared.join(", "), next.shared.join(", ")); add("forbidden", p?.forbidden.join(", "), next.forbidden.join(", ")); add("tickets", p?.tickets.join(", "), next.tickets.join(", "));
+  const rel = (c) => c.mappings.map((m) => `${m.source} → ${m.destination} (${m.kind}, ${m.strategy})`).join("; ");
+  add("relationships", p && rel(p), rel(next));
+  add("teams", p?.teams.map((t) => `${t.name}${t.ours ? " (yours)" : ""}: ${t.branchPatterns.join(" ")}`).join("; "), next.teams.map((t) => `${t.name}${t.ours ? " (yours)" : ""}: ${t.branchPatterns.join(" ")}`).join("; "));
+  const people = (c) => Object.fromEntries((c?.people || []).map((x) => [x.name || x.github, `${x.team || "no team"} · ${x.emails.join(" ")}`]));
+  const pa = people(p), pb = people(next);
+  for (const n of new Set([...Object.keys(pa), ...Object.keys(pb)])) add(`people.${n}`, pa[n], pb[n]);
+  add("overrides", p?.overrides.map((o) => `${o.ref}→${o.team}`).join(", "), next.overrides.map((o) => `${o.ref}→${o.team}`).join(", "));
+  return out;
 }
 // A first configuration from the worker's creation answers.
 export function initialConfig({ team, others, mappings, proposals, workspace }) {
@@ -115,7 +168,8 @@ export class GitFlow {
   get ourTeam() { return this.config.teams.find((t) => t.ours) || null; }
   ref(branch) { return this.config.refs === "remote" ? `refs/remotes/origin/${branch}` : `refs/heads/${branch}`; }
   // Brings the private repository up to date with the configured one: reads it, writes only here.
-  async sync() {
+  async sync() { return withLock(this.dir, () => this.#sync()); }
+  async #sync() {
     if (!existsSync(join(this.root, ".git")) && !existsSync(join(this.root, "HEAD"))) throw new Error("The workspace isn't a Git repository.");
     let objects = (await out(this.root, ["rev-parse", "--git-common-dir"])).trim();
     objects = join(isAbsolute(objects) ? objects : resolve(this.root, objects), "objects");
@@ -176,7 +230,8 @@ export class GitFlow {
   }
   // `git fetch origin` in the repository: it updates origin/… (what "as last fetched" means) and
   // nothing else; no branch of the person's moves. Only when the person asks.
-  async fetchOrigin() {
+  async fetchOrigin() { return withLock(this.dir, () => this.#fetchOrigin()); }
+  async #fetchOrigin() {
     // The console's own clone of a URL keeps the remote's branches as its branches.
     // Off-limits branches are excluded. In a folder of the person's, nothing is pruned: their other
     // remote-tracking refs stay exactly as they were.
@@ -262,7 +317,9 @@ export class GitFlow {
     const srcByPid = new Map(); for (const [sha, pid] of pending_pid) (srcByPid.get(pid) || srcByPid.set(pid, []).get(pid)).push(sha);
     const all = scope === "recent" ? recent : pending, pendingSet = new Set(pending.map((c) => c.sha));
     const reverts = new Map(); // reverted sha → the revert commit
-    for (const c of [...pending, ...(await this.commits([`${src}..${dst}`], { limit: 300 }))]) { const m = /This reverts commit ([0-9a-f]{7,40})/.exec(c.body); if (m) reverts.set(m[1], c); }
+    const destOnly = await this.commits([`${src}..${dst}`], { limit: 300 });
+    for (const c of [...pending, ...destOnly]) { const m = /This reverts commit ([0-9a-f]{7,40})/.exec(c.body); if (m) reverts.set(m[1], c); }
+    const base = (await git(this.scratch, ["merge-base", dst, src], { allowFail: true })).out.trim() || null;
     const notes = this.notes();
     const tick = this.config.tickets.map((r) => new RegExp(`\\b(${r})\\b`, "g"));
     const rows = all.map((c) => {
@@ -290,7 +347,10 @@ export class GitFlow {
     const byTicket = new Map(); for (const r of rows) if (!seen.has(r.sha)) for (const t of r.tickets) (byTicket.get(t) || byTicket.set(t, []).get(t)).push(r.sha);
     for (const [t, shas] of byTicket) { const left = shas.filter((s) => !seen.has(s)); if (left.length) { tasks.push({ id: `ticket-${t}`, kind: "ticket", title: t, evidence: `The same reference (${t}) in the commit messages`, shas: left }); left.forEach((s) => seen.add(s)); } }
     for (const r of rows) if (!seen.has(r.sha)) tasks.push({ id: `c-${r.short}`, kind: "single", title: r.subject, evidence: "No pull request or ticket links it to other commits", shas: [r.sha], suggested: r.note?.related?.length ? r.note.related : undefined });
-    return { mapping, source: { branch: mapping.source, tip: src }, destination: { branch: mapping.destination, tip: dst }, scope, pendingCount: pending.length, truncated: all.length >= limit, commits: rows, tasks, prs: prs.map(({ commits, ...p }) => ({ ...p, size: commits.length })) };
+    // For the Git graph: where the two branches meet, and what the destination has that the source doesn't.
+    const graph = { base, baseShort: base ? base.slice(0, 9) : null, destinationTotal: destOnly.length,
+      destination: destOnly.slice(0, 60).map((c) => ({ sha: c.sha, short: c.sha.slice(0, 9), subject: c.subject, author: c.author.name, date: c.date, parents: c.parents, pickedFrom: /\(cherry picked from commit ([0-9a-f]{7,40})\)/.exec(c.body)?.[1] || null })) };
+    return { mapping, source: { branch: mapping.source, tip: src }, destination: { branch: mapping.destination, tip: dst }, scope, pendingCount: pending.length, truncated: all.length >= limit, commits: rows, tasks, prs: prs.map(({ commits, ...p }) => ({ ...p, size: commits.length })), graph };
   }
 
   async commit(sha) {
@@ -315,13 +375,15 @@ export class GitFlow {
     const a = await this.analyse(mapping, { scope: "pending", limit: 1000 });
     const ours = this.ourTeam?.id, ex = this.config.exclude, bySha = new Map(a.commits.map((c) => [c.sha, c]));
     const teamName = (id) => this.config.teams.find((t) => t.id === id)?.name || "no team";
-    const items = [], blockers = [], reviews = [], hazards = [], deps = [];
-    const ownership = (c) => {
-      const at = c.attribution, why = [];
-      if (at.confidence === "unknown" || at.confidence === "uncertain") why.push(`Ownership is ${at.confidence}`);
-      else if (at.team !== ours) why.push(`Belongs to ${teamName(at.team)} (${at.confidence})`);
-      return why;
-    };
+    const items = [], blockers = [], reviewItems = [], hazards = [], deps = [];
+    // A point the person must confirm before the plan can be executed. Its id is the same for the same
+    // plan, so a confirmation names exactly the points it covers (execute() compares the lists).
+    const review = (id, kind, text, extra = {}) => { if (!reviewItems.some((r) => r.id === id)) reviewItems.push({ id, kind, text, ...extra }); };
+    // Ownership has three separate rules: unknown (no rule matches the author), uncertain (weak or
+    // conflicting evidence), and another team's (confirmed or likely evidence for another team).
+    const RULE = { unknown: "unknown owner", uncertain: "uncertain owner", otherTeams: "other teams' changes" };
+    const ownRule = (at) => (at.confidence === "unknown" ? "unknown" : at.confidence === "uncertain" ? "uncertain" : at.team && at.team !== ours ? "otherTeams" : null);
+    const ownWhy = (at) => (at.confidence === "unknown" ? "Ownership is unknown: no rule matches the author" : at.confidence === "uncertain" ? "Ownership is uncertain: the evidence is weak or disagrees" : `Belongs to ${teamName(at.team)} (${at.confidence})`);
     const sel = new Set(select.map(String));
     let order = [], prsChosen = [];
     if (strategy === "feature") {
@@ -344,22 +406,22 @@ export class GitFlow {
         items.push(it);
         if (c.parents.length > 1) { it.status = "excluded"; it.reasons.push("A merge commit: select the commits it brought in, or promote its feature branch"); continue; }
         if (c.presence.state !== "missing") { it.status = "present"; it.reasons.push(c.presence.text); continue; }
-        // Your exclusion rules decide whether a doubtful change blocks the plan or only needs review.
-        const own = ownership(c);
-        if (own.length) {
-          const strict = c.attribution.team && c.attribution.team !== ours && ["confirmed", "likely"].includes(c.attribution.confidence) ? ex.otherTeams : ex.uncertain;
-          if (strict) { it.status = "blocked"; it.reasons.push(...own, "Excluded by your rules: correct the attribution (people, branch patterns or an override) or deselect it"); blockers.push(`${c.short}: ${own.join("; ")}`); }
-          else { it.reasons.push(...own, "Your rules allow it: review it before approving"); reviews.push(`${c.short}: ${own.join("; ")}`); }
+        // Your exclusion rules decide whether a doubtful change blocks the plan or needs your confirmation.
+        const rule = ownRule(c.attribution);
+        if (rule) {
+          const why = ownWhy(c.attribution);
+          if (ex[rule]) { it.status = "blocked"; it.rule = rule; it.reasons.push(why, `Blocked by your rule “${RULE[rule]}”: correct the attribution (people, branch patterns or an override) or deselect it`); blockers.push(`${c.short}: ${why} (rule: ${RULE[rule]})`); }
+          else { it.reasons.push(why, `Your rule “${RULE[rule]}” is off: confirm it before approving`); review(`owner:${c.short}`, "owner", `${c.short}: ${why} (rule “${RULE[rule]}” is off)`, { sha: c.sha }); }
         }
         if (c.revertedBy && !chosen.has(c.revertedBy.sha)) {
           const why = `Reverted later by ${c.revertedBy.short} ("${c.revertedBy.subject}"): applying it would bring back reverted code`;
           hazards.push({ kind: "revert", sha: c.sha, text: `${c.short} was reverted by ${c.revertedBy.short}` });
-          if (ex.reverted) { it.status = "blocked"; it.reasons.push(why); blockers.push(`${c.short}: reverted later`); } else { it.reasons.push(why); reviews.push(`${c.short}: reverted later`); }
+          if (ex.reverted) { it.status = "blocked"; it.reasons.push(why); blockers.push(`${c.short}: reverted later`); } else { it.reasons.push(why); review(`reverted:${c.short}`, "reverted", `${c.short}: reverted later`, { sha: c.sha }); }
         }
         if (c.duplicates.length) hazards.push({ kind: "duplicate", sha: c.sha, text: `${c.short} has an equivalent copy in the source (${c.duplicates.map((d) => d.slice(0, 9)).join(", ")}): only one should be applied` });
         // Possible dependencies: earlier pending changes, not selected and not in the destination, that touch the same files.
         const earlier = a.commits.filter((o) => !chosen.has(o.sha) && o.parents.length === 1 && o.presence.state === "missing" && new Date(o.date) <= new Date(c.date) && o.files.some((f) => c.files.includes(f)));
-        for (const o of earlier) { const other = o.attribution.team !== ours; deps.push({ sha: c.sha, short: c.short, on: o.sha, onShort: o.short, onSubject: o.subject, team: teamName(o.attribution.team), crossTeam: other, files: o.files.filter((f) => c.files.includes(f)) }); }
+        for (const o of earlier) deps.push({ sha: c.sha, short: c.short, on: o.sha, onShort: o.short, onSubject: o.subject, team: teamName(o.attribution.team), onTeam: o.attribution.team, onConfidence: o.attribution.confidence, crossTeam: o.attribution.team !== ours, files: o.files.filter((f) => c.files.includes(f)) });
         if (it.status !== "apply") continue;
         const sim = await git(this.scratch, ["merge-tree", "--write-tree", "--name-only", "--no-messages", `--merge-base=${c.parents[0]}`, cur, c.sha], { allowFail: true });
         const [tree, ...rest] = sim.out.trim().split("\n");
@@ -368,7 +430,17 @@ export class GitFlow {
         cur = (await this.run(["commit-tree", tree, "-p", cur, "-F", "-"], { input: `${c.subject}\n\n${c.body ? c.body.trim() + "\n\n" : ""}(cherry picked from commit ${c.sha})\n`, env: commitEnv(c, identity) })).trim();
         applied++;
       }
-      for (const d of deps) (d.crossTeam ? blockers : reviews).push(`${d.short} may depend on ${d.onShort} (${d.team}, not selected): both change ${d.files.join(", ")}`);
+      for (const d of deps) {
+        const it = items.find((i) => i.sha === d.sha), text = `${d.short} may depend on ${d.onShort} (${d.team}, not selected): both change ${d.files.join(", ")}`;
+        if (!d.crossTeam) { d.decision = "review"; review(`dep:${d.short}:${d.onShort}`, "dependency", text, { sha: d.sha, on: d.on, files: d.files }); continue; }
+        // Another team's earlier change to the same file, not selected (D1). It needs the person's
+        // explicit confirmation only when the selected change applied cleanly (nothing else blocks it)
+        // and the other change is confirmed or likely another team's; the other change is never
+        // included. Anything else blocks, as before: a conflict, or an owner that's unknown or uncertain.
+        const otherTeam = !!d.onTeam && d.onTeam !== ours && ["confirmed", "likely"].includes(d.onConfidence);
+        if (otherTeam && it?.status === "apply") { d.decision = "confirm"; review(`overlap:${d.short}:${d.onShort}`, "cross-team-overlap", `${text}. Git applies ${d.short} cleanly without it; ${d.onShort} is not included`, { sha: d.sha, on: d.on, files: d.files, team: d.team }); }
+        else { d.decision = "block"; blockers.push(text + (it?.status === "conflict" ? "" : !otherTeam ? ` (${d.onShort}'s owner is ${d.onConfidence}: fix its attribution first)` : "")); }
+      }
     } else {
       // Ancestry and feature: what the merge would bring, and whether all of it is eligible.
       const heads = strategy === "ancestry" ? [{ head: a.source.tip, label: mapping.source }] : prsChosen.map((p) => ({ head: p.head, label: `#${p.number} ${p.branch}`, pr: p }));
@@ -377,11 +449,11 @@ export class GitFlow {
         for (const c of brings.reverse()) {
           const known = bySha.get(c.sha); const at = known?.attribution || this.attribute(c, null);
           const it = { sha: c.sha, short: c.sha.slice(0, 9), subject: c.subject, attribution: at, kinds: known?.kinds || (c.parents.length > 1 ? ["merge"] : ["direct"]), status: "apply", reasons: [`Brought by merging ${h.label}`], via: h.label };
-          if (c.parents.length === 1) {
-            const own = ownership({ attribution: at });
-            const strict = at.team && at.team !== ours && ["confirmed", "likely"].includes(at.confidence) ? ex.otherTeams : ex.uncertain;
-            if (own.length && strict) { it.status = "blocked"; it.reasons.push(...own, "A merge can't leave it out: everything the branch carries comes along"); blockers.push(`${it.short}: ${own.join("; ")} (carried by ${h.label})`); }
-            else if (own.length) { it.reasons.push(...own, "Your rules allow it: review it before approving"); reviews.push(`${it.short}: ${own.join("; ")} (carried by ${h.label})`); }
+          const rule = c.parents.length === 1 ? ownRule(at) : null;
+          if (rule) {
+            const why = ownWhy(at);
+            if (ex[rule]) { it.status = "blocked"; it.rule = rule; it.reasons.push(why, `Blocked by your rule “${RULE[rule]}”; a merge can't leave it out: everything the branch carries comes along`); blockers.push(`${it.short}: ${why} (carried by ${h.label})`); }
+            else { it.reasons.push(why, `Your rule “${RULE[rule]}” is off: confirm it before approving`); review(`owner:${it.short}`, "owner", `${it.short}: ${why} (carried by ${h.label})`, { sha: c.sha }); }
           }
           if (known?.revertedBy) hazards.push({ kind: "revert", sha: c.sha, text: `${it.short} is reverted by ${known.revertedBy.short}; a merge keeps both, so the result follows the source` });
           items.push(it);
@@ -395,23 +467,36 @@ export class GitFlow {
         applied++;
       }
     }
+    const reviews = reviewItems.map((r) => r.text);
     const shared = this.config.shared.includes(mapping.destination);
-    const status = blockers.length ? "blocked" : !applied ? "nothing" : reviews.length ? "review" : "ready";
+    const status = blockers.length ? "blocked" : !applied ? "nothing" : reviewItems.length ? "review" : "ready";
     const files = applied ? (await this.run(["diff", "--name-only", dst, cur])).split("\n").filter(Boolean) : [];
-    const digest = createHash("sha256").update(JSON.stringify({ m: mapping.id, s: strategy, sel: [...sel].sort(), src: a.source.tip, dst, items: items.map((i) => [i.sha, i.status]) })).digest("hex").slice(0, 16);
+    const stats = applied ? (await this.run(["diff", "--numstat", dst, cur])).split("\n").filter(Boolean).map((l) => { const [ad, de, ...p] = l.split("\t"); return { path: p.join("\t"), added: ad === "-" ? null : +ad, deleted: de === "-" ? null : +de }; }) : [];
+    // The pending changes this plan doesn't include, and why (for the pull request's description).
+    const inPlan = new Set(items.map((i) => i.sha));
+    const notIncluded = a.commits.filter((c) => !inPlan.has(c.sha) && c.parents.length === 1 && c.presence.state === "missing").slice(0, 30).map((c) => {
+      const rule = ownRule(c.attribution);
+      return { sha: c.sha, short: c.short, subject: c.subject, why: rule && ex[rule] ? `${ownWhy(c.attribution)} (rule: ${RULE[rule]})` : c.revertedBy && ex.reverted ? `reverted later by ${c.revertedBy.short}` : "not selected" };
+    });
+    // The id covers what decides the plan: relationship, strategy, selection, both tips, every
+    // change's outcome, the points to confirm, and the settings it was computed with.
+    const fingerprint = decisionFingerprint(this.config);
+    const digest = createHash("sha256").update(JSON.stringify({ m: mapping.id, s: strategy, sel: [...sel].sort(), src: a.source.tip, dst, items: items.map((i) => [i.sha, i.status]), rv: reviewItems.map((r) => r.id), cfg: fingerprint })).digest("hex").slice(0, 16);
     const plan = { id: digest, at: new Date().toISOString(), mapping, strategy, strategyAbout: STRATEGIES[strategy].about, select: [...sel],
-      source: a.source, destination: { ...a.destination, shared }, status, items, blockers, reviews, hazards, dependencies: deps,
-      result: applied ? { commit: cur, applied, files } : null,
+      source: a.source, destination: { ...a.destination, shared }, status, items, blockers, reviews, reviewItems, hazards, dependencies: deps, fingerprint,
+      pendingCount: a.pendingCount, notIncluded,
+      result: applied ? { commit: cur, applied, files, stats } : null,
       build: { status: "not-run", text: "No build or test command is configured: this plan is checked by Git only. A clean merge can still break the build." },
       execution: `${shared ? `${mapping.destination} is a shared branch: nothing is ever pushed or written to it.` : `${mapping.destination} itself isn't changed.`} If you approve, a new branch is created with this result. Then, with your approval again, that new branch is pushed and a pull request into ${mapping.destination} is opened: the change reaches ${mapping.destination} only when the pull request is reviewed and merged on GitHub.` };
-    this.savePlan(plan); this.audit({ action: "preview", plan: plan.id, mapping: mapping.id, strategy, select: plan.select, status, applied, blockers: blockers.length });
+    this.savePlan(plan); this.audit({ action: "preview", plan: plan.id, mapping: mapping.id, strategy, select: plan.select, status, applied, blockers: blockers.length, reviews: reviewItems.map((r) => r.id) });
     return plan;
   }
 
   // Runs an approved plan: recomputed now, and refused unless it's still the same plan (same branch
-  // tips and decisions), ready (or reviewed), and allowed. The result becomes a NEW branch in the
-  // configured repository; nothing else is written there.
-  async execute(planId, { approvedBy, acknowledge = false, identity }) {
+  // tips, settings and decisions), not blocked, every point to confirm confirmed (the exact list, no
+  // more and no less), and allowed. The result becomes a NEW branch in the configured repository;
+  // nothing else is written there.
+  async execute(planId, { approvedBy, acknowledge = [], identity }) {
     if (!this.config.proposals) throw new Error("This worker is set to preview only: allow it to create proposal branches in its setup first.");
     const saved = this.loadPlan(planId);
     if (!saved) throw new Error("No such plan: generate a preview first.");
@@ -422,16 +507,21 @@ export class GitFlow {
     if (plan.id !== saved.id) { this.audit({ action: "refused", plan: planId, why: "stale" }); throw new Error("The branches changed since this plan was made (or its decisions did): look at the new preview and approve that one."); }
     if (plan.status === "blocked") { this.audit({ action: "refused", plan: planId, why: "blocked" }); throw new Error(`Blocked: ${plan.blockers.join("; ")}`); }
     if (plan.status === "nothing") throw new Error("Nothing to apply.");
-    if (plan.status === "review" && !acknowledge) throw new Error(`Confirm you've reviewed: ${plan.reviews.join("; ")}`);
+    const need = plan.reviewItems.map((r) => r.id).sort(), got = [...new Set((Array.isArray(acknowledge) ? acknowledge : []).map(String))].sort();
+    if (need.length && !got.length) { this.audit({ action: "refused", plan: planId, why: "not confirmed", need }); throw new Error(`Confirm each point first: ${plan.reviews.join("; ")}`); }
+    if (need.join("\n") !== got.join("\n")) { this.audit({ action: "refused", plan: planId, why: "confirmation doesn't match", need, got }); throw new Error("The confirmation doesn't match this plan's points (it's incomplete, or for another plan): look at the plan again and confirm each of its points."); }
     const stamp = new Date().toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
     const branch = `gitflow/${mapping.destination.replace(/[^A-Za-z0-9._-]+/g, "-")}-${stamp}`;
-    if (this.config.shared.includes(branch) || (await git(this.root, ["rev-parse", "--verify", "-q", `refs/heads/${branch}`], { allowFail: true })).code === 0) throw new Error(`${branch} already exists.`);
-    const before = await this.refs();
-    await this.run(["update-ref", `refs/gitflow/out/${stamp}`, plan.result.commit]);
-    await out(this.root, ["fetch", "-q", "--no-tags", "--no-write-fetch-head", this.scratch, `refs/gitflow/out/${stamp}:refs/heads/${branch}`]);
-    const after = await this.refs();
-    const changed = [...before].filter(([r, s]) => after.get(r) !== s).map(([r]) => r);
-    const entry = { action: "execute", plan: plan.id, mapping: mapping.id, strategy: plan.strategy, branch, commit: plan.result.commit, applied: plan.result.applied, approvedBy, acknowledged: plan.status === "review",
+    const changed = await withLock(this.dir, async () => {
+      if (this.config.shared.includes(branch) || (await git(this.root, ["rev-parse", "--verify", "-q", `refs/heads/${branch}`], { allowFail: true })).code === 0) throw new Error(`${branch} already exists.`);
+      const before = await this.refs();
+      await this.run(["update-ref", `refs/gitflow/out/${stamp}`, plan.result.commit]);
+      await out(this.root, ["fetch", "-q", "--no-tags", "--no-write-fetch-head", this.scratch, `refs/gitflow/out/${stamp}:refs/heads/${branch}`]);
+      const after = await this.refs();
+      return [...before].filter(([r, s]) => after.get(r) !== s).map(([r]) => r);
+    });
+    const entry = { action: "execute", plan: plan.id, mapping: mapping.id, strategy: plan.strategy, branch, commit: plan.result.commit, applied: plan.result.applied, approvedBy,
+      acknowledged: need.length > 0, confirmed: plan.reviewItems.map(({ id, kind, text }) => ({ id, kind, text })),
       changedExisting: changed, recovery: `Nothing that existed was changed. To discard: git branch -D ${branch}. To use it: review it, push it yourself and open a pull request into ${mapping.destination}.` };
     this.audit(entry);
     if (changed.length) throw new Error(`Unexpected: existing branches changed (${changed.join(", ")}). Stop and check the repository.`);
@@ -440,10 +530,11 @@ export class GitFlow {
   // The only way a change reaches its destination: the proposal branch (created from an approved
   // plan) is pushed under its own new name, and a pull request into the destination is opened, on
   // GitHub when it's connected, otherwise as GitHub's "open a pull request" link. Never a push to an
-  // existing branch, never a force push; the repository's own push hooks run.
+  // existing branch, never a force push; the repository's own push hooks run. Calling it again for
+  // the same branch (after GitHub refused the pull request) pushes nothing new and tries again.
   async openPullRequest(branch, { createPullRequest = null, approvedBy = "person" } = {}) {
     if (!this.config.proposals) throw new Error("This worker is set to preview only.");
-    const done = this.auditLog(2000).find((e) => e.action === "execute" && e.branch === branch);
+    const log = this.auditLog(2000), done = log.find((e) => e.action === "execute" && e.branch === branch);
     if (!/^gitflow\//.test(branch) || !done) throw new Error("Only a proposal branch this worker created from an approved plan can be pushed.");
     const mapping = this.config.mappings.find((m) => m.id === done.mapping);
     if (!mapping) throw new Error("The plan's branch relationship no longer exists.");
@@ -452,22 +543,32 @@ export class GitFlow {
     if ((await git(this.root, ["rev-parse", "--verify", "-q", `refs/heads/${branch}`], { allowFail: true })).code) throw new Error(`${branch} doesn't exist any more.`);
     const remote = (await git(this.root, ["remote", "get-url", "origin"], { allowFail: true })).out.trim();
     if (!remote) throw new Error("The repository has no origin to push to.");
-    const before = await this.refs();
-    const p = await git(this.root, ["push", "--porcelain", "origin", `refs/heads/${branch}:refs/heads/${branch}`], { allowFail: true, timeout: 300000 });
-    if (p.code) throw new Error(/Authentication|could not read|terminal prompts|403|401/i.test(p.err) ? "Git has no working sign-in for origin on this computer: push once in a terminal, then try again." : /rejected|already exists|non-fast-forward/i.test(p.err + p.out) ? `${branch} already exists on origin: nothing was changed.` : `git push failed: ${p.err.slice(0, 300)}`);
-    const after = await this.refs();
-    const changed = [...before].filter(([r, s]) => after.get(r) !== s).map(([r]) => r);
-    if (changed.length) { this.audit({ action: "pr", branch, error: "existing refs changed", changed }); throw new Error(`Unexpected: existing refs changed (${changed.join(", ")}). Stop and check the repository.`); }
+    const retry = log.some((e) => e.action === "pr" && e.branch === branch && e.pushed);
+    await withLock(this.dir, async () => {
+      const before = await this.refs();
+      const p = await git(this.root, ["push", "--porcelain", "origin", `refs/heads/${branch}:refs/heads/${branch}`], { allowFail: true, timeout: 300000 });
+      if (p.code) throw new Error(/Authentication|could not read|terminal prompts|403|401/i.test(p.err) ? "Git has no working sign-in for origin on this computer: push once in a terminal, then try again." : /rejected|already exists|non-fast-forward/i.test(p.err + p.out) ? `${branch} already exists on origin: nothing was changed.` : `git push failed: ${p.err.slice(0, 300)}`);
+      const after = await this.refs();
+      const changed = [...before].filter(([r, s]) => after.get(r) !== s).map(([r]) => r);
+      if (changed.length) { this.audit({ action: "pr", branch, error: "existing refs changed", changed }); throw new Error(`Unexpected: existing refs changed (${changed.join(", ")}). Stop and check the repository.`); }
+    });
     const full = /github\.com[:/]([\w.-]+\/[\w.-]+?)(?:\.git)?\/?$/.exec(remote)?.[1] || null;
     const compare = full ? `https://github.com/${full}/compare/${encodeURIComponent(base)}...${encodeURIComponent(branch)}?expand=1` : null;
     const plan = this.loadPlan(done.plan);
     const title = `${STRATEGIES[done.strategy]?.short || "Changes"} into ${base}: ${done.applied} step${done.applied === 1 ? "" : "s"} (plan ${done.plan})`;
-    const body = [`Prepared by the Git workflow worker from plan \`${done.plan}\` (${mapping.source} → ${base}, ${STRATEGIES[done.strategy]?.label || done.strategy}), approved by ${done.approvedBy}.`, "",
-      ...(plan ? ["**Applied**", ...plan.items.filter((i) => i.status === "apply").map((i) => `- ${i.short} ${i.subject}`), "", ...(plan.hazards.length ? ["**Hazards**", ...plan.hazards.map((h) => `- ${h.text}`), ""] : []), `Build and tests: ${plan.build.text}`] : []),
+    const notApplied = plan ? plan.items.filter((i) => i.status !== "apply").map((i) => `- ${i.short} ${i.subject}: ${i.reasons.filter(Boolean).slice(0, 1).join("") || i.status}`) : [];
+    const notIncluded = plan?.notIncluded || [];
+    const more = plan ? plan.pendingCount - notIncluded.length - plan.items.length : 0;
+    const body = [`Prepared by the Git workflow worker from plan \`${done.plan}\` (${mapping.source} → ${base}, ${STRATEGIES[done.strategy]?.label || done.strategy}). Branch created with the approval of ${done.approvedBy}; pushed and opened with the approval of ${approvedBy}.`, "",
+      ...(plan ? ["**Applied**", ...plan.items.filter((i) => i.status === "apply").map((i) => `- ${i.short} ${i.subject}`), ""] : []),
+      ...(done.confirmed?.length ? ["**Confirmed before the branch was created**", ...done.confirmed.map((c) => `- ${c.text}`), ""] : []),
+      ...(notApplied.length || notIncluded.length ? ["**Not in this pull request**", ...notApplied, ...notIncluded.map((c) => `- ${c.short} ${c.subject}: ${c.why}`), ...(more > 0 ? [`- …and ${more} more changes pending in ${mapping.source}`] : []), ""] : []),
+      ...(plan?.hazards.length ? ["**Hazards**", ...plan.hazards.map((h) => `- ${h.text}`), ""] : []),
+      ...(plan ? [`Build and tests: ${plan.build.text}`] : []),
       "", "Review before merging: the plan was checked by Git only."].join("\n");
     let pr = null, prError = null;
     if (createPullRequest && full) { try { pr = await createPullRequest(full, { head: branch, base, title, body }); } catch (e) { prError = e.message; } }
-    const entry = { action: "pr", branch, base, pushed: true, pr: pr?.url || null, compare, prError, approvedBy };
+    const entry = { action: "pr", branch, base, pushed: true, retry, pr: pr?.url || null, compare, prError, approvedBy, planApprovedBy: done.approvedBy, confirmed: (done.confirmed || []).map((c) => c.id) };
     this.audit(entry);
     return { ...entry, title, body, prNumber: pr?.number || null };
   }

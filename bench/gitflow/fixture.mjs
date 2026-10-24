@@ -11,6 +11,9 @@
 //   direct                      Sameem S5 "Tweak the footer"       (an equivalent copy is already on sabir-dev)
 //   direct                      Dev Bot U1 "Update dependencies"   (nobody configured)
 //   direct                      "Sameem" from a personal email N1 "Adjust spacing" (name only: uncertain)
+//   PR #104 innovax/receipt-subject Ali I2 "Clearer receipt subject" (receipt-mail.js, first line)
+//   direct                      Sabir  S6 "DON-16 receipt signature" (same file, last line: applies cleanly without I2)
+//   direct                      Sabir  S7 "DON-17 rename the package" (package.json, which U1 also changed: clean, U1's owner unknown)
 // uat-main / sabir-uat → preprod-main:
 //   PR #201 bau/receipt (cut from preprod-main)  Sabir "DON-20 send a receipt email": merged into uat-main and sabir-uat
 //   PR #202 bau/from-dev (cut from dev-main, so it carries I1 and others): merged into sabir-uat only
@@ -40,7 +43,8 @@ export function buildFixture(dir) {
   file("src/lib.js", "export function total(items) { return items.length; }\n");
   file("src/cart.js", "import { total } from './lib';\nexport const count = (c) => total(c.items);\n");
   file("src/footer.js", "export const footer = 'MATW';\n");
-  file("package.json", '{ "name": "site", "version": "1.0.0" }\n');
+  file("src/receipt-mail.js", "export const subject = 'Your receipt';\n\n// the body\nexport const body = (d) => `Thank you for ${d.amount}`;\n\n// the signature\nexport const signature = 'MATW';\n");
+  file("package.json", '{\n  "name": "site",\n  "private": true,\n  "description": "MATW site",\n  "license": "UNLICENSED",\n  "version": "1.0.0"\n}\n');
   const base = commit(PEOPLE.sabir, "Initial site");
   for (const b of ["dev-main", "uat-main", "sabir-dev", "sabir-uat"]) g(["branch", b]);
   const s = {};
@@ -61,6 +65,14 @@ export function buildFixture(dir) {
   edit("src/footer.js", "'MATW'", "'MATW Project'"); s.S5 = commit(PEOPLE.sameem, "Tweak the footer");
   edit("package.json", "1.0.0", "1.0.1"); s.U1 = commit(PEOPLE.bot, "Update dependencies");
   edit("src/app.js", "'light'", "'airy'"); s.N1 = commit(PEOPLE.sameemPersonal, "Adjust spacing");
+  // Same file, different lines (D1): Innovax's I2 changes the receipt's subject; Sabir's later S6 its
+  // signature, and applies cleanly without I2. Sabir's S7 changes package.json's name, a file the
+  // unknown owner's U1 also changed (its version): clean too, but U1's owner is unknown.
+  g(["checkout", "-q", "-b", "innovax/receipt-subject", "dev-main"]);
+  edit("src/receipt-mail.js", "'Your receipt'", "'Your MATW receipt'"); s.I2 = commit(PEOPLE.ali, "Clearer receipt subject"); s.PR104 = pr("dev-main", 104, "innovax/receipt-subject", PEOPLE.ali);
+  g(["checkout", "-q", "dev-main"]);
+  edit("src/receipt-mail.js", "signature = 'MATW'", "signature = 'The MATW team'"); s.S6 = commit(PEOPLE.sabir, "DON-16 receipt signature");
+  edit("package.json", '"name": "site"', '"name": "matw-site"'); s.S7 = commit(PEOPLE.sabir, "DON-17 rename the package");
   // sabir-dev already has a copy of S5 (cherry-picked without -x: a different commit, the same patch)
   g(["checkout", "-q", "sabir-dev"]); g(["cherry-pick", s.S5], PEOPLE.sabir); s.S5copy = g(["rev-parse", "HEAD"]);
   // uat-main and sabir-uat

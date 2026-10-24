@@ -5,7 +5,7 @@
 //   DATA=<console data dir>   node bench/workspace-ui/gitflow-test.mjs <port>     (run-suite.sh gitflow)
 import { writeFileSync, existsSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { buildFixture, fixtureConfig } from "../gitflow/fixture.mjs";
@@ -187,7 +187,7 @@ await step("into a destination only by pull request: the approved proposal branc
   const now = refsOf(fx.origin).split("\n"), was = originRefs0.split("\n");
   const added = now.filter((l) => l && !was.includes(l));
   assert(r.status === 200 && r.body.pushed && r.body.base === "sabir-dev" && added.length === 1 && added[0].startsWith(`refs/heads/${createdBranch} `) && was.every((l) => !l || now.includes(l)), JSON.stringify({ body: r.body, added }));
-  assert(/plan /.test(r.body.title) && /Review before merging/.test(r.body.body), r.body.title);
+  assert(/plan /.test(r.body.title) && /Review before merging/.test(r.body.body) && /Branch created with the approval of Sabir <sabir@matw.test>; pushed and opened with the approval of Sabir <sabir@matw.test>/.test(r.body.body) && /\*\*Not in this pull request\*\*/.test(r.body.body) && /rule: other teams' changes/.test(r.body.body), r.body.body);
   return { pushed: createdBranch, base: r.body.base, originAdded: added.length, refused: bad.map((x) => x.body.error) };
 });
 
@@ -206,6 +206,84 @@ await step("a stale plan (the destination moved) and a preview-only worker are r
   assert(stale.status === 400 && /changed since this plan/.test(stale.body.error) && off.status === 400 && /preview only/.test(off.body.error), JSON.stringify([stale.body, off.body]));
   assert(["preview", "execute", "refused", "config"].every((x) => audit.includes(x)), audit.join());
   return { stale: stale.body.error, previewOnly: off.body.error, audit: [...new Set(audit)] };
+});
+
+await step("D1: another team's earlier change to the same file, not selected, needs explicit confirmation only when Git applies the selected change cleanly; a conflict, an unknown owner, or selecting the other team's change still blocks", async () => {
+  const s6 = await preview({ select: [S.S6] }), s7 = await preview({ select: [S.S7] }), s3 = await preview({ select: [S.S3] }), both = await preview({ select: [S.S6, S.I2] });
+  const ov = s6.reviewItems.find((r) => r.kind === "cross-team-overlap");
+  assert(s6.status === "review" && !s6.blockers.length && ov?.on === S.I2 && ov.files.join() === "src/receipt-mail.js" && s6.dependencies.find((d) => d.sha === S.S6)?.decision === "confirm", JSON.stringify({ status: s6.status, blockers: s6.blockers, reviewItems: s6.reviewItems }));
+  assert(s7.status === "blocked" && s7.blockers.some((b) => /owner is unknown/.test(b)) && s7.dependencies.find((d) => d.on === S.U1)?.decision === "block", JSON.stringify(s7.blockers));
+  assert(s3.status === "blocked" && s3.blockers.some((b) => /predicted conflict/.test(b)) && s3.blockers.some((b) => /may depend on/.test(b)) && s3.dependencies.find((d) => d.on === S.I1)?.decision === "block" && !s3.reviewItems.length, JSON.stringify(s3.blockers));
+  assert(both.status === "blocked" && both.items.find((i) => i.sha === S.I2)?.status === "blocked" && both.blockers.some((b) => /other teams' changes/.test(b)), JSON.stringify(both.blockers));
+  return { S6: `${s6.status}: ${ov.id}`, S7: s7.blockers[0], S3: s3.blockers, "S6+I2": both.blockers };
+});
+
+await step("D1: the confirmation must be the plan's exact list: missing, a plain yes, a wrong id or an extra id are refused (and audited); the exact list creates a branch without Innovax's change, and the audit records who confirmed what", async () => {
+  const p = await preview({ select: [S.S6] }), ids = p.reviewItems.map((r) => r.id);
+  const bad = [await gf("POST", "/execute", { plan: p.id }), await gf("POST", "/execute", { plan: p.id, acknowledge: true }), await gf("POST", "/execute", { plan: p.id, acknowledge: ["overlap:000000000:111111111"] }), await gf("POST", "/execute", { plan: p.id, acknowledge: [...ids, "owner:000000000"] })];
+  const before = refsOf(fx.repo), ok = await gf("POST", "/execute", { plan: p.id, acknowledge: ids });
+  assert(bad.every((x) => x.status === 400) && /Confirm each point/.test(bad[0].body.error) && /Confirm each point/.test(bad[1].body.error) && /doesn't match/.test(bad[2].body.error) && /doesn't match/.test(bad[3].body.error), JSON.stringify(bad.map((x) => x.body.error)));
+  assert(ok.status === 200, JSON.stringify(ok.body));
+  const mail = execFileSync("git", ["show", `${ok.body.branch}:src/receipt-mail.js`], { cwd: fx.repo, encoding: "utf8" });
+  const log = execFileSync("git", ["log", "--format=%s", `origin/sabir-dev..${ok.body.branch}`], { cwd: fx.repo, encoding: "utf8" }).trim().split("\n");
+  const added = refsOf(fx.repo).split("\n").filter((l) => l && !before.includes(l));
+  assert(/signature = 'The MATW team'/.test(mail) && /subject = 'Your receipt'/.test(mail) && !/Your MATW receipt/.test(mail) && log.join() === "DON-16 receipt signature" && added.length === 1, JSON.stringify({ mail, log, added }));
+  const audit = (await gf("GET", "/audit")).body.audit, ex = audit.find((e) => e.action === "execute" && e.branch === ok.body.branch);
+  const refusals = audit.filter((e) => e.action === "refused" && e.plan === p.id).map((e) => e.why);
+  assert(ex.confirmed.map((c) => c.id).join() === ids.join() && ex.confirmed[0].kind === "cross-team-overlap" && /Sabir <sabir@matw.test>/.test(ex.approvedBy), JSON.stringify(ex));
+  assert(refusals.includes("not confirmed") && refusals.includes("confirmation doesn't match"), refusals.join());
+  return { refused: bad.map((x) => x.body.error.slice(0, 60)), branch: ok.body.branch, confirmed: ex.confirmed.map((c) => c.id), approvedBy: ex.approvedBy };
+});
+
+await step("D5: unknown owners have their own rule, on by default: a configuration saved before it existed still blocks them even with 'uncertain' off; relaxing 'uncertain' doesn't let an unknown author through; only turning 'unknown' off makes it a point to confirm", async () => {
+  const c = (await gf("GET", "/config")).body.config, f = join(DATA, "gitflow", W.id, "config.json"), saved = readFileSync(f, "utf8"), raw = JSON.parse(saved);
+  delete raw.exclude.unknown; raw.exclude.uncertain = false; writeFileSync(f, JSON.stringify(raw));
+  const old = (await gf("GET", "/config")).body.config, u1old = await preview({ select: [S.U1] }), n1old = await preview({ select: [S.N1] });
+  writeFileSync(f, saved);
+  await gf("PUT", "/config", { ...c, exclude: { ...c.exclude, uncertain: false } }); const u1a = await preview({ select: [S.U1] }), n1a = await preview({ select: [S.N1] });
+  await gf("PUT", "/config", { ...c, exclude: { ...c.exclude, unknown: false } }); const u1b = await preview({ select: [S.U1] });
+  await gf("PUT", "/config", c);
+  assert(c.exclude.unknown === true && old.exclude.unknown === true && old.exclude.uncertain === false && u1old.status === "blocked" && u1old.blockers.some((b) => /rule: unknown owner/.test(b)) && n1old.status === "review", JSON.stringify({ old: old.exclude, u1old: u1old.blockers, n1old: n1old.status }));
+  assert(u1a.status === "blocked" && n1a.status === "review" && n1a.reviewItems.some((r) => r.id.startsWith("owner:")), JSON.stringify({ u1a: u1a.blockers, n1a: n1a.reviews }));
+  assert(u1b.status === "review" && u1b.reviewItems.some((r) => r.kind === "owner" && /unknown/.test(r.text)), JSON.stringify(u1b.reviews));
+  return { oldConfig: old.exclude, uncertainOff: { U1: u1a.status, N1: n1a.status }, unknownOff: { U1: u1b.status } };
+});
+
+await step("settings: each save is audited with what changed (from → to) and who; a plan made before a settings change is refused as stale", async () => {
+  const c = (await gf("GET", "/config")).body.config, p = await preview({ select: [S.S1] });
+  await gf("PUT", "/config", { ...c, exclude: { ...c.exclude, reverted: false } });
+  const r = await gf("POST", "/execute", { plan: p.id });
+  await gf("PUT", "/config", c);
+  const audit = (await gf("GET", "/audit")).body.audit, e = audit.find((x) => x.action === "config" && x.changes?.some((ch) => ch.field === "exclude.reverted" && ch.to === "false"));
+  const ch = e?.changes.find((x) => x.field === "exclude.reverted");
+  assert(r.status === 400 && /changed since this plan/.test(r.body.error), JSON.stringify(r.body));
+  assert(e && ch.from === "true" && /Sabir <sabir@matw.test>/.test(e.by) && e.exclude.unknown === true, JSON.stringify(e));
+  return { refused: r.body.error, audited: { by: e.by, changes: e.changes } };
+});
+
+await step("one writer at a time: 13 requests at once for this worker (analyses, repository reads, authors, previews, a fetch) and 3 analyses from another process all succeed, with the same results, and leave no lock behind", async () => {
+  const child = join(DATA, "gf-other.mjs");
+  writeFileSync(child, `import { GitFlow, normalizeConfig } from ${JSON.stringify("file:///" + join(REPO, "worker-ui", "gitflow.mjs").replace(/\\/g, "/"))};
+const cfg = normalizeConfig({}, JSON.parse(process.argv[2]));
+const r = await Promise.all([0, 1, 2].map(() => new GitFlow({ root: process.argv[3], dir: process.argv[4], config: cfg }).analyse(cfg.mappings[0]).then((a) => a.pendingCount)));
+console.log(JSON.stringify(r));`);
+  const cfg = (await gf("GET", "/config")).body.config;
+  const other = new Promise((ok, fail) => { const p = spawn(process.execPath, [child, JSON.stringify(cfg), fx.repo, join(DATA, "gitflow", W.id)]); let o = "", e = ""; p.stdout.on("data", (d) => (o += d)); p.stderr.on("data", (d) => (e += d)); p.on("close", (code) => (code ? fail(new Error(e.slice(0, 400))) : ok(JSON.parse(o)))); });
+  const reqs = [...[0, 1, 2, 3].map(() => gf("GET", "/analysis?mapping=dev-main-to-sabir-dev")), ...[0, 1, 2].map(() => gf("GET", "/repo")), ...[0, 1].map(() => gf("GET", "/authors")),
+    ...[0, 1].map(() => gf("POST", "/preview", { mapping: "dev-main-to-sabir-dev", strategy: "selective", select: [S.S1, S.S2] })), gf("POST", "/fetch"), gf("GET", "/analysis?mapping=uat-main-to-sabir-uat")];
+  const [rs, otherCounts] = await Promise.all([Promise.all(reqs), other]);
+  const counts = rs.slice(0, 4).map((x) => x.body.pendingCount), ids = rs.slice(9, 11).map((x) => x.body.id);
+  assert(rs.every((x) => x.status === 200), JSON.stringify(rs.map((x) => x.status + (x.status !== 200 ? " " + x.body?.error : ""))));
+  assert(new Set([...counts, ...otherCounts]).size === 1 && ids[0] === ids[1] && !existsSync(join(DATA, "gitflow", W.id, "repo.lock")) , JSON.stringify({ counts, otherCounts, ids }));
+  return { requests: rs.length, otherProcess: otherCounts, pending: counts[0] };
+});
+
+await step("identity, per-file statistics and Git graph data: this clone's Git identity matches Sabir (for 'Mine'); plans carry line counts per file; the analysis carries the merge base and the destination's own commits (S5's copy)", async () => {
+  const me = (await gf("GET", "/identity")).body, a = await analysis(), p = await preview({ select: [S.S1, S.S2] });
+  assert(me.identity?.email === "sabir@matw.test" && me.person?.id === "sabir", JSON.stringify(me));
+  assert(p.result.stats.map((s) => `${s.path}:+${s.added}`).sort().join() === "src/donate.css:+1,src/donate.js:+1", JSON.stringify(p.result.stats));
+  assert(a.graph.base && a.graph.destination.some((c) => c.sha === S.S5copy) && a.graph.destinationTotal >= 1, JSON.stringify(a.graph).slice(0, 300));
+  return { me: me.person, stats: p.result.stats, base: a.graph.baseShort, destinationOnly: a.graph.destination.map((c) => c.subject) };
 });
 
 await step("the worker's tools (MCP): read-only on Git (no branch, merge or push tool); it reads Sameem's commits and saves an explanation the explorer shows as its own", async () => {
@@ -260,25 +338,25 @@ await step("page: the worker's new task opens its Git workflow on Overview (coun
   return { sameem: { selectable, all, locked } };
 });
 
-await step("page: other teams', reverted and unknown-owner changes can't be ticked; S3 is flagged (same file as Innovax's I1) and its plan is blocked by the conflict and the dependency; Create and Export patch stay disabled, the Git graph is marked planned; leaving S3 out gives a ready plan of PR #101", async () => {
+await step("page: other teams', reverted and unknown-owner changes can't be ticked; S3 is flagged (same file as Innovax's I1) and its plan is blocked by the conflict and the dependency; Create and Export patch stay disabled; leaving S3 out gives a ready plan of PR #101", async () => {
   await page.click('[data-gf-person=""]'); await page.click('[data-gf-who="all"]'); await sleep(200);
   const locked = await Promise.all([S.I1, S.U1, S.S4, S.N1].map((s) => page.locator(`[data-gf-sel="${s}"]`).isDisabled()));
   await page.click("#gfShowEx"); await sleep(200); // hide them again
   await page.check('[data-gf-task="pr-101"]'); await page.check(`[data-gf-sel="${S.S3}"]`);
-  await page.waitForFunction(() => /blocks the plan/.test(document.querySelector("#gfBody").innerText));
+  await page.waitForFunction(() => /plan is blocked/.test(document.querySelector("#gfBody").innerText));
   const warn = await bodyText();
   await page.click("#gfToPlan"); await page.waitForSelector(".gfstatus");
   const blocked = await page.locator(".gfstatus").innerText(), noCreate = (await page.locator("#gfApprove").count()) === 0;
   const createOff = await page.locator('.gfdock button:has-text("Create proposal branch")').isDisabled(), patchOff = await page.locator('.gfdock button:has-text("Export patch")').isDisabled();
-  const graphOff = await page.locator('[role="tab"]:has-text("Git graph")').isDisabled();
+  const graphOn = !(await page.locator('[role="tab"]:has-text("Git graph")').isDisabled());
   await page.click("#gfResolve"); await page.waitForSelector("#gfLeaveOut");
   const deps = await bodyText(); await shot("plan-blocked");
   await page.click("#gfLeaveOut"); await page.waitForFunction(() => /^Ready/m.test(document.querySelector(".gfstatus")?.innerText || ""));
   const ready = await page.locator(".gfstatus").innerText(), items = await page.locator(".gfit").count();
   await shot("plan-ready");
   assert(locked.every(Boolean), JSON.stringify(locked));
-  assert(/another team's unselected/.test(warn) && /blocks the plan/.test(warn), warn.slice(0, 300));
-  assert(/Blocked/.test(blocked) && /predicted conflict/.test(blocked) && noCreate && createOff && patchOff && graphOff, JSON.stringify({ blocked, noCreate, createOff, patchOff, graphOff }));
+  assert(/another team's unselected/.test(warn) && /never included/.test(warn) && /plan is blocked/.test(warn), warn.slice(0, 300));
+  assert(/Blocked/.test(blocked) && /predicted conflict/.test(blocked) && noCreate && createOff && patchOff && graphOn, JSON.stringify({ blocked, noCreate, createOff, patchOff, graphOn }));
   assert(/conflicts when applied/.test(deps) && /may depend on/.test(deps) && /not in v1/i.test(deps), deps.slice(0, 400));
   assert(items === 2, String(items));
   return { blocked: blocked.split("\n")[0], leftOut: "S3", ready: ready.split("\n")[0] };
@@ -299,10 +377,32 @@ await step("page: Create asks first (what's created, what isn't), then shows the
   return { created: out.match(/Created (gitflow\/\S+)/)?.[1], pr: pr.split("\n")[0] };
 });
 
-await step("page: Settings keeps 'uncertain or unknown owner' locked on (D5); turning 'block reverted' off makes S4 need review, and Create stays disabled until the review point is ticked", async () => {
+await step("page: 'Mine' shows this clone's own changes (Sabir); S6's plan asks to confirm Innovax's same-file change; the Git graph tab shows both sides and the merge base; creating the branch with it confirmed leaves Innovax's change out", async () => {
+  await page.click("#gfDone"); await page.waitForSelector(".gfc");
+  await page.click('[data-gf-who="mine"]'); await sleep(300);
+  const metas = await page.locator(".gfc .meta").allInnerTexts();
+  await page.check(`[data-gf-sel="${S.S6}"]`);
+  await page.waitForFunction(() => /never included/.test(document.querySelector("#gfBody").innerText));
+  await page.click("#gfToPlan"); await page.waitForFunction(() => /Needs your review/.test(document.querySelector(".gfstatus")?.innerText || ""));
+  await page.click('[data-gf-ptab="graph"]'); await page.waitForFunction(() => /Merge base/i.test(document.querySelector("#gfBody").innerText));
+  const graph = await bodyText(); await shot("plan-graph");
+  await page.click("#gfApprove"); await page.waitForSelector("#dlg[open]");
+  const dlg = await page.locator("#dlgB").innerText(), off = await page.locator('[data-dlg="go"]').isDisabled();
+  await page.check("[data-gf-ack]"); await page.click('[data-dlg="go"]');
+  await page.waitForFunction(() => /Created gitflow\//.test(document.querySelector("#gfBody").innerText));
+  const branch = (await bodyText()).match(/Created (gitflow\/\S+)/)[1];
+  const mail = execFileSync("git", ["show", `${branch}:src/receipt-mail.js`], { cwd: fx.repo, encoding: "utf8" });
+  assert(metas.length >= 2 && metas.every((m) => /Sabir/.test(m)), JSON.stringify(metas));
+  assert(/Merge base/i.test(graph) && /Tweak the footer/.test(graph) && /Who wrote what/.test(graph), graph.slice(0, 400));
+  assert(/Another team's change stays out/.test(dlg) && off, dlg);
+  assert(/The MATW team/.test(mail) && !/Your MATW receipt/.test(mail), mail);
+  return { mine: metas.length, branch, innovaxChangeLeftOut: true };
+});
+
+await step("page: Settings shows 'uncertain owner' and 'unknown owner' as separate rules, unknown on by default (D5); turning 'block reverted' off makes S4 need review, and Create stays disabled until the review point is ticked", async () => {
   await page.click("#gfDone"); await page.waitForSelector(".gfc");
   await page.click('[data-gf-tab="settings"]'); await page.waitForSelector("#gfExRev");
-  const unc = await page.locator("#gfExUnc").evaluate((x) => ({ checked: x.checked, disabled: x.disabled }));
+  const unc = await page.locator("#gfExUnc").evaluate((x) => ({ checked: x.checked, disabled: x.disabled })), unk = await page.locator("#gfExUnk").evaluate((x) => ({ checked: x.checked, disabled: x.disabled }));
   await page.uncheck("#gfExRev"); await page.waitForFunction(() => document.querySelector("#gfDirty")?.textContent === "Unsaved changes");
   await page.click("#gfSave"); await page.waitForFunction(() => /Saved/.test(document.querySelector("#gfMsg")?.textContent || ""));
   const saved = (await gf("GET", "/config")).body.config.exclude;
@@ -314,9 +414,9 @@ await step("page: Settings keeps 'uncertain or unknown owner' locked on (D5); tu
   await page.check("[data-gf-ack]"); const after = await page.locator('[data-dlg="go"]').isDisabled();
   await shot("plan-review-confirm");
   await page.click('[data-dlg="cancel"]');
-  assert(unc.checked && unc.disabled && saved.uncertain === true && saved.reverted === false, JSON.stringify({ unc, saved }));
+  assert(unc.checked && !unc.disabled && unk.checked && !unk.disabled && saved.uncertain === true && saved.unknown === true && saved.reverted === false, JSON.stringify({ unc, unk, saved }));
   assert(before === true && after === false, JSON.stringify({ before, after }));
-  return { d5Locked: unc, createDisabledUntilTicked: { before, after } };
+  return { d5: { uncertain: unc, unknown: unk }, createDisabledUntilTicked: { before, after } };
 });
 
 await step("page: a stale plan (the destination moved after the preview) is refused and shown as out of date with Preview again; History lists the creation, the push and the refusal", async () => {
