@@ -819,6 +819,40 @@ const handlers = {
   // could only read what a human had already created there. valuesByMode
   // (optional) sets its value per mode in the same call, literal or
   // aliasing another variable — see applyValuesByMode above.
+  // A new local variable collection (or the existing one with that name), with its modes named:
+  // the first mode is the collection's default one, renamed; the rest are added. Returns the
+  // collection id and modeIds, ready for CREATE_VARIABLE.
+  CREATE_VARIABLE_COLLECTION: async (params) => {
+    const { name, modes } = params || {};
+    if (!name) throw new Error("CREATE_VARIABLE_COLLECTION requires params.name");
+    const existing = (await figma.variables.getLocalVariableCollectionsAsync()).find((c) => c.name === name);
+    const col = existing || figma.variables.createVariableCollection(String(name));
+    const want = Array.isArray(modes) && modes.length ? modes.map(String) : null;
+    if (want && !existing) {
+      col.renameMode(col.modes[0].modeId, want[0]);
+      for (const m of want.slice(1)) col.addMode(m);
+    } else if (want) {
+      for (const m of want) if (!col.modes.some((x) => x.name === m)) col.addMode(m);
+    }
+    return { id: col.id, name: col.name, modes: col.modes.map((m) => ({ modeId: m.modeId, name: m.name })), summary: `SUCCESS: ${existing ? "Found" : "Created"} variable collection "${col.name}"` };
+  },
+
+  // Selects nodes on their page (switching to it) and zooms the editor to them, e.g. to hand a
+  // person the frame a prototype starts from or the part of a design to review. Selection and
+  // viewport only: the document isn't changed.
+  SELECT_NODES: async (params) => {
+    const ids = (params && params.ids) || [];
+    if (!ids.length) throw new Error("SELECT_NODES requires params.ids");
+    const nodes = [];
+    for (const id of ids) { const n = await getNode(id); if (!n) throw new Error(`Node not found: ${id}`); nodes.push(n); }
+    let page = nodes[0]; while (page && page.type !== "PAGE") page = page.parent;
+    if (!page || nodes.some((n) => { let p = n; while (p && p.type !== "PAGE") p = p.parent; return p !== page; })) throw new Error("SELECT_NODES: all nodes must be on the same page");
+    if (figma.currentPage !== page) await figma.setCurrentPageAsync(page);
+    figma.currentPage.selection = nodes;
+    if (params.zoom !== false) figma.viewport.scrollAndZoomIntoView(nodes);
+    return { page: page.name, selected: nodes.map((n) => n.id), zoom: figma.viewport.zoom, summary: `SUCCESS: selected ${nodes.length} node(s) on "${page.name}"` };
+  },
+
   CREATE_VARIABLE: async (params) => {
     const { collectionId, name, type, description, valuesByMode, codeSyntaxWeb } = params || {};
     if (!collectionId) throw new Error("CREATE_VARIABLE requires params.collectionId");
@@ -1232,9 +1266,10 @@ const handlers = {
     };
   },
 
-  // Writes prototype reactions in bulk. items: [{id, to, on?, transition?, keepScroll?}] where
+  // Writes prototype reactions in bulk. items: [{id, to, on?, delay?, transition?, keepScroll?}] where
   // `to` is a destination frame id or "BACK" (with nav: "change", a sibling variant id);
-  // `on` is click (default) | hover | press | drag;
+  // `on` is click (default) | hover | press | drag | after (a timed move: `delay` ms, e.g. a
+  // progress screen that advances by itself);
   // `transition` is instant | dissolve (default) | smart | push-left | push-right | slide-up |
   // slide-down. Replaces the node's existing reactions unless params.append. Instance sublayers
   // (I<inst>;<child>) take reactions as overrides. Optional params.flows: [{nodeId, name}] sets the
@@ -1257,7 +1292,7 @@ const handlers = {
         const node = await getNode(it.id);
         if (!node) throw new Error("not found");
         if (!("setReactionsAsync" in node)) throw new Error(`${node.type} cannot take reactions`);
-        const trigger = { type: TRIGGERS[it.on || "click"] };
+        const trigger = it.on === "after" ? { type: "AFTER_TIMEOUT", timeout: Math.max(0.01, Number(it.delay || 800) / 1000) } : { type: TRIGGERS[it.on || "click"] };
         if (!trigger.type) throw new Error(`unknown trigger ${it.on}`);
         let action;
         if (it.to === "BACK") action = { type: "BACK" };
@@ -1289,6 +1324,8 @@ const handlers = {
     const copy = node.clone();
     if (params.parentId) appendNode(await resolveParent(params.parentId), copy, params.insertIndex);
     if (params.name) copy.name = params.name;
+    if (params.x !== undefined) copy.x = Number(params.x);
+    if (params.y !== undefined) copy.y = Number(params.y);
     return { id: copy.id, name: copy.name, summary: `SUCCESS: Cloned "${node.name}" → ${copy.id}` };
   },
 
@@ -1645,12 +1682,22 @@ const handlers = {
       node.constraints = Object.assign({}, node.constraints, props.constraints);
       applied.constraints = node.constraints;
     }
-    // One-line titles: { textTruncation: "ENDING", maxLines: 1 } adds an ellipsis instead of overflowing.
-    if (props.textTruncation !== undefined && node.type === "TEXT") {
-      await loadNodeFonts(node);
-      node.textTruncation = props.textTruncation;
-      if (props.maxLines !== undefined) node.maxLines = props.maxLines;
-      applied.textTruncation = node.textTruncation;
+    // Prototype scrolling. overflowDirection makes a frame scroll its own clipped content
+    // ("VERTICAL" for a page taller than the screen); scrollBehavior keeps a child in place while
+    // its frame scrolls ("FIXED", e.g. a bottom action bar) or until it reaches the edge ("STICKY_SCROLLS").
+    // numberOfFixedChildren is the older form of FIXED: the frame's last N children stay put.
+    if (props.overflowDirection !== undefined && "overflowDirection" in node) {
+      node.overflowDirection = props.overflowDirection;
+      applied.overflowDirection = node.overflowDirection;
+    }
+    if (props.scrollBehavior !== undefined) {
+      if (!("scrollBehavior" in node)) throw new Error(`${node.type} ${node.id} has no scrollBehavior in this Figma version: use numberOfFixedChildren on its parent instead`);
+      node.scrollBehavior = props.scrollBehavior;
+      applied.scrollBehavior = node.scrollBehavior;
+    }
+    if (props.numberOfFixedChildren !== undefined && "numberOfFixedChildren" in node) {
+      node.numberOfFixedChildren = Number(props.numberOfFixedChildren);
+      applied.numberOfFixedChildren = node.numberOfFixedChildren;
     }
     applyBoxParams(node, props, applied);
 
@@ -1679,6 +1726,16 @@ const handlers = {
         font: props.font,
         ranges: props.ranges ? props.ranges.length : undefined,
       });
+    }
+    // One-line titles: { textTruncation: "ENDING", maxLines: 1 } adds an ellipsis instead of overflowing.
+    // After the text params: a textAutoResize or width change in the same call would otherwise
+    // leave the truncation without effect.
+    if (props.textTruncation !== undefined && node.type === "TEXT") {
+      await loadNodeFonts(node);
+      if (props.textTruncation === "ENDING" && node.textAutoResize === "WIDTH_AND_HEIGHT") node.textAutoResize = "HEIGHT";
+      node.textTruncation = props.textTruncation;
+      if (props.maxLines !== undefined) node.maxLines = props.maxLines;
+      applied.textTruncation = node.textTruncation;
     }
 
     return {

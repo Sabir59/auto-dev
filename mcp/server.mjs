@@ -141,7 +141,7 @@ function tool(figmaType, inputSchema) {
 const LEGACY = process.env.FIGMA_EXECUTOR_LEGACY === "1";
 // Commands that only read the document. Any other command may change it, so after one succeeds the
 // "unchanged since your last read" answers below are reset.
-const READ_TYPES = new Set(["PING", "GET_FILE_INFO", "LIST_PAGES", "GET_SELECTION", "SEARCH_NODES", "GET_DOCUMENT_STATE", "GET_VARIABLES", "GET_STYLES", "GET_ICON_COMPONENTS", "GET_COMPONENT_TREE", "GET_SCREEN_TREE", "GET_PROTOTYPE", "EXPORT_NODE", "SWITCH_PAGE"]);
+const READ_TYPES = new Set(["PING", "GET_FILE_INFO", "LIST_PAGES", "GET_SELECTION", "SELECT_NODES", "SEARCH_NODES", "GET_DOCUMENT_STATE", "GET_VARIABLES", "GET_STYLES", "GET_ICON_COMPONENTS", "GET_COMPONENT_TREE", "GET_SCREEN_TREE", "GET_PROTOTYPE", "EXPORT_NODE", "SWITCH_PAGE"]);
 const lastReads = new Map(); // document-state request -> { hash, at } of what this run was last given
 
 // --- Reusable schema fragments (match plugin/code.js's real param shapes) --
@@ -477,6 +477,51 @@ server.registerTool(
 );
 
 server.registerTool(
+  "figma_set_reactions",
+  {
+    description: "Write prototype links in bulk: each item makes a node (a button, a tab, an instance sublayer I<inst>;<child>) navigate to a destination frame, go BACK, or (nav:\"change\") swap to a sibling variant. on: click (default), hover, press, drag, or after (a timed move after `delay` ms, e.g. a progress screen that advances by itself). Replaces each node's reactions unless append:true. flows sets the current page's flow starting points. Read them back with figma_get_prototype.",
+    inputSchema: {
+      items: z.array(z.object({
+        id: z.string(), to: z.string().describe('Destination frame id, or "BACK"'),
+        on: z.enum(["click", "hover", "press", "drag", "after"]).optional(), delay: z.number().min(10).max(60000).optional().describe("ms, with on:\"after\""),
+        transition: z.enum(["instant", "dissolve", "smart", "push-left", "push-right", "slide-up", "slide-down"]).optional(),
+        nav: z.enum(["change"]).optional(), keepScroll: z.boolean().optional(),
+      })).min(1).max(500),
+      append: z.boolean().optional(),
+      flows: z.array(z.object({ nodeId: z.string(), name: z.string() })).optional(),
+    },
+  },
+  tool("SET_REACTIONS")
+);
+
+server.registerTool(
+  "figma_clone_node",
+  {
+    description: "Duplicate a node (instances stay instances, overrides kept) into parentId at insertIndex: e.g. a screen copied to make a variant of it.",
+    inputSchema: { id: z.string(), parentId: z.string().optional(), insertIndex: z.number().int().optional(), name: z.string().optional(), x: z.number().optional(), y: z.number().optional() },
+  },
+  tool("CLONE_NODE")
+);
+
+server.registerTool(
+  "figma_select_nodes",
+  {
+    description: "Select nodes on their page (switching to it) and zoom the editor to them, e.g. to show the person the frame a prototype starts from. Changes the selection and viewport only, not the document.",
+    inputSchema: { ids: z.array(z.string()).min(1).max(200), zoom: z.boolean().optional().describe("Default true") },
+  },
+  tool("SELECT_NODES")
+);
+
+server.registerTool(
+  "figma_create_variable_collection",
+  {
+    description: "Create a local variable collection (or find the one with that name) with named modes, e.g. {name:\"Color\", modes:[\"Dark\"]}. Returns its id and modeIds for figma_create_variable.",
+    inputSchema: { name: z.string(), modes: z.array(z.string()).max(20).optional() },
+  },
+  tool("CREATE_VARIABLE_COLLECTION")
+);
+
+server.registerTool(
   "figma_bind_variable_to_fill",
   {
     description: "Bind an existing fill on a node to a real Figma Variable, replacing whatever literal color was there.",
@@ -723,6 +768,9 @@ server.registerTool(
             .describe("Bind numeric fields to float Variables, e.g. {itemSpacing:\"spacing/3\", paddingX:\"page/padding-x\", cornerRadius:\"radius/xl\"}. Shorthands: cornerRadius (all corners), padding, paddingX, paddingY."),
           textStyle: z.string().optional().describe("Apply a local text style by name (\"body/md\") or id. On mixed text, only the main run's font gets it; inline emphasis stays as an override."),
           effectStyle: z.string().optional().describe("Apply a local effect style by name (\"shadow/md\") or id."),
+          overflowDirection: z.enum(["NONE", "HORIZONTAL", "VERTICAL", "BOTH"]).optional().describe("Prototype: the frame scrolls its clipped content in this direction (a page taller than the screen: VERTICAL, with clipsContent)."),
+          scrollBehavior: z.enum(["SCROLLS", "FIXED", "STICKY_SCROLLS"]).optional().describe("Prototype: FIXED keeps this child in place while its frame scrolls (a bottom action bar); STICKY_SCROLLS scrolls until it reaches the edge."),
+          numberOfFixedChildren: z.number().int().min(0).optional().describe("Older form of FIXED, on the frame: its last N children stay in place while it scrolls."),
           ...BoxParams,
           ...TextParams,
         })
