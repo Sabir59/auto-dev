@@ -424,6 +424,8 @@ function gitflowDir(id) { if (!/^[\w-]+$/.test(String(id || ""))) throw new Erro
 function readGitflowConfig(id) { const f = join(gitflowDir(id), "config.json"); try { if (!existsSync(f)) return null; const raw = JSON.parse(readFileSync(f, "utf8")); try { return { ...gitflow.normalizeConfig({}, raw), updatedAt: raw.updatedAt }; } catch { return raw; } } catch { return null; } }
 function writeGitflowConfig(id, cfg) { mkdirSync(gitflowDir(id), { recursive: true }); writeAtomic(join(gitflowDir(id), "config.json"), JSON.stringify(cfg, null, 1)); }
 const gitflowAudit = (id, e) => new gitflow.GitFlow({ root: null, dir: gitflowDir(id), config: {} }).audit(e);
+// Plan executions running as jobs (their steps, and a cancel requested before the branch is created).
+const gitflowJobs = new Map();
 // The repository a Git workflow reads: a workspace's folder, or the console's own clone of a URL.
 function gitflowRoot(id, cfg) {
   if (cfg.source === "remote") { const d = join(gitflowDir(id), "remote.git"); if (!existsSync(join(d, "HEAD"))) throw new Error("The repository hasn't been cloned yet: save the setup with its URL."); return d; }
@@ -2304,7 +2306,47 @@ http.createServer(async (req, res) => {
       if (parts[2] === "execute" && req.method === "POST") {
         // acknowledge: the ids of the plan's points the person confirmed (execute() wants exactly the plan's list).
         const b = await body(req), i = gitIdentity(gf.root) || {};
-        return json(res, 200, await gf.execute(String(b.plan || ""), { approvedBy: gitflowActor(gf.root), acknowledge: Array.isArray(b.acknowledge) ? b.acknowledge.slice(0, 200).map(String) : [], identity: { name: i.name || "", email: i.email || "" } }));
+        const opts = { approvedBy: gitflowActor(gf.root), acknowledge: Array.isArray(b.acknowledge) ? b.acknowledge.slice(0, 200).map(String) : [], identity: { name: i.name || "", email: i.email || "" } };
+        if (!b.async) return json(res, 200, await gf.execute(String(b.plan || ""), opts));
+        // As a job: its steps are reported as they happen, and it can be cancelled until the branch is created.
+        const job = { id: gitflow.newId(), worker: w.id, plan: String(b.plan || ""), state: "running", cancel: false, result: null, error: null,
+          steps: [["recompute", "Recompute the plan from the branches as fetched (simulated in a private copy)"], ["check", "Check it's the approved plan and its confirmations"], ["create", "Create the new branch"], ["verify", "Check that no existing branch or ref changed"]].map(([id, label]) => ({ id, label, state: "waiting", at: null })) };
+        gitflowJobs.set(job.id, job);
+        gf.execute(job.plan, { ...opts, onStep: (id, state) => { const s = job.steps.find((x) => x.id === id); if (s) { s.state = state; s.at = new Date().toISOString(); } }, isCancelled: () => job.cancel })
+          .then((r) => { job.state = "done"; job.result = r; }, (e) => { job.state = e.cancelled ? "cancelled" : "failed"; job.error = e.message; for (const s of job.steps) if (s.state === "running") s.state = job.state === "cancelled" ? "waiting" : "failed"; })
+          .finally(() => setTimeout(() => gitflowJobs.delete(job.id), 15 * 60e3).unref?.());
+        return json(res, 200, { job: job.id, steps: job.steps });
+      }
+      if (parts[2] === "jobs" && parts[3]) {
+        const job = gitflowJobs.get(parts[3]);
+        if (!job || job.worker !== w.id) return json(res, 404, { error: "No such job (finished jobs are kept for 15 minutes)." });
+        if (parts[4] === "cancel" && req.method === "POST") {
+          // Honoured only before anything is written: once the branch is being created it runs to the end.
+          const started = job.steps.some((s) => (s.id === "create" || s.id === "verify") && s.state !== "waiting");
+          if (job.state !== "running" || started) return json(res, 409, { error: job.state !== "running" ? `The job has already ${job.state === "done" ? "finished" : job.state}.` : "Too late to cancel: the branch is being created. It finishes and is checked; you can delete it afterwards." });
+          job.cancel = true; return json(res, 200, { cancelling: true });
+        }
+        const { cancel, ...out } = job; return json(res, 200, { ...out, cancelRequested: cancel });
+      }
+      // A plan's result as a patch file (read from the private copy; nothing is written).
+      if (parts[2] === "patch" && req.method === "GET") {
+        const p = await gf.exportPatch(String(url.searchParams.get("plan") || ""));
+        res.writeHead(200, { "content-type": "text/x-patch; charset=utf-8", "content-disposition": `attachment; filename="${p.name.replace(/[^\w.-]/g, "_")}"`, "x-plan-base": `${p.base.branch} ${p.base.tip}` });
+        return res.end(p.text);
+      }
+      // Deleting a proposal branch the worker created (from the repository only; refused if it moved).
+      if (parts[2] === "branch" && parts[3] === "delete" && req.method === "POST") { const b = await body(req); return json(res, 200, await gf.deleteBranch(String(b.branch || ""), { approvedBy: gitflowActor(gf.root) })); }
+      // CI on GitHub for a pushed proposal branch: only when GitHub is connected and origin is on GitHub.
+      if (parts[2] === "ci" && req.method === "GET") {
+        const branch = String(url.searchParams.get("branch") || "");
+        if (!/^gitflow\//.test(branch)) return json(res, 400, { error: "Only a proposal branch's CI is shown here." });
+        if (!github.hasToken()) return json(res, 200, { available: false, reason: "GitHub isn't connected: see the checks on the pull request on GitHub." });
+        const remote = (spawnSync("git", ["config", "--get", "remote.origin.url"], { cwd: gf.root, encoding: "utf8", windowsHide: true }).stdout || "").trim();
+        const full = /github\.com[:/]([\w.-]+\/[\w.-]+?)(?:\.git)?\/?$/.exec(remote)?.[1];
+        if (!full) return json(res, 200, { available: false, reason: "origin isn't on GitHub, so there's no CI status to read." });
+        const sha = (spawnSync("git", ["rev-parse", "--verify", "-q", `refs/heads/${branch}^{commit}`], { cwd: gf.root, encoding: "utf8", windowsHide: true }).stdout || "").trim();
+        if (!sha) return json(res, 404, { error: `${branch} isn't in the repository.` });
+        return json(res, 200, { available: true, sha, ...(await github.ciStatus(full, sha)) });
       }
     }
 

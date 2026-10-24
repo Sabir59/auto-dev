@@ -819,6 +819,7 @@ span.ok { color: var(--ok); } span.warn { color: var(--warn); } span.bad { color
 .gfgraph { list-style: none; margin: 0; padding: 0 0 0 8px; border-left: 2px solid var(--line2); display: flex; flex-direction: column; }
 .gfgraph li { display: flex; gap: 8px; align-items: baseline; padding: 4px 0 4px 10px; min-width: 0; } .gfgraph .ell { flex: 1; min-width: 0; color: var(--t1); } .gfgraph .mono { color: var(--pri); flex: none; }
 .gdot { width: 10px; height: 10px; border-radius: 50%; margin-left: -16px; flex: none; background: var(--t3); align-self: center; } .gdot.ok { background: var(--ok); } .gdot.bad { background: var(--err); } .gdot.info { background: var(--pri); } .gdot.muted { background: var(--line2); } .gdot.merge { background: var(--low); border: 2px solid var(--t3); }
+.gfsteps li.run::before { background: var(--pri); border-color: var(--pri); } .gfsteps li.fail::before { background: var(--err); border-color: var(--err); }
 /* The view sits in the console's centre pane: columns follow the pane's width, not the window's. */
 .gf { container-type: inline-size; }
 .gfdl .chip, .gfban .chip { white-space: normal; overflow-wrap: anywhere; height: auto; min-height: 22px; }
@@ -2205,7 +2206,7 @@ function gfPlanPage() {
   if (!p) {
     const n = GF.selected.size, ok = n || st === "ancestry";
     return `<div class="gfmain">${top}<div class="gfcard"><h3 class="m12" style="margin:0;font-size:14px">Preview a plan</h3>${strat}<span class="m12">${st === "ancestry" ? `Everything ${esc(m.source)} has that ${esc(m.destination)} doesn't.` : n ? `${plural(n, "selected change")} from Changes.` : "Nothing selected yet: choose changes on the Changes page."}</span>${ok ? "" : '<div><button type="button" class="btn" data-gf-tab="changes">Go to Changes</button></div>'}</div></div>
-      ${gfDock(`<b>${ok ? "Ready to simulate" : "Nothing selected"}</b><span class="sub m12">Simulated with Git in a private copy: no branch changes.</span>`, `<span class="gfplanned"><button type="button" class="btn" disabled>Export patch</button>${planned()}</span><button type="button" class="btn pri" id="gfPreview" ${ok ? "" : "disabled"}>Preview plan</button>`)}`;
+      ${gfDock(`<b>${ok ? "Ready to simulate" : "Nothing selected"}</b><span class="sub m12">Simulated with Git in a private copy: no branch changes.</span>`, `<button type="button" class="btn" disabled title="Preview a plan first">Export patch</button><button type="button" class="btn pri" id="gfPreview" ${ok ? "" : "disabled"}>Preview plan</button>`)}`;
   }
   const c = gfPlanCounts(p), [sl, scls] = PLAN_ST[p.status];
   const stLabel = p.status === "review" ? `Needs review · ${p.reviews.length} to confirm` : p.status === "blocked" ? `Blocked · ${p.blockers.length}` : sl;
@@ -2217,7 +2218,7 @@ function gfPlanPage() {
       : p.status === "review" ? gfBan("warn", `Needs your review: ${plural(p.reviews.length, "point")} to confirm when you create the branch`, list(p.reviews))
       : p.status === "ready" ? gfBan("ok", `Ready: ${plural(p.result.applied, "step")} ${p.result.applied === 1 ? "applies" : "apply"} cleanly onto ${esc(p.destination.branch)}`, "A clean simulation means Git can apply them; it doesn't mean the code builds (see Verification).")
       : gfBan("", "Nothing to apply", "Everything selected is already in the destination, or excluded.")}</div>`;
-  const execErr = GF.execError && !GF.stale ? gfBan("bad", "The branch wasn't created", esc(GF.execError), "alert") : "";
+  const execErr = (GF.execError && !GF.stale ? gfBan("bad", "The branch wasn't created", esc(GF.execError), "alert") : "") + (GF.cancelledMsg ? gfBan("info", "Cancelled", esc(GF.cancelledMsg)) : "") + (GF.patchMsg ? gfBan("ok", GF.patchMsg, "The patch is for the branch tips this plan was computed from. Nothing in the repository changed.") : "");
   const tabs = `<div class="gfnav" role="tablist" aria-label="Plan" style="padding:0">${PTABS.map(([id, l]) => `<button type="button" role="tab" aria-selected="${GF.planTab === id}" data-gf-ptab="${id}">${l}${c[id] != null ? `<span class="cnt">${c[id]}</span>` : ""}</button>`).join("")}</div>`;
   const content = GF.planTab === "excluded" ? gfPlanExcluded(p) : GF.planTab === "deps" ? gfPlanDeps(p) : GF.planTab === "verify" ? gfPlanVerify(p) : GF.planTab === "graph" ? gfPlanGraph(p) : gfPlanIncluded(p);
   const leave = p.strategy === "selective" ? gfLeaveSet(p) : [];
@@ -2231,7 +2232,7 @@ function gfPlanPage() {
     : p.status === "nothing" ? "<b>Nothing to apply</b>"
     : `<b class="ok">${p.status === "review" ? "Ready after review" : "Ready"} · ${plural(p.result.applied, "step")} · ${plural(p.result.files.length, "file")}${p.reviews.length ? ` · ${p.reviews.length} to confirm` : ""}</b><span class="sub m12">${GF.cfg.proposals ? `Creates a new branch (gitflow/${esc(p.destination.branch)}-&lt;UTC time&gt;) from ${esc(p.destination.branch)} ${tip7(p.destination.tip)}. Nothing is pushed.` : "Preview only: allow proposal branches in Settings to create one."}</span>`;
   return `<div class="gfmain">${top}${head}${status}${execErr}${tabs}${content}</div>
-    ${gfDock(sum, `<span class="gfplanned"><button type="button" class="btn" disabled>Export patch</button>${planned()}</span>${primary}`)}`;
+    ${gfDock(sum, `<button type="button" class="btn" id="gfPatch" ${(p.status === "ready" || p.status === "review") && !GF.stale ? "" : "disabled"} title="${p.status === "blocked" ? "A blocked plan can't be exported" : GF.stale ? "Out of date: preview again first" : "Download the result as a patch (nothing is written)"}">Export patch</button>${primary}`)}`;
 }
 function gfPlanIncluded(p) {
   const it = (i) => { const [l, cls] = ITEM_ST[i.status] || [i.status, ""]; return `<li><button type="button" class="gfit ${cls === "bad" ? "bad" : ""} ${GF.planDetail?.sha === i.sha ? "on" : ""}" data-gf-pitem="${i.sha}"><span class="mono">${esc(tip7(i.sha))}</span><span class="t"><b>${esc(i.subject)}</b>${i.reasons?.filter(Boolean).length ? `<span class="sub m11">${i.reasons.filter(Boolean).map(esc).join("<br>")}</span>` : ""}${i.conflicts?.length ? `<span class="bad m11">Conflicts: ${esc(i.conflicts.join(", "))}</span>` : ""}</span>${pill(cls, l)}</button></li>`; };
@@ -2250,7 +2251,7 @@ function gfPlanDeps(p) {
   const conf = p.items.filter((i) => i.status === "conflict"), leave = p.strategy === "selective" ? gfLeaveSet(p) : [];
   const card = (cls, label, title, body, tag, evidence) => `<div class="gfcard" style="border-color:${cls === "bad" ? "rgba(255,155,146,.45)" : "rgba(242,178,92,.45)"}"><div class="gfline">${pill(cls, label)}<b class="m12" style="color:var(--t1)">${title}</b></div><span class="m12" style="color:var(--t2)">${body}</span><div class="ev m11"><span class="etag ${tag === "Inferred" ? "inf" : ""} t">${tag}</span><span>${evidence}</span></div></div>`;
   const decision = (d) => d.decision || (d.crossTeam ? "block" : "review");
-  const cards = [...conf.map((i) => card("bad", "Blocks", `${esc(tip7(i.sha))} conflicts when applied onto ${esc(p.destination.branch)}`, `Git predicts a conflict in ${esc((i.conflicts || []).join(", "))}${p.dependencies.some((d) => d.sha === i.sha && d.crossTeam) ? ", and it may depend on another team's change that isn't selected" : ""}.`, "Git", "merge-tree simulation in a private copy · conflicting files")),
+  const cards = [...conf.map((i) => card("bad", "Blocks", `${esc(tip7(i.sha))} conflicts when applied onto ${esc(p.destination.branch)}`, `Git predicts a conflict in ${esc((i.conflicts || []).join(", "))}${p.dependencies.some((d) => d.sha === i.sha && d.crossTeam) ? ", and it may depend on another team's change that isn't selected" : ""}.`, "Git", "merge-tree simulation in a private copy · conflicting files") + (i.excerpts?.length ? i.excerpts.map((x) => `<div class="gfcard"><span class="lab">${esc(x.path)} · as Git would leave it (conflict markers)</span><pre class="gfpre">${esc(x.text)}</pre>${x.cut ? '<span class="sub m11">Cut: the file has more conflicting lines.</span>' : ""}</div>`).join("") : "")),
     ...p.dependencies.map((d) => { const k = decision(d); return card(k === "block" ? "bad" : "warn", k === "block" ? "Blocks" : k === "confirm" ? "Confirm" : "Needs review", `${esc(tip7(d.sha))} may depend on ${esc(tip7(d.on))} (${esc(d.team)}, not selected)`, `Both change ${esc(d.files.join(", "))}. “${esc(d.onSubject)}” is earlier and isn't in ${esc(p.destination.branch)}. ${k === "confirm" ? `Another team's change: Git applies ${esc(tip7(d.sha))} cleanly without it, so you confirm this explicitly when creating the branch. ${esc(tip7(d.on))} is never included.` : k === "block" ? (d.crossTeam && !["confirmed", "likely"].includes(d.onConfidence) ? `Its owner is ${esc(d.onConfidence || "unknown")}: this blocks the plan until the attribution is fixed in Settings.` : "Another team's change, and this one doesn't apply cleanly without it: this blocks the plan.") : "Your team's change: confirm you reviewed it."}`, "Inferred", "same file, earlier and not selected. A change can also depend on one without touching the same file."); }),
     ...p.hazards.map((h) => `<div class="gfcard"><div class="gfline">${pill("warn", "Hazard")}<span class="m12">${esc(h.text)}</span></div></div>`)];
   const resolve = p.status === "blocked" ? `<div class="gfcard"><h3 style="margin:0">How do you want to resolve it?</h3><span class="sub m12">The worker doesn't edit code to resolve conflicts, and never switches strategy on its own.</span>
@@ -2275,7 +2276,7 @@ function gfPlanVerify(p) {
     <div class="gfchecks"><span class="lab">Not available yet</span>
       ${ck("", "Not run", "Build and tests", esc(p.build.text))}
       ${ck("", "Not run", "Type check and lint", "Not configured for this worker.")}
-      ${ck("", "On GitHub", "CI on the pull request", "Runs on GitHub once the pull request is open; the console doesn't read the result.", planned())}
+      ${ck("", "After the PR", "CI on the pull request", "Runs on GitHub once the pull request is open. With GitHub connected, the result page reads its checks; otherwise see them on GitHub.")}
       <span class="sub m12">Shown so their absence is visible. None of them is implied by “Ready”.</span></div></div>`;
 }
 
@@ -2311,7 +2312,7 @@ function gfAsk(o) {
 async function gfPreviewRun() {
   const m = gfMap(), strategy = gfStrategy(), a = GF.analysis;
   const select = strategy === "feature" ? [...new Set([...GF.selected].map((s) => a?.commits.find((c) => c.sha === s)?.pr?.number).filter(Boolean).map(String))] : strategy === "ancestry" ? [] : [...GF.selected];
-  Object.assign(GF, { tab: "plan", planTab: "included", plan: null, planDetail: null, outcome: null, prResult: null, prError: "", execError: "", stale: false, leave: "out", planBusy: "Simulating the plan with Git in a private copy…" });
+  Object.assign(GF, { tab: "plan", planTab: "included", plan: null, planDetail: null, outcome: null, prResult: null, prError: "", execError: "", stale: false, leave: "out", cancelledMsg: "", patchMsg: "", deleted: null, ci: null, planBusy: "Simulating the plan with Git in a private copy…" });
   gfRender();
   try { GF.plan = await gfApi("POST", "/preview", { mapping: m.id, strategy, select }); } catch (er) { GF.error = er.message; }
   GF.planBusy = ""; gfRender();
@@ -2327,13 +2328,19 @@ async function gfCreate() {
     ${(p.reviewItems || []).length ? `<div class="gfban warn"><div><b>Confirm each point</b>${p.reviewItems.map((r) => `<label class="gfchk m12"><input type="checkbox" data-gf-ack="${esc(r.id)}"><span>${r.kind === "cross-team-overlap" ? `<b>Another team's change stays out.</b> ` : ""}${esc(r.text)}</span></label>`).join("")}<span class="sub m11">Create branch stays disabled until every point is checked. The confirmation is recorded with your name and applies to this plan only.</span></div></div>` : ""}`;
   const r = await gfAsk({ title: "Create a proposal branch?", body, actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Create branch", kind: "pri" }], focus: "cancel", requireAll: "[data-gf-ack]" });
   if (r !== "go") return;
-  GF.working = "branch"; GF.execError = ""; gfRender();
-  // acknowledge only reaches the engine after every review point was ticked (the button was disabled until then)
   // The points confirmed (all of them: the button stayed disabled until then), by id: the engine checks the list is exactly this plan's.
   const acknowledge = [...$("dlgB").querySelectorAll("[data-gf-ack]:checked")].map((x) => x.dataset.gfAck);
-  try { GF.outcome = await gfApi("POST", "/execute", { plan: p.id, acknowledge }); GF.prResult = null; GF.prError = ""; }
-  catch (er) { GF.execError = er.message; if (/changed since this plan/.test(er.message)) GF.stale = true; }
-  GF.working = ""; gfRender(); gfLoadAudit();
+  // As a job: its steps show as they happen, and Cancel works until the branch is being created.
+  Object.assign(GF, { working: "branch", execError: "", cancelledMsg: "", patchMsg: "", job: null }); gfRender();
+  try {
+    const { job } = await gfApi("POST", "/execute", { plan: p.id, acknowledge, async: true });
+    GF.job = { id: job, steps: [] };
+    for (;;) { const j = await gfApi("GET", `/jobs/${job}`); GF.job = j; gfRender(); if (j.state !== "running") break; await new Promise((ok) => setTimeout(ok, 400)); }
+    if (GF.job.state === "done") { GF.outcome = GF.job.result; GF.prResult = null; GF.prError = ""; GF.ci = null; GF.deleted = null; }
+    else if (GF.job.state === "cancelled") GF.cancelledMsg = GF.job.error;
+    else { GF.execError = GF.job.error; if (/changed since this plan/.test(GF.job.error)) GF.stale = true; }
+  } catch (er) { GF.execError = er.message; if (/changed since this plan/.test(er.message)) GF.stale = true; }
+  GF.working = ""; GF.job = null; gfRender(); gfLoadAudit();
 }
 async function gfPush() {
   const o = GF.outcome, base = GF.plan.destination.branch;
@@ -2344,36 +2351,55 @@ async function gfPush() {
   if (r !== "go") return;
   GF.working = "push"; GF.prError = ""; gfRender();
   try { GF.prResult = await gfApi("POST", "/pr", { branch: o.branch }); } catch (er) { GF.prError = er.message; }
-  GF.working = ""; gfRender(); gfLoadAudit();
+  GF.working = ""; gfRender(); gfLoadAudit(); if (GF.prResult) gfLoadCi();
 }
-// While the engine runs. It's one call today: no live progress and no cancel (both planned).
+// CI for the pushed branch, from GitHub when it's connected and origin is on GitHub.
+async function gfLoadCi() {
+  const b = GF.outcome?.branch; if (!b) return;
+  GF.ci = { loading: true }; gfRender();
+  try { GF.ci = await gfApi("GET", `/ci?branch=${encodeURIComponent(b)}`); } catch (er) { GF.ci = { available: false, reason: er.message }; }
+  gfRender();
+}
+function gfCiHtml() {
+  const c = GF.ci;
+  if (!c || c.loading) return '<span class="sub m12">Checking CI…</span>';
+  if (!c.available) return `<div class="gfline"><span class="m12">CI on the pull request</span>${pill("", "Not available here")}<span class="sub m12">${esc(c.reason)}</span></div>`;
+  const cls = { passing: "ok", failing: "bad", pending: "warn", none: "" }[c.state] ?? "";
+  return `<div class="gfline"><span class="m12">CI on GitHub</span>${pill(cls, c.state === "none" ? "No checks reported yet" : c.state[0].toUpperCase() + c.state.slice(1))}<button type="button" class="linkbtn m12" id="gfCiRefresh">Refresh</button></div>${c.checks.length ? `<ul class="gffiles m11">${c.checks.map((x) => `<li><span>${esc(x.name)}</span> <span class="${["failure", "error", "cancelled", "timed_out"].includes(x.state) ? "minus" : x.state === "success" ? "plus" : ""}">${esc(x.state)}</span>${x.url ? ` <a href="${esc(x.url)}" target="_blank" rel="noopener">details</a>` : ""}</li>`).join("")}</ul>` : ""}`;
+}
+// While the engine runs. Creating the branch is a job whose steps are reported as they happen, and
+// Cancel works until the branch is being created. Pushing is one step that changes origin: no cancel.
 function gfWorking() {
-  const p = GF.plan, push = GF.working === "push";
-  const steps = push ? ["Check that this is a proposal branch the worker created from an approved plan", `Push only ${GF.outcome.branch} to origin, under its own name`, "Check that no existing ref changed", GH?.connected ? `Open a pull request into ${p.destination.branch} on GitHub` : "Give you GitHub's compare page to open the pull request"]
-    : ["Recompute the plan from the branches as fetched (simulated in a private copy)", `Check it's still plan ${p.id}; stop if not`, `Create gitflow/${p.destination.branch}-<UTC time> from the result`, "Check that no existing branch or remote-tracking ref changed"];
-  return `<div class="gfcard" id="gfWorking"><div class="gfh"><div><h3>${push ? `Pushing ${esc(GF.outcome.branch)} and opening the pull request…` : "Creating the proposal branch…"}</h3><span class="sub m12">Plan ${esc(p.id)}${p.status === "review" ? " · your review confirmed" : ""}</span></div>${pill("info", "Working…")}</div>
-    <span class="lab">What happens (in one step: this page shows the result when it's done)</span><ol class="gfsteps m12">${steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>
-    <div class="gfline"><button type="button" class="btn" disabled>Cancel</button>${planned()}<span class="sub m12">Live step-by-step progress and cancelling need an engine change.</span></div></div>`;
+  const p = GF.plan;
+  if (GF.working === "push") return `<div class="gfcard" id="gfWorking"><div class="gfh"><div><h3>Pushing ${esc(GF.outcome.branch)} and opening the pull request…</h3><span class="sub m12">Plan ${esc(p.id)}</span></div>${pill("info", "Working…")}</div>
+    <ol class="gfsteps m12">${["Check that this is a proposal branch the worker created from an approved plan", `Push only ${GF.outcome.branch} to origin, under its own name`, "Check that no existing ref changed", GH?.connected ? `Open a pull request into ${p.destination.branch} on GitHub` : "Give you GitHub's compare page to open the pull request"].map((s) => `<li>${esc(s)}</li>`).join("")}</ol>
+    <span class="sub m12">One step that changes origin, so it isn't cancelled once started.</span></div>`;
+  const j = GF.job, steps = j?.steps?.length ? j.steps : [];
+  const started = steps.some((s) => (s.id === "create" || s.id === "verify") && s.state !== "waiting");
+  return `<div class="gfcard" id="gfWorking"><div class="gfh"><div><h3>Creating the proposal branch…</h3><span class="sub m12">Plan ${esc(p.id)}${p.reviewItems?.length ? ` · ${plural(p.reviewItems.length, "point")} confirmed` : ""}</span></div>${pill("info", j?.cancelRequested ? "Cancelling…" : "Working…")}</div>
+    <ol class="gfsteps m12">${steps.map((s) => `<li class="${s.state === "done" ? "done" : s.state === "running" ? "run" : s.state === "failed" ? "fail" : ""}" data-step="${s.id}" data-state="${s.state}"><span style="flex:1">${esc(s.label)}</span><span class="sub m11">${s.state === "running" ? "running" : s.state === "done" ? esc(hhmm(s.at)) : s.state === "failed" ? "failed" : "waiting"}</span></li>`).join("") || '<li>Starting…</li>'}</ol>
+    <div class="gfline"><button type="button" class="btn" id="gfCancelJob" ${j?.id && !started && !j.cancelRequested ? "" : "disabled"}>Cancel</button><span class="sub m12">${started ? "The branch is being created: it finishes and is checked. You can delete it afterwards." : j?.cancelRequested ? "Stopping before anything is written…" : "Cancelling stops before anything is written."}</span></div></div>`;
 }
 function gfResult() {
   const o = GF.outcome, p = GF.plan, base = p.destination.branch, pr = GF.prResult, plan = o.plan || p, items = plan.items.filter((i) => i.status === "apply");
   const created = gfBan("ok", `Created ${o.branch}`, `It's in the clone, on top of ${esc(base)} ${tip7(plan.destination.tip)}. Nothing was pushed. Existing branches changed: ${o.changedExisting.length ? esc(o.changedExisting.join(", ")) : "none"}.`);
   const what = `<div class="gfcard"><h3 style="margin:0">What's on the new branch</h3><span class="sub m12">${p.strategy === "selective" ? "Copies record their original commit (“cherry picked from …”) and keep their authors." : "The merge you approved."}</span>
     <ul class="gfitems">${items.map((i) => `<li class="gfit"><span class="mono">${esc(tip7(i.sha))}</span><span class="t"><b>${esc(i.subject)}</b></span></li>`).join("")}</ul>
-    <dl class="gfdl m12"><dt>Branch</dt><dd>${gfChip(o.branch)}</dd><dt>Tip commit</dt><dd class="mono">${esc(sh(o.commit))}</dd><dt>Plan</dt><dd class="mono">${esc(plan.id)}</dd><dt>To discard</dt><dd>${esc(o.recovery)}</dd></dl></div>`;
+    <dl class="gfdl m12"><dt>Branch</dt><dd>${gfChip(o.branch)}</dd><dt>Tip commit</dt><dd class="mono">${esc(sh(o.commit))}</dd><dt>Plan</dt><dd class="mono">${esc(plan.id)}</dd><dt>To discard</dt><dd>${esc(o.recovery)}</dd></dl>${GF.deleted ? "" : '<div><button type="button" class="btn danger" id="gfDelBranch">Delete this branch…</button></div>'}</div>`;
   const next = pr ? `<div class="gfcard" id="gfPrDone">${pr.pr ? gfBan("ok", `Pull request opened into ${pr.base}`, `<a href="${esc(pr.pr)}" target="_blank" rel="noopener">${esc(pr.pr)}</a> · Pushed ${esc(pr.branch)} (only that branch).`)
-        : pr.compare ? (pr.prError ? gfBan("bad", "The pull request wasn't opened", `Pushed ${esc(pr.branch)} to origin, but GitHub refused to open the pull request: ${esc(pr.prError)}`, "alert") : gfBan("info", `Pushed ${pr.branch}`, "GitHub isn't connected: open the pull request yourself on GitHub's compare page."))
+        : pr.compare ? (pr.prError ? gfBan("bad", "The pull request wasn't opened", `Pushed ${esc(pr.branch)} to origin, but GitHub refused to open the pull request: ${esc(pr.prError)} <button type="button" class="btn" id="gfPRRetry">Try opening it again…</button>`, "alert") : gfBan("info", `Pushed ${pr.branch}`, "GitHub isn't connected: open the pull request yourself on GitHub's compare page."))
         : gfBan("info", `Pushed ${pr.branch} to origin`, `Open a pull request into ${esc(pr.base)} there.`)}
       ${pr.compare && !pr.pr ? `<div><a class="btn pri" href="${esc(pr.compare)}" target="_blank" rel="noopener">Open GitHub's compare page ↗</a></div>` : pr.pr ? `<div><a class="btn pri" href="${esc(pr.pr)}" target="_blank" rel="noopener">Open on GitHub ↗</a></div>` : ""}
       <span class="lab">Title</span><span class="mono m12">${esc(pr.title)}</span><span class="lab">Description (written by the engine from the plan)</span><pre class="gfpre">${esc(pr.body)}</pre>
-      <div class="gfline"><span class="m12">CI on the pull request</span>${pill("", "See GitHub")}${planned()}<span class="sub m12">The console doesn't read CI results yet.</span></div></div>`
+      <div id="gfCi">${gfCiHtml()}</div></div>`
     : `<div class="gfcard"><h3 style="margin:0">Next: open a pull request into ${esc(base)}</h3>${GF.prError ? gfBan("bad", "Pushing stopped", esc(GF.prError), "alert") : ""}
       <span class="m12" style="color:var(--t2)">Pushes only the new branch to origin, then opens a pull request into ${esc(base)}. ${esc(base)} changes only when the pull request is merged on GitHub, where its protection and reviews apply. It asks first.</span>
       <div class="gfline"><button type="button" class="btn danger" id="gfPR">${GF.prError ? "Try again…" : "Push branch & open pull request…"}</button></div><span class="sub m11">Danger style: this changes something outside this console.</span></div>`;
+  if (GF.deleted) return `${gfBan("info", `Deleted ${GF.deleted.branch}`, `Removed from the repository; nothing else changed.${GF.deleted.note ? ` ${esc(GF.deleted.note)}` : ""}`)}<div class="gfcols even">${what}</div>`;
   return `${created}<div class="gfcols even">${what}${next}</div>`;
 }
 const gfResultDock = () => gfDock(GF.prResult ? '<b class="ok">Done</b><span class="sub m12">The change reaches the destination only when the pull request is merged on GitHub.</span>' : `<b>Branch created · not pushed</b><span class="sub m12 mono">${esc(GF.outcome.branch)}</span>`,
-  `<span class="gfplanned"><button type="button" class="btn" disabled>Export patch</button>${planned()}</span><button type="button" class="btn" id="gfCopy">Copy branch name</button><button type="button" class="btn ${GF.prResult ? "pri" : ""}" id="gfDone">Back to Changes</button>`);
+  `<button type="button" class="btn" id="gfPatch">Export patch</button><button type="button" class="btn" id="gfCopy">Copy branch name</button><button type="button" class="btn ${GF.prResult ? "pri" : ""}" id="gfDone">Back to Changes</button>`);
 
 // ---- History ----
 const HF = [["all", "All"], ["preview", "Previews"], ["branch", "Branches & PRs"], ["settings", "Settings"], ["fetch", "Fetches"], ["note", "Worker notes"], ["refused", "Refusals"]];
@@ -2550,6 +2576,33 @@ $("canvas").addEventListener("click", async (e) => {
   if (q("#gfLeaveOut")) { for (const s of gfLeaveSet(GF.plan)) GF.selected.delete(s); return gfPreviewRun(); }
   if (q("#gfApprove")) return gfCreate();
   if (q("#gfPR")) return gfPush();
+  if (q("#gfCancelJob")) { const b = q("#gfCancelJob"); b.disabled = true; try { await gfApi("POST", `/jobs/${GF.job.id}/cancel`); } catch (er) { GF.error = er.message; gfRender(); } return; }
+  if (q("#gfCiRefresh")) return gfLoadCi();
+  if (q("#gfPatch")) {
+    const p = GF.outcome?.plan || GF.plan;
+    try {
+      const r = await fetch(`/gitflow/${encodeURIComponent(GF.wid)}/patch?plan=${encodeURIComponent(p.id)}`, { headers: { "x-worker-console": "1" } });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+      const blob = await r.blob(), name = /filename="([^"]+)"/.exec(r.headers.get("content-disposition") || "")?.[1] || `${p.id}.patch`;
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      GF.patchMsg = `Exported ${name}`;
+    } catch (er) { GF.error = er.message; }
+    gfRender(); gfLoadAudit(); return;
+  }
+  if (q("#gfPRRetry")) {
+    const b = GF.outcome.branch, r = await ask({ title: "Try opening the pull request again?", body: `<p class="m12">${esc(b)} is already on origin: nothing new is pushed. The console asks GitHub to open the pull request into ${esc(GF.plan.destination.branch)} again.</p>`, actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Try again", kind: "pri" }], focus: "cancel" });
+    if (r !== "go") return;
+    GF.working = "push"; gfRender();
+    try { GF.prResult = await gfApi("POST", "/pr", { branch: b }); } catch (er) { GF.prError = er.message; }
+    GF.working = ""; gfRender(); gfLoadAudit(); if (GF.prResult?.pr) gfLoadCi(); return;
+  }
+  if (q("#gfDelBranch")) {
+    const o = GF.outcome, pushed = !!GF.prResult;
+    const r = await gfAsk({ title: `Delete ${o.branch}?`, body: `<p class="m12">Deletes the branch from the repository (this clone), only if it's still at ${esc(sh(o.commit))}, where the worker created it, and isn't checked out. Nothing else changes.</p><p class="m12">${pushed ? "The copy pushed to origin stays: delete it on GitHub if you mean to." : "It was never pushed."}</p><label class="gfchk m12"><input type="checkbox" data-gf-delack><span>I understand the branch and its new commits are removed from the clone.</span></label>`, actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Delete branch", kind: "danger" }], focus: "cancel", requireAll: "[data-gf-delack]" });
+    if (r !== "go") return;
+    try { GF.deleted = await gfApi("POST", "/branch/delete", { branch: o.branch }); } catch (er) { GF.error = er.message; }
+    gfRender(); gfLoadAudit(); return;
+  }
   if (q("#gfCopy")) { const b = q("#gfCopy"); try { await navigator.clipboard.writeText(GF.outcome.branch); b.textContent = "Copied"; } catch { b.textContent = GF.outcome.branch; } return; }
   if (q("#gfDone")) { Object.assign(GF, { plan: null, outcome: null, prResult: null, prError: "", execError: "", stale: false, tab: "changes" }); GF.selected.clear(); return gfLoad(); }
   if (q("[data-gf-hf]")) { GF.histFilter = q("[data-gf-hf]").dataset.gfHf; return gfRender(); }

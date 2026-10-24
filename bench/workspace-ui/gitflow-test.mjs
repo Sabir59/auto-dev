@@ -286,6 +286,89 @@ await step("identity, per-file statistics and Git graph data: this clone's Git i
   return { me: me.person, stats: p.result.stats, base: a.graph.baseShort, destinationOnly: a.graph.destination.map((c) => c.subject) };
 });
 
+await step("execution as a job: a cancel before the branch is created stops it (no ref changes, audited); a run to the end reports its four steps done; a cancel after it is refused", async () => {
+  const p = await preview({ select: [S.S1] }), before = refsOf(fx.repo);
+  const j1 = (await gf("POST", "/execute", { plan: p.id, async: true })).body, c1 = await gf("POST", `/jobs/${j1.job}/cancel`);
+  const end1 = await until(async () => { const j = (await gf("GET", `/jobs/${j1.job}`)).body; return j.state !== "running" ? j : null; });
+  const after1 = refsOf(fx.repo);
+  await sleep(1100); // proposal branches are named to the second
+  const j2 = (await gf("POST", "/execute", { plan: p.id, async: true })).body, seen = new Set();
+  const end2 = await until(async () => { const j = (await gf("GET", `/jobs/${j2.job}`)).body; j.steps.forEach((s) => seen.add(`${s.id}:${s.state}`)); return j.state !== "running" ? j : null; });
+  const late = await gf("POST", `/jobs/${j2.job}/cancel`), audit = (await gf("GET", "/audit")).body.audit;
+  assert(c1.status === 200 && end1.state === "cancelled" && /no branch was created/.test(end1.error) && after1 === before && audit.some((e) => e.action === "cancelled" && e.plan === p.id), JSON.stringify({ c1: c1.body, end1: { state: end1.state, error: end1.error, steps: end1.steps } }));
+  assert(end2.state === "done" && end2.steps.map((s) => `${s.id}:${s.state}`).join() === "recompute:done,check:done,create:done,verify:done" && /^gitflow\//.test(end2.result.branch) && late.status === 409, JSON.stringify({ end2: end2.state, steps: end2.steps, late: late.body }));
+  return { cancelled: end1.error, steps: end2.steps.map((s) => s.id), seen: [...seen], lateCancel: late.body.error };
+});
+
+await step("patch export: a ready plan downloads as one patch per change that applies to sabir-dev; a blocked plan is refused; nothing in the repository changes", async () => {
+  const p = await preview({ select: [S.S1, S.S2] }), blocked = await preview({ select: [S.S3] }), before = refsOf(fx.repo);
+  const r = await fetch(`${BASE}/gitflow/${W.id}/patch?plan=${p.id}`, { headers: H }), text = await r.text();
+  const rb = await fetch(`${BASE}/gitflow/${W.id}/patch?plan=${blocked.id}`, { headers: H }), rbBody = await rb.json();
+  const tmp = join(DATA, "patch-check"); execFileSync("git", ["clone", "-q", "-b", "sabir-dev", fx.origin, tmp]); writeFileSync(join(tmp, "plan.patch"), text);
+  const check = execFileSync("git", ["apply", "--check", "--verbose", "plan.patch"], { cwd: tmp, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  const audit = (await gf("GET", "/audit")).body.audit;
+  assert(r.status === 200 && /attachment; filename=".*\.patch"/.test(r.headers.get("content-disposition")) && /Subject: \[PATCH 1\/2\] DON-12 add donate button/.test(text) && /Subject: \[PATCH 2\/2\] DON-12 style the donate button/.test(text), text.slice(0, 300));
+  assert(rb.status === 400 && /blocked plan/.test(rbBody.error) && refsOf(fx.repo) === before && audit.some((e) => e.action === "patch" && e.plan === p.id), JSON.stringify(rbBody));
+  return { patch: r.headers.get("content-disposition"), applies: check.trim().split("\n").slice(-2), blocked: rbBody.error };
+});
+
+await step("conflict excerpts: S3's predicted conflict comes with the conflicting part of src/cart.js as Git would leave it", async () => {
+  const p = await preview({ select: [S.S3] }), x = p.items[0].excerpts?.[0];
+  assert(x?.path === "src/cart.js" && /<{7}/.test(x.text) && />{7}/.test(x.text) && /banner/.test(x.text), JSON.stringify(p.items[0]));
+  return { file: x.path, excerpt: x.text.split("\n").slice(0, 6) };
+});
+
+await step("pull request retry: through an origin that looks like GitHub (mapped to the local bare repository), GitHub refusing the pull request leaves the branch pushed; trying again pushes nothing new and opens it; the description names the approvers", async () => {
+  const ghUrl = "https://github.com/MATWProject-org/fixture-site.git", oldUrl = execFileSync("git", ["remote", "get-url", "origin"], { cwd: fx.repo, encoding: "utf8" }).trim();
+  const local = fx.origin.replace(/\\/g, "/"); execFileSync("git", ["config", `url.${local}.insteadOf`, ghUrl], { cwd: fx.repo }); execFileSync("git", ["remote", "set-url", "origin", ghUrl], { cwd: fx.repo });
+  try {
+    await sleep(1100);
+    const p = await preview({ select: [S.S2] }), ex = (await gf("POST", "/execute", { plan: p.id })).body;
+    const eng = new GitFlow({ root: fx.repo, dir: join(DATA, "gitflow", W.id), config: normalizeConfig({}, (await gf("GET", "/config")).body.config) });
+    const calls = [], refuse = async (full, o) => { calls.push({ full, ...o }); throw new Error("Validation Failed (stand-in)"); }, open = async (full, o) => { calls.push({ full, ...o }); return { number: 7, url: `https://github.com/${full}/pull/7` }; };
+    const first = await eng.openPullRequest(ex.branch, { createPullRequest: refuse, approvedBy: "Sabir <sabir@matw.test>" }), origin1 = refsOf(fx.origin);
+    const second = await eng.openPullRequest(ex.branch, { createPullRequest: open, approvedBy: "Sabir <sabir@matw.test>" });
+    assert(first.pushed && /Validation Failed/.test(first.prError) && !first.pr && /compare\/sabir-dev\.\.\./.test(first.compare) && origin1.includes(`refs/heads/${ex.branch} `), JSON.stringify(first));
+    assert(second.retry && second.pr === "https://github.com/MATWProject-org/fixture-site/pull/7" && refsOf(fx.origin) === origin1 && calls.length === 2 && calls[1].full === "MATWProject-org/fixture-site" && calls[1].base === "sabir-dev" && /Branch created with the approval of Sabir/.test(calls[1].body), JSON.stringify({ second, calls: calls.map((c) => c.full + " " + c.base) }));
+    return { first: first.prError, retried: second.pr };
+  } finally { execFileSync("git", ["remote", "set-url", "origin", oldUrl], { cwd: fx.repo }); execFileSync("git", ["config", "--unset", `url.${fx.origin.replace(/\\/g, "/")}.insteadOf`], { cwd: fx.repo }); }
+});
+
+await step("deleting a proposal branch: only one this worker created, only while it's where the worker left it and isn't checked out; nothing else changes; the pushed copy is left alone and said so", async () => {
+  await sleep(1100);
+  const a = (await gf("POST", "/execute", { plan: (await preview({ select: [S.S1] })).id })).body; await sleep(1100);
+  const b2 = (await gf("POST", "/execute", { plan: (await preview({ select: [S.S2] })).id })).body;
+  const notOurs = await gf("POST", "/branch/delete", { branch: "sabir-dev" });
+  // b2 moves (someone committed on it): refused
+  const moved = execFileSync("git", ["commit-tree", "-p", b2.commit, "-m", "local work", `${b2.commit}^{tree}`], { cwd: fx.repo, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "x", GIT_AUTHOR_EMAIL: "x@x", GIT_COMMITTER_NAME: "x", GIT_COMMITTER_EMAIL: "x@x" } }).trim();
+  execFileSync("git", ["update-ref", `refs/heads/${b2.branch}`, moved], { cwd: fx.repo }); const movedR = await gf("POST", "/branch/delete", { branch: b2.branch });
+  // a checked out: refused
+  const head = execFileSync("git", ["symbolic-ref", "HEAD"], { cwd: fx.repo, encoding: "utf8" }).trim();
+  execFileSync("git", ["checkout", "-q", a.branch], { cwd: fx.repo }); const out = await gf("POST", "/branch/delete", { branch: a.branch }); execFileSync("git", ["checkout", "-q", head.replace("refs/heads/", "")], { cwd: fx.repo });
+  const before = refsOf(fx.repo), ok = await gf("POST", "/branch/delete", { branch: a.branch }), after = refsOf(fx.repo), again = await gf("POST", "/branch/delete", { branch: a.branch });
+  const gone = before.split("\n").filter((l) => l && !after.includes(l)), audit = (await gf("GET", "/audit")).body.audit;
+  assert(notOurs.status === 400 && /Only a proposal branch/.test(notOurs.body.error) && movedR.status === 400 && /new commits/.test(movedR.body.error) && out.status === 400 && /checked out/.test(out.body.error), JSON.stringify([notOurs.body, movedR.body, out.body]));
+  assert(ok.status === 200 && gone.length === 1 && gone[0].startsWith(`refs/heads/${a.branch} `) && after.split("\n").every((l) => !l || before.includes(l)) && again.status === 400 && audit.some((e) => e.action === "delete" && e.branch === a.branch), JSON.stringify({ ok: ok.body, gone, again: again.body }));
+  return { deleted: a.branch, refused: [notOurs.body.error, movedR.body.error, out.body.error].map((x) => x.slice(0, 70)) };
+});
+
+await step("CI status: without GitHub connected the console says it isn't available (and why); with GitHub, check runs and commit statuses are read and summarised (against a local stand-in for GitHub's API)", async () => {
+  const branch = (await gf("GET", "/audit")).body.audit.find((e) => e.action === "execute").branch;
+  const off = (await gf("GET", `/ci?branch=${encodeURIComponent(branch)}`)).body;
+  // github.mjs against a stand-in: the API base and the credentials folder are set before it's loaded
+  const http = await import("node:http"), runs = { passing: [{ name: "build", status: "completed", conclusion: "success" }], failing: [{ name: "build", status: "completed", conclusion: "failure" }], pending: [{ name: "build", status: "in_progress" }] };
+  let mode = "passing", seen = [];
+  const srv = http.createServer((q, s) => { seen.push(q.url); s.writeHead(200, { "content-type": "application/json" }); s.end(JSON.stringify(/check-runs/.test(q.url) ? { check_runs: runs[mode] } : { statuses: mode === "passing" ? [{ context: "lint", state: "success" }] : [] })); });
+  await new Promise((ok) => srv.listen(0, "127.0.0.1", ok));
+  process.env.GITHUB_API_BASE = `http://127.0.0.1:${srv.address().port}`; process.env.GITHUB_CONNECTOR_DIR = join(DATA, "gh-standin");
+  const gh = await import(`../../worker-ui/github.mjs?standin=${Date.now()}`); gh.saveToken("github_pat_" + "A".repeat(40));
+  const res = {}; for (mode of ["passing", "failing", "pending"]) res[mode] = await gh.ciStatus("MATWProject-org/fixture-site", "abc123");
+  srv.close();
+  assert(off.available === false && /GitHub isn't connected/.test(off.reason), JSON.stringify(off));
+  assert(res.passing.state === "passing" && res.passing.checks.length === 2 && res.failing.state === "failing" && res.pending.state === "pending" && seen.some((u) => u === "/repos/MATWProject-org/fixture-site/commits/abc123/check-runs?per_page=100"), JSON.stringify({ res, seen }));
+  return { withoutGitHub: off.reason, standIn: Object.fromEntries(Object.entries(res).map(([k, v]) => [k, v.state])) };
+});
+
 await step("the worker's tools (MCP): read-only on Git (no branch, merge or push tool); it reads Sameem's commits and saves an explanation the explorer shows as its own", async () => {
   const client = new Client({ name: "t", version: "1" });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [join(REPO, "mcp", "gitflow-server.mjs")], env: { ...process.env, GITFLOW_ROOT: fx.repo, GITFLOW_DIR: join(DATA, "gitflow", W.id) } }));
@@ -357,27 +440,30 @@ await step("page: other teams', reverted and unknown-owner changes can't be tick
   assert(locked.every(Boolean), JSON.stringify(locked));
   assert(/another team's unselected/.test(warn) && /never included/.test(warn) && /plan is blocked/.test(warn), warn.slice(0, 300));
   assert(/Blocked/.test(blocked) && /predicted conflict/.test(blocked) && noCreate && createOff && patchOff && graphOn, JSON.stringify({ blocked, noCreate, createOff, patchOff, graphOn }));
-  assert(/conflicts when applied/.test(deps) && /may depend on/.test(deps) && /not in v1/i.test(deps), deps.slice(0, 400));
+  assert(/conflicts when applied/.test(deps) && /may depend on/.test(deps) && /not in v1/i.test(deps) && /as Git would leave it/i.test(deps) && /<{7}/.test(deps), deps.slice(0, 600));
   assert(items === 2, String(items));
   return { blocked: blocked.split("\n")[0], leftOut: "S3", ready: ready.split("\n")[0] };
 });
 
 await step("page: Create asks first (what's created, what isn't), then shows the new branch and 'existing branches changed: none'; pushing asks a second time and pushes only the new branch", async () => {
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#gfPatch")]); const patchName = dl.suggestedFilename();
   await page.click("#gfApprove"); await page.waitForSelector("#dlg[open]");
   const dlg1 = await page.locator("#dlgB").innerText(); await page.click('[data-dlg="go"]');
+  const stepsSeen = await page.waitForSelector('#gfWorking [data-step="recompute"]', { timeout: 8000 }).then(() => page.locator("#gfWorking").innerText()).catch(() => "");
   await page.waitForFunction(() => /Created gitflow\//.test(document.querySelector("#gfBody").innerText));
   const out = await bodyText(); await shot("plan-created");
   await page.click("#gfPR"); await page.waitForSelector("#dlg[open]");
   const dlg2 = await page.locator("#dlgB").innerText(); await page.click('[data-dlg="go"]');
-  await page.waitForSelector("#gfPrDone"); const pr = await page.locator("#gfPrDone").innerText();
+  await page.waitForSelector("#gfPrDone"); await page.waitForFunction(() => /Not available here|CI on GitHub/.test(document.querySelector("#gfPrDone")?.innerText || "")); const pr = await page.locator("#gfPrDone").innerText();
   await shot("plan-pr");
   assert(/It will not/.test(dlg1) && /push anything/.test(dlg1) && /UTC time/.test(dlg1), dlg1);
   assert(/Existing branches changed: none/.test(out) && /To discard/.test(out), out.slice(0, 400));
-  assert(/Nothing is pushed to sabir-dev/.test(dlg2) && /Pushed gitflow\//.test(pr), JSON.stringify({ dlg2, pr }));
-  return { created: out.match(/Created (gitflow\/\S+)/)?.[1], pr: pr.split("\n")[0] };
+  assert(/Nothing is pushed to sabir-dev/.test(dlg2) && /Pushed gitflow\//.test(pr) && /Not available here/.test(pr) && /GitHub isn't connected/.test(pr), JSON.stringify({ dlg2, pr }));
+  assert(/\.patch$/.test(patchName) && /Recompute the plan/.test(stepsSeen) && /Cancel/.test(stepsSeen), JSON.stringify({ patchName, stepsSeen }));
+  return { created: out.match(/Created (gitflow\/\S+)/)?.[1], pr: pr.split("\n")[0], patch: patchName, stepsShown: stepsSeen.split("\n").filter((l) => /Recompute|Check|Create|running|waiting/.test(l)).slice(0, 4) };
 });
 
-await step("page: 'Mine' shows this clone's own changes (Sabir); S6's plan asks to confirm Innovax's same-file change; the Git graph tab shows both sides and the merge base; creating the branch with it confirmed leaves Innovax's change out", async () => {
+await step("page: 'Mine' shows this clone's own changes (Sabir); S6's plan asks to confirm Innovax's same-file change; the Git graph tab shows both sides and the merge base; creating the branch with it confirmed leaves Innovax's change out; the branch is then deleted from the result screen (after its own confirmation)", async () => {
   await page.click("#gfDone"); await page.waitForSelector(".gfc");
   await page.click('[data-gf-who="mine"]'); await sleep(300);
   const metas = await page.locator(".gfc .meta").allInnerTexts();
@@ -396,7 +482,12 @@ await step("page: 'Mine' shows this clone's own changes (Sabir); S6's plan asks 
   assert(/Merge base/i.test(graph) && /Tweak the footer/.test(graph) && /Who wrote what/.test(graph), graph.slice(0, 400));
   assert(/Another team's change stays out/.test(dlg) && off, dlg);
   assert(/The MATW team/.test(mail) && !/Your MATW receipt/.test(mail), mail);
-  return { mine: metas.length, branch, innovaxChangeLeftOut: true };
+  await page.click("#gfDelBranch"); await page.waitForSelector("#dlg[open]");
+  const delOff = await page.locator('[data-dlg="go"]').isDisabled(); await page.check("[data-gf-delack]"); await page.click('[data-dlg="go"]');
+  await page.waitForFunction(() => /Deleted gitflow\//.test(document.querySelector("#gfBody").innerText));
+  const stillThere = execFileSync("git", ["for-each-ref", `refs/heads/${branch}`], { cwd: fx.repo, encoding: "utf8" }).trim();
+  assert(delOff && !stillThere, JSON.stringify({ delOff, stillThere }));
+  return { mine: metas.length, branch, innovaxChangeLeftOut: true, deletedFromThePage: true };
 });
 
 await step("page: Settings shows 'uncertain owner' and 'unknown owner' as separate rules, unknown on by default (D5); turning 'block reverted' off makes S4 need review, and Create stays disabled until the review point is ticked", async () => {

@@ -133,10 +133,19 @@ A selected change may touch a file that an earlier, unselected change from anoth
 - one real worker run;
 - a read-only pass over the real MATW repository that checks no ref there moves.
 
+## What the page does (2026-10-24)
+- **Creating a branch runs as a job.** The page shows its four steps as they happen (recompute, check, create, verify), and Cancel works until the branch is being created.
+- **Export patch** downloads a ready plan as one patch per change (), or one diff for a merge. Nothing is written.
+- **When GitHub refuses a pull request**, the branch stays pushed and *Try opening it again* retries without pushing anything new.
+- **The Git graph & identity tab** shows the source's pending changes with their outcome, the destination's own commits, the merge base, and who wrote what.
+
 ## Limits of this MVP
 - **Pull requests** come from merge-commit messages and squash subjects. GitHub's API (PR authors, labels, team membership) isn't used yet.
 - **Dependencies** are file-overlap heuristics: a hint, not proof. A change can depend on another without touching the same file, and that isn't detected. Conflicts are Git's prediction.
 - **No build or test command** is run; plans say so.
 - **Runs are on demand only:** no schedule or webhooks.
-- **Resolving conflicts** is out of scope: they block the plan, and no resolution is proposed yet.
-- **A proposal branch** is created only in the configured clone; pushing it and opening the pull request are yours.
+- **Resolving conflicts** is out of scope: a conflict blocks the plan. The page shows the conflicting part of each file (up to 3 files) as Git would leave it; you can leave the change out, or wait.
+- **CI results** are read from GitHub (check runs and commit statuses) only when GitHub is connected and origin is on GitHub; otherwise they're on the pull request.
+- **Cancelling** works until the branch is being created. Pushing isn't cancelled once started, because it changes origin.
+- **Deleting a proposal branch** removes it from the clone only: a pushed copy stays on origin, for you to delete on GitHub. It's refused if the branch moved or is checked out.
+- **Not built (decision D2):** including another team's change in your lane, even with a recorded override.

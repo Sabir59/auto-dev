@@ -142,6 +142,18 @@ export async function createPullRequest(fullName, { head, base, title, body }) {
   const { body: pr } = await gh(`/repos/${fullName}/pulls`, null, { method: "POST", body: { head, base, title, body } });
   return { number: pr.number, url: pr.html_url, state: pr.state };
 }
+// The CI state of a commit on GitHub: its check runs (Actions and apps) and its commit statuses,
+// summarised as passing / failing / pending / none. Read-only.
+export async function ciStatus(fullName, ref) {
+  if (!FULL_NAME.test(String(fullName || ""))) throw new GitHubError("Give the repository as owner/name.", { kind: "input" });
+  const r = encodeURIComponent(ref);
+  const [runs, status] = await Promise.all([gh(`/repos/${fullName}/commits/${r}/check-runs?per_page=100`), gh(`/repos/${fullName}/commits/${r}/status`)]);
+  const checks = [...(runs.body?.check_runs || []).map((c) => ({ name: c.name, state: c.status === "completed" ? c.conclusion || "neutral" : c.status, url: c.html_url || null })),
+    ...(status.body?.statuses || []).map((s) => ({ name: s.context, state: s.state, url: s.target_url || null }))];
+  const failing = checks.some((c) => ["failure", "error", "cancelled", "timed_out", "action_required", "startup_failure"].includes(c.state));
+  const pending = checks.some((c) => ["queued", "in_progress", "pending", "requested", "waiting"].includes(c.state));
+  return { state: !checks.length ? "none" : failing ? "failing" : pending ? "pending" : "passing", checks };
+}
 export async function repoInfo(fullName) {
   if (!FULL_NAME.test(String(fullName || ""))) throw new GitHubError("Give the repository as owner/name.", { kind: "input" });
   return shape((await gh(`/repos/${fullName}`)).body);

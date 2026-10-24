@@ -425,7 +425,7 @@ export class GitFlow {
         if (it.status !== "apply") continue;
         const sim = await git(this.scratch, ["merge-tree", "--write-tree", "--name-only", "--no-messages", `--merge-base=${c.parents[0]}`, cur, c.sha], { allowFail: true });
         const [tree, ...rest] = sim.out.trim().split("\n");
-        if (sim.code === 1) { it.status = "conflict"; it.conflicts = rest.filter(Boolean); it.reasons.push(`Conflicts in ${it.conflicts.join(", ")} when applied onto ${mapping.destination}${applied ? " (after the changes above)" : ""}`); blockers.push(`${c.short}: predicted conflict`); continue; }
+        if (sim.code === 1) { it.status = "conflict"; it.conflicts = rest.filter(Boolean); it.excerpts = await this.conflictExcerpts(tree, it.conflicts); it.reasons.push(`Conflicts in ${it.conflicts.join(", ")} when applied onto ${mapping.destination}${applied ? " (after the changes above)" : ""}`); blockers.push(`${c.short}: predicted conflict`); continue; }
         if (sim.code !== 0) throw new Error(`Couldn't simulate ${c.short}: ${sim.err}`);
         cur = (await this.run(["commit-tree", tree, "-p", cur, "-F", "-"], { input: `${c.subject}\n\n${c.body ? c.body.trim() + "\n\n" : ""}(cherry picked from commit ${c.sha})\n`, env: commitEnv(c, identity) })).trim();
         applied++;
@@ -460,7 +460,7 @@ export class GitFlow {
         }
         const sim = await git(this.scratch, ["merge-tree", "--write-tree", "--name-only", "--no-messages", cur, h.head], { allowFail: true });
         const [tree, ...rest] = sim.out.trim().split("\n");
-        if (sim.code === 1) { const files = rest.filter(Boolean); items.push({ sha: h.head, short: h.head.slice(0, 9), subject: `Merge ${h.label}`, status: "conflict", conflicts: files, reasons: [`Merging ${h.label} into ${mapping.destination} conflicts in ${files.join(", ")}`], kinds: ["merge"] }); blockers.push(`Merging ${h.label}: predicted conflict in ${files.join(", ")}`); continue; }
+        if (sim.code === 1) { const files = rest.filter(Boolean); items.push({ sha: h.head, short: h.head.slice(0, 9), subject: `Merge ${h.label}`, status: "conflict", conflicts: files, excerpts: await this.conflictExcerpts(tree, files), reasons: [`Merging ${h.label} into ${mapping.destination} conflicts in ${files.join(", ")}`], kinds: ["merge"] }); blockers.push(`Merging ${h.label}: predicted conflict in ${files.join(", ")}`); continue; }
         if (sim.code !== 0) throw new Error(`Couldn't simulate the merge: ${sim.err}`);
         if (!brings.length) continue;
         cur = (await this.run(["commit-tree", tree, "-p", cur, "-p", h.head, "-F", "-"], { input: `Merge ${h.label} into ${mapping.destination}\n`, env: commitEnv(null, identity) })).trim();
@@ -492,24 +492,47 @@ export class GitFlow {
     return plan;
   }
 
+  // The conflicting parts of each file, from the tree Git wrote with conflict markers (first 3 files,
+  // each cut to its marked regions with a little context).
+  async conflictExcerpts(tree, files) {
+    const out = [];
+    for (const path of files.slice(0, 3)) {
+      const r = await git(this.scratch, ["cat-file", "-p", `${tree}:${path}`], { allowFail: true });
+      if (r.code) continue;
+      const lines = r.out.split("\n"), keep = new Set();
+      lines.forEach((l, i) => { if (/^(<{7}|={7}|>{7})( |$)/.test(l)) for (let k = Math.max(0, i - 2); k <= Math.min(lines.length - 1, i + 2); k++) keep.add(k); });
+      for (let i = 0; i < lines.length; i++) if (/^<{7}( |$)/.test(lines[i])) { for (let k = i; k < lines.length && !/^>{7}( |$)/.test(lines[k - 1] || ""); k++) keep.add(k); }
+      const idx = [...keep].sort((x, y) => x - y).slice(0, 80), text = [];
+      idx.forEach((k, j) => { if (j && k !== idx[j - 1] + 1) text.push("…"); text.push(`${String(k + 1).padStart(4)} ${lines[k]}`); });
+      if (text.length) out.push({ path, text: text.join("\n"), cut: keep.size > 80 });
+    }
+    return out;
+  }
   // Runs an approved plan: recomputed now, and refused unless it's still the same plan (same branch
   // tips, settings and decisions), not blocked, every point to confirm confirmed (the exact list, no
   // more and no less), and allowed. The result becomes a NEW branch in the configured repository;
   // nothing else is written there.
-  async execute(planId, { approvedBy, acknowledge = [], identity }) {
+  // onStep(id, state) reports each step (recompute, check, create, verify) as it starts and ends;
+  // isCancelled() is asked before anything is written: a cancel after that point has no effect.
+  async execute(planId, { approvedBy, acknowledge = [], identity, onStep = () => {}, isCancelled = () => false }) {
     if (!this.config.proposals) throw new Error("This worker is set to preview only: allow it to create proposal branches in its setup first.");
     const saved = this.loadPlan(planId);
     if (!saved) throw new Error("No such plan: generate a preview first.");
     if (!identity?.name || !identity?.email) throw new Error("Git has no user.name/user.email for this repository: set them, then try again.");
     const mapping = this.config.mappings.find((m) => m.id === saved.mapping.id);
     if (!mapping) throw new Error("The plan's branch relationship no longer exists.");
+    onStep("recompute", "running");
     const plan = await this.preview(mapping, { strategy: saved.strategy, select: saved.select, identity });
+    onStep("recompute", "done"); onStep("check", "running");
     if (plan.id !== saved.id) { this.audit({ action: "refused", plan: planId, why: "stale" }); throw new Error("The branches changed since this plan was made (or its decisions did): look at the new preview and approve that one."); }
     if (plan.status === "blocked") { this.audit({ action: "refused", plan: planId, why: "blocked" }); throw new Error(`Blocked: ${plan.blockers.join("; ")}`); }
     if (plan.status === "nothing") throw new Error("Nothing to apply.");
     const need = plan.reviewItems.map((r) => r.id).sort(), got = [...new Set((Array.isArray(acknowledge) ? acknowledge : []).map(String))].sort();
     if (need.length && !got.length) { this.audit({ action: "refused", plan: planId, why: "not confirmed", need }); throw new Error(`Confirm each point first: ${plan.reviews.join("; ")}`); }
     if (need.join("\n") !== got.join("\n")) { this.audit({ action: "refused", plan: planId, why: "confirmation doesn't match", need, got }); throw new Error("The confirmation doesn't match this plan's points (it's incomplete, or for another plan): look at the plan again and confirm each of its points."); }
+    onStep("check", "done");
+    if (isCancelled()) { this.audit({ action: "cancelled", plan: plan.id, by: approvedBy, before: "create" }); throw Object.assign(new Error("Cancelled before anything was written: no branch was created."), { cancelled: true }); }
+    onStep("create", "running");
     const stamp = new Date().toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
     const branch = `gitflow/${mapping.destination.replace(/[^A-Za-z0-9._-]+/g, "-")}-${stamp}`;
     const changed = await withLock(this.dir, async () => {
@@ -517,9 +540,11 @@ export class GitFlow {
       const before = await this.refs();
       await this.run(["update-ref", `refs/gitflow/out/${stamp}`, plan.result.commit]);
       await out(this.root, ["fetch", "-q", "--no-tags", "--no-write-fetch-head", this.scratch, `refs/gitflow/out/${stamp}:refs/heads/${branch}`]);
+      onStep("create", "done"); onStep("verify", "running");
       const after = await this.refs();
       return [...before].filter(([r, s]) => after.get(r) !== s).map(([r]) => r);
     });
+    onStep("verify", changed.length ? "failed" : "done");
     const entry = { action: "execute", plan: plan.id, mapping: mapping.id, strategy: plan.strategy, branch, commit: plan.result.commit, applied: plan.result.applied, approvedBy,
       acknowledged: need.length > 0, confirmed: plan.reviewItems.map(({ id, kind, text }) => ({ id, kind, text })),
       changedExisting: changed, recovery: `Nothing that existed was changed. To discard: git branch -D ${branch}. To use it: review it, push it yourself and open a pull request into ${mapping.destination}.` };
@@ -541,7 +566,8 @@ export class GitFlow {
     const off = this.config.forbidden || DEFAULT_FORBIDDEN, base = mapping.destination;
     if ([...this.config.shared, ...off].includes(branch) || off.includes(base)) throw new Error("Refused: that branch can't be pushed or targeted.");
     if ((await git(this.root, ["rev-parse", "--verify", "-q", `refs/heads/${branch}`], { allowFail: true })).code) throw new Error(`${branch} doesn't exist any more.`);
-    const remote = (await git(this.root, ["remote", "get-url", "origin"], { allowFail: true })).out.trim();
+    // The configured URL (as written in the repository's config), not the one an insteadOf rule rewrites it to.
+    const remote = (await git(this.root, ["config", "--get", "remote.origin.url"], { allowFail: true })).out.trim();
     if (!remote) throw new Error("The repository has no origin to push to.");
     const retry = log.some((e) => e.action === "pr" && e.branch === branch && e.pushed);
     await withLock(this.dir, async () => {
@@ -571,6 +597,45 @@ export class GitFlow {
     const entry = { action: "pr", branch, base, pushed: true, retry, pr: pr?.url || null, compare, prError, approvedBy, planApprovedBy: done.approvedBy, confirmed: (done.confirmed || []).map((c) => c.id) };
     this.audit(entry);
     return { ...entry, title, body, prNumber: pr?.number || null };
+  }
+  // A ready (or reviewed) plan's result as a patch: one patch per applied change (format-patch) for
+  // "Apply selected changes", one diff for a merge. Read from the private copy; nothing is written
+  // to the repository. For the branch tips the plan was computed from.
+  async exportPatch(planId) {
+    const plan = this.loadPlan(planId);
+    if (!plan) throw new Error("No such plan: generate a preview first.");
+    if (plan.status === "blocked") throw new Error("A blocked plan can't be exported: resolve it first.");
+    if (!plan.result) throw new Error("Nothing to export: the plan applies nothing.");
+    if (!this.synced) await this.sync();
+    if ((await git(this.scratch, ["cat-file", "-e", `${plan.result.commit}^{commit}`], { allowFail: true })).code) throw new Error("This plan's result is no longer in the private copy: preview it again.");
+    const selective = plan.strategy === "selective";
+    const text = selective ? await this.run(["format-patch", "--stdout", "--no-signature", `${plan.destination.tip}..${plan.result.commit}`], { timeout: 120000 })
+      : await this.run(["diff", "--binary", plan.destination.tip, plan.result.commit], { timeout: 120000 });
+    this.audit({ action: "patch", plan: plan.id, mapping: plan.mapping.id });
+    return { name: `${plan.mapping.id}-${plan.id}.${selective ? "patch" : "diff"}`, text, base: plan.destination };
+  }
+  // Deletes a proposal branch this worker created, from the repository only (a copy pushed to origin
+  // stays: that's GitHub's to delete). Refused if the branch moved since it was created, or is
+  // checked out; checks that nothing else changed.
+  async deleteBranch(branch, { approvedBy = "person" } = {}) {
+    const log = this.auditLog(2000), done = log.find((e) => e.action === "execute" && e.branch === branch);
+    if (!/^gitflow\//.test(branch) || !done) throw new Error("Only a proposal branch this worker created can be deleted here.");
+    return withLock(this.dir, async () => {
+      const tip = (await git(this.root, ["rev-parse", "--verify", "-q", `refs/heads/${branch}^{commit}`], { allowFail: true })).out.trim();
+      if (!tip) throw new Error(`${branch} doesn't exist any more.`);
+      if (tip !== done.commit) throw new Error(`${branch} has new commits since the worker created it (it's at ${tip.slice(0, 9)}, not ${done.commit.slice(0, 9)}): it isn't deleted. Delete it yourself if you mean to.`);
+      const trees = (await git(this.root, ["worktree", "list", "--porcelain"], { allowFail: true })).out;
+      if (new RegExp(`^branch refs/heads/${branch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m").test(trees)) throw new Error(`${branch} is checked out: switch to another branch first.`);
+      const before = await this.refs();
+      await out(this.root, ["update-ref", "-d", `refs/heads/${branch}`, done.commit]);
+      const after = await this.refs();
+      const changed = [...before].filter(([r, s]) => r !== `refs/heads/${branch}` && after.get(r) !== s).map(([r]) => r);
+      const pushed = log.some((e) => e.action === "pr" && e.branch === branch && e.pushed);
+      const entry = { action: "delete", branch, commit: done.commit, approvedBy, pushedCopyKept: pushed, changedOther: changed };
+      this.audit(entry);
+      if (changed.length || after.has(`refs/heads/${branch}`)) throw new Error(`Unexpected: other refs changed (${changed.join(", ")}). Stop and check the repository.`);
+      return { ...entry, note: pushed ? `The copy pushed to origin isn't deleted: delete ${branch} on GitHub if you mean to.` : "" };
+    });
   }
   async refs() { const r = await out(this.root, ["for-each-ref", "--format=%(refname) %(objectname)", "refs/heads", "refs/remotes"]); return new Map(r.split("\n").filter(Boolean).map((l) => l.split(" "))); }
 
