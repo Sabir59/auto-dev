@@ -117,13 +117,32 @@ Claude Code itself already refused `.claude/settings.json`.
 
 Before this change, the data-folder rules applied only when hosted.
 
+**Records are checked again whenever they're used (2026-10-29).** A stored proposal is validated again before it's tried, graded or approved:
+- its changes must name only the fields a proposal can change, with values of the right shape;
+- its checks must be exactly what the console accepted.
+
+Approving and trying also refuse a worker whose definition fails the integrity check. Before this, approving a proposal for such a worker recorded the outside change as a legitimate new version. Each case is answered `409` with `code: "integrity"`. Tested by `bench/integrations/evolve-test.mjs`, "records changed outside the console".
+
 **Limits, stated plainly:**
 - **A worker with shell (node, curl) runs code as the person's OS user.**
+  - **Who has shell:** shell is a core capability. The General worker has it by default (`worker-ui/integrations/core.json`), and a defined worker has it when the person grants it. It's off in Inspect, under a protected-branch policy, in a repository workspace without shell, and hosted.
   - It isn't held by file permission rules.
   - It can call the console's API with forged headers. The request guard stops browsers (CSRF), not local programs; probed: a forged `PUT /workers/<id>` from a local process succeeds.
   - It can do anything the person can, including editing a definition and its history file consistently.
   - The integrity check catches a definition edited outside the console without a matching history file. It isn't a boundary against deliberate code.
   - In the probe, the model **refused** to run the forged commands. That's judgement, not enforcement.
+- **Why an API secret wouldn't close this.** Each layer is a different question:
+
+  | Layer | What it stops | Against a local worker with shell |
+  |---|---|---|
+  | Request guard: Host, Origin, fetch metadata, custom header | Other websites in the person's browser (CSRF, DNS rebinding) | Nothing. A local program sets any header |
+  | Run tokens: the evolve and authz endpoints | One run acting as another run, or as the person, through those endpoints | Holds for those endpoints, but the person's own endpoints have no token |
+  | An API secret for the person's endpoints | Not built | Wouldn't hold: it would be in a file or a process the worker can read as the same user |
+  | File permission rules (the platform deny list) | The worker's **file tools** writing the console's records | Nothing. `node -e` writes files directly |
+  | OS isolation (another user, a container or VM) | Everything outside what's granted | **The only real boundary.** Not built locally |
+
+  The worker can write the data folder directly as well as call the API, so authenticating the API alone wouldn't change what it can do.
+- **What a real boundary would take:** run shell-enabled workers under an identity that can't write the console's data folder or catalogue, and can't reach the console's port. That means a separate OS account, a container, or a VM. Claude Code's sandboxed shell (Linux and macOS) could do part of this. It hasn't been evaluated here, and this console runs on Windows. Until then, granting shell means trusting the worker as much as the person.
 - **Hosted:**
   - there's no shell;
   - every request must carry the gateway's secret;

@@ -54,6 +54,21 @@ export function normalizeChanges(input, worker) {
   return { changes, errors };
 }
 export const applyChanges = (stored, changes) => ({ ...stored, ...changes });
+// A stored proposal, checked again whenever it's used (tried, graded or approved): its record is a
+// file, so one changed outside the console — changes naming a field a proposal can't change, values
+// of the wrong shape, checks the console never accepted — is refused, not trusted. Returns why, or null.
+export function storedProblem(p, worker) {
+  const c = p?.changes;
+  if (!c || typeof c !== "object" || Array.isArray(c) || !Object.keys(c).length) return "its changes aren't a set of fields";
+  for (const [k, v] of Object.entries(c)) {
+    if (!FIELDS.includes(k) || (k === "outcomes" && worker?.schema !== 2)) return `it changes ${k}, which a proposal can't`;
+    const ok = LIST[k] ? Array.isArray(v) && v.length <= LIST[k][0] && v.every((x) => typeof x === "string" && x.length <= LIST[k][1]) : typeof v === "string" && v.length <= TEXT[k];
+    if (!ok) return `its ${k} isn't a valid value`;
+  }
+  const { checks, errors } = normalizeChecks(p.checks);
+  if (errors.length || JSON.stringify(checks) !== JSON.stringify(p.checks)) return "its checks aren't the ones the console accepted";
+  return null;
+}
 
 // ---- what a reviewer should look at twice ----
 // A proposal that takes away a hard limit or empties the knowledge is allowed (conventions change),

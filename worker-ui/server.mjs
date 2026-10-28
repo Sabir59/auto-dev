@@ -3058,6 +3058,13 @@ http.createServer(async (req, res) => {
         if (!parts[4] && req.method === "GET") return json(res, 200, proposalView(p));
         if (req.method === "POST" && ["trial", "grade", "approve", "reject", "recheck"].includes(parts[4])) {
           const b = await body(req), cur = storedOf(id);
+          // Records are files: a proposal changed outside the console isn't tried, graded or approved,
+          // and neither is one for a worker whose own definition was (approving it would record that
+          // outside change as a legitimate version).
+          if (["trial", "grade", "approve"].includes(parts[4])) {
+            const bad = evolve.storedProblem(p, cur), why = bad ? `This proposal's record was changed outside the console (${bad}). It can't be used: reject it, and ask the worker to propose again.` : parts[4] !== "grade" && integrityProblem(list[i]);
+            if (why) return json(res, 409, { code: "integrity", error: why });
+          }
           if (parts[4] === "grade") {
             const t = (p.trials || []).find((x) => x.run === String(b.run || ""));
             if (!t) return json(res, 404, { error: "That run isn't a trial of this proposal." });

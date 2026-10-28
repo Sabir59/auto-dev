@@ -279,6 +279,31 @@ await step("stale: after the worker changes, an older proposal can't be tried or
   assert(rj.body.status === "rejected", rj.body);
   return { stale: a.body.error.slice(0, 100), rejected: true };
 });
+await step("records changed outside the console: a proposal file given a tool or an unchecked pattern, or a worker whose definition was edited directly, can't be tried, graded or approved", async () => {
+  const r = await start(W.id), s = r.mcp.evolve, h = { "x-aiw-evolve": s.env.EVOLVE_TOKEN, "content-type": "application/json" };
+  const p = await fetch(s.env.EVOLVE_URL + "/propose", { method: "POST", headers: h, body: JSON.stringify({ ...goodProposal(storedOf(W.id).version), title: "Ask once", changes: { onMissing: "Ask once for what's missing, then stop." } }) }).then((x) => x.json());
+  await stopAll();
+  assert(p.status === "proposed", p);
+  const f = join(DATA, "workers", W.id, "proposals", `${p.id}.json`), rec = readFileSync(f, "utf8"), before = JSON.stringify(storedOf(W.id));
+  // 1. its changes now name a field a proposal can't change (a tool)
+  writeFileSync(f, JSON.stringify({ ...JSON.parse(rec), changes: { ...JSON.parse(rec).changes, capabilities: [...(storedOf(W.id).capabilities || []), "shell"] } }));
+  const a1 = await call("POST", `/workers/${W.id}/proposals/${p.id}/approve`, { acknowledge: true }), t1 = await call("POST", `/workers/${W.id}/proposals/${p.id}/trial`, {});
+  // 2. its checks were never validated (a pattern with nested repetition), on a recorded trial run
+  writeFileSync(f, JSON.stringify({ ...JSON.parse(rec), checks: [{ type: "builder_entry", model: MODEL, name: "(a+)+$", expect: {} }], trials: [{ run: r.id, baseline: false, prompt: "x", startedAt: new Date().toISOString() }] }));
+  const g2 = await call("POST", `/workers/${W.id}/proposals/${p.id}/grade`, { run: r.id });
+  // 3. the proposal is intact, but the worker's definition was edited directly
+  writeFileSync(f, rec);
+  const wf = join(DATA, "workers.json"), wraw = readFileSync(wf, "utf8"), list = JSON.parse(wraw); list.find((w) => w.id === W.id).limitations = [];
+  writeFileSync(wf, JSON.stringify(list, null, 1));
+  const a3 = await call("POST", `/workers/${W.id}/proposals/${p.id}/approve`, { acknowledge: true });
+  writeFileSync(wf, wraw);
+  const outside = (x) => x.status === 409 && x.body.code === "integrity" && /changed outside the console/.test(x.body.error);
+  assert(outside(a1) && outside(t1) && outside(g2) && outside(a3) && JSON.stringify(storedOf(W.id)) === before, { a1, t1, g2, a3 });
+  // Put back as it was, the same proposal is accepted for review again (nothing else was stopped by it).
+  const ok = await call("GET", `/workers/${W.id}/proposals/${p.id}`); assert(ok.status === 200 && ok.body.status === "proposed", ok);
+  await call("POST", `/workers/${W.id}/proposals/${p.id}/reject`, { reason: "test" });
+  return { proposalTool: a1.body.error.slice(0, 110), uncheckedPattern: g2.body.error.slice(0, 110), definitionEdited: a3.body.error.slice(0, 110) };
+});
 await step("restoring the version before the evolution takes the change back out, as a new version", async () => {
   const appr = (await call("GET", `/workers/${W.id}/proposals/${P1}`)).body.decision.version;
   const r = await call("POST", `/workers/${W.id}/restore`, { version: appr - 1, reason: "roll back the A/B change" });
