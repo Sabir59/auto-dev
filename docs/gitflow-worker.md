@@ -139,6 +139,45 @@ A selected change may touch a file that an earlier, unselected change from anoth
 - **When GitHub refuses a pull request**, the branch stays pushed and *Try opening it again* retries without pushing anything new.
 - **The Git graph & identity tab** shows the source's pending changes with their outcome, the destination's own commits, the merge base, and who wrote what.
 
+## The page, as designed (2026-10-25)
+The page follows Figma "Git Sync v2 · Screens" (file `duF0rXIX8dmXRFILdgvZA0`).
+- **Included is a diff studio.** It lists each change and opens the first one by itself:
+  - its files;
+  - each diff with old and new line numbers, as Unified or Split;
+  - the raw `git show`.
+
+  The Changes inspector uses the same studio.
+- **Excluded filters by reason, with counts.** "Why?" opens the change's evidence, and unknown or uncertain owners get "Assign team".
+- **Dependencies & conflicts:** each card opens the diffs it is about, read-only.
+- **Git graph & identity is drawn:**
+  - the source lane, with each change coloured by its outcome;
+  - the destination's own commits from the merge base;
+  - for a plan that can be used, the proposal branch it would create;
+  - a "Plan only / All commits" switch, and a legend.
+
+  The lists are kept below the drawing.
+- **Settings rules** are each *Block* or *Needs confirmation*. The rule for another team's change to the same file, and the rule for merges and conflicts, are fixed, and the page says so. There is still no override that lets another team's change in (D2).
+- **Creating a branch** shows its steps with times, beside a card that explains Cancel. The confirmation dialog has a **Fetch now**: it fetches, then asks again only if the plan still holds.
+- **The result** lists the new commits, each with the original it copies. A pull request shows beside its checks.
+- **The page takes the console's right column.** Activity becomes a drawer while the page is open.
+
+## Opening a worker in its own tab
+- Every worker in the sidebar has an **open in a new tab** button, and so does the Git workflow's bar.
+- The tab opens on that worker (and on its Git workflow, from the bar) at full width. Navigation and Activity become drawers there, and **Exit full view** brings the sidebars back.
+- The address is `/?worker=<id>&view=gitflow&ws=<workspace>&full=1`.
+- Opening a tab doesn't change the worker or workspace that the console's other tabs remember.
+
+## A read-only or test console
+These settings are environment variables of `node worker-ui/server.mjs`:
+- **`GITFLOW_READ_ONLY=1`:**
+  - every route that could write to a repository or a remote is refused with 403: creating a branch (directly or as a job), job controls, pushing or opening a pull request, deleting a branch, and fetching;
+  - reading, analysing, previewing, exporting a patch and saving settings still work;
+  - the page shows **Read-only console** on every screen and turns the write buttons off, with the reason.
+- **`GITFLOW_ENV_LABEL="…"`:** names a test environment on every screen, for example a disposable fixture repository.
+- **Tests:**
+  - `node bench/workspace-ui/gitflow-safety-test.mjs` starts its own two consoles (a read-only one and a normal one) on fixtures;
+  - the page journey is in `run-suite.sh gitflow`.
+
 ## Limits of this MVP
 - **Pull requests** come from merge-commit messages and squash subjects. GitHub's API (PR authors, labels, team membership) isn't used yet.
 - **Dependencies** are file-overlap heuristics: a hint, not proof. A change can depend on another without touching the same file, and that isn't detected. Conflicts are Git's prediction.

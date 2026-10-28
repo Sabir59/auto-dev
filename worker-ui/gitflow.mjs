@@ -183,6 +183,15 @@ export class GitFlow {
     this.synced = true;
   }
   run(args, o) { return out(this.scratch, args, o); }
+  // The commits a proposal branch adds, oldest first: each with the change it copies (its "cherry picked
+  // from" line) and its size. Read from the private copy.
+  async newCommits(base, tip) {
+    const log = await this.run(["log", "--reverse", "--no-renames", "--format=%x1e%H%x1f%s%x1f%b%x1d", "--numstat", `${base}..${tip}`]);
+    return log.split("\x1e").filter((r) => r.trim()).slice(0, 200).map((r) => {
+      const [head, stat = ""] = r.split("\x1d"), [sha, subject, body] = head.split("\x1f"), n = stat.trim() ? stat.trim().split("\n").map((l) => l.split("\t")) : [];
+      return { sha: sha.trim(), subject, from: /\(cherry picked from commit ([0-9a-f]{7,40})\)/.exec(body || "")?.[1] || null, added: n.reduce((t, x) => t + (+x[0] || 0), 0), deleted: n.reduce((t, x) => t + (+x[1] || 0), 0), files: n.length };
+    });
+  }
 
   // ---- the repository, as Setup shows it ----
   // Where it is, its remotes, when it was last fetched, and its branches (newest first).
@@ -550,7 +559,7 @@ export class GitFlow {
       changedExisting: changed, recovery: `Nothing that existed was changed. To discard: git branch -D ${branch}. To use it: review it, push it yourself and open a pull request into ${mapping.destination}.` };
     this.audit(entry);
     if (changed.length) throw new Error(`Unexpected: existing branches changed (${changed.join(", ")}). Stop and check the repository.`);
-    return { ...entry, plan };
+    return { ...entry, plan, commits: await this.newCommits(plan.destination.tip, plan.result.commit) };
   }
   // The only way a change reaches its destination: the proposal branch (created from an approved
   // plan) is pushed under its own new name, and a pull request into the destination is opened, on

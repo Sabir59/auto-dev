@@ -445,22 +445,42 @@ await step("page: other teams', reverted and unknown-owner changes can't be tick
   return { blocked: blocked.split("\n")[0], leftOut: "S3", ready: ready.split("\n")[0] };
 });
 
+await step("page: Included is the design's diff studio (the first change opens on its own; files, old/new line numbers, Unified or Split, raw git show); Excluded filters by reason with counts", async () => {
+  await page.waitForSelector("#gfStudio .gfd2");
+  const head = await page.locator("#gfStudio .gfstudio-h").innerText(), files = await page.locator("#gfStudio [data-gf-file]").count();
+  const unified = await page.locator("#gfStudio .gfd2:not(.split) td.ln").count();
+  await page.click('[data-gf-dv="split"]'); await page.waitForSelector("#gfStudio .gfd2.split");
+  const splitRow = await page.locator("#gfStudio .gfd2.split tr").filter({ has: page.locator("td.code.add") }).first().evaluate((tr) => tr.children.length);
+  await shot("plan-included-split");
+  await page.click("[data-gf-raw]"); await page.waitForSelector("#gfStudio .gfraw"); const raw = await page.locator("#gfStudio .gfraw").innerText();
+  await page.click("[data-gf-raw]"); await page.click('[data-gf-dv="unified"]');
+  let second = null; if (files > 1) { const f = await page.locator("#gfStudio [data-gf-file]").nth(1).getAttribute("data-gf-file"); await page.click(`#gfStudio [data-gf-file="${f}"]`); await page.waitForFunction((x) => document.querySelector("#gfStudio .gfstudio-h")?.innerText.includes(x), f); second = f; }
+  await page.click('[data-gf-ptab="excluded"]'); await page.waitForSelector("[data-gf-exf]");
+  const segs = await page.locator("[data-gf-exf]").allInnerTexts(), allRows = await page.locator(".gftab tbody tr").count();
+  const pick = await page.locator("[data-gf-exf]").nth(1).getAttribute("data-gf-exf"); await page.click(`[data-gf-exf="${pick}"]`); await sleep(150);
+  const picked = await page.locator(".gftab tbody tr").allInnerTexts(); await shot("plan-excluded");
+  await page.click('[data-gf-exf="all"]'); await page.click('[data-gf-ptab="included"]'); await page.waitForSelector("#gfStudio .gfd2");
+  assert(/hunk/.test(head) && /\+\d+ −\d+/.test(head) && unified > 0 && splitRow === 4 && /^commit [0-9a-f]{40}/m.test(raw), JSON.stringify({ head, unified, splitRow, raw: raw.slice(0, 80) }));
+  assert(segs.length >= 2 && segs[0].replace(/\s+/g, " ").trim() === `All ${allRows}` && picked.length >= 1 && picked.every((r) => r.includes(pick)) && picked.length < allRows, JSON.stringify({ segs, allRows, pick, picked: picked.length }));
+  return { studio: head.split("\n")[0], files, secondFile: second, excludedFilters: segs };
+});
+
 await step("page: Create asks first (what's created, what isn't), then shows the new branch and 'existing branches changed: none'; pushing asks a second time and pushes only the new branch", async () => {
   const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#gfPatch")]); const patchName = dl.suggestedFilename();
   await page.click("#gfApprove"); await page.waitForSelector("#dlg[open]");
   const dlg1 = await page.locator("#dlgB").innerText(); await page.click('[data-dlg="go"]');
   const stepsSeen = await page.waitForSelector('#gfWorking [data-step="recompute"]', { timeout: 8000 }).then(() => page.locator("#gfWorking").innerText()).catch(() => "");
-  await page.waitForFunction(() => /Created gitflow\//.test(document.querySelector("#gfBody").innerText));
+  await page.waitForFunction(() => /Branch created: gitflow\//.test(document.querySelector("#gfBody").innerText));
   const out = await bodyText(); await shot("plan-created");
   await page.click("#gfPR"); await page.waitForSelector("#dlg[open]");
   const dlg2 = await page.locator("#dlgB").innerText(); await page.click('[data-dlg="go"]');
   await page.waitForSelector("#gfPrDone"); await page.waitForFunction(() => /Not available here|CI on GitHub/.test(document.querySelector("#gfPrDone")?.innerText || "")); const pr = await page.locator("#gfPrDone").innerText();
   await shot("plan-pr");
-  assert(/It will not/.test(dlg1) && /push anything/.test(dlg1) && /UTC time/.test(dlg1), dlg1);
-  assert(/Existing branches changed: none/.test(out) && /To discard/.test(out), out.slice(0, 400));
+  assert(/It will not/i.test(dlg1) && /push anything/.test(dlg1) && /UTC time/.test(dlg1), dlg1);
+  assert(/No existing branch or remote-tracking ref changed/.test(out) && /To discard/.test(out) && /New commit/i.test(out) && /\+\d+ −\d+/.test(out), out.slice(0, 400));
   assert(/Nothing is pushed to sabir-dev/.test(dlg2) && /Pushed gitflow\//.test(pr) && /Not available here/.test(pr) && /GitHub isn't connected/.test(pr), JSON.stringify({ dlg2, pr }));
   assert(/\.patch$/.test(patchName) && /Recompute the plan/.test(stepsSeen) && /Cancel/.test(stepsSeen), JSON.stringify({ patchName, stepsSeen }));
-  return { created: out.match(/Created (gitflow\/\S+)/)?.[1], pr: pr.split("\n")[0], patch: patchName, stepsShown: stepsSeen.split("\n").filter((l) => /Recompute|Check|Create|running|waiting/.test(l)).slice(0, 4) };
+  return { created: out.match(/Branch created: (gitflow\/\S+)/)?.[1], pr: pr.split("\n")[0], patch: patchName, stepsShown: stepsSeen.split("\n").filter((l) => /Recompute|Check|Create|running|waiting/.test(l)).slice(0, 4) };
 });
 
 await step("page: 'Mine' shows this clone's own changes (Sabir); S6's plan asks to confirm Innovax's same-file change; the Git graph tab shows both sides and the merge base; creating the branch with it confirmed leaves Innovax's change out; the branch is then deleted from the result screen (after its own confirmation)", async () => {
@@ -470,17 +490,24 @@ await step("page: 'Mine' shows this clone's own changes (Sabir); S6's plan asks 
   await page.check(`[data-gf-sel="${S.S6}"]`);
   await page.waitForFunction(() => /never included/.test(document.querySelector("#gfBody").innerText));
   await page.click("#gfToPlan"); await page.waitForFunction(() => /Needs your review/.test(document.querySelector(".gfstatus")?.innerText || ""));
-  await page.click('[data-gf-ptab="graph"]'); await page.waitForFunction(() => /Merge base/i.test(document.querySelector("#gfBody").innerText));
-  const graph = await bodyText(); await shot("plan-graph");
+  await page.click('[data-gf-ptab="deps"]'); await page.waitForSelector("[data-gf-opendiff]");
+  const openers = await page.locator("[data-gf-opendiff]").allInnerTexts(), other = await page.locator("[data-gf-opendiff]").last().getAttribute("data-gf-opendiff");
+  await page.locator("[data-gf-opendiff]").last().click(); await page.waitForFunction((s) => document.querySelector("#gfStudio .gfstudio-h")?.innerText.includes(s.slice(0, 9)), other);
+  const openedIn = await page.locator('[data-gf-ptab][aria-selected="true"]').innerText();
+  await page.click('[data-gf-ptab="graph"]'); await page.waitForSelector(".gfsvg circle");
+  const svgDots = await page.locator(".gfsvg circle").count(), svgText = await page.locator(".gfsvg").textContent(); await shot("plan-graph");
+  await page.click("details:has(.gfgraph) > summary"); await page.waitForFunction(() => /Merge base/i.test(document.querySelector("#gfBody").innerText));
+  const graph = await bodyText();
   await page.click("#gfApprove"); await page.waitForSelector("#dlg[open]");
   const dlg = await page.locator("#dlgB").innerText(), off = await page.locator('[data-dlg="go"]').isDisabled();
   await page.check("[data-gf-ack]"); await page.click('[data-dlg="go"]');
-  await page.waitForFunction(() => /Created gitflow\//.test(document.querySelector("#gfBody").innerText));
-  const branch = (await bodyText()).match(/Created (gitflow\/\S+)/)[1];
+  await page.waitForFunction(() => /Branch created: gitflow\//.test(document.querySelector("#gfBody").innerText));
+  const branch = (await bodyText()).match(/Branch created: (gitflow\/\S+)/)[1];
   const mail = execFileSync("git", ["show", `${branch}:src/receipt-mail.js`], { cwd: fx.repo, encoding: "utf8" });
   assert(metas.length >= 2 && metas.every((m) => /Sabir/.test(m)), JSON.stringify(metas));
-  assert(/Merge base/i.test(graph) && /Tweak the footer/.test(graph) && /Who wrote what/.test(graph), graph.slice(0, 400));
+  assert(/Merge base/i.test(graph) && /Tweak the footer/.test(graph) && /Who wrote what/.test(graph) && svgDots >= 4 && /merge base/.test(svgText) && /created only after approval/.test(svgText), JSON.stringify({ svgDots, svgText: svgText.slice(0, 200), graph: graph.slice(0, 300) }));
   assert(/Another team's change stays out/.test(dlg) && off, dlg);
+  assert(openers.length === 2 && openers.every((t) => /^Open [0-9a-f]{7} diff$/.test(t)) && [S.I1, S.I2].some((x) => x.startsWith(other) || other.startsWith(x.slice(0, 7))) && /Included/.test(openedIn), JSON.stringify({ openers, other, openedIn }));
   assert(/The MATW team/.test(mail) && !/Your MATW receipt/.test(mail), mail);
   await page.click("#gfDelBranch"); await page.waitForSelector("#dlg[open]");
   const delOff = await page.locator('[data-dlg="go"]').isDisabled(); await page.check("[data-gf-delack]"); await page.click('[data-dlg="go"]');
@@ -493,8 +520,8 @@ await step("page: 'Mine' shows this clone's own changes (Sabir); S6's plan asks 
 await step("page: Settings shows 'uncertain owner' and 'unknown owner' as separate rules, unknown on by default (D5); turning 'block reverted' off makes S4 need review, and Create stays disabled until the review point is ticked", async () => {
   await page.click("#gfDone"); await page.waitForSelector(".gfc");
   await page.click('[data-gf-tab="settings"]'); await page.waitForSelector("#gfExRev");
-  const unc = await page.locator("#gfExUnc").evaluate((x) => ({ checked: x.checked, disabled: x.disabled })), unk = await page.locator("#gfExUnk").evaluate((x) => ({ checked: x.checked, disabled: x.disabled }));
-  await page.uncheck("#gfExRev"); await page.waitForFunction(() => document.querySelector("#gfDirty")?.textContent === "Unsaved changes");
+  const unc = await page.locator("#gfExUnc").evaluate((x) => ({ block: x.value === "block", disabled: x.disabled })), unk = await page.locator("#gfExUnk").evaluate((x) => ({ block: x.value === "block", disabled: x.disabled }));
+  await page.selectOption("#gfExRev", "confirm"); await page.waitForFunction(() => document.querySelector("#gfDirty")?.textContent === "Unsaved changes");
   await page.click("#gfSave"); await page.waitForFunction(() => /Saved/.test(document.querySelector("#gfMsg")?.textContent || ""));
   const saved = (await gf("GET", "/config")).body.config.exclude;
   await page.click('[data-gf-tab="changes"]'); await page.waitForSelector(`[data-gf-sel="${S.S4}"]`);
@@ -505,7 +532,7 @@ await step("page: Settings shows 'uncertain owner' and 'unknown owner' as separa
   await page.check("[data-gf-ack]"); const after = await page.locator('[data-dlg="go"]').isDisabled();
   await shot("plan-review-confirm");
   await page.click('[data-dlg="cancel"]');
-  assert(unc.checked && !unc.disabled && unk.checked && !unk.disabled && saved.uncertain === true && saved.unknown === true && saved.reverted === false, JSON.stringify({ unc, unk, saved }));
+  assert(unc.block && !unc.disabled && unk.block && !unk.disabled && saved.uncertain === true && saved.unknown === true && saved.reverted === false, JSON.stringify({ unc, unk, saved }));
   assert(before === true && after === false, JSON.stringify({ before, after }));
   return { d5: { uncertain: unc, unknown: unk }, createDisabledUntilTicked: { before, after } };
 });
@@ -551,6 +578,21 @@ await step("page: at 820 px the Changes page doesn't scroll sideways and its act
   await shot("narrow");
   assert(m.sw <= m.cw + 1 && m.dockBottom <= m.h + 1 && m.dockTop < m.h, JSON.stringify(m));
   return m;
+});
+await step("page: the Git workflow opens in its own tab, full width (navigation and activity become drawers; 'Exit full view' brings them back); the console's own page takes the right column for it too", async () => {
+  await page.setViewportSize({ width: 1440, height: 900 }); await sleep(200);
+  const inConsole = await page.evaluate(() => ({ right: getComputedStyle(document.querySelector("aside.right")).display, w: Math.round(document.querySelector(".viewer.gf").getBoundingClientRect().width) }));
+  const href = await page.getAttribute("#gfNewTab", "href");
+  const [tab] = await Promise.all([page.context().waitForEvent("page"), page.click("#gfNewTab")]);
+  tab.on("pageerror", (e) => pageErrors.push(`tab: ${e.message}`)); await tab.setViewportSize({ width: 1440, height: 900 });
+  await tab.waitForSelector(".viewer.gf .gfnav"); await tab.waitForSelector(".gfkpis");
+  const t = await tab.evaluate(() => ({ full: document.body.classList.contains("full"), view: document.body.dataset.view, left: getComputedStyle(document.querySelector("aside.left")).display, w: Math.round(document.querySelector(".viewer.gf").getBoundingClientRect().width), newTabLink: getComputedStyle(document.querySelector("#gfNewTab")).display, title: document.title }));
+  await tab.screenshot({ path: join(HERE, "shots", "gitflow-new-tab.png") });
+  await tab.click("#fullExit"); const back = await tab.evaluate(() => ({ full: document.body.classList.contains("full"), left: getComputedStyle(document.querySelector("aside.left")).display, url: location.search }));
+  await tab.close();
+  assert(inConsole.right === "none" && inConsole.w > 1050 && /[?&]worker=.*view=gitflow.*full=1/.test(href), JSON.stringify({ inConsole, href }));
+  assert(t.full && t.view === "gitflow" && t.left === "none" && t.w >= 1380 && t.newTabLink === "none" && /BAU branch sync worker/.test(t.title) && !back.full && back.left === "flex" && !/full=1/.test(back.url), JSON.stringify({ t, back }));
+  return { href, inConsole, tab: t };
 });
 await step("page: no script errors", async () => { assert(!pageErrors.length, pageErrors.join(" | ")); return { pageErrors: 0 }; });
 await b.close();

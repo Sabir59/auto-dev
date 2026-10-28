@@ -426,6 +426,11 @@ function writeGitflowConfig(id, cfg) { mkdirSync(gitflowDir(id), { recursive: tr
 const gitflowAudit = (id, e) => new gitflow.GitFlow({ root: null, dir: gitflowDir(id), config: {} }).audit(e);
 // Plan executions running as jobs (their steps, and a cancel requested before the branch is created).
 const gitflowJobs = new Map();
+// GITFLOW_READ_ONLY=1: the Git workflow may look but never write: no branch is created, pushed or
+// deleted and nothing is fetched (for checking it against a real repository). GITFLOW_ENV_LABEL names
+// a test environment; the page shows both on every screen of the workflow.
+const GITFLOW_ENV = { readOnly: process.env.GITFLOW_READ_ONLY === "1", label: String(process.env.GITFLOW_ENV_LABEL || "").slice(0, 160) };
+const gitflowWrites = (parts, method) => method === "POST" && (["execute", "pr", "fetch", "jobs"].includes(parts[2]) || (parts[2] === "branch" && parts[3] === "delete"));
 // The repository a Git workflow reads: a workspace's folder, or the console's own clone of a URL.
 function gitflowRoot(id, cfg) {
   if (cfg.source === "remote") { const d = join(gitflowDir(id), "remote.git"); if (!existsSync(join(d, "HEAD"))) throw new Error("The repository hasn't been cloned yet: save the setup with its URL."); return d; }
@@ -2258,7 +2263,8 @@ http.createServer(async (req, res) => {
       const w = readWorkers().find((x) => x.id === parts[1]);
       if (!w || !w.capabilities.includes("gitflow.read")) return json(res, 404, { error: "No Git workflow worker with that id." });
       const cfg = readGitflowConfig(w.id);
-      if (parts[2] === "config" && req.method === "GET") return json(res, 200, { config: cfg, strategies: gitflow.STRATEGIES, worker: { id: w.id, name: w.name } });
+      if (GITFLOW_ENV.readOnly && gitflowWrites(parts, req.method)) return json(res, 403, { readOnly: true, error: "This console is read-only for the Git workflow (GITFLOW_READ_ONLY=1): nothing is created, pushed, deleted or fetched." });
+      if (parts[2] === "config" && req.method === "GET") return json(res, 200, { config: cfg, strategies: gitflow.STRATEGIES, worker: { id: w.id, name: w.name }, env: GITFLOW_ENV });
       if (parts[2] === "config" && req.method === "PUT") {
         const next = gitflow.normalizeConfig(await body(req), cfg || {});
         if (next.source === "workspace" && next.workspace) resolveWorkspace(next.workspace);
