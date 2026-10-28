@@ -4,6 +4,21 @@ Every time `plugin/code.js` gains a new command (or an existing one gains a new 
 
 Pre-existing commands (built during earlier POC phases, before this log existed) are documented in [how-to-drive.md](how-to-drive.md#command-reference-plugincodejs--handlers) instead of being back-filled here.
 
+## Instance `overrides`, styled text runs, image/gradient fills, FIND_IMAGE_FILLS, GET_IMAGE_BYTES
+
+**What:**
+- `describeInstance` now records an instance's **overrides** (`node.overrides`): for each overridden sublayer, its ` › ` path inside the instance plus whatever was overridden — `visible`, `text` (style/colour/align/value, not when the text is bound to a component property, which `props` already has), `fill`/`image`/`stroke`, or a swapped `comp`. Sublayers are resolved from the instance's own subtree, not `getNodeByIdAsync` (slow and flaky for `I…;…` ids, see `getNode`).
+- `describeText` (shared by TEXT nodes and text overrides): when a text node's runs differ, `segments` lists each run as `{text, style, color, font, decoration?}` with the **text-style and colour-token names** (the old `textSegments` gave raw hex and a variable id).
+- `describeVisuals`: an IMAGE fill is `fill: "image"` + `image: <imageHash>`, a gradient is `fill: "gradient-linear"` etc. (was `null`).
+- `FIND_IMAGE_FILLS {pageId | id}` lists every visible node with an image fill (id, name, size, hash, scale mode, breadcrumb).
+- `GET_IMAGE_BYTES {hash, id}` returns an image fill's original uploaded bytes (format sniffed: PNG/JPG/GIF); the bridge writes them to `exports/<id>.<ext>`.
+
+**Why:** a redesign used plain components (BookBullet, NoteBox, PageHeader, Milestone…) as styled paragraphs and retyped their text on every use. Without overrides, the screen export carried the master's placeholder text instead of the client's content. Photos (image fills) had no representation at all.
+
+**Verified against:** the "Umrah & Hajj Guide" file (revision 2). `FIND_IMAGE_FILLS` and `GET_IMAGE_BYTES` ran through the bridge (15 image fills, 11 distinct photos, originals exported). The overrides/segments logic could **not** be run through the bridge: mid-session the Figma desktop app lost its server connection and every async document read failed with "Unable to establish connection to Figma" (PING and sync reads still worked; re-saving code.js didn't clear it). The same logic was run read-only through the official Figma connector (`use_figma`) instead. Its output was saved and then checked against an FNV-1a hash computed inside Figma for each of 36 screens and 23 component variants. All matched after one fix: Arabic honorifics use U+00A0 between words. A second real gap turned up there: the connector runs with `figma.skipInvisibleInstanceChildren = true`, so `findAll` never reaches a **hidden** instance child, and every override that *hides* a layer was silently dropped (53 of them: PageHeader overlines, Contents-row note markers, pager ellipses, legend markers). Re-run with the flag set to `false`, verified by hash, merged. The bridge plugin doesn't set the flag, and the default is `false`. Any reader of overrides must make sure hidden children are visited.
+
+**Status:** FIND_IMAGE_FILLS / GET_IMAGE_BYTES PROVEN. Overrides/segments: the logic is proven, but the copy in code.js has not yet been run through the bridge. Re-run a screen export once the desktop app reconnects.
+
 ## GET_VARIABLES
 
 **What:** Reads every local Variable collection (`figma.variables.getLocalVariableCollectionsAsync`), and for each variable resolves its value per mode, following `VARIABLE_ALIAS` chains across collections to a final literal (color → hex, float/string/boolean passthrough), while recording the immediate alias name and the variable's `codeSyntax`. General — works on any collection/variable/type, nothing Umrah-specific.

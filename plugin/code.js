@@ -649,7 +649,17 @@ async function describeVisuals(node, out) {
   }
   if ("fills" in node && Array.isArray(node.fills) && node.fills.length) {
     const f = node.fills.find((x) => x.visible !== false);
-    if (f) out.fill = await resolveFillOrStroke(f);
+    // A photo or gradient has no single colour to name: record its kind
+    // (and, for a photo, the image hash so the caller can match it to an
+    // exported asset) instead of a meaningless null.
+    if (f && f.type === "IMAGE") {
+      out.fill = "image";
+      out.image = f.imageHash;
+    } else if (f && f.type.startsWith("GRADIENT_")) {
+      out.fill = f.type.toLowerCase().replace("_", "-");
+    } else if (f) {
+      out.fill = await resolveFillOrStroke(f);
+    }
   }
   if ("strokes" in node && Array.isArray(node.strokes) && node.strokes.length) {
     const name = await resolveFillOrStroke(node.strokes[0]);
@@ -691,6 +701,63 @@ async function describeInstance(node, out) {
     }
   }
   out.props = props; // always present, even {} — matches the reference format
+
+  // Content set on this use site rather than through a component property
+  // (a text layer retyped, a layer shown/hidden, a fill or icon swapped)
+  // lives only in the instance's overrides — without these, a component
+  // used as a "styled paragraph" would export with its master's text.
+  const overrides = [];
+  // Resolved from the instance's own subtree: looking sublayer ids up through
+  // getNodeByIdAsync is slow and fails intermittently (see getNode).
+  const sublayers = node.overrides && node.overrides.length ? new Map(node.findAll(() => true).map((n) => [n.id, n])) : new Map();
+  for (const o of node.overrides || []) {
+    if (o.id === node.id) continue; // the instance itself: covered by props/visuals
+    const target = sublayers.get(o.id);
+    if (!target) continue;
+    const path = [];
+    for (let p = target; p && p.id !== node.id; p = p.parent) path.unshift(p.name);
+    const fields = o.overriddenFields;
+    const entry = { n: path.join(" › ") };
+    if (fields.includes("visible")) entry.visible = target.visible;
+    if (target.visible !== false) {
+      const boundText = target.componentPropertyReferences && target.componentPropertyReferences.characters;
+      if (target.type === "TEXT" && !boundText && fields.some((f) => ["characters", "textStyleId", "fills", "styledTextSegments"].includes(f))) {
+        entry.text = await describeText(target);
+      } else if (fields.includes("fills") || fields.includes("strokes")) {
+        const v = {};
+        await describeVisuals(target, v);
+        if (fields.includes("fills") && v.fill !== undefined) entry.fill = v.fill;
+        if (v.image) entry.image = v.image;
+        if (fields.includes("strokes") && v.stroke !== undefined) entry.stroke = v.stroke;
+      }
+      if (target.type === "INSTANCE" && fields.includes("mainComponent")) {
+        const m = await target.getMainComponentAsync();
+        if (m) entry.comp = m.parent && m.parent.type === "COMPONENT_SET" ? `${m.parent.name} {${m.name}}` : m.name;
+      }
+    }
+    if (Object.keys(entry).length > 1) overrides.push(entry);
+  }
+  if (overrides.length) out.overrides = overrides;
+}
+
+// A text node's style, colour, alignment and value — plus, when its runs are
+// styled differently (a highlighted phrase, a bold name), one entry per run
+// with the run's own text style and colour token.
+async function describeText(node) {
+  const visuals = {};
+  await describeVisuals(node, visuals);
+  const text = { style: await textStyleNames(node), color: visuals.fill, align: node.textAlignHorizontal, value: node.characters };
+  if (hasMixedText(node)) {
+    const runs = [];
+    for (const s of node.getStyledTextSegments(["textStyleId", "fills", "fontName", "textDecoration"])) {
+      const solid = (s.fills || []).find((f) => f.visible !== false);
+      const run = { text: s.characters, style: await styleName(s.textStyleId), color: solid ? await resolveFillOrStroke(solid) : null, font: `${s.fontName.family} ${s.fontName.style}` };
+      if (s.textDecoration && s.textDecoration !== "NONE") run.decoration = s.textDecoration.toLowerCase();
+      runs.push(run);
+    }
+    text.segments = runs;
+  }
+  return text;
 }
 
 async function describeNode(node) {
@@ -707,13 +774,7 @@ async function describeNode(node) {
   }
 
   if (node.type === "TEXT") {
-    out.text = {
-      style: await textStyleNames(node),
-      color: out.fill,
-      align: node.textAlignHorizontal,
-      value: node.characters,
-      ...(hasMixedText(node) ? { segments: textSegments(node) } : {}),
-    };
+    out.text = await describeText(node);
     delete out.fill;
   }
 
@@ -964,21 +1025,36 @@ const handlers = {
     throw new Error(`${params.id} is not a COMPONENT or COMPONENT_SET (got ${node.type})`);
   },
 
-  // Reads every prototype reaction on every top-level screen FRAME of a
-  // page — design/spec/prototype.json's shape: {flows, screens}. `flows`
-  // is the page's real flowStartingPoints (Figma's own "where does this
-  // prototype start" markers). Each reaction becomes {on, trigger,
-  // action, to, transition}: `on` is a " › "-joined breadcrumb from the
-  // screen root down to (and including) the reacting layer; `to` is
-  // either the destination screen's name (NAVIGATE) or, for a variant
-  // swap (a component's own name + its parent set's name, since the
-  // destination of a SWAP is a bare variant, not an instance).
+  // Reads every prototype reaction on every screen of a page — design/spec/
+  // prototype.json's shape: {flows, screens}. A screen is a FRAME or
+  // COMPONENT on the page, or inside a SECTION (or a group) on it, at any
+  // depth: designs are often laid out in sections. `flows` is the page's
+  // real flowStartingPoints (Figma's own "where does this prototype start"
+  // markers). Each reaction becomes {on, id, trigger, action, to, toId,
+  // transition}: `on` is a " › "-joined breadcrumb from the screen root
+  // down to (and including) the reacting layer, the screen's own reactions
+  // included; `id` is that layer's id (an instance sublayer's is
+  // "I<inst>;<layer>"); `to` is either the destination screen's name
+  // (NAVIGATE, OVERLAY, SCROLL_TO) or, for a variant swap, a component's
+  // own name + its parent set's name (the destination of a SWAP is a bare
+  // variant, not an instance), and `toId` its id. Links to a URL, variable
+  // changes and conditionals are described, not dropped. With `nodeId`,
+  // only that node's subtree is read (a section, a screen, a card, one
+  // button), whatever its depth. Two screens with the same name (a
+  // desktop and a mobile frame) are kept apart: the second is keyed
+  // "<name> (<id>)". `index` lists each screen with its id and section.
   GET_PROTOTYPE: async (params) => {
-    const page = await getNode(params.pageId);
-    if (!page || page.type !== "PAGE") throw new Error(`${params.pageId} is not a page`);
+    const scopeId = params.nodeId || null;
+    const page = params.pageId ? await getNode(params.pageId) : null;
+    if (!scopeId && (!page || page.type !== "PAGE")) throw new Error(`${params.pageId} is not a page`);
+    // Under documentAccess "dynamic-page" another page's subtree is only
+    // readable once it's loaded.
+    if (page && page.type === "PAGE" && typeof page.loadAsync === "function") await page.loadAsync();
+    const scope = scopeId ? await getNode(scopeId) : page;
+    if (!scope) throw new Error(`Node not found: ${scopeId}`);
 
     async function destinationLabel(destId) {
-      const dest = await getNode(destId);
+      const dest = await getNode(destId).catch(() => null);
       if (!dest) return null;
       if (dest.type === "COMPONENT" && dest.parent && dest.parent.type === "COMPONENT_SET") {
         return `${dest.parent.name} {${dest.name}}`;
@@ -996,47 +1072,76 @@ const handlers = {
       return duration !== undefined ? `${type} ${duration}s` : type;
     }
 
-    const NAV_ACTION = { NAVIGATE: "navigate", SWAP: "change_to", OVERLAY: "overlay", SCROLL_TO: "scroll_to" };
+    const NAV_ACTION = { NAVIGATE: "navigate", SWAP: "change_to", OVERLAY: "overlay", SCROLL_TO: "scroll_to", CHANGE_TO: "change_to" };
 
-    async function reactionEntries(node, path) {
+    async function describeAction(a) {
+      if (a.type === "NODE") {
+        const to = a.destinationId ? await destinationLabel(a.destinationId) : null;
+        return { action: NAV_ACTION[a.navigation] || String(a.navigation || "node").toLowerCase(), to, toId: a.destinationId || null, transition: transitionLabel(a.transition) };
+      }
+      if (a.type === "BACK") return { action: "back" };
+      if (a.type === "CLOSE") return { action: "close overlay" };
+      if (a.type === "URL") return { action: "open_url", url: a.url || null };
+      if (a.type === "SET_VARIABLE") return { action: "set_variable", variableId: a.variableId || null };
+      if (a.type === "SET_VARIABLE_MODE") return { action: "set_variable_mode", collectionId: a.variableCollectionId || null, modeId: a.variableModeId || null };
+      if (a.type === "CONDITIONAL") return { action: "conditional", branches: (a.conditionalBlocks || []).length };
+      return { action: String(a.type).toLowerCase() };
+    }
+
+    async function reactionsOf(node, path) {
       const out = [];
       if (node.reactions && node.reactions.length) {
         const on = path.join(" › ");
         for (const r of node.reactions) {
           const trigger = r.trigger ? r.trigger.type.toLowerCase() : null;
+          const delay = r.trigger && r.trigger.type === "AFTER_TIMEOUT" && r.trigger.timeout !== undefined ? Math.round(r.trigger.timeout * 1000) : undefined;
           const actions = r.actions || (r.action ? [r.action] : []);
           for (const a of actions) {
-            let action, to, transition;
-            if (a.type === "NODE") {
-              action = NAV_ACTION[a.navigation] || a.navigation.toLowerCase();
-              to = a.destinationId ? await destinationLabel(a.destinationId) : null;
-              transition = transitionLabel(a.transition);
-            } else if (a.type === "BACK") {
-              action = "back";
-            } else if (a.type === "CLOSE") {
-              action = "close overlay";
-            } else {
-              action = a.type.toLowerCase();
-            }
-            out.push({ on, trigger, action, to, transition });
+            const d = await describeAction(a);
+            out.push(Object.assign({ on, id: node.id, trigger }, delay !== undefined ? { delay } : {}, d));
           }
         }
       }
+      return out;
+    }
+
+    async function reactionEntries(node, path) {
+      const out = await reactionsOf(node, path);
       if ("children" in node && node.children) {
         for (const child of node.children) out.push(...(await reactionEntries(child, [...path, child.name])));
       }
       return out;
     }
 
-    const flows = (page.flowStartingPoints || []).map((f) => ({ nodeId: f.nodeId, name: f.name }));
-    const screens = {};
-    for (const frame of page.children) {
-      if (frame.type !== "FRAME" && frame.type !== "COMPONENT") continue;
-      const entries = [];
-      for (const child of frame.children || []) entries.push(...(await reactionEntries(child, [child.name])));
-      if (entries.length) screens[frame.name] = entries;
+    const isScreen = (n) => n.type === "FRAME" || n.type === "COMPONENT";
+    const isContainer = (n) => n.type === "SECTION" || n.type === "GROUP";
+    const screens = {}, index = [];
+    function keyFor(node) {
+      return screens[node.name] === undefined ? node.name : `${node.name} (${node.id})`;
     }
-    return { flows, screens };
+    async function addScreen(node, section) {
+      const entries = await reactionEntries(node, [node.name]);
+      index.push({ screen: node.name, id: node.id, section: section || null, reactions: entries.length });
+      if (entries.length) screens[keyFor(node)] = entries;
+    }
+    async function walk(container, section) {
+      for (const n of container.children || []) {
+        if (isScreen(n)) await addScreen(n, section);
+        else if (isContainer(n)) await walk(n, section ? `${section} › ${n.name}` : n.name);
+      }
+    }
+
+    if (scope.type === "PAGE") await walk(scope, null);
+    else if (isContainer(scope)) await walk(scope, scope.name);
+    else {
+      // One node (a screen, a card, a button): its own reactions and its subtree's.
+      const entries = await reactionEntries(scope, [scope.name]);
+      index.push({ screen: scope.name, id: scope.id, section: null, reactions: entries.length });
+      if (entries.length) screens[scope.name] = entries;
+    }
+    const flowPage = page || (function () { let p = scope; while (p && p.type !== "PAGE") p = p.parent; return p; })();
+    const flows = ((flowPage && flowPage.flowStartingPoints) || []).map((f) => ({ nodeId: f.nodeId, name: f.name }));
+    return { flows, screens, index };
   },
 
   // Reads a screen FRAME into design/spec/screens-*.json's shape: the
@@ -1802,6 +1907,39 @@ const handlers = {
     }
     const nodes = figma.currentPage.children.map(serializeShallow);
     return { page: figma.currentPage.name, count: nodes.length, nodes };
+  },
+
+  // Lists every node with a visible IMAGE fill under a page or node: id,
+  // name, size, image hash and the " › " breadcrumb from the top-level
+  // frame — the inventory of photos a design uses, so each can be exported.
+  FIND_IMAGE_FILLS: async (params) => {
+    const root = await getNode(params.id || params.pageId);
+    if (!root) throw new Error(`Node not found: ${params.id || params.pageId}`);
+    if (root.type === "PAGE") await root.loadAsync();
+    const out = [];
+    function walk(node, path) {
+      if (node.visible === false) return;
+      if ("fills" in node && Array.isArray(node.fills)) {
+        const img = node.fills.find((f) => f.type === "IMAGE" && f.visible !== false);
+        if (img) out.push({ id: node.id, name: node.name, type: node.type, w: Math.round(node.width), h: Math.round(node.height), imageHash: img.imageHash, scaleMode: img.scaleMode, path: path.join(" › ") });
+      }
+      if ("children" in node && node.children) for (const c of node.children) walk(c, [...path, c.name]);
+    }
+    if (root.type === "PAGE") for (const c of root.children) walk(c, [c.name]);
+    else walk(root, [root.name]);
+    return { count: out.length, nodes: out };
+  },
+
+  // The original bytes of an image fill (as uploaded, full resolution — not
+  // a render of any node), by hash from FIND_IMAGE_FILLS. Pass `id` too: the
+  // bridge names the written file after it. Format sniffed from the bytes.
+  GET_IMAGE_BYTES: async (params) => {
+    const image = figma.getImageByHash(params.hash);
+    if (!image) throw new Error(`No image with hash ${params.hash}`);
+    const bytes = await image.getBytesAsync();
+    const size = await image.getSizeAsync();
+    const format = bytes[0] === 0x89 && bytes[1] === 0x50 ? "PNG" : bytes[0] === 0xff && bytes[1] === 0xd8 ? "JPG" : bytes[0] === 0x47 && bytes[1] === 0x49 ? "GIF" : "BIN";
+    return { __binaryBytes: Array.from(bytes), format, width: size.width, height: size.height };
   },
 
   // Renders a node to PNG and hands the raw bytes to ui.html (the only

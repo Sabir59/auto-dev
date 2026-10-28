@@ -470,8 +470,11 @@ server.registerTool(
 server.registerTool(
   "figma_get_prototype",
   {
-    description: "Every prototype reaction (tap → navigate/change-variant/overlay/back/close) on every top-level screen frame of a page, plus the page's flow-start markers.",
-    inputSchema: { pageId: z.string() },
+    description: "The prototype's click wiring, read from the open file through the plugin (no REST API, no rate limit): every reaction (click/hover/press/drag/after a delay → navigate, open an overlay, scroll to, change a variant, back, close overlay, open a URL, set a variable) on every screen of a page, including screens inside sections and layers at any depth (buttons inside cards, instance sublayers), plus the page's flow-start markers. Each entry has the reacting layer's breadcrumb and id, and the destination's name and id. Pass nodeId to read just one section, screen, card or button (its own reactions and its subtree's). `index` lists every screen found with its id, section and reaction count: a screen with 0 reactions really has none.",
+    inputSchema: {
+      pageId: z.string().optional().describe("The page to read (required unless nodeId is given)"),
+      nodeId: z.string().optional().describe("Read only this node's subtree: a section, a screen, a card or a button"),
+    },
   },
   tool("GET_PROTOTYPE")
 );
