@@ -8,6 +8,7 @@
 // tries another way in.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { guardTools } from "./authz.mjs";
 import { z } from "zod";
 import { readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -26,6 +27,8 @@ const explain = (e, ref) => e.status === 401 ? "Figma rejected the stored author
   : `Figma API error: ${e.message}`;
 
 const server = new McpServer({ name: "figma-reader", version: "0.1.0" });
+// Each tool call is checked with the console first when it runs this server for a worker (authz.mjs).
+guardTools(server, () => "figma.read");
 
 server.registerTool("figma_access_status", {
   description: "Check whether this computer has a working Figma authorization for reading designs by URL, and which Figma account it acts as. Call this before promising anything that needs Figma.",

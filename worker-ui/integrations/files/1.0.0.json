@@ -1,0 +1,120 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "files",
+  "version": "1.0.0",
+  "label": "Files in a folder",
+  "short": "Files",
+  "summary": "Reads and writes files (CSV, Markdown, JSON, text) in the workspace folder.",
+  "status": "tested",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/workspace-ui/create-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "csv",
+    "spreadsheets?",
+    "excel",
+    "xlsx",
+    "markdown",
+    "documents?",
+    "reports?"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [
+      "files.read"
+    ],
+    "requires": []
+  },
+  "coreWhy": {
+    "files.read": "Reads the files it works on.",
+    "files.write": "Creates and edits files, when you allow it."
+  },
+  "naming": {
+    "name": "Files worker",
+    "specialization": "Work on files in a folder"
+  },
+  "instructions": {
+    "steps": [
+      "Read the files involved before changing them"
+    ],
+    "limits": [
+      "Keep a file's format (columns, headers) unless the task asks to change it."
+    ],
+    "starters": [
+      "List the files in this folder and summarise what each one contains. Don't change anything."
+    ]
+  },
+  "questions": [
+    {
+      "id": "which",
+      "type": "text",
+      "label": "Files it works on",
+      "placeholder": "e.g. data/products.csv, reports/",
+      "knowledge": "Files"
+    },
+    {
+      "id": "change",
+      "type": "choice",
+      "label": "What may it do with them?",
+      "default": "edit",
+      "choices": [
+        {
+          "id": "read",
+          "label": "Read and analyse only",
+          "limits": [
+            "Don't change files: report what you found."
+          ],
+          "approval": "It can't change files."
+        },
+        {
+          "id": "edit",
+          "label": "Create and edit files",
+          "approval": "Its file changes are yours to review (and to commit, in a Git folder).",
+          "core": [
+            "files.write"
+          ],
+          "requires": [
+            {
+              "resource": "workspace",
+              "access": "write",
+              "need": "required"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "xlsx",
+      "type": "info",
+      "label": "Spreadsheets",
+      "text": "Excel (.xlsx) files can't be read directly: save them as CSV."
+    }
+  ],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "which": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "change": {
+          "enum": [
+            "read",
+            "edit",
+            null
+          ]
+        }
+      }
+    }
+  },
+  "relations": []
+}

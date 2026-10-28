@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ai-workforce/core-capabilities/1",
+  "title": "Core capability catalogue",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "owner", "review", "capabilities", "general"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$" },
+    "description": { "type": "string" },
+    "owner": { "type": "object", "required": ["team", "accountable"], "properties": { "team": { "type": "string" }, "accountable": { "type": "string" } } },
+    "review": { "enum": ["platform", "security"] },
+    "capabilities": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["id", "summary", "accounts"], "properties": {
+      "id": { "type": "string", "pattern": "^[a-z][a-z0-9.]{1,59}$" }, "summary": { "type": "string", "minLength": 1 },
+      "accounts": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["resource", "access"], "properties": { "resource": { "type": "string" }, "access": { "type": "string" } } } } } } },
+    "general": { "type": "object", "additionalProperties": false, "required": ["default", "why"], "properties": { "default": { "type": "array", "items": { "type": "string" } }, "why": { "type": "string" } } }
+  }
+}

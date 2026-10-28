@@ -1,0 +1,40 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "hubspot",
+  "version": "1.0.0",
+  "label": "HubSpot",
+  "status": "recognised",
+  "why": "There's no HubSpot connector yet: a worker can't sign in to HubSpot or read or change anything in it.",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/integrations/catalog-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "hubspot"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [],
+    "requires": []
+  },
+  "instructions": {
+    "steps": [],
+    "limits": [],
+    "starters": []
+  },
+  "questions": [],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  },
+  "relations": []
+}

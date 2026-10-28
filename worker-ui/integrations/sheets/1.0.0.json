@@ -1,0 +1,108 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "sheets",
+  "version": "1.0.0",
+  "label": "Google Sheets",
+  "status": "recognised",
+  "why": "There's no Google connector yet: a worker can't open, read or edit Google Sheets or other Drive files.",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/workspace-ui/create-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "google ?sheets?",
+    "sheets",
+    "google drive",
+    "gsheets?"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [],
+    "requires": []
+  },
+  "instructions": {
+    "steps": [],
+    "limits": [],
+    "starters": []
+  },
+  "questions": [
+    {
+      "id": "which",
+      "type": "text",
+      "label": "Which spreadsheets",
+      "placeholder": "e.g. Donations 2026, Competitor tracker",
+      "knowledge": "Spreadsheets"
+    },
+    {
+      "id": "scope",
+      "type": "choice",
+      "label": "What should it do with them?",
+      "required": true,
+      "choices": [
+        {
+          "id": "analyse",
+          "label": "Read and analyse",
+          "know": "Spreadsheets arrive as CSV files downloaded from Google Sheets (File → Download → CSV).",
+          "unsupported": "Reading the live Google Sheet.",
+          "adds": {
+            "integration": "files",
+            "preset": {
+              "change": "read"
+            }
+          }
+        },
+        {
+          "id": "edit",
+          "label": "Update them",
+          "know": "Spreadsheets arrive as CSV downloads (File → Download → CSV); the worker edits the CSV and the person imports it back (File → Import).",
+          "unsupported": "Editing the live Google Sheet.",
+          "adds": {
+            "integration": "files",
+            "preset": {
+              "change": "edit"
+            }
+          }
+        },
+        {
+          "id": "create",
+          "label": "Create new ones",
+          "know": "New spreadsheets are written as CSV files for the person to import into Google Sheets.",
+          "unsupported": "Creating sheets in Google Drive.",
+          "adds": {
+            "integration": "files",
+            "preset": {
+              "change": "edit"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "which": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "scope": {
+          "enum": [
+            "analyse",
+            "edit",
+            "create",
+            null
+          ]
+        }
+      }
+    }
+  },
+  "relations": []
+}

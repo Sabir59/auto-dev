@@ -16,6 +16,7 @@
 // workers on it) are never committed to or pushed to.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { guardTools } from "./authz.mjs";
 import { z } from "zod";
 import { spawn } from "node:child_process";
 import { realpathSync } from "node:fs";
@@ -57,6 +58,8 @@ const relPath = z.string().max(400).regex(/^(?![\/\\])(?![A-Za-z]:)(?!-)(?!.*(^|
 const NO_PROGRAMS = ["--no-ext-diff", "--no-textconv"];
 
 const server = new McpServer({ name: "repo", version: "0.1.0" });
+// Each tool call is checked with the console first when it runs this server for a worker (authz.mjs).
+guardTools(server, () => "repo");
 
 server.registerTool("repo_status", { description: `The checkout of ${NAME}: current branch, commits ahead/behind its remote branch (as last fetched), and changed files. Your access here: ${LEVELS[LEVEL]}${PROTECTED.size ? `; never committed to or pushed to: ${[...PROTECTED].join(", ")}` : ""}.` },
   tool(async () => {

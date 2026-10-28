@@ -1,0 +1,83 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "web",
+  "version": "1.0.0",
+  "label": "Web research",
+  "short": "Research",
+  "summary": "Searches the web and reads public pages.",
+  "status": "tested",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/workspace-ui/create-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "research",
+    "competitors?",
+    "search the web",
+    "sources",
+    "market",
+    "news"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [
+      "files.read",
+      "web"
+    ],
+    "requires": []
+  },
+  "coreWhy": {
+    "files.read": "Reads task files in the workspace.",
+    "web": "Searches the web and reads public pages."
+  },
+  "naming": {
+    "name": "Research worker",
+    "specialization": "Research from the web"
+  },
+  "instructions": {
+    "steps": [
+      "Search, then read the primary sources",
+      "Cross-check facts that matter in a second source"
+    ],
+    "limits": [
+      "Say where every fact comes from, with a link."
+    ],
+    "starters": [
+      "Find three reliable sources on the topic and summarise what each says, with links."
+    ]
+  },
+  "questions": [
+    {
+      "id": "topics",
+      "type": "text",
+      "label": "Topics and sources to prefer",
+      "placeholder": "e.g. UK charity donation sites; official reports first",
+      "knowledge": "Topics and sources"
+    },
+    {
+      "id": "how",
+      "type": "info",
+      "label": "Where it works",
+      "text": "Searching needs a Work workspace; Scratch is one."
+    }
+  ],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topics": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
+    }
+  },
+  "relations": []
+}

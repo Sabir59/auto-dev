@@ -1,0 +1,195 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "figma",
+  "version": "1.0.0",
+  "label": "Figma",
+  "short": "Figma",
+  "summary": "Reads and edits the file open in the Figma desktop app (AI Executor plugin), and reads files by link with a Figma token.",
+  "status": "tested",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/workspace-ui/designer-worker-test.mjs",
+    "bench/figma-executor/lifecycle-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "figma"
+  ],
+  "capabilities": [
+    {
+      "id": "figma.plugin.read",
+      "accounts": [
+        {
+          "resource": "figma",
+          "access": "edit"
+        }
+      ]
+    },
+    {
+      "id": "figma.plugin.edit",
+      "accounts": [
+        {
+          "resource": "figma",
+          "access": "edit"
+        }
+      ]
+    },
+    {
+      "id": "figma.read",
+      "accounts": [
+        {
+          "resource": "figma",
+          "access": "read"
+        }
+      ]
+    }
+  ],
+  "base": {
+    "enables": [],
+    "core": [
+      "files.read"
+    ],
+    "requires": []
+  },
+  "coreWhy": {
+    "files.read": "Reads task files and the renders it exports."
+  },
+  "naming": {
+    "name": "Figma design worker",
+    "specialization": "Interface design in Figma"
+  },
+  "instructions": {
+    "steps": [
+      "Inspect the existing design (pages, styles, components) before changing anything",
+      "Build alongside existing work; export and look at the result to check it"
+    ],
+    "limits": [
+      "Never delete or replace existing designs unless the task asks for it."
+    ],
+    "starters": [
+      "Describe the open Figma file: its pages, main frames and components. Don't change anything."
+    ]
+  },
+  "questions": [
+    {
+      "id": "file",
+      "type": "text",
+      "label": "Figma file",
+      "placeholder": "https://www.figma.com/design/…",
+      "knowledge": "Figma file",
+      "help": "A link is context, not access: editing needs the plugin running in that file; reading by link needs a Figma token on this computer."
+    },
+    {
+      "id": "edit",
+      "type": "choice",
+      "label": "In the open file it may",
+      "default": "edit",
+      "choices": [
+        {
+          "id": "edit",
+          "label": "Edit",
+          "approval": "It edits the live Figma file (Figma's own version history is the undo).",
+          "enables": [
+            "figma.plugin.read",
+            "figma.plugin.edit"
+          ],
+          "requires": [
+            {
+              "resource": "figma",
+              "access": "edit",
+              "need": "required"
+            }
+          ]
+        },
+        {
+          "id": "look",
+          "label": "Only look",
+          "approval": "It can't change the Figma file.",
+          "enables": [
+            "figma.plugin.read"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "links",
+      "type": "choice",
+      "label": "Read other files by their link",
+      "default": "no",
+      "choices": [
+        {
+          "id": "yes",
+          "label": "Yes",
+          "enables": [
+            "figma.read"
+          ],
+          "requires": [
+            {
+              "resource": "figma",
+              "access": "read",
+              "need": "required"
+            }
+          ]
+        },
+        {
+          "id": "no",
+          "label": "No"
+        }
+      ]
+    }
+  ],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "edit": {
+          "enum": [
+            "edit",
+            "look",
+            null
+          ]
+        },
+        "links": {
+          "enum": [
+            "yes",
+            "no",
+            null
+          ]
+        }
+      }
+    }
+  },
+  "relations": [
+    {
+      "to": "builder",
+      "kind": "optional",
+      "when": [
+        "builder(\\.io)?",
+        "pages? from (the )?designs?",
+        "designs? (in)?to (pages?|content)"
+      ],
+      "why": "Turns Figma designs into Builder.io pages and content."
+    },
+    {
+      "to": "code",
+      "kind": "optional",
+      "when": [
+        "implement",
+        "build (it|the) (ui|frontend|components?)",
+        "react",
+        "next\\.?js",
+        "components? in code"
+      ],
+      "why": "Implements the design in a code repository."
+    }
+  ]
+}

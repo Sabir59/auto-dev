@@ -93,7 +93,8 @@ await step("Work workspace, read-only worker: no write tools (capabilities narro
 await step("no Builder key or API base reaches the worker: a profile, the credentials folder, and its own workspace as the only upload root", async () => {
   const r = await runOnce(work.id, editor.id);
   const keys = Object.keys(r.mcp.env).sort();
-  assert(keys.join() === "BUILDER_ADAPTER_DIR,BUILDER_ADAPTER_PROFILE,BUILDER_UPLOAD_ROOT", keys.join());
+  // (AIW_AUTHZ_URL and AIW_AUTHZ_TOKEN: where each tool call asks the console whether it's still allowed, and this run's token for that — not Builder credentials)
+  assert(keys.join() === "AIW_AUTHZ_SERVER,AIW_AUTHZ_TOKEN,AIW_AUTHZ_URL,BUILDER_ADAPTER_DIR,BUILDER_ADAPTER_PROFILE,BUILDER_UPLOAD_ROOT" && r.mcp.env.AIW_AUTHZ_URL.includes("/authz/"), keys.join());
   assert(r.mcp.env.BUILDER_UPLOAD_ROOT.toLowerCase() === process.env.WORK.toLowerCase(), `${r.mcp.env.BUILDER_UPLOAD_ROOT} vs ${process.env.WORK}`);
   const rawText = readFileSync(join(DATA, "runs", `${r.id}.raw.jsonl`), "utf8") + readFileSync(join(DATA, "runs", `${r.id}.worker.md`), "utf8");
   assert(!rawText.includes(KEYS.private) && !rawText.includes(KEYS.public), "a key appears in the run's transcript or context");

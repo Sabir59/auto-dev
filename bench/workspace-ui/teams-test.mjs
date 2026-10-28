@@ -299,7 +299,7 @@ await step("versions: change the Team (v4); a new run uses v4; continuing the v3
   must(m1.team.version === 3 && sha(ctxOf(R1)) === R1ctx && !/British English/.test(ctxOf(R1)) && snapOf(R1).team.version === 3 && !/British English/.test(reply1), JSON.stringify({ v: m1.team.version, reply1 }));
   return { newRun: { version: m2.team.version, reply: reply2 }, oldRun: { version: m1.team.version, contextUnchanged: true, reply: reply1 } };
 });
-await step("Figma resource: the Reader refuses another file; the Team file without authorization makes the worker stop with NEEDS:", async () => {
+await step("Figma resource: without a Figma authorization the Reader's tools are off in the run (fail-closed; the run says it's waiting for the connection) and nothing is read; the Reader itself refuses any file but the Team's", async () => {
   const r = await call("POST", "/runs", { team: team.id, worker: W.designer.id, prompt: `This is an access check only: don't design or change anything. Do only this, then stop: 1) call figma_read_design with https://www.figma.com/design/OtherFileKey0000000/Other and report the tool's answer; 2) call figma_read_design with the Team's Figma link and report the tool's answer. If something you need is missing, write the NEEDS: line.` });
   must(r.status === 200, JSON.stringify(r.body));
   const m = await waitRun(r.body.id);
@@ -308,7 +308,14 @@ await step("Figma resource: the Reader refuses another file; the Team file witho
   await endRun(r.body.id);
   const reads = calls.filter((c) => c.name === "mcp__figma-reader__figma_read_design").map((c) => c.input.url);
   const edits = calls.filter((c) => /^mcp__figma-executor__/.test(c.name) && !/(ping|get_file_info)$/.test(c.name));
-  must(res.some((x) => /may only read the Team's Figma file/.test(x.text)) && res.some((x) => /authorization is missing/i.test(x.text)), JSON.stringify(res.map((x) => x.text.slice(0, 120))));
+  // Waiting: no Figma token here, so the Reader's tools stay off (the run says so), and nothing is read.
+  must(!reads.length && ev.some((e) => e.type === "capability" && /Waiting for: .*Read Figma designs from a link/.test(e.summary)), JSON.stringify({ reads, notes: ev.filter((e) => e.type === "note" || e.type === "capability").map((e) => e.summary) }));
+  // The Reader's own lock, on its own (as the console starts it for this Team's runs): another file is refused before anything else.
+  const rc = new Client({ name: "teams-test", version: "1" });
+  await rc.connect(new StdioClientTransport({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")], env: { ...process.env, FIGMA_READER_ALLOWED_KEYS: FIGMA_KEY, FIGMA_READER_DIR: join(DATA, "figma-reader-lock") } }));
+  const other = await rc.callTool({ name: "figma_read_design", arguments: { url: "https://www.figma.com/design/OtherFileKey0000000/Other" } }), own = await rc.callTool({ name: "figma_read_design", arguments: { url: FIGMA_URL } });
+  await rc.close();
+  must(/may only read the Team's Figma file/.test(other.content?.[0]?.text || "") && /authorization is missing/i.test(own.content?.[0]?.text || ""), JSON.stringify([other.content?.[0]?.text, own.content?.[0]?.text]));
   must(ev.some((e) => e.type === "needs" && /figma/i.test(e.summary)) && reqs.some((q) => /Figma: read designs/.test(q.label) && !q.ok), JSON.stringify(reqs));
   return { readCalls: reads, otherPluginCalls: edits.map((c) => c.name), needs: ev.filter((e) => e.type === "needs").map((e) => e.summary), requirements: reqs.map((q) => `${q.label}${q.source === "team" ? " (Team)" : ""}: ${q.state}`) };
 });

@@ -10,6 +10,7 @@
 // belongs in plugin/code.js (the real capability), not here.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { guardTools } from "./authz.mjs";
 import { z } from "zod";
 
 import { ensureBridge, bridgeStatus, waitForPlugin, BRIDGE_PROTOCOL } from "../bridge/launcher.mjs";
@@ -222,6 +223,8 @@ const REGISTRY = new Map();
 const READ_TOOLS = new Set([...["ping", "get_file_info", "list_pages", "get_selection", "search_nodes", "get_document_state", "get_variables", "get_styles", "get_icon_components", "get_component_tree", "get_screen_tree", "get_prototype"].map((t) => `figma_${t}`),
   "figma_executor_status", "figma_use_file", "figma_verify_nodes"]);
 { const register = server.registerTool.bind(server); server.registerTool = (name, cfg, handler) => { if (READ_ONLY && !READ_TOOLS.has(name)) return null; REGISTRY.set(name, { cfg, handler }); return register(name, cfg, handler); }; }
+// Each tool call is checked with the console first when it runs this server for a worker (authz.mjs).
+guardTools(server, (name) => (READ_TOOLS.has(name) ? "figma.plugin.read" : "figma.plugin.edit"));
 
 server.registerTool("figma_ping", { description: "Liveness check for the Figma plugin connection." }, tool("PING"));
 

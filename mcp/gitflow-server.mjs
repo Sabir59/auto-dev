@@ -8,6 +8,7 @@
 //   GITFLOW_ROOT  the repository (the run's workspace)   GITFLOW_DIR  this worker's Git workflow data
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { guardTools } from "./authz.mjs";
 import { z } from "zod";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -27,6 +28,8 @@ const fail = (e) => ({ isError: true, content: [{ type: "text", text: e.message 
 const wrap = (fn) => async (a) => { try { return text(await fn(a || {})); } catch (e) { return fail(e); } };
 
 const server = new McpServer({ name: "gitflow", version: "1.0.0" });
+// Each tool call is checked with the console first when it runs this server for a worker (authz.mjs).
+guardTools(server, () => "gitflow.read");
 server.registerTool("gitflow_overview", { description: "This worker's Git workflow configuration: the teams (which is the person's), the people and their identities, the branch relationships with their strategies, the exclusion rules, and the shared branches that are never written. Read it first." },
   wrap(async () => { const { config: c } = engine(); return { teams: c.teams, people: c.people, mappings: c.mappings, exclude: c.exclude, shared: c.shared, offLimits: c.forbidden, rule: "Shared branches are never pushed or written: changes reach them only by pull request. Off-limits branches are never read or written: don't discuss their contents.", proposals: c.proposals, strategies: Object.fromEntries(Object.entries(STRATEGIES).map(([k, v]) => [k, v.about])) }; }));
 server.registerTool("gitflow_commits", { description: "The changes a destination branch is missing from its source (one branch relationship), newest first, with their kind (pull-request merge, revert, cherry-picked copy, duplicate, direct), pull request, ticket references, whether an equivalent copy is already in the destination, reverts, and ownership (team, confidence and the evidence). Optionally only one person's.", inputSchema: { mapping: z.string().describe("A branch relationship id from gitflow_overview"), person: z.string().optional().describe("A person's id, to list only their commits"), limit: z.number().int().min(1).max(300).optional() } },

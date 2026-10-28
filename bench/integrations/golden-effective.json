@@ -1,0 +1,921 @@
+{
+ "capturedAt": "2026-10-24T23:10:36.102Z",
+ "note": "Effective access at the process boundary, recorded before the integration architecture changed (P0).",
+ "observed": {
+  "General @ work": {
+   "tools": null,
+   "allowedTools": [
+    "Bash(curl:*)",
+    "Bash(node:*)",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "WebFetch",
+    "WebSearch",
+    "Write",
+    "mcp__browser-executor",
+    "mcp__figma-executor"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": null,
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "full"
+    },
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "edit"
+    }
+   }
+  },
+  "General @ inspect": {
+   "tools": "Read,Glob,Grep,ToolSearch",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor__browser_get_dom_state",
+    "mcp__browser-executor__browser_navigate",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "inspect"
+    },
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "read"
+    }
+   }
+  },
+  "designer @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep,Write,Edit,Bash,WebSearch,WebFetch",
+   "allowedTools": [
+    "Bash(curl:*)",
+    "Bash(node:*)",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "WebFetch",
+    "WebSearch",
+    "Write",
+    "mcp__browser-executor",
+    "mcp__figma-executor",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes",
+    "mcp__figma-reader"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "full"
+    },
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "edit"
+    },
+    "figma-reader": {}
+   }
+  },
+  "designer @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor__browser_get_dom_state",
+    "mcp__browser-executor__browser_navigate",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes",
+    "mcp__figma-reader"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "inspect"
+    },
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "read"
+    },
+    "figma-reader": {}
+   }
+  },
+  "builderEngineer @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep,Write,Edit,Bash,WebSearch,WebFetch",
+   "allowedTools": [
+    "Bash(curl:*)",
+    "Bash(node:*)",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "WebFetch",
+    "WebSearch",
+    "Write",
+    "mcp__browser-executor",
+    "mcp__builder",
+    "mcp__builder__builder_access_status",
+    "mcp__builder__builder_create_draft",
+    "mcp__builder__builder_get_content",
+    "mcp__builder__builder_list_content",
+    "mcp__builder__builder_list_models",
+    "mcp__builder__builder_update_content",
+    "mcp__builder__builder_upload_asset",
+    "mcp__builder__builder_verify_content",
+    "mcp__figma-executor",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes",
+    "mcp__figma-reader"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "full"
+    },
+    "builder": {
+     "BUILDER_ADAPTER_PROFILE": "full"
+    },
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "edit"
+    },
+    "figma-reader": {}
+   }
+  },
+  "builderEngineer @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor__browser_get_dom_state",
+    "mcp__browser-executor__browser_navigate",
+    "mcp__builder__builder_access_status",
+    "mcp__builder__builder_get_content",
+    "mcp__builder__builder_list_content",
+    "mcp__builder__builder_list_models",
+    "mcp__builder__builder_verify_content",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes",
+    "mcp__figma-reader"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "inspect"
+    },
+    "builder": {
+     "BUILDER_ADAPTER_PROFILE": "read"
+    },
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "read"
+    },
+    "figma-reader": {}
+   }
+  },
+  "branchSync @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__gitflow"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "gitflow": {}
+   }
+  },
+  "branchSync @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__gitflow"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "gitflow": {}
+   }
+  },
+  "req:gitsync @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__gitflow"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "gitflow": {}
+   }
+  },
+  "req:gitsync @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__gitflow"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "gitflow": {}
+   }
+  },
+  "req:codeEdit @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep,Write,Edit,Bash",
+   "allowedTools": [
+    "Bash(curl:*)",
+    "Bash(node:*)",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "Write",
+    "mcp__browser-executor"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "full"
+    }
+   }
+  },
+  "req:codeEdit @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor__browser_get_dom_state",
+    "mcp__browser-executor__browser_navigate"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "inspect"
+    }
+   }
+  },
+  "req:codeRead @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {}
+  },
+  "req:codeRead @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {}
+  },
+  "req:builderDrafts @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor",
+    "mcp__builder__builder_access_status",
+    "mcp__builder__builder_create_draft",
+    "mcp__builder__builder_get_content",
+    "mcp__builder__builder_list_content",
+    "mcp__builder__builder_list_models",
+    "mcp__builder__builder_update_content",
+    "mcp__builder__builder_upload_asset",
+    "mcp__builder__builder_verify_content"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "full"
+    },
+    "builder": {
+     "BUILDER_ADAPTER_PROFILE": "draft"
+    }
+   }
+  },
+  "req:builderDrafts @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor__browser_get_dom_state",
+    "mcp__browser-executor__browser_navigate",
+    "mcp__builder__builder_access_status",
+    "mcp__builder__builder_get_content",
+    "mcp__builder__builder_list_content",
+    "mcp__builder__builder_list_models",
+    "mcp__builder__builder_verify_content"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "inspect"
+    },
+    "builder": {
+     "BUILDER_ADAPTER_PROFILE": "read"
+    }
+   }
+  },
+  "req:builderPublish @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__builder",
+    "mcp__builder__builder_access_status",
+    "mcp__builder__builder_get_content",
+    "mcp__builder__builder_list_content",
+    "mcp__builder__builder_list_models",
+    "mcp__builder__builder_verify_content"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "builder": {
+     "BUILDER_ADAPTER_PROFILE": "full"
+    }
+   }
+  },
+  "req:builderPublish @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__builder__builder_access_status",
+    "mcp__builder__builder_get_content",
+    "mcp__builder__builder_list_content",
+    "mcp__builder__builder_list_models",
+    "mcp__builder__builder_verify_content"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "builder": {
+     "BUILDER_ADAPTER_PROFILE": "read"
+    }
+   }
+  },
+  "req:figmaEdit @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__figma-executor",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes",
+    "mcp__figma-reader"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "edit"
+    },
+    "figma-reader": {}
+   }
+  },
+  "req:figmaEdit @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes",
+    "mcp__figma-reader"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "read"
+    },
+    "figma-reader": {}
+   }
+  },
+  "req:figmaLook @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "read"
+    }
+   }
+  },
+  "req:figmaLook @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "read"
+    }
+   }
+  },
+  "req:browser @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "full"
+    }
+   }
+  },
+  "req:browser @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor__browser_get_dom_state",
+    "mcp__browser-executor__browser_navigate"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "inspect"
+    }
+   }
+  },
+  "req:research @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep,WebSearch,WebFetch",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "WebFetch",
+    "WebSearch"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {}
+  },
+  "req:research @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {}
+  },
+  "req:filesEdit @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep,Write,Edit",
+   "allowedTools": [
+    "Edit",
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "Write"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {}
+  },
+  "req:filesEdit @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {}
+  },
+  "req:shopify @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep,Write,Edit,Bash",
+   "allowedTools": [
+    "Bash(curl:*)",
+    "Bash(node:*)",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "Write",
+    "mcp__browser-executor"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "full"
+    }
+   }
+  },
+  "req:shopify @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor__browser_get_dom_state",
+    "mcp__browser-executor__browser_navigate"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "inspect"
+    }
+   }
+  },
+  "req:sheets @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {}
+  },
+  "req:sheets @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {}
+  },
+  "req:wordpress @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep,Write,Edit,Bash",
+   "allowedTools": [
+    "Bash(curl:*)",
+    "Bash(node:*)",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "Write",
+    "mcp__browser-executor"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "full"
+    }
+   }
+  },
+  "req:wordpress @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor__browser_get_dom_state",
+    "mcp__browser-executor__browser_navigate"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "inspect"
+    }
+   }
+  },
+  "req:figmaBuilder @ work": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor",
+    "mcp__builder__builder_access_status",
+    "mcp__builder__builder_create_draft",
+    "mcp__builder__builder_get_content",
+    "mcp__builder__builder_list_content",
+    "mcp__builder__builder_list_models",
+    "mcp__builder__builder_update_content",
+    "mcp__builder__builder_upload_asset",
+    "mcp__builder__builder_verify_content",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes",
+    "mcp__figma-reader"
+   ],
+   "restricted": false,
+   "settingSources": "project,local",
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "full"
+    },
+    "builder": {
+     "BUILDER_ADAPTER_PROFILE": "draft"
+    },
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "read"
+    },
+    "figma-reader": {}
+   }
+  },
+  "req:figmaBuilder @ inspect": {
+   "tools": "ToolSearch,Read,Glob,Grep",
+   "allowedTools": [
+    "Glob",
+    "Grep",
+    "Read",
+    "ToolSearch",
+    "mcp__browser-executor__browser_get_dom_state",
+    "mcp__browser-executor__browser_navigate",
+    "mcp__builder__builder_access_status",
+    "mcp__builder__builder_get_content",
+    "mcp__builder__builder_list_content",
+    "mcp__builder__builder_list_models",
+    "mcp__builder__builder_verify_content",
+    "mcp__figma-executor__figma_executor_status",
+    "mcp__figma-executor__figma_get_component_tree",
+    "mcp__figma-executor__figma_get_document_state",
+    "mcp__figma-executor__figma_get_file_info",
+    "mcp__figma-executor__figma_get_icon_components",
+    "mcp__figma-executor__figma_get_prototype",
+    "mcp__figma-executor__figma_get_screen_tree",
+    "mcp__figma-executor__figma_get_selection",
+    "mcp__figma-executor__figma_get_styles",
+    "mcp__figma-executor__figma_get_variables",
+    "mcp__figma-executor__figma_list_pages",
+    "mcp__figma-executor__figma_ping",
+    "mcp__figma-executor__figma_search_nodes",
+    "mcp__figma-executor__figma_use_file",
+    "mcp__figma-executor__figma_verify_nodes",
+    "mcp__figma-reader"
+   ],
+   "restricted": true,
+   "settingSources": null,
+   "permissionPrompts": "none",
+   "servers": {
+    "browser-executor": {
+     "BROWSER_EXECUTOR_PROFILE": "inspect"
+    },
+    "builder": {
+     "BUILDER_ADAPTER_PROFILE": "read"
+    },
+    "figma-executor": {
+     "FIGMA_EXECUTOR_PROFILE": "read"
+    },
+    "figma-reader": {}
+   }
+  }
+ }
+}

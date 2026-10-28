@@ -1,0 +1,15 @@
+{
+  "$schema": "./core.schema.json",
+  "version": "1.0.0",
+  "description": "Core capabilities: general-purpose tools any worker may be given, each explicitly. None is given by default; an integration that needs one says why (coreWhy), and the worker's definition lists it. Integration-provided tools (Figma, Builder.io, the Git workflow) are never here.",
+  "owner": { "team": "Worker platform", "accountable": "Sabir Nawaz" },
+  "review": "security",
+  "capabilities": [
+    { "id": "files.read", "summary": "Read files in the run's workspace.", "accounts": [] },
+    { "id": "files.write", "summary": "Create and edit files in the run's workspace. Never in an Inspect workspace, and not on a protected branch.", "accounts": [{ "resource": "workspace", "access": "write" }] },
+    { "id": "shell", "summary": "Run node and curl commands. Not in Inspect, not under a protected-branch policy, and not in the hosted product.", "accounts": [] },
+    { "id": "web", "summary": "Search the web and read public pages.", "accounts": [] },
+    { "id": "browser", "summary": "Open pages in a browser (in Inspect: open and read only).", "accounts": [{ "resource": "browser", "access": "use" }] }
+  ],
+  "general": { "default": ["files.read", "files.write", "shell", "web", "browser"], "why": "The General worker has no definition: it gets only the core tools granted to it here (General settings), within the workspace's, Team's and platform's limits." }
+}

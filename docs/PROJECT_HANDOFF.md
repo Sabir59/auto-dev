@@ -47,6 +47,12 @@ Where this document and the code disagree, **the code wins**. Fix this document.
 
 Machine-readable companion: `docs/PROJECT_MEMORY.json`.
 
+> **2026-10-28: worker evolution** (`docs/worker-evolution.md`). It added:
+> - a worker proposes changes to its own steps, knowledge and limits (`mcp/evolve-server.mjs`);
+> - the console validates a proposal, tries it in a trial run and grades that run against what actually happened;
+> - only the person approves it, and it becomes a new version. Every worker version is now recorded (`workers/<id>/history/`) and restorable;
+> - on every console, workers' file tools can no longer write the console's records, the integration catalogue, or a workspace's `.claude/`, `CLAUDE.md` and `AGENTS.md`. A real worker could do all three before (`bench/evolution/boundary-probe.mjs`). A worker with shell is still trusted like the person: see that document's Limits.
+>
 > **2026-10-22: UX and product validation sprint** (`docs/ux-sprint.md`). It added:
 > - a getting-started guide;
 > - creating a worker from the work a person describes: the tools and systems involved are recognised, only their questions are asked, and integrations with no connector (Shopify, Google Sheets, WordPress…) are answered honestly (`worker-ui/integrations.mjs`; `worker-platform.md` §13). This replaced a short-lived catalogue of five worker templates (`docs/ux-sprint.md` §0);
@@ -242,7 +248,7 @@ Organization
   - The resource registry is fixed in code: `figma read` (a credential exists and `/v1/me` accepts it), `figma edit` (the plugin answers PING through the bridge), `workspace read/write`, `browser use`, and `github read` (`git ls-remote` on `origin` works).
   - They're checked at run start, shown on a card, and written into the context.
   - **A requirement is not authorization.** When access is missing, the worker must write `NEEDS: <resource> <access>: <what the person must do>`, which becomes a "Needs access" event.
-- **Memory:** `REMEMBER: …` lines go to `workers/<id>.memory.json`. Secret-looking lines are refused. Memory is given to later runs as a labelled section, and the person can delete it. It's kept separate from the definition, which a worker can never edit.
+- **Memory:** `REMEMBER: …` lines go to `workers/<id>.memory.json`. Secret-looking lines are refused. Memory is given to later runs as a labelled section, and the person can delete it. It's kept separate from the definition, which a worker can never edit. (Since 2026-10-28 a worker can propose a change to its definition, which the person approves as a new recorded version: `docs/worker-evolution.md`.)
 - **Versioning:** each save bumps `version`. Each run snapshots its definition, runtime, requirement statuses, memory and the full context (`runs/<id>.worker.json`, `runs/<id>.worker.md`). Old runs keep their version, also when resumed. Deleting a worker leaves its runs readable and resumable.
 - **The General worker** (no definition) runs on the plain profile flags. The exception is a run under an enforced policy, which gets an equivalent definition minus the policy's tools (§7).
 

@@ -1,0 +1,260 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "code",
+  "version": "1.0.0",
+  "label": "Code repository",
+  "short": "Code",
+  "summary": "Reads and changes code in a project folder on this computer (a Git checkout).",
+  "status": "tested",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/workspace-ui/create-test.mjs",
+    "bench/workspace-ui/workers-test.mjs"
+  ],
+  "workspace": "project",
+  "detect": [
+    "repo",
+    "repository",
+    "codebase",
+    "source code",
+    "react",
+    "next\\.?js",
+    "vue",
+    "nuxt",
+    "angular",
+    "svelte",
+    "typescript",
+    "javascript",
+    "frontend",
+    "front-end",
+    "backend",
+    "pull request",
+    "refactor",
+    "unit tests?"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [
+      "files.read"
+    ],
+    "requires": []
+  },
+  "coreWhy": {
+    "files.read": "Reads the code and its documents.",
+    "files.write": "Changes code, when you allow it.",
+    "shell": "Runs Node scripts such as tests and builds, when you allow it.",
+    "browser": "Opens the changed pages in a browser, when you allow it."
+  },
+  "naming": {
+    "name": "{stack} engineer",
+    "fallback": "Engineer",
+    "specialization": "{stack|Software} development in an existing codebase"
+  },
+  "instructions": {
+    "steps": [
+      "Read the conventions and architecture documents before touching code",
+      "Find the existing code, hooks and components that already solve part of it",
+      "Make the smallest change that fits the existing architecture"
+    ],
+    "limits": [
+      "Never invent APIs, files or components you haven't seen in the repository.",
+      "Never delete or rewrite unrelated code.",
+      "Don't commit or push: the person reviews the changes and commits them."
+    ],
+    "starters": [
+      "Look through this repository and describe its structure, stack and conventions. Don't change anything."
+    ]
+  },
+  "questions": [
+    {
+      "id": "stack",
+      "type": "text",
+      "label": "Framework and stack",
+      "placeholder": "e.g. Next.js 14, React, Tailwind",
+      "knowledge": "Stack",
+      "prefill": [
+        {
+          "pattern": "next\\.?js",
+          "value": "Next.js"
+        },
+        {
+          "pattern": "nuxt",
+          "value": "Nuxt"
+        },
+        {
+          "pattern": "react",
+          "value": "React"
+        },
+        {
+          "pattern": "vue",
+          "value": "Vue"
+        },
+        {
+          "pattern": "angular",
+          "value": "Angular"
+        },
+        {
+          "pattern": "svelte",
+          "value": "Svelte"
+        },
+        {
+          "pattern": "wordpress",
+          "value": "WordPress (PHP)"
+        },
+        {
+          "pattern": "shopify",
+          "value": "Shopify theme (Liquid)"
+        }
+      ]
+    },
+    {
+      "id": "conventions",
+      "type": "text",
+      "label": "Conventions or documents it must follow",
+      "placeholder": "e.g. docs/architecture.md; business logic stays out of components",
+      "knowledge": "Conventions to follow"
+    },
+    {
+      "id": "change",
+      "type": "choice",
+      "label": "What may it do with the code?",
+      "default": "edit",
+      "choices": [
+        {
+          "id": "read",
+          "label": "Read and explain only",
+          "limits": [
+            "Don't change files: describe the change you'd make."
+          ],
+          "approval": "It can't change files: it reads and explains."
+        },
+        {
+          "id": "edit",
+          "label": "Change code",
+          "approval": "Its changes stay in the working copy until you review and commit them (Changes & versions).",
+          "core": [
+            "files.write"
+          ],
+          "requires": [
+            {
+              "resource": "workspace",
+              "access": "write",
+              "need": "required"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scripts",
+      "type": "choice",
+      "label": "Run Node scripts, such as tests and builds",
+      "default": "yes",
+      "help": "Only node and curl commands (for example node node_modules/jest/bin/jest.js). npm, npx and other programs aren't available. Turned off in Inspect workspaces and under a protected-branch policy.",
+      "choices": [
+        {
+          "id": "yes",
+          "label": "Yes",
+          "core": [
+            "shell"
+          ]
+        },
+        {
+          "id": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "browser",
+      "type": "choice",
+      "label": "Check the result in a browser",
+      "default": "yes",
+      "help": "Opens your local dev server or a site to look at what changed.",
+      "choices": [
+        {
+          "id": "yes",
+          "label": "Yes",
+          "core": [
+            "browser"
+          ],
+          "requires": [
+            {
+              "resource": "browser",
+              "access": "use",
+              "need": "optional"
+            }
+          ]
+        },
+        {
+          "id": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "git",
+      "type": "info",
+      "label": "Commits and pushes",
+      "text": "Stay yours, from Changes & versions. To let a worker commit through GitHub, register the repository on the GitHub page and grant this worker access in its full definition."
+    }
+  ],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stack": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "conventions": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "change": {
+          "enum": [
+            "read",
+            "edit",
+            null
+          ]
+        },
+        "scripts": {
+          "enum": [
+            "yes",
+            "no",
+            null
+          ]
+        },
+        "browser": {
+          "enum": [
+            "yes",
+            "no",
+            null
+          ]
+        }
+      }
+    }
+  },
+  "relations": [
+    {
+      "to": "browser",
+      "kind": "suggested",
+      "when": [
+        "frontend",
+        "front-end",
+        "ui",
+        "pages?",
+        "react",
+        "next\\.?js",
+        "vue"
+      ],
+      "why": "Checks the changed pages in a browser."
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "shopify",
+  "version": "1.0.0",
+  "label": "Shopify",
+  "status": "recognised",
+  "why": "There's no Shopify connector yet: a worker can't sign in to your store, or read or change its products, inventory, orders, pages or settings.",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/workspace-ui/create-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "shopify"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [],
+    "requires": []
+  },
+  "instructions": {
+    "steps": [],
+    "limits": [],
+    "starters": []
+  },
+  "questions": [
+    {
+      "id": "store",
+      "type": "text",
+      "label": "Store",
+      "placeholder": "yourstore.myshopify.com",
+      "knowledge": "Shopify store"
+    },
+    {
+      "id": "scope",
+      "type": "multi",
+      "label": "What should it work on?",
+      "required": true,
+      "choices": [
+        {
+          "id": "catalog",
+          "label": "Products and inventory",
+          "know": "Products and inventory come from a CSV exported in Shopify admin (Products → Export). The worker edits that file; the person imports it back (Products → Import).",
+          "unsupported": "Changing products or stock in the live store (needs the Shopify Admin API).",
+          "adds": {
+            "integration": "files",
+            "preset": {
+              "change": "edit"
+            }
+          }
+        },
+        {
+          "id": "orders",
+          "label": "Orders",
+          "know": "Orders come from a CSV exported in Shopify admin (Orders → Export), for analysis.",
+          "unsupported": "Reading or changing orders in the store itself (needs the Shopify Admin API).",
+          "adds": {
+            "integration": "files",
+            "preset": {}
+          }
+        },
+        {
+          "id": "theme",
+          "label": "Theme and storefront code",
+          "know": "The theme's code (Liquid, sections, assets) is in the project folder, e.g. pulled with Shopify CLI; the person pushes and publishes it.",
+          "adds": {
+            "integration": "code",
+            "preset": {
+              "stack": "Shopify theme (Liquid)"
+            }
+          }
+        },
+        {
+          "id": "content",
+          "label": "Pages, blog posts and navigation",
+          "unsupported": "Editing store pages, blog posts or navigation (needs the Shopify Admin API)."
+        }
+      ]
+    },
+    {
+      "id": "review",
+      "type": "info",
+      "label": "Review",
+      "text": "Whatever it changes is a file in a folder: you review it, then import or publish it in Shopify yourself. Nothing reaches the live store from here."
+    }
+  ],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "store": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "catalog",
+              "orders",
+              "theme",
+              "content"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 4
+        }
+      }
+    }
+  },
+  "relations": [
+    {
+      "to": "builder",
+      "kind": "optional",
+      "when": [
+        "headless",
+        "storefront content",
+        "content (model|pages)",
+        "landing pages?",
+        "builder(\\.io)?"
+      ],
+      "why": "Builder.io can manage the content of a headless Shopify storefront; it isn't needed for products, orders or the theme."
+    }
+  ]
+}

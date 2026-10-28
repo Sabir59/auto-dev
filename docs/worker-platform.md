@@ -90,7 +90,7 @@ Requirements are generic `{resource, access, need}` entries. A small resource re
 - **Writing:** the worker writes `REMEMBER: …` lines. The console stores them in that worker's memory file, with the date and run, and refuses lines that look like secrets.
 - **Reading:** the next runs of that worker get the memory as a separate, clearly labelled section ("may be outdated").
 - **Control:** the person can see and delete each entry.
-- **Separation:** the definition is never edited by the worker.
+- **Separation:** the definition is never edited by the worker. Since 2026-10-28 a worker can *propose* a change to its own steps, knowledge and limits; only the person approves it, as a new recorded version (`docs/worker-evolution.md`).
 
 ## 7. Lifecycle and editing
 

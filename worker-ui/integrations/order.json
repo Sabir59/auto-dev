@@ -1,0 +1,4 @@
+{
+ "note": "The order integrations are recognised and named in: more specific first. A request naming two integrations is named after the first one it supports.",
+ "order": ["gitsync", "code", "builder", "figma", "browser", "web", "files", "shopify", "sheets", "wordpress", "notion", "slack", "gmail", "airtable", "hubspot", "salesforce", "stripe", "jira", "trello", "webflow", "wix", "squarespace", "mailchimp", "whatsapp"]
+}

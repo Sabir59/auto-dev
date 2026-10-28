@@ -1,0 +1,40 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "whatsapp",
+  "version": "1.0.0",
+  "label": "WhatsApp",
+  "status": "recognised",
+  "why": "There's no WhatsApp connector yet: a worker can't sign in to WhatsApp or read or change anything in it.",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/integrations/catalog-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "whatsapp"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [],
+    "requires": []
+  },
+  "instructions": {
+    "steps": [],
+    "limits": [],
+    "starters": []
+  },
+  "questions": [],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  },
+  "relations": []
+}

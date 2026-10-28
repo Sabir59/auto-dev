@@ -1,0 +1,40 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "trello",
+  "version": "1.0.0",
+  "label": "Trello",
+  "status": "recognised",
+  "why": "There's no Trello connector yet: a worker can't sign in to Trello or read or change anything in it.",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/integrations/catalog-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "trello"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [],
+    "requires": []
+  },
+  "instructions": {
+    "steps": [],
+    "limits": [],
+    "starters": []
+  },
+  "questions": [],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  },
+  "relations": []
+}

@@ -1,0 +1,165 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "gitsync",
+  "version": "1.0.0",
+  "label": "Git branch sync and promotion",
+  "short": "Git sync",
+  "summary": "Shows which changes each branch is missing and who they belong to, and plans synchronisation and promotion between branches, simulated with Git before anything happens (worker-ui/gitflow.mjs).",
+  "status": "tested",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/workspace-ui/gitflow-test.mjs",
+    "bench/workspace-ui/gitflow-safety-test.mjs"
+  ],
+  "workspace": "project",
+  "detect": [
+    "sync",
+    "synchroni[sz]e",
+    "synchroni[sz]ation",
+    "in sync",
+    "cherry-?picks?",
+    "promote",
+    "promotion",
+    "branches"
+  ],
+  "absorbs": [
+    "code"
+  ],
+  "capabilities": [
+    {
+      "id": "gitflow.read",
+      "accounts": []
+    }
+  ],
+  "base": {
+    "enables": [
+      "gitflow.read"
+    ],
+    "core": [
+      "files.read"
+    ],
+    "requires": []
+  },
+  "coreWhy": {
+    "files.read": "Reads the repository's files when explaining a change."
+  },
+  "naming": {
+    "name": "{team} branch sync worker",
+    "fallback": "Branch sync worker",
+    "specialization": "Git branch synchronisation and promotion between teams"
+  },
+  "instructions": {
+    "steps": [
+      "Read the Git workflow configuration (gitflow_overview) before anything else",
+      "Base every statement about a commit on gitflow_commits / gitflow_commit evidence, and say when ownership or a relationship is uncertain",
+      "Explain plans from gitflow_preview: what is blocked, why, and what a person must decide"
+    ],
+    "limits": [
+      "Never claim a change is safe to apply because it looks like it belongs to the team: the plan's evidence decides.",
+      "Never invent a ticket, pull request or relationship between commits that the evidence doesn't show.",
+      "You can't create branches, merge or push: the person approves and runs plans on the Git workflow page."
+    ],
+    "starters": [
+      "Explain the changes waiting for each branch relationship: who they belong to, which are blocked and why. Don't change anything."
+    ]
+  },
+  "questions": [
+    {
+      "id": "team",
+      "type": "text",
+      "label": "Your team",
+      "placeholder": "e.g. BAU",
+      "knowledge": "Team"
+    },
+    {
+      "id": "others",
+      "type": "text",
+      "label": "Other teams in the repository",
+      "placeholder": "e.g. Innovax",
+      "knowledge": "Other teams"
+    },
+    {
+      "id": "mappings",
+      "type": "text",
+      "label": "Branch relationships",
+      "placeholder": "dev-main → sabir-dev; uat-main → sabir-uat; sabir-uat → preprod-main",
+      "knowledge": "Branch relationships",
+      "prefill": [
+        {
+          "pattern": "sabir-dev|sabir-uat",
+          "value": "dev-main → sabir-dev; uat-main → sabir-uat; sabir-uat → preprod-main"
+        }
+      ]
+    },
+    {
+      "id": "writes",
+      "type": "choice",
+      "label": "What may it prepare?",
+      "default": "preview",
+      "help": "Analysis and plans are simulated with Git and change nothing. A proposal branch is a NEW branch with a plan's result, created only when you approve that plan; nothing is ever pushed or written to an existing branch.",
+      "choices": [
+        {
+          "id": "preview",
+          "label": "Previews and reports only",
+          "approval": "It changes nothing in the repository."
+        },
+        {
+          "id": "propose",
+          "label": "Also proposal branches, when I approve",
+          "approval": "Each proposal branch needs your approval on the Git workflow page; you push it and open the pull request yourself."
+        }
+      ]
+    },
+    {
+      "id": "setup",
+      "type": "info",
+      "label": "After creating it",
+      "text": "Its Git workflow page has the rest: people and their identities, branch patterns, overrides and exclusion rules."
+    }
+  ],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "team": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "others": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "mappings": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "writes": {
+          "enum": [
+            "preview",
+            "propose",
+            null
+          ]
+        }
+      }
+    }
+  },
+  "relations": [
+    {
+      "to": "code",
+      "kind": "optional",
+      "when": [
+        "deploy(ment)?",
+        "ci",
+        "pipelines?",
+        "builds?",
+        "release"
+      ],
+      "why": "Deployment, CI and build work happens in the code repository; branch sync alone doesn't need it."
+    }
+  ]
+}

@@ -30,6 +30,11 @@ import * as ghApp from "./github-app.mjs";
 import { resolveProvider } from "./provider.mjs";
 import * as drafts from "./integrations.mjs";
 import * as gitflow from "./gitflow.mjs";
+import * as workerpack from "./workerpack.mjs";
+import * as catalog from "./catalog.mjs";
+import * as workerdef from "./workerdef.mjs";
+import * as migrate from "./migrate.mjs";
+import * as evolve from "./evolve.mjs";
 github.setRefresher(ghApp.refreshToken); // an expiring "Connect with GitHub" token is refreshed with the app's secret
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -267,24 +272,219 @@ function workerRuntime(def, profile, scope = {}) {
   // exports folders; it may read those, and only those, outside its workspace, to look at its work.
   const exportsDirs = [...new Set(usable.flatMap((c) => (c.startsWith("figma.plugin") ? [join(REPO, "exports")] : c === "browser" ? [BROWSER_EXPORTS] : [])))];
   const readOnly = scope.knowledgeDir ? [scope.knowledgeDir] : [];
-  const deny = [...(lockGit ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`), ...(HOSTED ? hostedDeny() : [])];
-  const settings = deny.length ? JSON.stringify({ ...JSON.parse(WORKER_SETTINGS), permissions: { deny: [...LOOPBACK_FETCH_DENY, ...deny] } }) : WORKER_SETTINGS;
+  const deny = [...(lockGit ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`), ...platformDeny(), ...(HOSTED ? hostedDeny() : [])];
+  const settings = JSON.stringify({ ...JSON.parse(WORKER_SETTINGS), permissions: { deny: [...LOOPBACK_FETCH_DENY, ...deny] } });
   const dirs = [...exportsDirs, ...readOnly];
   return { usable, blocked: def.capabilities.filter((c) => !allowed.includes(c) && !offHere(c)), byPlatform: def.capabilities.filter(offHere), byPolicy: allowed.filter((c) => policyOff.has(c)), servers, exportsDirs, repoTools,
     args: ["--settings", settings, ...base, "--tools", builtins.join(","), "--allowedTools", ...allow, ...(dirs.length ? ["--add-dir", ...dirs] : []), "--permission-prompts", "none"] };
 }
+// What a run starts with: its runtime and MCP servers. gate: capabilities whose accounts weren't
+// available when the run started. A capability served by an integration tool server (live) is
+// still loaded, with its tools off until it's connected (mcp/authz.mjs follows run.authz.live, which
+// the console keeps up to date during the run); any other (built-in tools, the browser) isn't
+// loaded: a process's built-in tools can't change while it runs. run: when given, its integration
+// servers get the per-call check (AIW_AUTHZ_URL/TOKEN → authorizeCall) and the live set, and the
+// run keeps what it was given.
+const AUTHZ_SERVERS = new Set(["figma-executor", "figma-reader", "builder", "gitflow", "repo"]);
+const liveCap = (c) => AUTHZ_SERVERS.has(CAPABILITIES[c]?.mcp);
+function launchPlan(def, ws, scope, gate = {}, run = null) {
+  const fixed = Object.fromEntries(Object.entries(gate).filter(([c]) => !liveCap(c)));
+  const rt = workerRuntime({ ...def, capabilities: def.capabilities.filter((c) => !fixed[c]) }, ws.profile, scope);
+  rt.byAccount = Object.entries(fixed).filter(([c]) => def.capabilities.includes(c));
+  rt.waiting = Object.entries(gate).filter(([c]) => liveCap(c) && rt.usable.includes(c));
+  if (run) {
+    const before = run.authz;
+    run.authz = { token: before?.token || randomUUID(), caps: new Set(rt.usable), def, ctx: { profile: ws.profile, root: ws.root, figmaKey: scope.figmaKey || null }, repo: scope.repo || null, checks: new Map(),
+      // what's connected now: at the start, what the gate just found; on a resume, what this run last
+      // had (announced changes are against it), confirmed again before its tool servers get an answer
+      live: before?.live ? new Set([...before.live].filter((c) => rt.usable.includes(c))) : new Set(rt.usable.filter((c) => liveCap(c) && !gate[c])),
+      v: (before?.v || 0) + 1, ready: !before, streak: new Map(), synced: new Map(), why: Object.fromEntries(rt.waiting) };
+  }
+  // A defined worker can propose a change to its own definition (mcp/evolve-server.mjs: read itself,
+  // propose; nothing that approves or edits). Not in a trial run of a proposal, and never the
+  // General worker, which has no definition.
+  if (def.id && !scope.candidate) { rt.args.splice(rt.args.indexOf("--allowedTools") + 1, 0, "mcp__evolve"); rt.servers.push("evolve"); rt.evolve = true; }
+  const servers = Object.fromEntries(rt.servers.map((n) => {
+    if (n === "evolve") return [n, { command: process.execPath, args: [join(REPO, "mcp", "evolve-server.mjs")], env: run ? { EVOLVE_URL: `http://127.0.0.1:${PORT}/evolve/${run.meta.id}`, EVOLVE_TOKEN: run.authz.token } : {} }];
+    const s = MCP_SERVERS[n](ws.profile, scope, rt.usable, ws.root, def);
+    return [n, run && AUTHZ_SERVERS.has(n) ? { ...s, env: { ...(s.env || {}), AIW_AUTHZ_URL: `http://127.0.0.1:${PORT}/authz/${run.meta.id}`, AIW_AUTHZ_TOKEN: run.authz.token, AIW_AUTHZ_SERVER: n } } : s];
+  }));
+  return { rt, args: rt.args, servers };
+}
+// What's connected, during a run: the run's live capabilities are checked again every few seconds
+// (the same account checks as at its start; the slow ones are cached). A capability that stops
+// being available is turned off at once; one that comes up is turned on after two checks in a row
+// (at once when the person asks for a check, or when a resumed run starts), so a connection that
+// flickers doesn't toggle tools. Only capabilities given to the run at its start can be turned on:
+// nothing is ever added. Each change is shown in the run, told to the worker with the person's
+// next message, and confirmed with the tool servers and the runtime (confirmLive).
+const LIVE_EVERY = 3000;
+async function refreshLive(run, { force = false } = {}) {
+  const a = run.authz;
+  if (!a) return;
+  if (a.refreshing) return a.refreshing;
+  a.refreshing = (async () => {
+    const caps = [...a.caps].filter(liveCap);
+    const gate = await accountGate(a.def, force ? { ...a.ctx, start: true } : a.ctx, caps); // a forced check also starts the Figma bridge if it isn't running
+    if (run.authz !== a) return; // the run restarted its process meanwhile
+    const added = [], removed = [];
+    for (const c of caps) {
+      if (gate[c]) { a.streak.delete(c); a.why[c] = gate[c]; if (a.live.has(c)) { a.live.delete(c); removed.push(c); } continue; }
+      delete a.why[c];
+      if (a.live.has(c)) continue;
+      const n = (a.streak.get(c) || 0) + 1; a.streak.set(c, n);
+      if (force || !a.ready || n >= 2) { a.live.add(c); a.streak.delete(c); added.push(c); }
+    }
+    a.ready = true;
+    // The plugin reopened in another file (a Team run is pinned to its own file by the check above):
+    // the person and the worker are told which file the Figma tools now act on.
+    let fileNote = "";
+    if (bridgeLauncher && !a.ctx.figmaKey && [...a.live].some((c) => c.startsWith("figma.plugin."))) {
+      const st = (await bridgeLauncher.bridgeStatus(FIGMA_BRIDGE_BASE).catch(() => null))?.status, f = st?.pluginConnected ? (st.sessions || [])[0] : null;
+      if (run.authz !== a) return;
+      if (f?.fileKey && a.figmaFile && f.fileKey !== a.figmaFile.key) {
+        emit(run, { type: "capability", summary: `The Figma plugin is now in "${f.fileName}" (was "${a.figmaFile.name}"). The Figma tools act on that file now.`, detail: JSON.stringify({ file: { from: a.figmaFile.name, to: f.fileName } }) });
+        fileNote = `the Figma plugin is now in "${f.fileName}" (was "${a.figmaFile.name}"): Figma tools act on that file now; confirm with figma_get_file_info before changing anything`;
+      }
+      if (f?.fileKey) a.figmaFile = { key: f.fileKey, name: f.fileName };
+    }
+    if (!added.length && !removed.length) { if (fileNote) run.pendingNote = `[Console: since your last turn, ${fileNote}.]`; return; }
+    a.v++;
+    const label = (c) => CAPABILITIES[c]?.label || c;
+    if (added.length) emit(run, { type: "capability", summary: `Connected: ${added.map(label).join(", ")}. Its tools are on in this task.`, detail: JSON.stringify({ added: added.map(label), v: a.v }) });
+    if (removed.length) emit(run, { type: "capability", summary: `Unavailable: ${removed.map((c) => `${label(c)} (${a.why[c]})`).join("; ")}. Its tools are off until it's connected again.`, detail: JSON.stringify({ removed: removed.map((c) => ({ label: label(c), why: a.why[c] })), waiting: true, v: a.v }) });
+    const note = [added.length ? `now connected, its tools are available (search with ToolSearch): ${added.map(label).join(", ")}` : "", removed.length ? `no longer available, its tools are off: ${removed.map((c) => `${label(c)} (${a.why[c]})`).join("; ")}` : "", fileNote].filter(Boolean).join("; ");
+    run.pendingNote = `[Console: since your last turn, ${note}.]`;
+    if (added.length) confirmLive(run, a, added).catch(() => {});
+  })().finally(() => { a.refreshing = null; });
+  return a.refreshing;
+}
+// A change reached the worker: each tool server hosting an added capability applied it (it reports
+// the version it applied and how many tools it has on), and the runtime lists that many tools for
+// it (mcp_status). A runtime that answers with fewer tools didn't pick the change up (an older Claude
+// Code): the run offers "Reload tools" (end the process; the next message resumes the same
+// conversation with the tools connected then). A runtime that doesn't report isn't claimed either way.
+async function confirmLive(run, a, added) {
+  const servers = [...new Set(added.map((c) => CAPABILITIES[c].mcp))], v = a.v;
+  let tries = 0;
+  while (servers.some((n) => !((a.synced.get(n)?.at ?? -1) >= v)) && tries++ < 20) await new Promise((ok) => setTimeout(ok, 500));
+  if (run.authz !== a || !alive(run) || a.v !== v) return;
+  if (servers.some((n) => !((a.synced.get(n)?.at ?? -1) >= v))) { emit(run, { type: "capability", summary: `The tool server didn't confirm the change (${servers.join(", ")}). If the worker can't find the tools, reload them.`, detail: JSON.stringify({ reload: true, v }) }); return; }
+  await new Promise((ok) => setTimeout(ok, 1000)); // the runtime refreshes its list shortly after the notification
+  const st = await mcpStatus(run);
+  if (!st || run.authz !== a || a.v !== v) return;
+  const missing = servers.filter((n) => { const row = st.find((s) => s.name === n); return !row || row.status !== "connected" || (row.tools || []).length < (a.synced.get(n)?.on ?? 1); });
+  if (missing.length) emit(run, { type: "capability", summary: `The worker's runtime didn't pick up the new tools (${missing.join(", ")}). Reload tools to continue this conversation with them.`, detail: JSON.stringify({ reload: true, v }) });
+}
+// The runtime's own view of its MCP servers (the stream-json mcp_status control request). Null when
+// it doesn't answer in time or doesn't report servers.
+function mcpStatus(run, timeout = 5000) {
+  if (!alive(run)) return Promise.resolve(null);
+  const id = `mcp-status-${randomUUID()}`;
+  return new Promise((ok) => {
+    const done = (v) => { clearTimeout(timer); run.controlWaits?.delete(id); ok(v); };
+    const timer = setTimeout(() => done(null), timeout);
+    (run.controlWaits ||= new Map()).set(id, (r) => done(Array.isArray(r?.response?.mcpServers) ? r.response.mcpServers : null));
+    try { run.child.stdin.write(JSON.stringify({ type: "control_request", request_id: id, request: { subtype: "mcp_status" } }) + "\n"); } catch { done(null); }
+  });
+}
+// A tool server asking which of its run's capabilities are connected now (mcp/authz.mjs).
+async function liveFor(runId, token, server, at, on) {
+  const run = runs.get(runId), a = run?.authz;
+  if (!a || !alive(run)) return null;
+  const t = Buffer.from(String(token)), want = Buffer.from(a.token);
+  if (t.length !== want.length || !timingSafeEqual(t, want)) return null;
+  if (server && at !== "") a.synced.set(server, { at: Number(at), on: Number(on) || 0 });
+  if (!a.ready) await Promise.race([refreshLive(run, { force: true }), new Promise((ok) => setTimeout(ok, 9000))]);
+  if (run.authz !== a || !a.ready) return { live: [], v: -1 };
+  return { live: [...a.live, ...(a.repo ? ["repo"] : [])], v: a.v };
+}
+// One account check, never throwing and never hanging: anything but a clear "available" is a no.
+async function checkAccount(a, ctx, timeout = 15000) {
+  const r = RESOURCES[a.resource]?.access[a.access], label = `${RESOURCES[a.resource]?.label || a.resource}: ${r?.label || a.access}`;
+  if (!r) return { ok: false, state: "Unknown account", label };
+  let timer;
+  try { const st = await Promise.race([r.check(ctx), new Promise((_, no) => { timer = setTimeout(() => no(new Error("timed out")), timeout); })]); return { ...st, ok: st?.ok === true, label }; }
+  catch (e) { return { ok: false, state: `Check failed: ${e.message}`, label }; }
+  finally { clearTimeout(timer); }
+}
+// Fail-closed at the start of a run: each capability that would be loaded is checked against the
+// accounts it needs (its integration manifest's, or the core catalogue's); one that isn't available,
+// or can't be confirmed, isn't loaded. Returns { capability: why }.
+async function accountGate(def, ctx, usable) {
+  const gate = {}, seen = new Map(), bindings = def.resolution?.bindings || {};
+  // Only a worker that can use the open Figma file has the Figma bridge started at its run's start
+  // (so an open plugin connects first, and one opened later connects during the run); for any other
+  // the bridge isn't started.
+  ctx = { ...ctx, start: !!ctx.start && usable.some((c) => c.startsWith("figma.plugin.")) };
+  for (const c of usable) {
+    const accounts = bindings[c] ?? catalog.capabilityAccounts(c);
+    if (accounts == null) { gate[c] = "not a capability this console knows"; continue; }
+    for (const a of accounts) {
+      const k = `${a.resource}:${a.access}`;
+      if (!seen.has(k)) seen.set(k, await checkAccount(a, ctx));
+      const st = seen.get(k); if (!st.ok) { gate[c] = `${st.label}: ${st.state}`; break; }
+    }
+  }
+  return gate;
+}
+// Each integration tool call (mcp/authz.mjs): the run is active, the call comes from its own tool
+// server, the capability was given to this run, and its accounts are still available (checked
+// again; a result is reused for at most 10 seconds). Anything else is refused.
+async function authorizeCall(runId, token, cap) {
+  const run = runs.get(runId), a = run?.authz;
+  if (!a || !alive(run)) return { ok: false, reason: "this run isn't active" };
+  const t = Buffer.from(String(token)), want = Buffer.from(a.token);
+  if (t.length !== want.length || !timingSafeEqual(t, want)) return { ok: false, reason: "the call didn't come from this run's tool server" };
+  let accounts = [];
+  if (cap === "repo") { if (!a.repo) return { ok: false, reason: "this run has no repository access" }; }
+  else {
+    if (!a.caps.has(cap)) return { ok: false, reason: `${CAPABILITIES[cap]?.label || cap} isn't given to this worker in this run` };
+    accounts = a.def.resolution?.bindings?.[cap] ?? catalog.capabilityAccounts(cap);
+    if (accounts == null) return { ok: false, reason: "not a capability this console knows" };
+  }
+  for (const acc of accounts) {
+    const k = `${acc.resource}:${acc.access}`, hit = a.checks.get(k);
+    const st = hit && Date.now() - hit.at < 10000 ? hit.value : await checkAccount(acc, a.ctx, 8000);
+    if (!hit || hit.value !== st) a.checks.set(k, { at: Date.now(), value: st });
+    if (!st.ok) return { ok: false, reason: `${st.label}: ${st.state}${st.detail ? ` (${st.detail})` : ""}` };
+  }
+  return { ok: true };
+}
 // Hosted, a worker never reads or writes the person's integration credentials (GitHub, Figma,
-// Builder) or the runtime's session transcripts, and never edits the console's own records (worker
-// and Team definitions, workspaces, run logs): its capabilities can't be changed from inside a run.
-// Enforced by the runtime's permission rules; the OS boundary (the person's own uid) is beneath it.
+// Builder) or the runtime's session transcripts. Enforced by the runtime's permission rules; the OS
+// boundary (the person's own uid) is beneath it.
 function hostedDeny() {
   const secret = [github.CRED_DIR, FIGMA_CRED_DIR, builderApi.CRED_DIR, CONFIG_DIR].map((d) => denyPath(d));
-  return [...secret.flatMap((d) => [`Read(${d}/**)`, `Edit(${d}/**)`]),
-    ...["*.json", "*.md", "runs/**", "workers/**", "teams/**"].map((p) => `Edit(${denyPath(DATA)}/${p})`)];
+  return secret.flatMap((d) => [`Read(${d}/**)`, `Edit(${d}/**)`]);
+}
+// On every console, local and hosted, no worker's file tools may write:
+//  - the console's own records: worker definitions, their versions, proposals and memory, Teams,
+//    workspaces, settings, run logs, Git workflow configuration, backups (a worker could otherwise
+//    rewrite its own definition and access, as a file, outside any review);
+//  - the integration catalogue (manifests, core capabilities, the release lockfile) and the platform
+//    instructions every run is given;
+//  - the files the runtime reads as standing instructions or settings in a workspace — CLAUDE.md,
+//    CLAUDE.local.md, AGENTS.md, .claude/ — which a worker could otherwise use to steer its own later
+//    runs without anyone reviewing it (probed: a worker-written CLAUDE.md reached its next run).
+// Verified by bench/evolution/boundary-probe.mjs. A worker WITH shell (node, curl) isn't held by
+// these rules: it runs code as the person's OS user (see docs/worker-evolution.md, "Limits");
+// the integrity check in newRun catches a definition changed outside the console.
+const STANDING_INSTRUCTIONS = ["CLAUDE.md", "CLAUDE.local.md", "AGENTS.md"];
+function platformDeny() {
+  const d = denyPath(DATA);
+  return [...["*.json", "*.md", "runs/**", "workers/**", "teams/**", "gitflow/**", "backups/**"].map((p) => `Edit(${d}/${p})`),
+    `Edit(${denyPath(catalog.dir())}/**)`, ...["worker-instructions.md", "worker-efficiency.md"].map((f) => `Edit(${denyPath(join(HERE, f))})`),
+    "Edit(.claude/**)", "Edit(**/.claude/**)", ...STANDING_INSTRUCTIONS.flatMap((f) => [`Edit(${f})`, `Edit(**/${f})`])];
 }
 // The general worker, as a definition: what it gets when a policy means it can't run on the plain
 // profile flags (every capability the profile allows, except the ones the policy turns off).
-const GENERAL = { id: null, name: "General", capabilities: ["files.read", "files.write", "web", "browser", "figma.plugin.read", "figma.plugin.edit"], workflow: [], limitations: [], requirements: [] };
+// It has no definition, so it gets only the core capabilities granted to it in its settings
+// (general.json; by default the catalogue's), within the workspace's, Team's and platform's limits.
+// Never an integration's tools: those come with a worker that has the integration.
+const GENERAL_FILE = join(DATA, "general.json");
+const readGeneral = () => { try { const g = JSON.parse(readFileSync(GENERAL_FILE, "utf8")); return { core: (Array.isArray(g.core) ? g.core : []).filter((c) => catalog.isCore(c)), saved: true }; } catch { return { core: catalog.generalDefault(), saved: false }; } };
+const generalDefinition = () => ({ id: null, name: "General", capabilities: readGeneral().core, workflow: [], limitations: [], requirements: [] });
 
 // Requirements are generic {resource, access, need}; this registry knows how to check each one
 // now, without showing any secret. A missing requirement doesn't block the run: the worker is
@@ -298,7 +498,7 @@ const RESOURCES = {
     read: { label: "read designs", how: HOSTED ? "Connect Figma on the Figma page (a Figma personal access token with file_content:read). The connected account must be able to open the file." : "Connect Figma on this computer once: a Figma personal access token with file_content:read, or the OAuth flow (figma-reader/README.md). The connected account must be able to open the file.",
       async check() {
         if (!existsSync(FIGMA_CRED_FILE)) return { ok: false, state: "Not connected" };
-        if (Date.now() - figmaCheck.at < 300000 && figmaCheck.value) return figmaCheck.value;
+        if (figmaCheck.value && Date.now() - figmaCheck.at < (figmaCheck.value.ok ? 60000 : 5000)) return figmaCheck.value;
         let v; try { const me = await figmaApi("/v1/me"); v = { ok: true, state: "Connected", detail: me.handle ? `as ${me.handle}` : "" }; }
         catch (e) { v = { ok: false, state: e.status === 401 || e.status === 403 ? "Authorization rejected" : "Can't verify", detail: clip(e.message, 120) }; }
         figmaCheck = { at: Date.now(), value: v }; return v;
@@ -336,7 +536,7 @@ const RESOURCES = {
     read: { label: "read content", how: "Add the Builder space's keys once on this computer (builder-adapter/README.md). A Builder link alone grants nothing.",
       async check() {
         if (!builderApi.credentialsPresent()) return { ok: false, state: "Not connected" };
-        if (Date.now() - builderCheck.at < 300000 && builderCheck.value) return builderCheck.value;
+        if (builderCheck.value && Date.now() - builderCheck.at < (builderCheck.value.ok ? 60000 : 5000)) return builderCheck.value;
         let v; try { const s = builderApi.accessSummary(); await builderApi.listModels(); v = { ok: true, state: "Connected", detail: `${s.label} (${s.environment})` }; }
         catch (e) { v = { ok: false, state: e.status === 401 || e.status === 403 ? "Key rejected" : "Can't verify", detail: clip(e.message, 120) }; }
         builderCheck = { at: Date.now(), value: v }; return v;
@@ -379,13 +579,59 @@ function checkRequirements(list) {
   return requirements.filter((r, i) => requirements.findIndex((x) => x.resource === r.resource && x.access === r.access) === i);
 }
 
-const readWorkers = () => (existsSync(WORKERS) ? JSON.parse(readFileSync(WORKERS, "utf8")) : []);
-const writeWorkers = (list) => { writeFileSync(WORKERS + ".tmp", JSON.stringify(list, null, 1)); renameSync(WORKERS + ".tmp", WORKERS); };
+// Workers are read resolved (workerdef.mjs: a schema-2 worker's tools, requirements and integration
+// instructions come from its pinned manifests) and written in their stored form.
+const readWorkersRaw = () => (existsSync(WORKERS) ? JSON.parse(readFileSync(WORKERS, "utf8")) : []);
+const readWorkers = () => readWorkersRaw().map(workerdef.resolve);
+// Every version of a worker is kept: workers/<id>/history/v<N>.json { version, parent, savedAt,
+// source { kind, … }, reason, definition (stored form) }, written by writeWorkers for each worker whose
+// stored definition changed — whoever changed it (the editor, an upgrade, a migration, an import, a
+// restore, an approved proposal). A version number is never reused: if a write would land on a number
+// that's already recorded with other content (after a migration was undone, say), it gets the next
+// free one. A worker first changed after history began also gets its previous form recorded
+// ("before-history"), so it can be compared and restored.
+const historyDir = (id) => join(MEMORY, id, "history");
+const historyVersions = (id) => (/^[\w-]+$/.test(id) && existsSync(historyDir(id)) ? readdirSync(historyDir(id)).map((f) => /^v(\d+)\.json$/.exec(f)?.[1]).filter(Boolean).map(Number).sort((a, b) => a - b) : []);
+const readVersion = (id, n) => { const f = join(historyDir(id), `v${Number(n)}.json`); return /^[\w-]+$/.test(id) && existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; };
+function recordVersion(stored, source, parent) {
+  mkdirSync(historyDir(stored.id), { recursive: true });
+  const f = join(historyDir(stored.id), `v${stored.version}.json`);
+  if (existsSync(f)) throw new Error(`Version ${stored.version} of ${stored.name} is already recorded.`); // never overwritten
+  writeAtomic(f, JSON.stringify({ version: stored.version, parent, savedAt: new Date().toISOString(), source: { kind: source.kind, ...(source.proposal ? { proposal: source.proposal } : {}), ...(source.restoredFrom ? { restoredFrom: source.restoredFrom } : {}), ...(source.verification ? { verification: source.verification } : {}) }, reason: String(source.reason || "").slice(0, 500), definition: stored }, null, 1));
+}
+const writeWorkers = (list, why = { kind: "save" }) => {
+  const before = new Map(readWorkersRaw().map((w) => [w.id, w]));
+  const out = list.map(workerdef.toStored);
+  for (const w of out) {
+    const prev = before.get(w.id);
+    if (prev && JSON.stringify(prev) === JSON.stringify(w)) continue;
+    let have = historyVersions(w.id);
+    if (prev && !have.length) { recordVersion(prev, { kind: "before-history" }, null); have = [prev.version]; }
+    const top = have.length ? have[have.length - 1] : 0;
+    if (w.version <= top) { w.version = top + 1; w.updatedAt = new Date().toISOString(); }
+    recordVersion(w, why, prev ? prev.version : null);
+  }
+  writeFileSync(WORKERS + ".tmp", JSON.stringify(out, null, 1)); renameSync(WORKERS + ".tmp", WORKERS);
+  return out;
+};
+// A worker runs only as a version the console recorded: if its stored definition differs from the
+// history file of its version (or that version was never recorded although it has history), it was
+// changed outside the console — by hand, or by a program running as the person — and isn't run until
+// someone saves it in the editor (which records it). Workers from before history are run as they are.
+function integrityProblem(w) {
+  const have = historyVersions(w.id);
+  if (!have.length) return null;
+  const rec = readVersion(w.id, w.version), stored = readWorkersRaw().find((x) => x.id === w.id);
+  if (rec && JSON.stringify(rec.definition) === JSON.stringify(stored)) return null;
+  return `${w.name}'s definition was changed outside the console (it doesn't match its recorded version ${w.version}${rec ? "" : ", which was never recorded"}). Open it in the editor, check it, and save it to make it a recorded version before running it.`;
+}
 const lines = (v, max, len) => (Array.isArray(v) ? v : String(v || "").split(/\r?\n/)).map((x) => String(x).trim()).filter(Boolean).slice(0, max).map((x) => x.slice(0, len));
 // Everything the person can set, checked: unknown capabilities or requirements are refused.
 function normalizeWorker(b, prev) {
   const name = String(b.name || "").trim();
   if (!name || name.length > 60) throw new Error("Give the worker a name (up to 60 characters).");
+  // Schema 2: integrations pinned to versions, explicit core capabilities, its own text (workerdef.mjs).
+  if (b.schema === workerdef.SCHEMA || (workerdef.isV2(prev) && b.schema !== 1)) return workerdef.resolve(normalizeWorkerV2(b, prev, name));
   const capabilities = [...new Set((b.capabilities || []).map(String))];
   for (const c of capabilities) if (!CAPABILITIES[c]) throw new Error(`Unknown capability "${c}".`);
   const requirements = (b.requirements || []).map((r) => ({ resource: String(r.resource || ""), access: String(r.access || ""), need: r.need === "optional" ? "optional" : "required" }));
@@ -406,6 +652,26 @@ function normalizeWorker(b, prev) {
     requirements: requirements.filter((r, i) => requirements.findIndex((x) => x.resource === r.resource && x.access === r.access) === i), onMissing: String(b.onMissing || "").trim().slice(0, 1000),
     // The request it was created from (only ever set by the console: see worker drafts).
     ...(prev?.fromRequest ? { fromRequest: prev.fromRequest } : {}),
+    // Where it came from when it was cloned or imported (only ever set by the console: see worker packages).
+    ...(prev?.origin ? { origin: prev.origin } : {}),
+    version: (prev?.version || 0) + 1, createdAt: prev?.createdAt || now, updatedAt: now };
+}
+
+function normalizeWorkerV2(b, prev, name) {
+  const parts = workerdef.check(b, { resources: RESOURCES });
+  const known = new Set(readGithub().repos.map((r) => r.id)), repos = [];
+  for (const g of (b.repos || []).slice(0, 50)) {
+    const repo = String(g?.repo || ""), level = String(g?.level || "");
+    if (!level || level === "none") continue;
+    if (!known.has(repo)) throw new Error(`No registered repository "${repo}".`);
+    if (!REPO_LEVELS.includes(level)) throw new Error(`Unknown repository access "${level}".`);
+    if (!repos.some((x) => x.repo === repo)) repos.push({ repo, level });
+  }
+  const now = new Date().toISOString();
+  return { schema: workerdef.SCHEMA, id: prev?.id || `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "worker"}-${randomUUID().slice(0, 4)}`, name,
+    specialization: String(b.specialization || "").trim().slice(0, 200), mission: String(b.mission || "").trim().slice(0, 600), outcomes: lines(b.outcomes, 10, 200),
+    ...parts, workflow: lines(b.workflow, 30, 600), knowledge: String(b.knowledge || "").trim().slice(0, 20000), limitations: lines(b.limitations, 30, 300), onMissing: String(b.onMissing || "").trim().slice(0, 1000), repos,
+    ...(prev?.fromRequest ? { fromRequest: prev.fromRequest } : {}), ...(prev?.origin ? { origin: prev.origin } : {}), ...(prev?.migratedFrom ? { migratedFrom: prev.migratedFrom } : {}),
     version: (prev?.version || 0) + 1, createdAt: prev?.createdAt || now, updatedAt: now };
 }
 
@@ -470,15 +736,277 @@ function workerFromRequest(b) {
   if (d.pending.length) throw Object.assign(new Error(`Answer first: ${d.pending.map((x) => x.label).join("; ")}.`), { status: 400 });
   if (d.nothingSupported) throw Object.assign(new Error(`Nothing in this request can be done with the connectors this platform has: ${d.unsupported.map((u) => u.label).join(", ") || "no tools or systems named"}.`), { status: 400 });
   const name = String(b.name || "").trim() || d.definition.name, mission = String(b.mission || "").trim() || d.definition.mission;
-  return { ...normalizeWorker({ ...d.definition, name, mission }), fromRequest: { description: d.description, integrations: d.integrations, answers: d.answers, others: d.others,
+  // Schema 2: the integrations it involves, pinned at the versions it was composed with.
+  return { ...normalizeWorker({ ...workerdef.fromDraft(d), name, mission, specialization: d.definition.specialization }), fromRequest: { description: d.description, integrations: d.integrations, answers: d.answers, others: d.others,
     workspace: d.workspace, unsupported: d.unsupported.map((u) => u.label), starters: d.starters, at: new Date().toISOString() } };
 }
+// ---------------- worker packages: cloning and sharing (worker-ui/workerpack.mjs) ----------------
+// Export, clone and import share one path: a worker becomes a package (the allowlist in
+// workerpack.mjs), the package is read and checked as untrusted input, and installing it creates a
+// new worker through normalizeWorker, the same as any worker made here. What it may do is decided by
+// this console: its catalogues, the workspace it runs in, the accounts connected here, its policies.
+const packCatalog = () => ({ capabilities: Object.fromEntries(Object.entries(CAPABILITIES).map(([id, c]) => [id, c.label])),
+  resources: Object.fromEntries(Object.entries(RESOURCES).flatMap(([id, r]) => Object.entries(r.access).map(([a, x]) => [`${id}:${a}`, `${r.label}: ${x.label}`]))) });
+// local: a clone on this console keeps its paths (they're this computer's own) and isn't stopped by
+// text that looks like a credential (nothing leaves the computer); an export is.
+const packWorker = (w, local = false) => workerpack.buildPackage({ worker: w, local, gitflow: w.capabilities.includes("gitflow.read") ? readGitflowConfig(w.id) : null,
+  repoName: (id) => readGithub().repos.find((r) => r.id === id)?.fullName || null, catalog: packCatalog(), generator: { name: "ai-workforce-console", version: `workerpack ${workerpack.FORMAT_VERSION}` },
+  secretFields: (id, version) => catalog.get(id, version)?.config.secret || [], integrationInfo: (id, version) => { const m = catalog.get(id, version) || catalog.latest(id); return m ? { label: m.label, status: m.status } : null; } });
+// A package's pinned integrations, as this console has them: the exact version; else another version
+// of the same major (its settings carried over), which installs only with the person's consent; else
+// missing (nothing of that version here) or unknown (no such integration here).
+function packIntegrations(d) {
+  return (d.integrations || []).map((r) => {
+    const exact = catalog.get(r.id, r.version), latest = catalog.latest(r.id), major = catalog.semver(r.version)[0];
+    const alt = !exact ? catalog.versions(r.id).filter((v) => catalog.semver(v)[0] === major).pop() || null : null;
+    const m = exact || (alt && catalog.get(r.id, alt)), config = exact ? r.config : alt ? migrate.carryConfig(r.config, m).config : r.config;
+    const errors = m ? workerdef.configErrors(m, config) : [];
+    const state = exact ? (errors.length ? "invalid" : "exact") : alt ? (errors.length ? "invalid" : "other-version") : latest ? "missing-version" : "unknown";
+    return { id: r.id, version: r.version, label: m?.label || latest?.label || r.id, status: m?.status || "unknown", state, alternative: alt, use: state === "exact" ? r.version : state === "other-version" ? alt : null, config, errors: errors.slice(0, 3), available: catalog.versions(r.id) };
+  });
+}
+// The schema-2 definition a package would install as here (what this console can resolve).
+const packV2 = (pkg, o = {}) => { const ints = packIntegrations(pkg.definition), d = pkg.definition;
+  return { ints, stored: { schema: workerdef.SCHEMA, name: o.name || d.name, specialization: d.specialization, mission: d.mission, outcomes: d.outcomes, workflow: d.workflow, knowledge: pkg.knowledge, limitations: d.limitations, onMissing: d.onMissing,
+    integrations: ints.filter((x) => x.use).map((x) => ({ id: x.id, version: x.use, config: x.config })), core: d.core.filter((c) => catalog.isCore(c)), extraRequirements: d.extraRequirements.filter((r) => !!RESOURCES[r.resource]?.access[r.access]) } }; };
+// Packages read and checked, waiting for the person to install them (30 minutes, at most 20).
+const PENDING_PACKS = new Map();
+function keepPack(pkg) {
+  const now = Date.now();
+  for (const [k, v] of PENDING_PACKS) if (now - v.at > 30 * 60e3) PENDING_PACKS.delete(k);
+  while (PENDING_PACKS.size >= 20) PENDING_PACKS.delete(PENDING_PACKS.keys().next().value);
+  const token = randomUUID(); PENDING_PACKS.set(token, { pkg, at: now }); return token;
+}
+const nameTaken = (name) => readWorkers().some((w) => w.name.toLowerCase() === String(name).trim().toLowerCase());
+function freeName(base) { if (!nameTaken(base)) return base; for (let n = 2; ; n++) { const s = ` (${n})`, c = base.slice(0, 60 - s.length) + s; if (!nameTaken(c)) return c; } }
+// Its Git workflow rules as this console would save them (null when it has none). Never people,
+// overrides or a repository from the package; proposal branches start off.
+function packGitflowConfig(pkg, workspace) {
+  if (!pkg.gitflow) return null;
+  return gitflow.normalizeConfig({ source: "workspace", workspace: workspace || "", teams: pkg.gitflow.teams, people: [], overrides: [], mappings: pkg.gitflow.mappings,
+    exclude: pkg.gitflow.exclude, shared: pkg.gitflow.shared, forbidden: pkg.gitflow.forbidden, tickets: pkg.gitflow.tickets, proposals: false });
+}
+// What a package asks for, against this console now: its tools (known here, and usable in the chosen
+// workspace and on this platform), its accounts and access (checked now, as at a run's start), the
+// repositories it would need (registered here or not: granting is the person's choice), its Git
+// workflow rules (valid here or not), and its name (taken here or not).
+async function packPlan(pkg, o = {}) {
+  if (pkg.definition.schema === workerdef.SCHEMA) return packPlanV2(pkg, o);
+  const d = pkg.definition;
+  let ws = null; try { ws = resolveWorkspace(o.workspace || "console"); } catch {}
+  const profile = ws?.profile || "full", known = d.capabilities.filter((c) => CAPABILITIES[c]), rt = workerRuntime({ capabilities: known }, profile);
+  const reqOk = (r) => !!RESOURCES[r.resource]?.access[r.access];
+  const status = await requirementStatus({ requirements: d.requirements.filter(reqOk) }, { profile, root: ws?.root || null });
+  const registered = readGithub().repos;
+  let gitflowError = ""; try { packGitflowConfig(pkg, ""); } catch (e) { gitflowError = e.message; }
+  const issues = [...d.capabilities.filter((c) => !CAPABILITIES[c]).map((c) => ({ kind: "capability", id: c, text: `“${c}” isn't a tool this console has.` })),
+    ...d.requirements.filter((r) => !reqOk(r)).map((r) => ({ kind: "requirement", id: `${r.resource}:${r.access}`, text: `“${r.resource} ${r.access}” isn't something this console can check or provide.` })),
+    ...(gitflowError ? [{ kind: "gitflow", id: "gitflow", text: `Its Git workflow rules aren't valid here: ${gitflowError}` }] : [])];
+  return { workspace: ws ? { id: ws.id, name: ws.name, profile } : null, profile,
+    capabilities: known.map((id) => ({ id, label: CAPABILITIES[id].label, tools: CAPABILITIES[id].tools,
+      state: rt.usable.includes(id) ? "available" : rt.byPlatform.includes(id) ? "platform" : rt.byPolicy?.includes(id) ? "policy" : "workspace", note: offHere(id) ? HOSTED_OFF[id] : "" })),
+    requirements: status, missingRequired: status.filter((r) => r.need === "required" && !r.ok).length,
+    repositories: pkg.repositories.map((g) => { const here = registered.find((r) => r.fullName.toLowerCase() === g.fullName.toLowerCase()); return { ...g, registered: !!here, repo: here?.id || null, levels: REPO_LEVELS.slice(0, Math.max(1, REPO_LEVELS.indexOf(g.level) + 1)) }; }),
+    gitflow: pkg.gitflow ? { teams: pkg.gitflow.teams, mappings: pkg.gitflow.mappings, exclude: pkg.gitflow.exclude, shared: pkg.gitflow.shared, forbidden: pkg.gitflow.forbidden, error: gitflowError } : null,
+    name: d.name, nameTaken: nameTaken(d.name), suggestedName: freeName(d.name), issues };
+}
+// A format-2 package: its integrations as this console has them, the tools and requirements they
+// resolve to here, its core capabilities, and its name.
+async function packPlanV2(pkg, o = {}) {
+  const d = pkg.definition, { ints, stored } = packV2(pkg);
+  let ws = null; try { ws = resolveWorkspace(o.workspace || "console"); } catch {}
+  const profile = ws?.profile || "full", resolved = workerdef.resolve({ ...stored, id: "preview" }), rt = workerRuntime(resolved, profile);
+  const status = await requirementStatus(resolved, { profile, root: ws?.root || null });
+  const registered = readGithub().repos;
+  const issues = [...ints.filter((x) => x.state !== "exact").map((x) => ({ kind: "integration", id: x.id, text: x.state === "other-version" ? `${x.label} ${x.version} isn't here: it installs at ${x.alternative} (the same major version), with its settings carried over.` : x.state === "invalid" ? `${x.label}: its settings aren't valid for ${x.use || x.alternative || x.version} here (${x.errors.join("; ")}).` : x.state === "missing-version" ? `${x.label} ${x.version} isn't here (this console has ${x.available.join(", ")}).` : `“${x.id}” isn't an integration this console has.` })),
+    ...d.core.filter((c) => !catalog.isCore(c)).map((c) => ({ kind: "capability", id: c, text: `“${c}” isn't a core capability this console has.` })),
+    ...d.extraRequirements.filter((r) => !RESOURCES[r.resource]?.access[r.access]).map((r) => ({ kind: "requirement", id: `${r.resource}:${r.access}`, text: `“${r.resource} ${r.access}” isn't something this console can check or provide.` }))];
+  let gitflowError = ""; try { packGitflowConfig(pkg, ""); } catch (e) { gitflowError = e.message; }
+  if (gitflowError) issues.push({ kind: "gitflow", id: "gitflow", text: `Its Git workflow rules aren't valid here: ${gitflowError}` });
+  return { schema: 2, workspace: ws ? { id: ws.id, name: ws.name, profile } : null, profile, integrations: ints.map(({ config, ...x }) => x),
+    capabilities: resolved.capabilities.map((id) => ({ id, label: CAPABILITIES[id]?.label || id, tools: CAPABILITIES[id]?.tools || "", core: catalog.isCore(id),
+      state: rt.usable.includes(id) ? "available" : rt.byPlatform.includes(id) ? "platform" : rt.byPolicy?.includes(id) ? "policy" : "workspace", note: offHere(id) ? HOSTED_OFF[id] : "" })),
+    core: stored.core, requirements: status, missingRequired: status.filter((r) => r.need === "required" && !r.ok).length,
+    repositories: pkg.repositories.map((g) => { const here = registered.find((r) => r.fullName.toLowerCase() === g.fullName.toLowerCase()); return { ...g, registered: !!here, repo: here?.id || null, levels: REPO_LEVELS.slice(0, Math.max(1, REPO_LEVELS.indexOf(g.level) + 1)) }; }),
+    gitflow: pkg.gitflow ? { teams: pkg.gitflow.teams, mappings: pkg.gitflow.mappings, exclude: pkg.gitflow.exclude, shared: pkg.gitflow.shared, forbidden: pkg.gitflow.forbidden, error: gitflowError } : null,
+    name: d.name, nameTaken: nameTaken(d.name), suggestedName: freeName(d.name), issues };
+}
+// Installing: always a new worker (a new id, version 1, no memory, no runs), never over another one.
+// What isn't supported here is installed only after the person agrees to leave it out (dropUnknown).
+function installPack(pkg, o = {}, origin = "package") {
+  if (pkg.definition.schema === workerdef.SCHEMA) return installPackV2(pkg, o, origin);
+  const d = pkg.definition, reqOk = (r) => !!RESOURCES[r.resource]?.access[r.access];
+  const unknownCaps = d.capabilities.filter((c) => !CAPABILITIES[c]), unknownReqs = d.requirements.filter((r) => !reqOk(r));
+  let flow = null, flowError = ""; try { flow = packGitflowConfig(pkg, ""); } catch (e) { flowError = e.message; }
+  if ((unknownCaps.length || unknownReqs.length || flowError) && !o.dropUnknown) throw Object.assign(new Error("Some of what the package asks for isn't supported here. Confirm installing it without them."), { status: 400 });
+  const name = String(o.name || "").trim() || d.name;
+  if (nameTaken(name)) throw Object.assign(new Error(`A worker called “${name}” already exists here. Choose another name: an existing worker is never replaced.`), { status: 409 });
+  // Repository access: only to a repository registered on this console, at most the level the package
+  // asked for, and only what the person granted here. The package itself grants nothing.
+  const registered = readGithub().repos, repos = [];
+  for (const g of Array.isArray(o.repos) ? o.repos.slice(0, 20) : []) {
+    const want = pkg.repositories.find((x) => x.fullName.toLowerCase() === String(g?.fullName || "").toLowerCase()), here = want && registered.find((r) => r.fullName.toLowerCase() === want.fullName.toLowerCase());
+    if (!g?.level || g.level === "none") continue;
+    if (!here) throw Object.assign(new Error(`“${g.fullName}” isn't a repository registered on this console.`), { status: 400 });
+    if (REPO_LEVELS.indexOf(g.level) < 0 || REPO_LEVELS.indexOf(g.level) > REPO_LEVELS.indexOf(want.level)) throw Object.assign(new Error(`Access to ${want.fullName} can be at most “${want.level}”, as the package asks.`), { status: 400 });
+    repos.push({ repo: here.id, level: g.level });
+  }
+  if (o.gitflowWorkspace) resolveWorkspace(o.gitflowWorkspace); // a workspace of this console, or an error
+  const list = readWorkers();
+  let w = normalizeWorker({ ...d, name, knowledge: pkg.knowledge, capabilities: d.capabilities.filter((c) => CAPABILITIES[c]), requirements: d.requirements.filter(reqOk), repos });
+  while (list.some((x) => x.id === w.id)) w = { ...w, id: normalizeWorker({ name }).id };
+  const r = d.request;
+  if (r.description || r.starters.length) w.fromRequest = { description: r.description, integrations: r.integrations, answers: {}, others: [], workspace: r.workspaceKind, unsupported: r.unsupported, starters: r.starters, at: w.createdAt };
+  w.origin = { kind: origin, packageId: pkg.manifest.packageId, from: d.name, at: w.createdAt, ...(origin === "clone" && o.sourceId ? { worker: o.sourceId } : {}) };
+  if (existsSync(memPath(w.id))) writeMemory(w.id, []);
+  writeWorkers([...list, w], { kind: origin === "clone" ? "clone" : "import", reason: `From ${d.name}` });
+  const gitflowSaved = !!(flow && w.capabilities.includes("gitflow.read"));
+  if (gitflowSaved) { writeGitflowConfig(w.id, { ...flow, workspace: o.gitflowWorkspace || "" }); gitflowAudit(w.id, { action: "import", by: origin === "clone" ? "clone" : "package", packageId: pkg.manifest.packageId, from: d.name }); }
+  return { worker: w, gitflow: gitflowSaved, gitflowWorkspace: gitflowSaved ? o.gitflowWorkspace || "" : null, left: { capabilities: unknownCaps, requirements: unknownReqs.map((x) => `${x.resource} ${x.access}`), gitflow: flowError } };
+}
+// ---- migrating workers made before integrations ----
+const BACKUPS = join(DATA, "backups");
+const listBackups = () => (existsSync(BACKUPS) ? readdirSync(BACKUPS).filter((f) => /^workers-[\w-]+\.json$/.test(f)).sort().reverse().slice(0, 20) : []);
+// items: [{ id, choice?: index into the proposal's choices, acceptChanges?: true }]. All or nothing.
+function applyMigration(b) {
+  const items = Array.isArray(b.workers) ? b.workers.slice(0, 200) : [], list = readWorkers(), done = [];
+  if (!items.length) throw Object.assign(new Error("Choose which workers to migrate."), { status: 400 });
+  const next = list.map((w) => ({ ...w }));
+  for (const it of items) {
+    const k = next.findIndex((w) => w.id === it.id);
+    if (k < 0) throw Object.assign(new Error(`No worker "${it.id}".`), { status: 404 });
+    if (workerdef.isV2(next[k])) throw Object.assign(new Error(`${next[k].name} is already migrated.`), { status: 400 });
+    const p = migrate.proposeMigration(next[k]);
+    const picked = p.status === "ambiguous" ? (Number.isInteger(it.choice) && p.choices[it.choice] ? p.choices[it.choice].result : p.choices.length ? null : p) : p;
+    if (!picked) throw Object.assign(new Error(`${p.name}: its mapping is ambiguous; choose one of its options.`), { status: 400 });
+    const changes = [...picked.effective.added.map((c) => `+${c}`), ...picked.effective.removed.map((c) => `-${c}`)];
+    if (changes.length && it.acceptChanges !== true) throw Object.assign(new Error(`${p.name}: this mapping changes its tools (${changes.join(", ")}). Accept that change to migrate it.`), { status: 400, changes });
+    const v2 = normalizeWorker({ schema: workerdef.SCHEMA, name: next[k].name, specialization: next[k].specialization, mission: next[k].mission, integrations: picked.integrations.map(({ id, version, config }) => ({ id, version, config })), core: picked.core,
+      workflow: picked.own.workflow, knowledge: picked.own.knowledge, limitations: picked.own.limitations, onMissing: next[k].onMissing, extraRequirements: picked.extraRequirements, repos: next[k].repos || [] }, { ...next[k], schema: workerdef.SCHEMA });
+    v2.migratedFrom = { schema: 1, version: next[k].version, at: new Date().toISOString(), mapping: p.status === "ambiguous" ? "chosen" : p.status, changes };
+    next[k] = workerdef.resolve(workerdef.toStored(v2)); done.push({ id: v2.id, name: v2.name, mapping: v2.migratedFrom.mapping, changes, capabilities: next[k].capabilities });
+  }
+  mkdirSync(BACKUPS, { recursive: true });
+  const backup = `workers-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+  copyFileSync(WORKERS, join(BACKUPS, backup));
+  writeWorkers(next, { kind: "migration", reason: "Migrated to integrations" });
+  return { migrated: done, backup };
+}
+function undoMigration(b) {
+  const name = String(b.backup || listBackups()[0] || "");
+  if (!listBackups().includes(name)) throw Object.assign(new Error("There's no such migration backup."), { status: 404 });
+  const keep = `workers-before-undo-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+  copyFileSync(WORKERS, join(BACKUPS, keep)); copyFileSync(join(BACKUPS, name), WORKERS);
+  return { restored: name, kept: keep };
+}
+// A format-2 package: its integrations pinned at the versions this console has. Anything else — a
+// version installed in place of the package's, an integration left out — only with the person's consent.
+function installPackV2(pkg, o = {}, origin = "package") {
+  const d = pkg.definition, { ints, stored } = packV2(pkg, { name: String(o.name || "").trim() || d.name });
+  let flow = null, flowError = ""; try { flow = packGitflowConfig(pkg, ""); } catch (e) { flowError = e.message; }
+  const changed = ints.filter((x) => x.state !== "exact"), unknownCore = d.core.filter((c) => !catalog.isCore(c)), unknownReqs = d.extraRequirements.filter((r) => !RESOURCES[r.resource]?.access[r.access]);
+  if ((changed.length || unknownCore.length || unknownReqs.length || flowError) && !o.dropUnknown) throw Object.assign(new Error("Some of what the package asks for isn't here as it is. Confirm installing it with what this console has."), { status: 400 });
+  stored.integrations = ints.filter((x) => x.use && !x.errors.length).map((x) => ({ id: x.id, version: x.use, config: x.config }));
+  if (nameTaken(stored.name)) throw Object.assign(new Error(`A worker called “${stored.name}” already exists here. Choose another name: an existing worker is never replaced.`), { status: 409 });
+  const registered = readGithub().repos, repos = [];
+  for (const g of Array.isArray(o.repos) ? o.repos.slice(0, 20) : []) {
+    const want = pkg.repositories.find((x) => x.fullName.toLowerCase() === String(g?.fullName || "").toLowerCase()), here = want && registered.find((r) => r.fullName.toLowerCase() === want.fullName.toLowerCase());
+    if (!g?.level || g.level === "none") continue;
+    if (!here) throw Object.assign(new Error(`“${g.fullName}” isn't a repository registered on this console.`), { status: 400 });
+    if (REPO_LEVELS.indexOf(g.level) < 0 || REPO_LEVELS.indexOf(g.level) > REPO_LEVELS.indexOf(want.level)) throw Object.assign(new Error(`Access to ${want.fullName} can be at most “${want.level}”, as the package asks.`), { status: 400 });
+    repos.push({ repo: here.id, level: g.level });
+  }
+  if (o.gitflowWorkspace) resolveWorkspace(o.gitflowWorkspace);
+  const list = readWorkers();
+  let w = normalizeWorker({ ...stored, repos });
+  while (list.some((x) => x.id === w.id)) w = normalizeWorker({ ...stored, repos });
+  const r = d.request;
+  if (r.description || r.starters.length) w.fromRequest = { description: r.description, integrations: r.integrations, answers: {}, others: [], workspace: r.workspaceKind, unsupported: r.unsupported, starters: r.starters, at: w.createdAt };
+  w.origin = { kind: origin, packageId: pkg.manifest.packageId, from: d.name, at: w.createdAt, format: pkg.manifest.formatVersion, ...(origin === "clone" && o.sourceId ? { worker: o.sourceId } : {}) };
+  if (existsSync(memPath(w.id))) writeMemory(w.id, []);
+  writeWorkers([...list, w], { kind: origin === "clone" ? "clone" : "import", reason: `From ${d.name}` });
+  w = readWorkers().find((x) => x.id === w.id);
+  const gitflowSaved = !!(flow && w.capabilities.includes("gitflow.read"));
+  if (gitflowSaved) { writeGitflowConfig(w.id, { ...flow, workspace: o.gitflowWorkspace || "" }); gitflowAudit(w.id, { action: "import", by: origin === "clone" ? "clone" : "package", packageId: pkg.manifest.packageId, from: d.name }); }
+  return { worker: w, gitflow: gitflowSaved, gitflowWorkspace: gitflowSaved ? o.gitflowWorkspace || "" : null,
+    left: { capabilities: unknownCore, requirements: unknownReqs.map((x) => `${x.resource} ${x.access}`), gitflow: flowError, integrations: ints.filter((x) => !x.use || x.errors.length).map((x) => `${x.label} ${x.version}`), versions: ints.filter((x) => x.state === "other-version" && !x.errors.length).map((x) => `${x.label} ${x.version} → ${x.alternative}`) } };
+}
+const packFile = (w) => `${w.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "worker"}.workerpack`;
 // Memory: what a worker chose to remember from its work (REMEMBER: lines), kept apart from its
 // definition, shown to the person, and given to its later runs as a labelled section.
 const memPath = (id) => join(MEMORY, `${id}.memory.json`);
 const readMemory = (id) => (/^[\w-]+$/.test(id) && existsSync(memPath(id)) ? JSON.parse(readFileSync(memPath(id), "utf8")) : []);
 const writeMemory = (id, list) => { mkdirSync(MEMORY, { recursive: true }); writeAtomic(memPath(id), JSON.stringify(list, null, 1)); };
 const SECRETISH = /(figd_|ghp_|github_pat_|sk-[a-z0-9]|xox[bp]-|AKIA[0-9A-Z]{8}|-----BEGIN|password\s*[:=]|api[_-]?key\s*[:=]|token\s*[:=])/i;
+
+// ---- worker evolution: proposals (worker-ui/evolve.mjs, docs/worker-evolution.md) ----
+// A worker proposes (mcp/evolve-server.mjs → /evolve/<run>/propose, with its run's token); the
+// proposal is stored in workers/<id>/proposals/<pid>.json. The person reviews it, may try it in a
+// trial run (and the worker as it is, in a baseline trial), has the console grade the trial against
+// the proposal's checks, then approves it — a new recorded version of the worker — or rejects it.
+// The approving, trying and grading endpoints are the person's: same-origin page requests, never the
+// worker's token.
+const proposalDir = (id) => join(MEMORY, id, "proposals");
+const readProposal = (wid, pid) => { if (!/^[\w-]+$/.test(wid) || !/^p-[\w-]+$/.test(pid)) return null; const f = join(proposalDir(wid), `${pid}.json`); return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; };
+const writeProposal = (p) => { mkdirSync(proposalDir(p.worker), { recursive: true }); writeAtomic(join(proposalDir(p.worker), `${p.id}.json`), JSON.stringify(p, null, 1)); };
+const listProposals = (wid) => (/^[\w-]+$/.test(wid) && existsSync(proposalDir(wid)) ? readdirSync(proposalDir(wid)).filter((f) => /^p-[\w-]+\.json$/.test(f)).map((f) => JSON.parse(readFileSync(join(proposalDir(wid), f), "utf8"))).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []);
+const storedOf = (id) => readWorkersRaw().find((w) => w.id === id) || null;
+// What it relies on, checked now: the accounts each capability it uses needs (and Builder read access
+// for the console itself when a check reads Builder). Missing ones make it "blocked", with the reason.
+async function proposalDependencies(p, worker, ctx = { profile: "full", root: DATA }) {
+  const out = [], bindings = worker.resolution?.bindings || {};
+  for (const cap of p.uses) {
+    let why = "";
+    for (const a of bindings[cap] ?? catalog.capabilityAccounts(cap) ?? []) { const st = await checkAccount(a, ctx); if (!st.ok) { why = `${st.label}: ${st.state}`; break; } }
+    out.push({ capability: cap, label: CAPABILITIES[cap]?.label || cap, ok: !why, why: why || "available" });
+  }
+  if (p.checks.some((c) => c.type === "builder_entry") && !out.some((d) => d.capability === "builder.read")) {
+    const st = await checkAccount({ resource: "builder", access: "read" }, ctx);
+    out.push({ capability: "builder.read", label: "Read Builder.io content (the console grades the checks with it)", ok: st.ok, why: st.ok ? "available" : `${st.label}: ${st.state}` });
+  }
+  return out;
+}
+// The proposal as the page and the worker see it: its stored record, its state worked out now
+// (stale, verification), and the diff against the version it was made for.
+function proposalView(p) {
+  const cur = storedOf(p.worker), base = readVersion(p.worker, p.base)?.definition || cur || {};
+  return { ...p, ...evolve.stateOf(p, cur), currentVersion: cur?.version ?? null, diff: evolve.diffStored(base, evolve.applyChanges(base, p.changes)), checkText: p.checks.map(evolve.describeCheck) };
+}
+async function submitProposal(b, w, createdBy, ctx) {
+  const stored = storedOf(w.id);
+  if (Number(b.baseVersion) !== stored.version) throw Object.assign(new Error(`The definition is at version ${stored.version} now, not ${b.baseVersion}. Read it again (evolve_read_self) and propose against version ${stored.version}.`), { status: 409 });
+  if (listProposals(w.id).filter((p) => p.status === "proposed" && p.base === stored.version).length >= evolve.MAX_OPEN) throw Object.assign(new Error(`There are already ${evolve.MAX_OPEN} proposals waiting for review on this version. The person has to decide on those first.`), { status: 429 });
+  const { proposal, errors } = evolve.normalizeProposal(b, w);
+  if (errors.length) throw Object.assign(new Error("The proposal wasn't accepted. Fix these and propose again:"), { status: 400, errors });
+  const p = { id: `p-${Date.now().toString(36)}-${randomUUID().slice(0, 6)}`, worker: w.id, workerName: w.name, base: stored.version, ...proposal, warnings: evolve.warnings(stored, proposal.changes),
+    createdAt: new Date().toISOString(), createdBy, status: "proposed", trials: [] };
+  p.dependencies = await proposalDependencies(p, w, ctx);
+  writeProposal(p);
+  return p;
+}
+// Where a worker's proposal came from: the run, what the person said in it, and what the run read from
+// outside (a reviewer's cue for instructions planted in a page or file the worker read).
+function proposalProvenance(run) {
+  const ev = existsSync(run.file) ? readFileSync(run.file, "utf8").trim().split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean) : [];
+  return { kind: "worker", run: run.meta.id, version: run.meta.worker.version, asked: ev.filter((e) => e.type === "user").slice(-4).map((e) => clip(e.summary, 500)),
+    externalReads: ev.filter((e) => e.type === "tool" && ["WebFetch", "WebSearch", "browser_navigate"].includes(e.tool)).slice(-10).map((e) => clip(e.summary, 200)) };
+}
+// What evolve_read_self returns: the worker's own text and what it can't change.
+function selfView(w) {
+  const s = storedOf(w.id);
+  return { id: w.id, name: w.name, version: s.version, schema: s.schema || 1, mission: s.mission, specialization: s.specialization,
+    own: Object.fromEntries(evolve.FIELDS.filter((f) => f !== "outcomes" || s.schema === 2).map((f) => [f, s[f] ?? (f === "knowledge" || f === "onMissing" ? "" : [])])),
+    tools: w.capabilities.map((c) => ({ id: c, label: CAPABILITIES[c]?.label || c, tools: CAPABILITIES[c]?.tools || "" })),
+    integrations: (w.integrationInstructions || []).map((x) => ({ id: x.id, version: x.version, label: x.label, steps: x.steps, limits: x.limits, setUp: x.know, notPossible: x.unsupported })),
+    openProposals: listProposals(w.id).filter((p) => p.status === "proposed").map((p) => ({ id: p.id, title: p.title, base: p.base, stale: p.base !== s.version })),
+    canChange: evolve.FIELDS.filter((f) => f !== "outcomes" || s.schema === 2), cannotChange: "tools, core capabilities, integrations and their settings, requirements, repository access, name, mission: only the person changes those, in the editor" };
+}
+// Builder, as the console reads it to grade a check: its own credentials, fresh reads.
+const builderReader = {
+  status: async () => { const st = await checkAccount({ resource: "builder", access: "read" }, { profile: "full", root: DATA }); return { ok: st.ok, why: `${st.label}: ${st.state}` }; },
+  list: async (model) => { const out = []; for (let off = 0; off < 300; off += 100) { const page = await builderApi.listContent(model, { limit: 100, offset: off }); out.push(...page); if (page.length < 100) break; } return out; },
+  get: (model, id) => builderApi.getContent(model, id, { includeData: true }),
+};
 
 // The worker's context for one run: the shared instructions, then this worker, then what was
 // checked at start, then its memory. Written once per run and kept, so the run never changes
@@ -488,10 +1016,13 @@ function workerContext(def, rt, status, memory, profile, extra = {}) {
   return [platformInstructions(), "",
     workspaceSection(extra.workspace), teamSection(extra.team),
     `# You are: ${def.name}`, def.mission && `Mission: ${def.mission}`, def.specialization && `Specialization: ${def.specialization}`, "",
-    "## What you can use in this run", rt.usable.length ? rt.usable.map(cap).join("\n") : "- Nothing beyond reading this context.",
+    "## What you can use in this run", rt.usable.length ? rt.usable.filter((c) => !rt.waiting?.some(([w]) => w === c)).map(cap).join("\n") || "- Nothing yet beyond reading this context." : "- Nothing beyond reading this context.",
+    rt.waiting?.length ? `Waiting for a connection: ${rt.waiting.map(([c, why]) => `${CAPABILITIES[c]?.label || c} (${why})`).join("; ")}. Their tools come on in this task as soon as it's connected; the console checks every few seconds and tells you with the person's next message. Then search for them with ToolSearch. If the task needs one now, write a NEEDS: line saying what to connect; never ask for a new task for it.` : "",
+    rt.waiting?.length || rt.usable.some(liveCap) ? "If a connection drops during the task, its tools go off (a call is refused with the reason) and come back when it's connected again." : "",
     rt.blocked.length ? `Not available here (this workspace is ${profile === "inspect" ? "Inspect, read-only" : "Work"}): ${rt.blocked.map((c) => CAPABILITIES[c].label).join(", ")}.` : "",
     rt.byPlatform?.length ? `Not available in the hosted product: ${rt.byPlatform.map((c) => CAPABILITIES[c].label).join(", ")}. If the task needs one, write a NEEDS: line for it.` : "",
     rt.byPolicy?.length ? `Turned off by an enforced policy in this workspace: ${rt.byPolicy.map((c) => CAPABILITIES[c].label).join(", ")}.` : "",
+    rt.byAccount?.length ? `Not loaded in this run, because what they need wasn't available when it started: ${rt.byAccount.map(([c, why]) => `${CAPABILITIES[c]?.label || c} (${why})`).join("; ")}. If the task needs one, write a NEEDS: line for it; it's loaded in a new task once it's connected.` : "",
     "Use only these tools. If a task needs something you don't have, say so instead of improvising.", "",
     "## Requirements and access (checked when this run started)",
     status.length ? status.map((r) => `- ${r.label}${r.source === "team" ? " (Team requirement)" : ""}: ${r.need.toUpperCase()}, ${r.ok ? "available" : "NOT AVAILABLE"} (${r.state}${r.detail ? ", " + r.detail : ""})${r.ok ? "" : `. To provide it: ${r.how}`}`).join("\n") : "- None declared.",
@@ -500,10 +1031,18 @@ function workerContext(def, rt, status, memory, profile, extra = {}) {
     def.workflow.length ? "## How you work\n" + def.workflow.map((w, i) => `${i + 1}. ${w}`).join("\n") + "\n" : "",
     def.knowledge ? "## What you know\n" + def.knowledge + "\n" : "",
     def.limitations.length ? "## Hard limits (never cross these, even if asked)\n" + def.limitations.map((l) => `- ${l}`).join("\n") + "\n" : "",
+    // What its integrations bring, from their pinned manifests, kept apart from the worker's own text.
+    ...(def.integrationInstructions || []).map((x) => [`## From the ${x.label} integration (${x.id} ${x.version})`,
+      x.steps.length ? "How to work with it:\n" + x.steps.map((s) => `- ${s}`).join("\n") : "", x.limits.length ? "Hard limits:\n" + x.limits.map((s) => `- ${s}`).join("\n") : "",
+      x.know.length ? "Set up:\n" + x.know.map((s) => `- ${s}`).join("\n") : "", x.unsupported.length ? "Not possible here:\n" + x.unsupported.map((s) => `- ${s}`).join("\n") : ""].filter(Boolean).join("\n") + "\n"),
     def.onMissing ? "## When something is missing\n" + def.onMissing + "\n" : "",
     "## Memory",
     memory.length ? "Things you remembered from earlier work (may be outdated; check if it matters):\n" + memory.slice(-40).map((m) => `- ${m.text}`).join("\n") : "Nothing remembered yet.",
     "To remember something useful for later work with this worker (a preference, a convention, a decision), write a line starting \"REMEMBER: \". Never put secrets in memory.",
+    ...(extra.evolve ? ["", "## Changing how you work (proposals)",
+      "When the person teaches you a procedure, convention or rule that should apply to all your future work (\"from now on…\", \"our process is…\", \"learn how we do X\"), propose a change to your own definition instead of only remembering it: read yourself with evolve_read_self, then submit evolve_propose.",
+      "Before proposing: compare what they ask with your steps, knowledge, limits and tools; say what's missing. Put in the procedure only what your tools can actually do. Anything that needs a tool, account, connector or API field you don't have goes under needs, and you tell the person plainly that it isn't possible with your tools today. Ask the person for facts you'd otherwise guess.",
+      "Give the proposal checks and a trialPrompt, so the console can test it in a trial run. A proposal changes nothing until the person approves it: tell them it's waiting for their review, and never say it's active, learned or verified."] : []),
   ].filter((x) => x !== "" && x !== undefined && x !== null && x !== false).join("\n");
 }
 
@@ -634,7 +1173,7 @@ function runScope(run, ws) {
   const def = run.meta.worker ? readWorkers().find((w) => w.id === run.meta.worker.id) || { id: run.meta.worker.id, name: run.meta.worker.name, repos: [] } : null;
   const repo = repoScope(ws, def, run.meta.repo ? run.meta.repo.level : undefined);
   return { protect, head, onProtected: !!head && protect.some((p) => p.branch === head), figmaKey: team?.figma ? team.figma.branchKey || team.figma.fileKey : null,
-    knowledgeDir: team?.knowledge.some((k) => k.type === "upload") ? join(RUNS, `${run.meta.id}.team`) : null, repo };
+    knowledgeDir: team?.knowledge.some((k) => k.type === "upload") ? join(RUNS, `${run.meta.id}.team`) : null, repo, candidate: !!run.meta.candidate };
 }
 const readSnapshot = (id) => (existsSync(snapPath(id)) ? JSON.parse(readFileSync(snapPath(id), "utf8")) : null);
 
@@ -790,7 +1329,7 @@ function ghRemove(id) {
   if (used.length) { const e = new Error(`${r.fullName} is assigned to ${used.map((w) => w.name).join(", ")}. Unassign it there first.`); e.status = 409; throw e; }
   g.repos = g.repos.filter((x) => x.id !== id); writeGithub(g);
   const grants = readWorkers().filter((w) => (w.repos || []).some((x) => x.repo === id));
-  if (grants.length) writeWorkers(readWorkers().map((w) => ({ ...w, repos: (w.repos || []).filter((x) => x.repo !== id) })));
+  if (grants.length) writeWorkers(readWorkers().map((w) => ({ ...w, repos: (w.repos || []).filter((x) => x.repo !== id) })), { kind: "repository-removed", reason: `The repository ${id} was removed from the console` });
   return { removed: r.fullName, note: "Only the registration was removed. Local folders, changes, commits and runs are untouched.", grantsRemoved: grants.map((w) => w.name) };
 }
 // Assigning: the workspace's folder must be a checkout whose origin is the registered repository.
@@ -884,7 +1423,7 @@ let account = { at: 0, value: null }, usage = null, usageError = null, lastModel
 function authStatus() {
   return new Promise((ok) => {
     let out = "", p;
-    try { p = spawn(CLAUDE.cmd, ["auth", "status", "--json"], { shell: CLAUDE.shell, env: workerEnv(), windowsHide: true }); } catch { return ok(null); }
+    try { p = spawn(CLAUDE.cmd, [...CLAUDE.pre, "auth", "status", "--json"], { shell: CLAUDE.shell, env: workerEnv(), windowsHide: true }); } catch { return ok(null); }
     const timer = setTimeout(() => p.kill(), 20000);
     p.stdout.on("data", (d) => (out += d));
     p.on("error", () => {});
@@ -911,7 +1450,7 @@ function runtimeQuery(requests, timeoutMs = 30000) {
   return new Promise((ok, fail) => {
     let p, buf = "", settled = false; const answers = {};
     const finish = (err) => { if (settled) return; settled = true; clearTimeout(timer); try { p.stdin.end(); } catch {} setTimeout(() => { try { p.kill(); } catch {} }, 3000); err ? fail(err) : ok(answers); };
-    try { p = spawn(CLAUDE.cmd, ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--mcp-config", JSON.stringify({ mcpServers: {} }), "--tools", "", "--settings", WORKER_SETTINGS], { cwd: SCRATCH_WS.root, shell: CLAUDE.shell, env: workerEnv(), windowsHide: true }); }
+    try { p = spawn(CLAUDE.cmd, [...CLAUDE.pre, "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--mcp-config", JSON.stringify({ mcpServers: {} }), "--tools", "", "--settings", WORKER_SETTINGS], { cwd: SCRATCH_WS.root, shell: CLAUDE.shell, env: workerEnv(), windowsHide: true }); }
     catch (e) { return fail(e); }
     const timer = setTimeout(() => finish(new Error("The Claude runtime didn't answer in time.")), timeoutMs);
     p.stdout.on("data", (d) => {
@@ -1158,7 +1697,8 @@ const TAGS = { "NEEDS:": "needs", "REMEMBER:": "remember", "PLAN:": "plan", "OBS
 // Launch the real claude binary directly (no shell), so Stop kills the worker itself,
 // not just a cmd.exe wrapper. Falls back to the `claude` shim through a shell.
 function claudeCommand() {
-  if (process.env.CLAUDE_BIN) return { cmd: process.env.CLAUDE_BIN, shell: false };
+  // CLAUDE_BIN_ARGS (tests): arguments put before the real ones, so CLAUDE_BIN=node can run a stand-in script.
+  if (process.env.CLAUDE_BIN) return { cmd: process.env.CLAUDE_BIN, shell: false, pre: process.env.CLAUDE_BIN_ARGS ? JSON.parse(process.env.CLAUDE_BIN_ARGS) : [] };
   // The npm package's binary is claude.exe on every platform in current versions (claude before).
   for (const dir of (process.env.PATH || "").split(delimiter)) {
     for (const name of process.platform === "win32" ? ["claude.exe"] : ["claude.exe", "claude"]) {
@@ -1168,7 +1708,7 @@ function claudeCommand() {
   }
   return { cmd: "claude", shell: true };
 }
-const CLAUDE = claudeCommand();
+const CLAUDE = { pre: [], ...claudeCommand() };
 
 const envOf = (tool) =>
   tool.startsWith("mcp__figma-executor") || tool.startsWith("mcp__figma-reader") ? "Figma"
@@ -1233,6 +1773,7 @@ function translate(run, msg) {
   if (msg.type === "rate_limit_event") { if (msg.rate_limit_info) usage = { info: msg.rate_limit_info, at: Date.now(), run: run.meta.id }; return; }
   // The model the runtime reports at each turn: what a model switch actually did.
   if (msg.type === "system" && msg.subtype === "init" && msg.model) { lastModel = msg.model; if (run.meta.modelUsed !== msg.model) { run.meta.modelUsed = msg.model; saveMeta(run); } }
+  if (msg.type === "control_response" && run.controlWaits?.has(msg.response?.request_id)) { run.controlWaits.get(msg.response.request_id)(msg.response); return; }
   if (msg.type === "control_response") { if (msg.response?.subtype !== "success") emit(run, { type: "failure", summary: `The runtime refused a model or effort change: ${msg.response?.error || "no reason given"}` }); return; }
   if (msg.type === "system" && msg.subtype === "compact_boundary") { run.manualCompact = false; observeCompaction(run, msg); saveMeta(run); return; }
   // The runtime compacting on its own (autoCompactWindow), between steps: shown and counted.
@@ -1329,6 +1870,7 @@ const relTo = (root, p) => { const r = String(p || "").replace(/\\/g, "/"), base
 function remember(run, text) {
   const w = run.meta.worker;
   if (!w) return emit(run, { type: "note", summary: "REMEMBER ignored: the general worker has no memory." });
+  if (run.meta.candidate) return emit(run, { type: "note", summary: "REMEMBER ignored: a trial run of a proposal doesn't change the worker's memory." });
   if (!text || SECRETISH.test(text)) return emit(run, { type: "memory", summary: "Not remembered: it looked like a secret.", ok: false });
   const list = readMemory(w.id);
   if (!list.some((m) => m.text === text)) { list.push({ text: text.slice(0, 500), at: new Date().toISOString(), run: run.meta.id }); writeMemory(w.id, list.slice(-200)); }
@@ -1354,15 +1896,18 @@ function spawnWorker(run, { resume }) {
   // resume can't run with less enforcement than the workspace has now.
   const snap = run.meta.worker ? readSnapshot(run.meta.id) : null;
   const scope = runScope(run, ws);
-  let mcpFile = mcpConfig(ws.profile), promptFile = platformInstructionsFile(), profileArgs = PROFILES[ws.profile].args;
-  // Hosted, the General worker too runs on the computed tool set, so the platform's narrowing applies.
-  const def = snap ? snap.definition : HOSTED || scope.protect.length || scope.figmaKey || scope.repo ? GENERAL : null;
+  let promptFile = platformInstructionsFile();
+  // Every run, the General worker's too, runs on the computed tool set (launchPlan): the worker's
+  // capabilities ∩ workspace mode ∩ Team scope ∩ policies ∩ platform, minus what its accounts didn't
+  // allow when the run started (the gate). Its integration tools are checked again at each call.
+  const def = snap ? snap.definition : generalDefinition();
   run.enforced = null;
-  if (def) {
-    const rt = workerRuntime(def, ws.profile, scope);
-    mcpFile = join(RUNS, `${run.meta.id}.mcp.json`);
-    writeFileSync(mcpFile, JSON.stringify({ mcpServers: Object.fromEntries(rt.servers.map((n) => [n, MCP_SERVERS[n](ws.profile, scope, rt.usable, ws.root, def)])) }, null, 1));
-    profileArgs = rt.args;
+  const plan = launchPlan(def, ws, scope, (snap ? snap.gate : run.meta.gate) || {}, run);
+  if (resume) run.authz.ready = false; // what was connected when it last ran may have changed
+  clearInterval(run.liveTimer); run.liveTimer = null;
+  const rt = plan.rt, mcpFile = join(RUNS, `${run.meta.id}.mcp.json`), profileArgs = plan.args;
+  writeFileSync(mcpFile, JSON.stringify({ mcpServers: plan.servers }, null, 1));
+  {
     if (scope.protect.length) {
       run.enforced = { noShell: true, noWrite: scope.onProtected };
       emit(run, { type: "policy", summary: `${scope.protect.map((p) => p.branch).join(", ")} protected`, detail: JSON.stringify({ policies: scope.protect, head: scope.head, onProtected: scope.onProtected, off: rt.byPolicy.map((c) => CAPABILITIES[c].label) }) });
@@ -1380,9 +1925,10 @@ function spawnWorker(run, { resume }) {
     ...(resume ? ["--resume", run.meta.sessionId] : []),
   ];
   telOf(run).processes++; run.procUsage = null; run.procCost = 0; // the runtime's usage counters restart with each process
-  const child = spawn(CLAUDE.cmd, CLAUDE.shell ? args.map((a) => (/[\s*()|&,]/.test(a) ? `"${a}"` : a)) : args, { cwd: ws.root, shell: CLAUDE.shell, env: workerEnv() });
+  const child = spawn(CLAUDE.cmd, CLAUDE.shell ? args.map((a) => (/[\s*()|&,]/.test(a) ? `"${a}"` : a)) : [...CLAUDE.pre, ...args], { cwd: ws.root, shell: CLAUDE.shell, env: workerEnv() });
   run.child = child;
   run.initSeen = false;
+  if ([...run.authz.caps].some(liveCap)) run.liveTimer = setInterval(() => { if (alive(run)) refreshLive(run).catch(() => {}); }, LIVE_EVERY);
   let buf = "";
   child.stdout.on("data", (d) => {
     buf += d;
@@ -1397,16 +1943,18 @@ function spawnWorker(run, { resume }) {
   });
   child.stderr.on("data", (d) => emit(run, { type: "note", summary: `worker stderr: ${clip(d, 200)}` }));
   child.on("exit", (code) => {
+    if (run.child === child) { clearInterval(run.liveTimer); run.liveTimer = null; }
     emit(run, { type: "note", summary: `worker process exited (code ${code})` });
     // A handoff that never finished (the process died first) still continues, from the task state.
     if (run.awaitingHandoff && run.pendingContinue) setImmediate(() => finishContinue(run, (run.handoffText || "").trim() || null));
     if (run.shutdown) return; // already recorded as interrupted by the shutdown
     if (run.bindingError) setStatus(run, "failed", run.bindingError);
     else if (run.stopRequested) setStatus(run, "stopped", "stopped by the user");
+    else if (run.reloadRequested && code === 0) setStatus(run, "finished", "ended so its tools reload: reply to continue the same conversation with the tools connected now");
     else if (run.endRequested && code === 0) setStatus(run, "finished", "run ended by the user");
     else if (code === 0) setStatus(run, "finished");
     else setStatus(run, "failed", `process exited with code ${code}`);
-    run.stopRequested = run.endRequested = false;
+    run.stopRequested = run.endRequested = run.reloadRequested = false;
   });
   child.on("error", (e) => { emit(run, { type: "failure", summary: `could not start worker: ${e.message}` }); setStatus(run, "failed", e.message); });
 }
@@ -1627,7 +2175,8 @@ function sendToWorker(run, text, atts = [], mentions = [], opts = {}) {
   if (opts.as === "compact") run.manualCompact = true;
   setStatus(run, "running");
   const safe = (t) => defuseAtRefs(run.meta.workspace.root, t); // what the person sees stays as typed
-  const full = safe(text) + mentionNote(mentions);
+  const note = !opts.as && run.pendingNote ? run.pendingNote + "\n\n" : ""; if (note) run.pendingNote = null;
+  const full = note + safe(text) + mentionNote(mentions);
   const content = atts.length ? [...atts.map(attBlock).map((b) => (b.type === "text" ? { ...b, text: safe(b.text) } : b)), ...(full ? [{ type: "text", text: full }] : [])] : full;
   run.child.stdin.write(JSON.stringify({ type: "user", message: { role: "user", content } }) + "\n");
 }
@@ -1645,8 +2194,14 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
     if (workspaceId !== teamWorkspace(team)) throw new Error(`The ${team.name} Team works in its own workspace; it can't run in another one.`);
   }
   let workspace = resolveWorkspace(workspaceId);
-  const def = workerId ? readWorkers().find((w) => w.id === workerId) : null;
-  if (workerId && !def) throw new Error(`No worker "${workerId}".`);
+  const stored = workerId ? readWorkers().find((w) => w.id === workerId) : null;
+  if (workerId && !stored) throw new Error(`No worker "${workerId}".`);
+  if (stored) { const why = integrityProblem(stored); if (why) throw Object.assign(new Error(why), { status: 409 }); }
+  // A trial run of a proposal (extra.candidate): the worker as the proposal would make it — or, for a
+  // baseline trial, as it is — run like any run, but marked, without the evolve tools, and without
+  // writing to the worker's memory. It never changes the worker.
+  const cand = extra.candidate || null;
+  const def = cand ? cand.definition : stored;
   const id = new Date().toISOString().replace(/[:.]/g, "-");
   // Scratch: this conversation's own folder; a continuation keeps working in its parent's.
   const parent = extra.continuedFrom ? loadRun(extra.continuedFrom) : null;
@@ -1661,24 +2216,29 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
   // this worker has no access to it.
   const repo = repoScope(workspace, def);
   const scope = { protect, head, onProtected: !!head && protect.some((p) => p.branch === head), figmaKey: team?.figma ? team.figma.branchKey || team.figma.fileKey : null,
-    knowledgeDir: team?.knowledge.some((k) => k.type === "upload") ? join(RUNS, `${id}.team`) : null, repo };
+    knowledgeDir: team?.knowledge.some((k) => k.type === "upload") ? join(RUNS, `${id}.team`) : null, repo, candidate: !!cand };
   const wsInfo = { name: listWorkspaces().find((w) => w.id === workspace.id)?.name || workspace.id, profile: workspace.profile, head, protect, onProtected: scope.onProtected, repo };
   let snap = null;
+  // What its accounts allow, checked now (fail-closed): what isn't available isn't loaded in this run.
+  const runDef = def || generalDefinition();
+  const gate = await accountGate(runDef, { profile: workspace.profile, root: workspace.root, figmaKey: scope.figmaKey, start: true }, workerRuntime(runDef, workspace.profile, scope).usable);
   if (def) {
-    const runtime = workerRuntime(def, workspace.profile, scope);
+    const runtime = launchPlan(def, workspace, scope, gate).rt;
     const ctx = { profile: workspace.profile, root: workspace.root, figmaKey: scope.figmaKey, start: true };
     const own = await requirementStatus(def, ctx);
     const shared = team ? (await requirementStatus(team, ctx)).filter((r) => !own.some((x) => x.resource === r.resource && x.access === r.access)).map((r) => ({ ...r, source: "team" })) : [];
     const status = [...own, ...shared];
-    snap = { definition: def, runtime, status, memory: readMemory(def.id).slice(-40), scope, ...(team ? { team } : {}) };
+    snap = { definition: def, runtime, gate, status, memory: readMemory(def.id).slice(-40), scope, ...(team ? { team } : {}) };
     const workers = readWorkers();
     const teamCtx = team ? { def: team, members: team.workers.map((w) => workers.find((x) => x.id === w)?.name).filter(Boolean), workspaceName: wsInfo.name, runId: id } : null;
-    snap.context = workerContext(def, runtime, status, snap.memory, workspace.profile, { workspace: protect.length || team || repo ? wsInfo : null, team: teamCtx }) + (scratch ? `\n\n${SCRATCH_NOTE}\n` : "");
+    snap.context = workerContext(def, runtime, status, snap.memory, workspace.profile, { workspace: protect.length || team || repo ? wsInfo : null, team: teamCtx, evolve: !!runtime.evolve }) + (scratch ? `\n\n${SCRATCH_NOTE}\n` : "");
+    if (cand) snap.candidate = { proposal: cand.proposal, baseline: !!cand.baseline };
   }
   if (active()) throw busyError("A worker is already running. Stop or end it first.");
-  const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, ...(extra.continuedFrom ? { continuedFrom: extra.continuedFrom } : {}), ...(settings.model ? { model: settings.model } : {}), ...(settings.effort ? { effort: settings.effort } : {}), ...(def ? { worker: { id: def.id, name: def.name, version: def.version } } : {}),
+  const meta = { id, prompt: prompt || atts.map((a) => a.name).join(", "), workspace, ...(extra.continuedFrom ? { continuedFrom: extra.continuedFrom } : {}), ...(settings.model ? { model: settings.model } : {}), ...(settings.effort ? { effort: settings.effort } : {}), ...(def ? { worker: { id: def.id, name: def.name, version: def.version, ...(cand ? { candidate: cand.proposal, ...(cand.baseline ? { baseline: true } : {}) } : {}) } } : {}),
+    ...(cand ? { candidate: { proposal: cand.proposal, baseline: !!cand.baseline } } : {}),
     ...(team ? { team: { id: team.id, name: team.name, version: team.version } } : {}), ...(protect.length ? { policy: { protect, head, onProtected: scope.onProtected } } : {}), ...(repo ? { repo: { id: repo.id, fullName: repo.fullName, level: repo.level } } : {}),
-    configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0 };
+    configDir: CONFIG_DIR, createdAt: new Date().toISOString(), status: "starting", sessionId: null, messages: 0, envs: {}, artifacts: [], failures: 0, done: null, costUsd: 0, ...(!def && Object.keys(gate).length ? { gate } : {}) };
   const run = { meta, toolUses: new Map(), file: join(RUNS, `${id}.jsonl`), raw: join(RUNS, `${id}.raw.jsonl`) };
   writeFileSync(run.file, ""); writeFileSync(run.raw, "");
   runs.set(id, run);
@@ -1698,9 +2258,12 @@ async function newRun(prompt, workspaceId = "console", atts = [], workerId = nul
     if (team) emit(run, { type: "team", summary: `${team.name} (v${team.version})`, detail: JSON.stringify({ workspace: wsInfo.name, members: team.workers.length,
       files: team.knowledge.filter((k) => k.type === "workspace_file").length, uploads: team.knowledge.filter((k) => k.type === "upload").length,
       enforced: team.policies.map((p) => `Never modify ${p.branch}`), instructions: team.instructions.length, figma: team.figma ? team.figma.name || team.figma.url : null }) });
-    emit(run, { type: "worker", summary: `${def.name} (v${def.version})`, detail: JSON.stringify({ capabilities: snap.runtime.usable.map((c) => CAPABILITIES[c].label), blocked: snap.runtime.blocked.map((c) => CAPABILITIES[c].label), memory: snap.memory.length }) });
+    emit(run, { type: "worker", summary: `${def.name} (v${def.version})`, detail: JSON.stringify({ capabilities: snap.runtime.usable.filter((c) => !snap.runtime.waiting.some(([w]) => w === c)).map((c) => CAPABILITIES[c].label), waiting: snap.runtime.waiting.map(([c]) => CAPABILITIES[c].label), blocked: snap.runtime.blocked.map((c) => CAPABILITIES[c].label), memory: snap.memory.length }) });
     emit(run, { type: "requirements", summary: snap.status.length ? `${snap.status.filter((r) => r.ok).length}/${snap.status.length} available` : "none declared", detail: JSON.stringify(snap.status.map(({ label, need, ok, state, detail, source }) => ({ label, need, ok, state, detail, source }))) });
   }
+  const fixedGate = Object.fromEntries(Object.entries(gate).filter(([c]) => !liveCap(c))), waitGate = Object.fromEntries(Object.entries(gate).filter(([c]) => liveCap(c)));
+  if (Object.keys(fixedGate).length) emit(run, { type: "note", summary: `Not loaded: ${Object.keys(fixedGate).map((c) => CAPABILITIES[c]?.label || c).join(", ")}`, detail: JSON.stringify(fixedGate) });
+  if (Object.keys(waitGate).length) emit(run, { type: "capability", summary: `Waiting for: ${Object.entries(waitGate).map(([c, why]) => `${CAPABILITIES[c]?.label || c} (${why})`).join("; ")}. Its tools come on in this task when it's connected.`, detail: JSON.stringify({ waiting: true, gate: waitGate }) });
   emit(run, { type: "status", summary: "starting" });
   spawnWorker(run, { resume: false });
   sendToWorker(run, prompt, atts, mentions);
@@ -2179,6 +2742,47 @@ function rejectReason(req) {
 }
 
 http.createServer(async (req, res) => {
+  // A run's tool servers asking whether a call is allowed (authorizeCall). Token-checked; it answers
+  // only on this console's own address.
+  if (req.method === "GET" && /^\/authz\/[\w-]+\/live$/.test(String(req.url).split("?")[0])) {
+    if (!HOSTS.has(String(req.headers.host || "").toLowerCase())) { res.writeHead(403); return res.end(); }
+    const u = new URL(req.url, `http://localhost:${PORT}`);
+    const r = await liveFor(u.pathname.split("/")[2], req.headers["x-aiw-authz"] || "", u.searchParams.get("server") || "", u.searchParams.get("at") ?? "", u.searchParams.get("on")).catch(() => null);
+    return json(res, r ? 200 : 403, r || { live: [] });
+  }
+  if (req.method === "GET" && /^\/authz\/[\w-]+$/.test(String(req.url).split("?")[0])) {
+    if (!HOSTS.has(String(req.headers.host || "").toLowerCase())) { res.writeHead(403); return res.end(); }
+    const u = new URL(req.url, `http://localhost:${PORT}`), runId = u.pathname.split("/")[2], cap = u.searchParams.get("cap") || "";
+    const r = await authorizeCall(runId, req.headers["x-aiw-authz"] || "", cap).catch((e) => ({ ok: false, reason: e.message }));
+    if (!r.ok) console.log(`${new Date().toISOString()} AUTHZ refused run=${runId} cap=${cap} tool=${u.searchParams.get("tool") || "-"}: ${r.reason}`);
+    return json(res, r.ok ? 200 : 403, r);
+  }
+  // A run's evolve tool server (mcp/evolve-server.mjs): read the run's own worker, or submit a proposal
+  // for it. Only with that run's token, while it runs, for its own worker, never in a trial run. These
+  // two are all the token allows: approving, trying and grading are the person's (below the guard).
+  const evolvePath = /^\/evolve\/([\w-]+)\/(self|propose)$/.exec(String(req.url).split("?")[0]);
+  if (evolvePath) {
+    if (!HOSTS.has(String(req.headers.host || "").toLowerCase())) { res.writeHead(403); return res.end(); }
+    const run = runs.get(evolvePath[1]), a = run?.authz, t = Buffer.from(String(req.headers["x-aiw-evolve"] || "")), want = Buffer.from(a?.token || "");
+    if (!a || !alive(run) || !want.length || t.length !== want.length || !timingSafeEqual(t, want)) return json(res, 403, { error: "Not this run's evolve tools." });
+    if (!run.meta.worker || run.meta.candidate) return json(res, 403, { error: "This run can't propose changes (it has no worker definition, or it's a trial run)." });
+    const w = readWorkers().find((x) => x.id === run.meta.worker.id);
+    if (!w) return json(res, 404, { error: "This worker no longer exists." });
+    const bad = integrityProblem(w); if (bad) return json(res, 409, { error: bad });
+    if (evolvePath[2] === "self" && req.method === "GET") return json(res, 200, selfView(w));
+    if (evolvePath[2] === "propose" && req.method === "POST") {
+      try {
+        const b = await body(req);
+        if (JSON.stringify(b).length > 256 * 1024) return json(res, 413, { error: "The proposal is too large (at most 256 KB)." });
+        const p = await submitProposal(b, w, proposalProvenance(run), a.ctx);
+        const v = proposalView(p);
+        emit(run, { type: "proposal", summary: `Proposed a change to ${w.name}: ${p.title}. It waits for the person's review.`, detail: JSON.stringify({ id: p.id, worker: w.id, verification: v.verification.status }) });
+        return json(res, 200, { id: p.id, status: "proposed", base: p.base, verification: v.verification, dependencies: p.dependencies, warnings: p.warnings,
+          note: "Nothing has changed yet. The person reviews the proposal, can try it in a trial run that the console grades against its checks, and approves or rejects it. Tell them it's waiting for their review." });
+      } catch (e) { return json(res, e.status || 400, { error: e.message, ...(e.errors ? { errors: e.errors } : {}) }); }
+    }
+    return json(res, 405, { error: "Not allowed." });
+  }
   const why = rejectReason(req);
   if (why) {
     console.log(`${new Date().toISOString()} REJECTED ${req.method} ${String(req.url).split("?")[0]} — ${why} (origin=${req.headers.origin || "-"}, host=${req.headers.host || "-"})`); // no query: a callback's code never reaches the log
@@ -2246,10 +2850,15 @@ http.createServer(async (req, res) => {
 
     // worker drafts: the integrations registry, a draft for a request, creating the worker
     if (url.pathname === "/integrations" && req.method === "GET") return json(res, 200, { integrations: drafts.publicRegistry() });
+    // The integration warehouse as the page reads it: core capabilities, each integration's newest
+    // version (and its versions), one exact version, and recommendations for a request.
+    if (url.pathname === "/catalog" && req.method === "GET") return json(res, 200, { core: catalog.coreCatalog().capabilities.map((c) => ({ id: c.id, label: CAPABILITIES[c.id].label, tools: CAPABILITIES[c.id].tools, summary: c.summary, profiles: CAPABILITIES[c.id].profiles, unavailable: offHere(c.id) ? HOSTED_OFF[c.id] : null })), integrations: catalog.latestAll().map((m) => drafts.publicManifest(m, packCatalog())) });
+    if (parts[0] === "catalog" && parts[1] && parts[2] && req.method === "GET") { const m = catalog.get(parts[1], parts[2]); return m ? json(res, 200, drafts.publicManifest(m, packCatalog())) : json(res, 404, { error: `No ${parts[1]} ${parts[2]} in this console's catalogue.` }); }
+    if (url.pathname === "/integrations/recommend" && req.method === "POST") { const b = await body(req); return json(res, 200, { items: drafts.recommend(String(b.text || "").slice(0, 4000), Array.isArray(b.current) ? b.current.map(String).slice(0, 20) : []) }); }
     if (url.pathname === "/worker-drafts/preview" && req.method === "POST") return json(res, 200, await draftPreview(await body(req)));
     if (url.pathname === "/workers/from-request" && req.method === "POST") {
       const b = await body(req), w = workerFromRequest(b);
-      writeWorkers([...readWorkers(), w]);
+      writeWorkers([...readWorkers(), w], { kind: "create", reason: "Created from a request" });
       // A Git workflow worker starts with a configuration from its answers (editable on its page).
       const g = w.fromRequest.integrations.includes("gitsync") ? w.fromRequest.answers.gitsync || {} : null;
       if (g) writeGitflowConfig(w.id, gitflow.initialConfig({ team: g.team, others: g.others, mappings: g.mappings, proposals: g.writes === "propose", workspace: typeof b.workspace === "string" ? b.workspace : "" }));
@@ -2365,7 +2974,48 @@ http.createServer(async (req, res) => {
         resources: Object.entries(RESOURCES).flatMap(([id, r]) => Object.entries(r.access).map(([access, a]) => ({ resource: id, access, label: `${r.label}: ${a.label}`, how: a.how }))),
         repos: readGithub().repos.map((r) => ({ id: r.id, fullName: r.fullName, status: r.status })), repoLevels: REPO_LEVELS.map((l) => ({ id: l, label: REPO_LEVEL_LABELS[l] })) });
     }
-    if (url.pathname === "/workers" && req.method === "POST") { const w = normalizeWorker(await body(req)); writeWorkers([...readWorkers(), w]); return json(res, 200, w); }
+    if (url.pathname === "/workers" && req.method === "POST") { const w = normalizeWorker(await body(req)); writeWorkers([...readWorkers(), w], { kind: "create" }); return json(res, 200, w); }
+    // Migrating workers made before integrations (schema 1): proposals (nothing changes), applying
+    // them (workers.json is backed up first; a tool is added or removed only when the person accepts
+    // that change), and undoing the last migration from its backup.
+    if (url.pathname === "/migration" && req.method === "GET") return json(res, 200, { workers: readWorkers().filter((w) => !workerdef.isV2(w)).map((w) => migrate.proposeMigration(w)), backups: listBackups() });
+    if (url.pathname === "/migration/apply" && req.method === "POST") return json(res, 200, applyMigration(await body(req)));
+    if (url.pathname === "/migration/undo" && req.method === "POST") return json(res, 200, undoMigration(await body(req)));
+    // The General worker: the core capabilities granted to it (it has no definition and no integrations).
+    if (url.pathname === "/general" && req.method === "GET") return json(res, 200, { ...readGeneral(), why: catalog.coreCatalog().general.why, catalogue: catalog.coreCatalog().capabilities.map((c) => ({ id: c.id, label: CAPABILITIES[c.id].label, tools: CAPABILITIES[c.id].tools, summary: c.summary, profiles: CAPABILITIES[c.id].profiles })) });
+    if (url.pathname === "/general" && req.method === "PUT") {
+      const core = [...new Set(((await body(req)).core || []).map(String))];
+      for (const c of core) if (!catalog.isCore(c)) throw Object.assign(new Error(`“${c}” isn't a core capability: the General worker can't have an integration's tools.`), { status: 400 });
+      writeAtomic(GENERAL_FILE, JSON.stringify({ core, updatedAt: new Date().toISOString() }, null, 1)); return json(res, 200, readGeneral());
+    }
+    // What a run of this worker (or General) would start with in this workspace, without starting one:
+    // planned (its definition and the workspace's limits) and effective (minus what its accounts don't allow now).
+    if (url.pathname === "/access/preview" && req.method === "GET") {
+      const ws = resolveWorkspace(url.searchParams.get("workspace") || "console"), wid = url.searchParams.get("worker") || "general";
+      const def = wid === "general" ? generalDefinition() : readWorkers().find((w) => w.id === wid);
+      if (!def) return json(res, 404, { error: "no such worker" });
+      const protect = wsPolicies(ws.id), head = gitInfo(ws.root).branch;
+      let repo = null; try { repo = def.id ? repoScope(ws, def) : null; } catch {}
+      const scope = { protect, head, onProtected: !!head && protect.some((p) => p.branch === head), figmaKey: null, knowledgeDir: null, repo };
+      const gate = await accountGate(def, { profile: ws.profile, root: ws.root, figmaKey: null }, workerRuntime(def, ws.profile, scope).usable);
+      const planned = launchPlan(def, ws, scope), effective = launchPlan(def, ws, scope, gate);
+      return json(res, 200, { worker: wid, workspace: ws.id, gate, waiting: Object.fromEntries(effective.rt.waiting), planned: { args: planned.args, servers: planned.servers, usable: planned.rt.usable }, effective: { args: effective.args, servers: effective.servers, usable: effective.rt.usable }, issues: def.resolution?.issues || [] });
+    }
+    // Importing a worker package: the file (base64, in JSON like every request that changes something)
+    // is read and checked, then waits under a token while the person reviews it and sets up what it
+    // needs here; installing it is a separate request.
+    if (url.pathname === "/workerpacks/preview" && req.method === "POST") {
+      const b = await body(req), data = String(b.data || "");
+      if (data.length > Math.ceil(workerpack.LIMITS.package / 3) * 4 + 4) return json(res, 413, { code: "too-large", error: `The package is larger than ${Math.round(workerpack.LIMITS.package / 1024)} KB.` });
+      let pkg; try { pkg = workerpack.readPackage(Buffer.from(data, "base64")); } catch (e) { return json(res, 400, { code: e.code || "malformed", error: e.message }); }
+      return json(res, 200, { token: keepPack(pkg), package: { manifest: pkg.manifest, definition: pkg.definition, knowledge: pkg.knowledge, repositories: pkg.repositories, warnings: pkg.warnings, files: pkg.files }, plan: await packPlan(pkg, { workspace: b.workspace }) });
+    }
+    if (parts[0] === "workerpacks" && parts[1]) {
+      const p = PENDING_PACKS.get(parts[1]);
+      if (!p) return json(res, 404, { code: "expired", error: "This package's check has expired (after 30 minutes) or was already installed. Choose the file again." });
+      if (parts[2] === "plan" && req.method === "GET") return json(res, 200, await packPlan(p.pkg, { workspace: url.searchParams.get("workspace") }));
+      if (parts[2] === "install" && req.method === "POST") { const out = installPack(p.pkg, await body(req)); PENDING_PACKS.delete(parts[1]); return json(res, 200, out); }
+    }
     if (parts[0] === "workers" && parts[1]) {
       const list = readWorkers(), i = list.findIndex((w) => w.id === parts[1]);
       if (i < 0) return json(res, 404, { error: "no such worker" });
@@ -2373,10 +3023,113 @@ http.createServer(async (req, res) => {
         if (req.method === "GET") return json(res, 200, readMemory(parts[1]));
         if (req.method === "DELETE") { const m = readMemory(parts[1]); if (parts[3] !== undefined) m.splice(Number(parts[3]), 1); else m.length = 0; writeMemory(parts[1], m); return json(res, 200, m); }
       }
-      if (!parts[2] && req.method === "PUT") { list[i] = normalizeWorker(await body(req), list[i]); writeWorkers(list); return json(res, 200, list[i]); }
+      // ---- versions: every recorded version, one in full, a diff, and restoring one (a new version) ----
+      if (parts[2] === "versions" && req.method === "GET") {
+        const id = list[i].id, cur = storedOf(id);
+        if (!parts[3]) {
+          const used = allMetas().filter((m) => m.worker?.id === id).map((m) => ({ run: m.id, version: m.worker.version, ...(m.candidate ? { trial: m.candidate.proposal, baseline: !!m.candidate.baseline } : {}), prompt: clip(m.prompt, 120), at: m.createdAt }));
+          return json(res, 200, { current: cur.version, recorded: !!readVersion(id, cur.version), integrity: integrityProblem(list[i]),
+            versions: historyVersions(id).reverse().map((n) => { const r = readVersion(id, n); return { version: r.version, parent: r.parent, savedAt: r.savedAt, source: r.source, reason: r.reason, runs: used.filter((u) => u.version === n && !u.trial).length }; }), runs: used });
+        }
+        const rec = readVersion(id, parts[3]);
+        if (!rec) return json(res, 404, { error: `Version ${parts[3]} of ${list[i].name} isn't recorded.` });
+        if (parts[4] === "diff") {
+          const to = url.searchParams.get("to"), other = !to || to === "current" ? cur : readVersion(id, to)?.definition;
+          if (!other) return json(res, 404, { error: `Version ${to} isn't recorded.` });
+          return json(res, 200, { from: rec.version, to: other.version, diff: evolve.diffStored(rec.definition, other) });
+        }
+        return json(res, 200, rec);
+      }
+      if (parts[2] === "restore" && req.method === "POST") {
+        const b = await body(req), rec = readVersion(list[i].id, b.version);
+        if (!rec) return json(res, 404, { error: `Version ${b.version} isn't recorded.` });
+        if (rec.version === list[i].version) return json(res, 400, { error: `Version ${rec.version} is already the current one.` });
+        // Through the same checks as any save: its tools, integrations and repositories must still be valid here.
+        list[i] = normalizeWorker({ ...rec.definition, schema: rec.definition.schema === workerdef.SCHEMA ? workerdef.SCHEMA : 1 }, list[i]);
+        writeWorkers(list, { kind: "restore", restoredFrom: rec.version, reason: String(b.reason || "") || `Restored version ${rec.version}` });
+        return json(res, 200, readWorkers().find((w) => w.id === list[i].id));
+      }
+      // ---- proposals: listing, one with its diff and state, and the person's decisions ----
+      if (parts[2] === "proposals") {
+        const id = list[i].id;
+        if (!parts[3] && req.method === "GET") return json(res, 200, { proposals: listProposals(id).map(proposalView) });
+        const p = parts[3] && readProposal(id, parts[3]);
+        if (!p) return json(res, 404, { error: "No such proposal." });
+        if (!parts[4] && req.method === "GET") return json(res, 200, proposalView(p));
+        if (req.method === "POST" && ["trial", "grade", "approve", "reject", "recheck"].includes(parts[4])) {
+          const b = await body(req), cur = storedOf(id);
+          if (parts[4] === "grade") {
+            const t = (p.trials || []).find((x) => x.run === String(b.run || ""));
+            if (!t) return json(res, 404, { error: "That run isn't a trial of this proposal." });
+            const r = loadRun(t.run);
+            if (!r) return json(res, 404, { error: "That trial run's record is gone." });
+            if (["starting", "running"].includes(r.meta.status)) return json(res, 409, { error: "The trial run is still working: grade it when its turn has ended." });
+            const events = readFileSync(r.file, "utf8").trim().split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+            const results = await evolve.grade(p.checks, { events, since: Date.parse(t.startedAt), builder: builderReader });
+            t.grade = { at: new Date().toISOString(), results, ok: results.length > 0 && results.every((x) => x.ran && x.ok) };
+            p.dependencies = await proposalDependencies(p, list[i]);
+            writeProposal(p); return json(res, 200, proposalView(p));
+          }
+          if (parts[4] === "recheck") { p.dependencies = await proposalDependencies(p, list[i]); writeProposal(p); return json(res, 200, proposalView(p)); }
+          if (p.status !== "proposed") return json(res, 400, { error: `This proposal was already ${p.status}.` });
+          if (parts[4] === "reject") { p.status = "rejected"; p.decision = { at: new Date().toISOString(), by: "person", reason: String(b.reason || "").slice(0, 500) }; writeProposal(p); return json(res, 200, proposalView(p)); }
+          // Trying or approving it only makes sense against the version it was made for.
+          if (cur.version !== p.base) return json(res, 409, { code: "stale", error: `This proposal was made for version ${p.base}; the worker is at version ${cur.version} now. It can't be applied over the newer version: ask the worker to propose again against it.` });
+          if (parts[4] === "trial") {
+            if ((p.trials || []).length >= evolve.MAX_TRIALS) return json(res, 400, { error: `At most ${evolve.MAX_TRIALS} trial runs per proposal.` });
+            const prompt = String(b.prompt || p.trialPrompt || "").trim();
+            if (!prompt) return json(res, 400, { error: "Give the task the trial run should do." });
+            const baseline = b.baseline === true;
+            const definition = baseline ? list[i] : workerdef.resolve(evolve.applyChanges(cur, p.changes));
+            const run = await newRun(prompt, String(b.workspace || "scratch"), [], id, [], null, {}, { candidate: { proposal: p.id, baseline, definition } });
+            (p.trials ||= []).push({ run: run.meta.id, baseline, prompt, startedAt: run.meta.createdAt }); writeProposal(p);
+            return json(res, 200, { run: run.meta.id, baseline, proposal: proposalView(p) });
+          }
+          // approve: a new recorded version of the worker, made from the version it was proposed for.
+          const view = proposalView(p), v = view.verification, why = [...(v.status === "passed" ? [] : [`it isn't verified (${v.status}: ${v.why})`]), ...p.warnings];
+          if (why.length && b.acknowledge !== true) return json(res, 400, { code: "acknowledge", error: `Approving this needs your explicit acknowledgement: ${why.join("; ")}.`, reasons: why });
+          list[i] = normalizeWorker({ ...evolve.applyChanges(cur, p.changes), schema: cur.schema === workerdef.SCHEMA ? workerdef.SCHEMA : 1 }, list[i]);
+          writeWorkers(list, { kind: "proposal", proposal: p.id, reason: p.title, verification: { status: v.status, why: v.why, ...(v.run ? { run: v.run } : {}) } });
+          const now = readWorkers().find((w) => w.id === id);
+          p.status = "approved"; p.decision = { at: new Date().toISOString(), by: "person", version: now.version, acknowledged: why.length ? why : null, verification: v, reason: String(b.reason || "").slice(0, 500) };
+          writeProposal(p); return json(res, 200, { worker: now, proposal: proposalView(p) });
+        }
+      }
+      if (!parts[2] && req.method === "PUT") {
+        const b = await body(req);
+        // A worker made before integrations becomes schema 2 only through its migration.
+        if (b.schema === workerdef.SCHEMA && !workerdef.isV2(list[i])) throw Object.assign(new Error("This worker was made before integrations: review its migration first."), { status: 400 });
+        list[i] = normalizeWorker(b, list[i]); writeWorkers(list, { kind: "edit", reason: b.reason }); return json(res, 200, readWorkers().find((w) => w.id === list[i].id));
+      }
+      // Upgrading one of its integrations to a newer version: what changes, then (approved) the change.
+      if (parts[2] === "upgrades" && req.method === "GET") {
+        if (!workerdef.isV2(list[i])) return json(res, 200, { upgrades: [] });
+        return json(res, 200, { upgrades: list[i].integrations.flatMap((r) => { const l = catalog.latest(r.id); if (!l || (catalog.get(r.id, r.version) && catalog.cmpVersion(l.version, r.version) <= 0)) return []; try { return [migrate.upgradeDiff(list[i], r.id, l.version)]; } catch (e) { return [{ integration: r.id, from: r.version, to: l.version, error: e.message }]; } }) });
+      }
+      if (parts[2] === "upgrade" && req.method === "POST") {
+        const b = await body(req);
+        if (!workerdef.isV2(list[i])) throw Object.assign(new Error("This worker was made before integrations: review its migration first."), { status: 400 });
+        const { worker, diff } = migrate.applyUpgrade(list[i], String(b.integration || ""), String(b.to || ""), { approveExpansion: b.approveExpansion === true });
+        list[i] = normalizeWorker({ ...worker, schema: workerdef.SCHEMA }, list[i]); writeWorkers(list, { kind: "upgrade", reason: `${diff.label} ${diff.from} → ${diff.to}` }); list[i] = readWorkers().find((w) => w.id === list[i].id);
+        return json(res, 200, { worker: list[i], diff });
+      }
+      // Export: what the package would contain (and what it wouldn't), then the package itself.
+      if (parts[2] === "export" && req.method === "GET") {
+        const b = packWorker(list[i]);
+        if (parts[3] === "preview") return json(res, 200, { name: list[i].name, file: packFile(list[i]), preview: b.preview, dependencies: b.dependencies, definition: b.definition, knowledgeChars: b.knowledge.length, gitflow: b.gitflow, memoryCount: readMemory(list[i].id).length });
+        if (b.preview.secrets.length) return json(res, 400, { code: "secrets", error: `Not exported: ${b.preview.secrets.join(", ")} ${b.preview.secrets.length === 1 ? "contains" : "contain"} what looks like a password or token. Remove it from the worker first.` });
+        const bytes = workerpack.packBytes(b);
+        res.writeHead(200, { "content-type": "application/octet-stream", "content-disposition": `attachment; filename="${packFile(list[i])}"`, "x-content-type-options": "nosniff", "cache-control": "no-store" });
+        return res.end(bytes);
+      }
+      // Clone: the same package and checks as an export, installed here as a new, independent worker.
+      if (parts[2] === "clone" && req.method === "POST") {
+        const b = await body(req), pkg = workerpack.readPackage(workerpack.packBytes(packWorker(list[i], true)));
+        return json(res, 200, installPack(pkg, { name: String(b.name || "").trim() || freeName(`${list[i].name.slice(0, 53)} (copy)`), gitflowWorkspace: b.gitflowWorkspace ?? readGitflowConfig(list[i].id)?.workspace ?? "", sourceId: list[i].id }, "clone"));
+      }
       // Its runs keep their snapshots (definition and context), so they stay readable and resumable.
       if (!parts[2] && req.method === "DELETE") {
-        const [gone] = list.splice(i, 1); writeWorkers(list); if (existsSync(memPath(gone.id))) writeFileSync(memPath(gone.id), "[]");
+        const [gone] = list.splice(i, 1); writeWorkers(list, { kind: "delete" }); if (existsSync(memPath(gone.id))) writeFileSync(memPath(gone.id), "[]");
         for (const t of readTeams().filter((x) => x.workers.includes(gone.id))) saveTeam({ ...t, workers: t.workers.filter((w) => w !== gone.id) }, t.id);
         return json(res, 200, { deleted: gone.id });
       }
@@ -2515,6 +3268,21 @@ http.createServer(async (req, res) => {
         if (["starting", "running", "waiting"].includes(run.meta.status)) setStatus(run, "interrupted", "the worker process was already gone");
         return json(res, 409, { error: "Nothing is running: the worker had already stopped. Reply to continue the conversation.", status: run.meta.status });
       }
+      // Check connections now (the person's button): what came up is turned on at once.
+      if (action === "recheck") {
+        if (!alive(run) || !run.authz) return json(res, 409, { error: "The worker isn't running. Its connections are checked when the conversation continues." });
+        await refreshLive(run, { force: true });
+        const a = run.authz, label = (c) => CAPABILITIES[c]?.label || c;
+        return json(res, 200, { connected: [...a.live].filter(liveCap).map(label), waiting: [...a.caps].filter((c) => liveCap(c) && !a.live.has(c)).map((c) => ({ label: label(c), why: a.why[c] || "checking" })) });
+      }
+      // Reload tools: for a runtime that didn't pick up a change. Ends the process between turns; the
+      // next message resumes the same conversation in a new one, with what's connected then.
+      if (action === "reload-tools") {
+        if (!alive(run)) return json(res, 409, { error: "The worker isn't running. Its tools are loaded again when you reply." });
+        if (run.meta.status !== "waiting") throw new Error("The worker is in the middle of a step. Wait until it's waiting for you.");
+        run.reloadRequested = true; run.child.stdin.end();
+        return json(res, 200, run.meta);
+      }
       if (action === "end") { if (alive(run)) { run.endRequested = true; run.child.stdin.end(); } return json(res, 200, run.meta); }
       if (action === "restart") return json(res, 200, (await newRun(run.meta.prompt, checkBinding(run, { resume: false }).id, [], run.meta.worker?.id || null, [], run.meta.team?.id || null, { model: run.meta.model, effort: run.meta.effort })).meta);
     }
@@ -2563,7 +3331,7 @@ http.createServer(async (req, res) => {
     }
     res.writeHead(404); res.end("not found");
   } catch (e) {
-    json(res, e instanceof github.GitHubError ? ghStatus(e) : e.status >= 400 && e.status < 600 ? e.status : 400, { error: e.message, ...(e.activeRun ? { activeRun: e.activeRun } : {}) });
+    json(res, e instanceof github.GitHubError ? ghStatus(e) : e.status >= 400 && e.status < 600 ? e.status : 400, { error: e.message, ...(e.errors ? { errors: e.errors } : {}), ...(e.activeRun ? { activeRun: e.activeRun } : {}) });
   }
 }).listen(PORT, "127.0.0.1", () => console.log(`Worker Console on http://localhost:${PORT} (worker binary: ${CLAUDE.cmd}${CLAUDE.shell ? " via shell" : ""}; Claude config dir: ${CONFIG_DIR}; model provider: ${PROVIDER.id}${HOSTED ? "; hosted" : ""})`));
 

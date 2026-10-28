@@ -1,0 +1,40 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "wix",
+  "version": "1.0.0",
+  "label": "Wix",
+  "status": "recognised",
+  "why": "There's no Wix connector yet: a worker can't sign in to Wix or read or change anything in it.",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/integrations/catalog-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "wix"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [],
+    "requires": []
+  },
+  "instructions": {
+    "steps": [],
+    "limits": [],
+    "starters": []
+  },
+  "questions": [],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  },
+  "relations": []
+}

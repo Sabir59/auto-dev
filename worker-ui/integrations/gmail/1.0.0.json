@@ -1,0 +1,41 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "gmail",
+  "version": "1.0.0",
+  "label": "Gmail",
+  "status": "recognised",
+  "why": "There's no Gmail connector yet: a worker can't sign in to Gmail or read or change anything in it.",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/integrations/catalog-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "gmail",
+    "e-?mail|inbox"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [],
+    "requires": []
+  },
+  "instructions": {
+    "steps": [],
+    "limits": [],
+    "starters": []
+  },
+  "questions": [],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  },
+  "relations": []
+}

@@ -1,0 +1,109 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "wordpress",
+  "version": "1.0.0",
+  "label": "WordPress",
+  "status": "recognised",
+  "why": "There's no WordPress connector: a worker can't sign in to WordPress or use its API, so it can't change posts, pages, media, plugins or settings on the live site.",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/workspace-ui/create-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "wordpress",
+    "wp-admin",
+    "woocommerce"
+  ],
+  "absorbs": [
+    "browser"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [],
+    "requires": []
+  },
+  "instructions": {
+    "steps": [],
+    "limits": [],
+    "starters": []
+  },
+  "questions": [
+    {
+      "id": "site",
+      "type": "text",
+      "label": "Site address",
+      "placeholder": "https://…",
+      "knowledge": "WordPress site"
+    },
+    {
+      "id": "scope",
+      "type": "multi",
+      "label": "What part of the site?",
+      "required": true,
+      "choices": [
+        {
+          "id": "content",
+          "label": "Posts, pages and media",
+          "know": "It can open the site's public pages to read them.",
+          "unsupported": "Editing posts, pages or media in WordPress (needs the WordPress REST API with an application password).",
+          "adds": {
+            "integration": "browser",
+            "preset": {}
+          }
+        },
+        {
+          "id": "code",
+          "label": "Theme or plugin code",
+          "know": "The theme or plugin code is in the project folder (a Git checkout); the person deploys it.",
+          "adds": {
+            "integration": "code",
+            "preset": {
+              "stack": "WordPress (PHP)"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "site": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "content",
+              "code"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 2
+        }
+      }
+    }
+  },
+  "relations": [
+    {
+      "to": "browser",
+      "kind": "suggested",
+      "when": [
+        "site",
+        "pages?",
+        "posts?"
+      ],
+      "why": "Reads the site's public pages."
+    }
+  ]
+}

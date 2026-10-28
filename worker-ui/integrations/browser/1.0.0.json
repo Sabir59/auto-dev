@@ -1,0 +1,86 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "browser",
+  "version": "1.0.0",
+  "label": "Websites in a browser",
+  "short": "Browser",
+  "summary": "Opens and reads web pages in a real browser; in a Work workspace it can also click, fill forms and take screenshots.",
+  "status": "tested",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/workspace-ui/browse-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "browser",
+    "web ?pages?",
+    "websites?",
+    "https?://"
+  ],
+  "capabilities": [],
+  "base": {
+    "enables": [],
+    "core": [
+      "files.read",
+      "browser"
+    ],
+    "requires": [
+      {
+        "resource": "browser",
+        "access": "use",
+        "need": "required"
+      }
+    ]
+  },
+  "coreWhy": {
+    "files.read": "Reads task files in the workspace.",
+    "browser": "Opens and reads web pages."
+  },
+  "naming": {
+    "name": "Web worker",
+    "specialization": "Work on web pages"
+  },
+  "instructions": {
+    "steps": [
+      "Open the pages involved and read them before acting"
+    ],
+    "limits": [
+      "Never submit a form that sends money, messages or personal data unless the task asks for exactly that."
+    ],
+    "starters": [
+      "Open the start page and describe what's on it. Don't submit anything."
+    ]
+  },
+  "questions": [
+    {
+      "id": "start",
+      "type": "text",
+      "label": "Start address",
+      "placeholder": "https://…",
+      "knowledge": "Start address"
+    },
+    {
+      "id": "how",
+      "type": "info",
+      "label": "What it can do",
+      "text": "In an Inspect workspace it only opens and reads pages; in Work it can also click, fill forms and take screenshots. It uses a fresh browser with no saved logins."
+    }
+  ],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
+    }
+  },
+  "relations": []
+}

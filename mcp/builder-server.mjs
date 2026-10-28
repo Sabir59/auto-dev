@@ -11,6 +11,7 @@
 // test space (builder-adapter/builder.mjs).
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { guardTools } from "./authz.mjs";
 import { z } from "zod";
 import * as B from "../builder-adapter/builder.mjs";
 
@@ -25,6 +26,9 @@ const model = z.string().describe("Builder model name, e.g. page");
 const id = z.string().describe("Builder content entry id");
 
 const server = new McpServer({ name: "builder", version: "0.1.0" });
+// Each tool call is checked with the console first when it runs this server for a worker (authz.mjs).
+const BUILDER_READS = new Set(["builder_access_status", "builder_list_models", "builder_list_content", "builder_get_content", "builder_verify_content"]);
+guardTools(server, (name) => (BUILDER_READS.has(name) ? "builder.read" : process.env.BUILDER_ADAPTER_PROFILE === "draft" ? "builder.write.draft" : "builder.write"));
 
 server.registerTool("builder_access_status", {
   description: "Whether Builder credentials exist on this computer, which space they're for (its label and whether it's a test space), whether writes are allowed, and whether the key actually works. Call this before promising any Builder work.",

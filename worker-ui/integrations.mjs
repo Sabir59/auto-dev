@@ -22,163 +22,27 @@
 // `when: { q, is: [...] }` shows a question only for those answers. `required` with no default: the
 // person has to answer before the worker can be created (a follow-up, not a guess).
 
-const YES = (caps, extra = {}) => ({ id: "yes", label: "Yes", caps, ...extra });
-const NO = { id: "no", label: "No", caps: [] };
+// The registry is the integration warehouse (worker-ui/catalog.mjs: versioned JSON manifests in
+// worker-ui/integrations/). Composing a new worker uses each integration's newest released version;
+// a worker pins the versions it was made with. Here the manifests take the shape the composer reads.
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import * as catalog from "./catalog.mjs";
 
-export const INTEGRATIONS = [
-  { id: "gitsync", label: "Git branch sync and promotion", short: "Git sync", connector: true, workspace: "project",
-    summary: "Shows which changes each branch is missing and who they belong to, and plans synchronisation and promotion between branches, simulated with Git before anything happens (worker-ui/gitflow.mjs).",
-    detect: ["sync", "synchroni[sz]e", "synchroni[sz]ation", "in sync", "cherry-?picks?", "promote", "promotion", "branches"], absorbs: ["code"],
-    caps: ["gitflow.read"], name: (a) => (a.team ? `${a.team} branch sync worker` : "Branch sync worker"), specialization: () => "Git branch synchronisation and promotion between teams",
-    steps: ["Read the Git workflow configuration (gitflow_overview) before anything else", "Base every statement about a commit on gitflow_commits / gitflow_commit evidence, and say when ownership or a relationship is uncertain", "Explain plans from gitflow_preview: what is blocked, why, and what a person must decide"],
-    limits: ["Never claim a change is safe to apply because it looks like it belongs to the team: the plan's evidence decides.", "Never invent a ticket, pull request or relationship between commits that the evidence doesn't show.", "You can't create branches, merge or push: the person approves and runs plans on the Git workflow page."],
-    starters: ["Explain the changes waiting for each branch relationship: who they belong to, which are blocked and why. Don't change anything."],
-    questions: [
-      { id: "team", type: "text", label: "Your team", placeholder: "e.g. BAU", knowledge: "Team" },
-      { id: "others", type: "text", label: "Other teams in the repository", placeholder: "e.g. Innovax", knowledge: "Other teams" },
-      { id: "mappings", type: "text", label: "Branch relationships", placeholder: "dev-main → sabir-dev; uat-main → sabir-uat; sabir-uat → preprod-main", knowledge: "Branch relationships",
-        prefill: [["sabir-dev|sabir-uat", "dev-main → sabir-dev; uat-main → sabir-uat; sabir-uat → preprod-main"]] },
-      { id: "writes", type: "choice", label: "What may it prepare?", default: "preview", help: "Analysis and plans are simulated with Git and change nothing. A proposal branch is a NEW branch with a plan's result, created only when you approve that plan; nothing is ever pushed or written to an existing branch.", choices: [
-        { id: "preview", label: "Previews and reports only", approval: "It changes nothing in the repository." },
-        { id: "propose", label: "Also proposal branches, when I approve", approval: "Each proposal branch needs your approval on the Git workflow page; you push it and open the pull request yourself." }] },
-      { id: "setup", type: "info", label: "After creating it", text: "Its Git workflow page has the rest: people and their identities, branch patterns, overrides and exclusion rules." },
-    ] },
-
-  { id: "code", label: "Code repository", short: "Code", connector: true, workspace: "project",
-    summary: "Reads and changes code in a project folder on this computer (a Git checkout).",
-    detect: ["repo", "repository", "codebase", "source code", "react", "next\\.?js", "vue", "nuxt", "angular", "svelte", "typescript", "javascript", "frontend", "front-end", "backend", "pull request", "refactor", "unit tests?"],
-    caps: ["files.read"], name: (a) => (a.stack ? `${a.stack} engineer` : "Engineer"), specialization: (a) => `${a.stack || "Software"} development in an existing codebase`,
-    steps: ["Read the conventions and architecture documents before touching code", "Find the existing code, hooks and components that already solve part of it", "Make the smallest change that fits the existing architecture"],
-    limits: ["Never invent APIs, files or components you haven't seen in the repository.", "Never delete or rewrite unrelated code.", "Don't commit or push: the person reviews the changes and commits them."],
-    starters: ["Look through this repository and describe its structure, stack and conventions. Don't change anything."],
-    questions: [
-      { id: "stack", type: "text", label: "Framework and stack", placeholder: "e.g. Next.js 14, React, Tailwind", knowledge: "Stack",
-        prefill: [["next\\.?js", "Next.js"], ["nuxt", "Nuxt"], ["react", "React"], ["vue", "Vue"], ["angular", "Angular"], ["svelte", "Svelte"], ["wordpress", "WordPress (PHP)"], ["shopify", "Shopify theme (Liquid)"]] },
-      { id: "conventions", type: "text", label: "Conventions or documents it must follow", placeholder: "e.g. docs/architecture.md; business logic stays out of components", knowledge: "Conventions to follow" },
-      { id: "change", type: "choice", label: "What may it do with the code?", default: "edit", choices: [
-        { id: "read", label: "Read and explain only", limits: ["Don't change files: describe the change you'd make."], approval: "It can't change files: it reads and explains." },
-        { id: "edit", label: "Change code", caps: ["files.write"], reqs: [["workspace", "write", "required"]], approval: "Its changes stay in the working copy until you review and commit them (Changes & versions)." }] },
-      { id: "scripts", type: "choice", label: "Run Node scripts, such as tests and builds", default: "yes",
-        help: "Only node and curl commands (for example node node_modules/jest/bin/jest.js). npm, npx and other programs aren't available. Turned off in Inspect workspaces and under a protected-branch policy.",
-        choices: [YES(["shell"]), NO] },
-      { id: "browser", type: "choice", label: "Check the result in a browser", default: "yes", help: "Opens your local dev server or a site to look at what changed.",
-        choices: [YES(["browser"], { reqs: [["browser", "use", "optional"]] }), NO] },
-      { id: "git", type: "info", label: "Commits and pushes", text: "Stay yours, from Changes & versions. To let a worker commit through GitHub, register the repository on the GitHub page and grant this worker access in its full definition." },
-    ] },
-
-  { id: "builder", label: "Builder.io", short: "Builder.io", connector: true, workspace: "any",
-    summary: "Reads, drafts and (if you allow it) publishes content in a Builder.io space, through the Builder adapter.",
-    detect: ["builder(\\.io)?"],
-    caps: ["builder.read"], reqs: [["builder", "read", "required"]], name: () => "Builder.io content worker", specialization: () => "Builder.io content and pages",
-    steps: ["Find what already exists (models, entries, the page's url) before creating anything", "Update an existing entry rather than creating a second one for the same page", "Verify the result with builder_verify_content"],
-    limits: ["Never create a second entry for content that already exists: update it.", "Never claim a page is live unless builder_verify_content says servedAsLive: true."],
-    starters: ["List the models and pages in the Builder space, and say which are live. Don't change anything."],
-    questions: [
-      { id: "space", type: "text", label: "Builder space", placeholder: "e.g. MATW test space", knowledge: "Builder space" },
-      { id: "models", type: "text", label: "Models and pages it works on", placeholder: "e.g. page, hero-section; /zakat", knowledge: "Models and pages" },
-      { id: "publishing", type: "choice", label: "What may it do with content?", default: "drafts",
-        help: "Writes only ever go to a Builder space marked as a test space on this computer: the adapter refuses production spaces, whatever you choose here.",
-        choices: [
-          { id: "read", label: "Read only", approval: "It can't change content." },
-          { id: "drafts", label: "Prepare drafts; a person publishes", caps: ["builder.write.draft"], reqs: [["builder", "write", "required"]], approval: "It saves drafts; publishing is yours (it has no publish tool)." },
-          { id: "publish", label: "Create, update and publish", caps: ["builder.write"], reqs: [["builder", "write", "required"]], limits: ["Publish only when the task asks for it."], approval: "It can publish, in test spaces only." }] },
-      { id: "check", type: "choice", label: "Check pages on the site", default: "yes", choices: [YES(["browser"]), NO] },
-      { id: "site", type: "text", label: "Site address", placeholder: "e.g. http://localhost:3000", knowledge: "Site to check pages on", when: { q: "check", is: ["yes"] } },
-    ] },
-
-  { id: "figma", label: "Figma", short: "Figma", connector: true, workspace: "any",
-    summary: "Reads and edits the file open in the Figma desktop app (AI Executor plugin), and reads files by link with a Figma token.",
-    detect: ["figma"],
-    caps: [], name: () => "Figma design worker", specialization: () => "Interface design in Figma",
-    steps: ["Inspect the existing design (pages, styles, components) before changing anything", "Build alongside existing work; export and look at the result to check it"],
-    limits: ["Never delete or replace existing designs unless the task asks for it."],
-    starters: ["Describe the open Figma file: its pages, main frames and components. Don't change anything."],
-    questions: [
-      { id: "file", type: "text", label: "Figma file", placeholder: "https://www.figma.com/design/…", knowledge: "Figma file", help: "A link is context, not access: editing needs the plugin running in that file; reading by link needs a Figma token on this computer." },
-      { id: "edit", type: "choice", label: "In the open file it may", default: "edit", choices: [
-        { id: "edit", label: "Edit", caps: ["figma.plugin.read", "figma.plugin.edit"], reqs: [["figma", "edit", "required"]], approval: "It edits the live Figma file (Figma's own version history is the undo)." },
-        { id: "look", label: "Only look", caps: ["figma.plugin.read"], approval: "It can't change the Figma file." }] },
-      { id: "links", type: "choice", label: "Read other files by their link", default: "no", choices: [YES(["figma.read"], { reqs: [["figma", "read", "required"]] }), NO] },
-    ] },
-
-  { id: "browser", label: "Websites in a browser", short: "Browser", connector: true, workspace: "any",
-    summary: "Opens and reads web pages in a real browser; in a Work workspace it can also click, fill forms and take screenshots.",
-    detect: ["browser", "web ?pages?", "websites?", "https?://"],
-    caps: ["browser"], reqs: [["browser", "use", "required"]], name: () => "Web worker", specialization: () => "Work on web pages",
-    steps: ["Open the pages involved and read them before acting"], limits: ["Never submit a form that sends money, messages or personal data unless the task asks for exactly that."],
-    starters: ["Open the start page and describe what's on it. Don't submit anything."],
-    questions: [
-      { id: "start", type: "text", label: "Start address", placeholder: "https://…", knowledge: "Start address" },
-      { id: "how", type: "info", label: "What it can do", text: "In an Inspect workspace it only opens and reads pages; in Work it can also click, fill forms and take screenshots. It uses a fresh browser with no saved logins." },
-    ] },
-
-  { id: "web", label: "Web research", short: "Research", connector: true, workspace: "any",
-    summary: "Searches the web and reads public pages.",
-    detect: ["research", "competitors?", "search the web", "sources", "market", "news"],
-    caps: ["web"], name: () => "Research worker", specialization: () => "Research from the web",
-    steps: ["Search, then read the primary sources", "Cross-check facts that matter in a second source"],
-    limits: ["Say where every fact comes from, with a link."],
-    starters: ["Find three reliable sources on the topic and summarise what each says, with links."],
-    questions: [
-      { id: "topics", type: "text", label: "Topics and sources to prefer", placeholder: "e.g. UK charity donation sites; official reports first", knowledge: "Topics and sources" },
-      { id: "how", type: "info", label: "Where it works", text: "Searching needs a Work workspace; Scratch is one." },
-    ] },
-
-  { id: "files", label: "Files in a folder", short: "Files", connector: true, workspace: "any",
-    summary: "Reads and writes files (CSV, Markdown, JSON, text) in the workspace folder.",
-    detect: ["csv", "spreadsheets?", "excel", "xlsx", "markdown", "documents?", "reports?"],
-    caps: ["files.read"], name: () => "Files worker", specialization: () => "Work on files in a folder",
-    steps: ["Read the files involved before changing them"], limits: ["Keep a file's format (columns, headers) unless the task asks to change it."],
-    starters: ["List the files in this folder and summarise what each one contains. Don't change anything."],
-    questions: [
-      { id: "which", type: "text", label: "Files it works on", placeholder: "e.g. data/products.csv, reports/", knowledge: "Files" },
-      { id: "change", type: "choice", label: "What may it do with them?", default: "edit", choices: [
-        { id: "read", label: "Read and analyse only", limits: ["Don't change files: report what you found."], approval: "It can't change files." },
-        { id: "edit", label: "Create and edit files", caps: ["files.write"], reqs: [["workspace", "write", "required"]], approval: "Its file changes are yours to review (and to commit, in a Git folder)." }] },
-      { id: "xlsx", type: "info", label: "Spreadsheets", text: "Excel (.xlsx) files can't be read directly: save them as CSV." },
-    ] },
-
-  // ---- recognised, no connector ----
-  { id: "shopify", label: "Shopify", connector: false, workspace: "any",
-    detect: ["shopify"],
-    why: "There's no Shopify connector yet: a worker can't sign in to your store, or read or change its products, inventory, orders, pages or settings.",
-    questions: [
-      { id: "store", type: "text", label: "Store", placeholder: "yourstore.myshopify.com", knowledge: "Shopify store" },
-      { id: "scope", type: "multi", label: "What should it work on?", required: true, choices: [
-        { id: "catalog", label: "Products and inventory", adds: ["files", { change: "edit" }], know: "Products and inventory come from a CSV exported in Shopify admin (Products → Export). The worker edits that file; the person imports it back (Products → Import).",
-          unsupported: "Changing products or stock in the live store (needs the Shopify Admin API)." },
-        { id: "orders", label: "Orders", adds: ["files", {}], know: "Orders come from a CSV exported in Shopify admin (Orders → Export), for analysis.", unsupported: "Reading or changing orders in the store itself (needs the Shopify Admin API)." },
-        { id: "theme", label: "Theme and storefront code", adds: ["code", { stack: "Shopify theme (Liquid)" }], know: "The theme's code (Liquid, sections, assets) is in the project folder, e.g. pulled with Shopify CLI; the person pushes and publishes it." },
-        { id: "content", label: "Pages, blog posts and navigation", unsupported: "Editing store pages, blog posts or navigation (needs the Shopify Admin API)." }] },
-      { id: "review", type: "info", label: "Review", text: "Whatever it changes is a file in a folder: you review it, then import or publish it in Shopify yourself. Nothing reaches the live store from here." },
-    ] },
-
-  { id: "sheets", label: "Google Sheets", connector: false, workspace: "any",
-    detect: ["google ?sheets?", "sheets", "google drive", "gsheets?"],
-    why: "There's no Google connector yet: a worker can't open, read or edit Google Sheets or other Drive files.",
-    questions: [
-      { id: "which", type: "text", label: "Which spreadsheets", placeholder: "e.g. Donations 2026, Competitor tracker", knowledge: "Spreadsheets" },
-      { id: "scope", type: "choice", label: "What should it do with them?", required: true, choices: [
-        { id: "analyse", label: "Read and analyse", adds: ["files", { change: "read" }], know: "Spreadsheets arrive as CSV files downloaded from Google Sheets (File → Download → CSV).", unsupported: "Reading the live Google Sheet." },
-        { id: "edit", label: "Update them", adds: ["files", { change: "edit" }], know: "Spreadsheets arrive as CSV downloads (File → Download → CSV); the worker edits the CSV and the person imports it back (File → Import).", unsupported: "Editing the live Google Sheet." },
-        { id: "create", label: "Create new ones", adds: ["files", { change: "edit" }], know: "New spreadsheets are written as CSV files for the person to import into Google Sheets.", unsupported: "Creating sheets in Google Drive." }] },
-    ] },
-
-  { id: "wordpress", label: "WordPress", connector: false, workspace: "any",
-    detect: ["wordpress", "wp-admin", "woocommerce"], absorbs: ["browser"], // "my WordPress website": its own question covers the browser
-    why: "There's no WordPress connector: a worker can't sign in to WordPress or use its API, so it can't change posts, pages, media, plugins or settings on the live site.",
-    questions: [
-      { id: "site", type: "text", label: "Site address", placeholder: "https://…", knowledge: "WordPress site" },
-      { id: "scope", type: "multi", label: "What part of the site?", required: true, choices: [
-        { id: "content", label: "Posts, pages and media", adds: ["browser", {}], know: "It can open the site's public pages to read them.", unsupported: "Editing posts, pages or media in WordPress (needs the WordPress REST API with an application password)." },
-        { id: "code", label: "Theme or plugin code", adds: ["code", { stack: "WordPress (PHP)" }], know: "The theme or plugin code is in the project folder (a Git checkout); the person deploys it." }] },
-    ] },
-
-  // Named often, not connected: recognised so the answer is honest rather than silent.
-  ...[["notion", "Notion"], ["slack", "Slack"], ["gmail", "Gmail", "e-?mail|inbox"], ["airtable", "Airtable"], ["hubspot", "HubSpot"], ["salesforce", "Salesforce"],
-    ["stripe", "Stripe"], ["jira", "Jira"], ["trello", "Trello"], ["webflow", "Webflow"], ["wix", "Wix"], ["squarespace", "Squarespace"], ["mailchimp", "Mailchimp"], ["whatsapp", "WhatsApp"]]
-    .map(([id, label, extra]) => ({ id, label, connector: false, workspace: "any", detect: [id, ...(extra ? [extra] : [])], why: `There's no ${label} connector yet: a worker can't sign in to ${label} or read or change anything in it.`, questions: [] })),
-];
+const ORDER = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "integrations", "order.json"), "utf8")).order;
+const reqTuples = (rs = []) => rs.map((r) => [r.resource, r.access, r.need]);
+export const entryOf = (m) => ({
+  id: m.id, version: m.version, label: m.label, ...(m.short ? { short: m.short } : {}), summary: m.summary || "", connector: m.status !== "recognised", status: m.status, workspace: m.workspace,
+  ...(m.why ? { why: m.why } : {}), detect: m.detect, ...(m.absorbs ? { absorbs: m.absorbs } : {}),
+  caps: [...m.base.enables, ...m.base.core], reqs: reqTuples(m.base.requires),
+  name: (a) => (m.naming ? catalog.render(m.naming.name, a, m.naming.fallback) : `${m.label} worker`), specialization: (a) => (m.naming ? catalog.render(m.naming.specialization, a) : m.label),
+  steps: m.instructions.steps, limits: m.instructions.limits, starters: m.instructions.starters,
+  questions: m.questions.map((q) => ({ ...q, ...(q.prefill ? { prefill: q.prefill.map((p) => [p.pattern, p.value]) } : {}),
+    ...(q.choices ? { choices: q.choices.map(({ enables, core, requires, adds, ...c }) => ({ ...c, caps: [...(enables || []), ...(core || [])], ...(requires ? { reqs: reqTuples(requires) } : {}), ...(adds ? { adds: [adds.integration, adds.preset] } : {}) })) } : {}) })),
+});
+const ordered = () => { const all = catalog.latestAll(), rank = (id) => (ORDER.includes(id) ? ORDER.indexOf(id) : ORDER.length); return all.sort((a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id)); };
+export const INTEGRATIONS = ordered().map(entryOf);
 
 const BY_ID = new Map(INTEGRATIONS.map((i) => [i.id, i]));
 const rx = (src) => new RegExp(`(^|[^a-z0-9])(${src})(?=$|[^a-z0-9])`, "i");
@@ -186,6 +50,7 @@ const rx = (src) => new RegExp(`(^|[^a-z0-9])(${src})(?=$|[^a-z0-9])`, "i");
 // Checked once against the console's catalogues: a registry entry naming an unknown capability or
 // requirement is a bug, and the console refuses to start rather than offer it.
 export function checkRegistry(CAPABILITIES, RESOURCES) {
+  catalog.check(CAPABILITIES, RESOURCES);
   for (const i of INTEGRATIONS) {
     const choices = (i.questions || []).flatMap((q) => q.choices || []);
     for (const c of [...(i.caps || []), ...choices.flatMap((ch) => ch.caps || [])]) if (!CAPABILITIES[c]) throw new Error(`integration ${i.id}: unknown capability ${c}`);
@@ -195,7 +60,7 @@ export function checkRegistry(CAPABILITIES, RESOURCES) {
 }
 
 // What the page needs to show the registry: never functions or detection patterns.
-export const publicRegistry = () => INTEGRATIONS.map((i) => ({ id: i.id, label: i.label, connector: i.connector, summary: i.summary || "", why: i.why || "",
+export const publicRegistry = () => INTEGRATIONS.map((i) => ({ id: i.id, version: i.version, status: i.status, label: i.label, connector: i.connector, summary: i.summary || "", why: i.why || "",
   questions: (i.questions || []).map(({ prefill, ...q }) => ({ ...q, choices: q.choices?.map(({ id, label, help, unsupported, adds }) => ({ id, label, ...(help ? { help } : {}), ...(unsupported ? { unsupported } : {}), ...(adds ? { via: BY_ID.get(adds[0]).label } : {}) })) })) }));
 
 // The integrations a description names, in registry order. A more specific one can absorb a generic
@@ -228,7 +93,7 @@ export function compose(req = {}) {
   const others = (Array.isArray(req.others) ? req.others : []).map((s) => clip(s, 60)).filter(Boolean).slice(0, 5);
 
   const order = [...new Set(asked)], addedBy = {}, presets = {};
-  const out = { caps: new Set(["files.read"]), reqs: [], steps: [], know: [], limits: [], approvals: [], unsupported: [], pending: [], starters: [] };
+  const out = { caps: new Set(), reqs: [], steps: [], know: [], limits: [], approvals: [], unsupported: [], pending: [], starters: [] };
   const answers = {};
   const addReq = ([resource, access, need]) => { const k = out.reqs.find((r) => r.resource === resource && r.access === access); if (!k) out.reqs.push({ resource, access, need }); else if (need === "required") k.need = "required"; };
   for (let n = 0; n < order.length; n++) {
@@ -285,3 +150,35 @@ export function compose(req = {}) {
     starters: [description, ...new Set(out.starters)].slice(0, 4),
   };
 }
+
+// ---- recommendations (deterministic) ----
+// For a request (and the integrations a worker already has): the integrations it names are required;
+// an integration's declared relations add others only when their patterns appear in the request
+// (Builder.io for a Shopify worker only when it mentions a headless storefront, content pages…), each
+// with its reasons. Nothing is added by itself: the person adds what they choose, and adding an
+// integration never connects an account or grants access.
+const RANK = { required: 0, suggested: 1, optional: 2 };
+export function recommend(text, current = []) {
+  const t = String(text || ""), have = new Set(current), out = new Map();
+  const add = (id, kind, reason) => {
+    const m = catalog.latest(id); if (!m) return;
+    const r = out.get(id);
+    if (!r) out.set(id, { id, version: m.version, label: m.label, status: m.status, connector: m.status !== "recognised", kind, added: have.has(id), reasons: [reason], summary: m.summary || "", ...(m.why ? { why: m.why } : {}) });
+    else { if (RANK[kind] < RANK[r.kind]) r.kind = kind; if (!r.reasons.some((x) => x.text === reason.text)) r.reasons.push(reason); }
+  };
+  for (const id of detect(t)) { const i = BY_ID.get(id), hit = i.detect.map((d) => rx(d).exec(t)).find(Boolean); add(id, "required", { source: "request", text: `Your description mentions “${hit?.[2] || i.label}”.` }); }
+  for (const id of [...new Set([...have, ...out.keys()])]) {
+    const m = catalog.latest(id); if (!m) continue;
+    for (const r of m.relations) {
+      const hit = r.when?.length ? r.when.map((p) => rx(p).exec(t)).find(Boolean) : null;
+      if (r.when?.length && !hit) continue;
+      add(r.to, r.kind === "requires" ? "required" : r.kind, { source: "relation", from: id, text: `${m.label}: ${r.why}${hit ? ` (you mention “${hit[2]}”)` : ""}` });
+    }
+  }
+  return [...out.values()].sort((a, b) => RANK[a.kind] - RANK[b.kind] || Number(b.connector) - Number(a.connector) || a.label.localeCompare(b.label));
+}
+// A manifest as the page shows it (never detection or prefill patterns).
+export const publicManifest = (m, labels = {}) => ({ id: m.id, version: m.version, versions: catalog.versions(m.id), label: m.label, short: m.short || m.label, summary: m.summary || "", status: m.status, connector: m.status !== "recognised",
+  why: m.why || "", workspace: m.workspace, owner: m.owner, review: m.review, tests: m.tests, coreWhy: m.coreWhy || {}, relations: m.relations.map(({ to, kind, why }) => ({ to, kind, why })), changes: m.changes || {},
+  capabilities: m.capabilities.map((c) => ({ id: c.id, label: labels.capabilities?.[c.id] || c.id, accounts: c.accounts.map((a) => ({ ...a, label: labels.resources?.[`${a.resource}:${a.access}`] || `${a.resource} ${a.access}` })) })),
+  base: m.base, instructions: m.instructions, questions: m.questions.map(({ prefill, ...q }) => ({ ...q, choices: q.choices?.map((c) => ({ ...c, ...(c.adds ? { via: catalog.latest(c.adds.integration)?.label || c.adds.integration } : {}) })) })) });

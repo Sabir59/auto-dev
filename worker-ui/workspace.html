@@ -341,6 +341,8 @@ select.wfield { height: 34px; }
 .cap input { margin: 3px 0 0; accent-color: var(--pri-c); width: 14px; height: 14px; flex: none; }
 .cap .t { display: flex; flex-direction: column; min-width: 0; } .cap .d { color: var(--t3); font-size: 11.5px; overflow-wrap: anywhere; }
 .cap .off { color: var(--warn); }
+.capmore { margin-top: 4px; } .capmore > summary { cursor: pointer; color: var(--pri); padding: 4px 8px; width: max-content; } .capmore[open] > summary { margin-bottom: 4px; }
+.caps .capgrp { grid-column: 1 / -1; padding: 8px 8px 0; }
 .reqs { display: flex; flex-direction: column; gap: 6px; }
 .req { display: grid; grid-template-columns: minmax(0, 1fr) 120px minmax(0, 170px) 26px; gap: 8px; align-items: center; }
 .req select, .ghline select, .wrepo select { height: 30px; background: var(--bg); color: var(--t1); border: 1px solid var(--line2); border-radius: var(--r2); padding: 0 8px; font: 400 12.5px/18px var(--sans); }
@@ -479,6 +481,7 @@ button.cbadge.pick:disabled .chev { display: none; }
 #footL:not(:empty) + #footHint { display: none; }
 .foot kbd { font: 500 10.5px/14px var(--sans); padding: 0 4px; border: 1px solid var(--line2); border-radius: 3px; color: var(--t2); }
 /* management pages: defining work, not doing it, so there's no composer */
+body[data-view="pack"] .composer, body[data-view="pack"] .ctx { display: none; }
 body[data-view="worker"] .composer, body[data-view="team"] .composer, body[data-view="github"] .composer, body[data-view="figma"] .composer, body[data-view="create"] .composer, body[data-view="gitflow"] .composer,
 body[data-view="worker"] .ctx, body[data-view="team"] .ctx, body[data-view="github"] .ctx, body[data-view="figma"] .ctx, body[data-view="create"] .ctx, body[data-view="gitflow"] .ctx { display: none; }
 
@@ -925,6 +928,56 @@ body.full[data-view="chat"] .view { max-width: 1200px; }
 @media (min-width: 1025px) and (max-width: 1240px) { body[data-view="gitflow"] { grid-template-columns: 244px minmax(0, 1fr); } }
 a.iconbtn, .wkr a.ed { text-decoration: none; }
 
+/* ---- worker packages: export, clone, import ---- */
+.pkform { gap: 0; }
+.pkhead { display: flex; gap: 12px; align-items: flex-start; padding: 4px 0 14px; } .pkhead > div { flex: 1; min-width: 0; } .pkt { margin: 0; font: 600 18px/26px var(--sans); color: var(--t1); }
+.pksec { display: flex; flex-direction: column; gap: 8px; padding: 14px 0; border-top: 1px solid var(--line); min-width: 0; }
+.pkh { margin: 0; font: 600 13px/18px var(--sans); color: var(--t1); }
+.pkcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 24px; }
+.pklist { margin: 0; padding-left: 18px; color: var(--t2); display: flex; flex-direction: column; gap: 3px; }
+.pkrows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r2); }
+.pkrows li { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 12px; } .pkrows li + li { border-top: 1px solid var(--line); }
+.pkrows li > span:first-child { display: flex; flex-direction: column; min-width: 0; } .pkrows b { font-weight: 500; color: var(--t1); }
+.pkst { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+.pksel { width: 160px; height: 30px; flex: none; }
+.pkdrop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px; border: 1px dashed var(--line2); border-radius: var(--r3); background: var(--surf); cursor: pointer; margin: 8px 0 16px; text-align: center; }
+.pkdrop.on { border-color: var(--pri); background: var(--pri-soft); } .pkdrop input { max-width: 280px; }
+.pkmission { color: var(--t1); padding: 8px 12px; background: var(--surf); border-radius: var(--r2); border: 1px solid var(--line); }
+.pkpre { white-space: pre-wrap; font: 12px/18px var(--mono); color: var(--t2); max-height: 320px; overflow: auto; margin: 8px 0 0; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r2); }
+.pkws { max-width: 360px; } .warnt { color: var(--warn); } .pk .gfban { margin: 6px 0; }
+.wfoot .pkacts { margin-right: auto; display: flex; gap: 8px; }
+svg.i.down { transform: rotate(180deg); }
+/* ---- workers: integrations, core capabilities, recommendations, upgrades, migration ---- */
+.icards { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.icard { padding: 12px 14px; border: 1px solid var(--line2); border-radius: var(--r3); background: var(--surf); display: flex; flex-direction: column; gap: 6px; }
+.icard.nc { border-color: rgba(242,178,92,.35); } .icard.bad { border-color: rgba(255,155,146,.45); }
+.icard .ih, .mcard .ih { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .icard .ih b, .mcard .ih b { color: var(--t1); font-weight: 600; } .icard .ih .sp { flex: 1; }
+.tag.ok { color: var(--ok); background: var(--ok-soft); border-color: rgba(79,214,156,.3); } .tag.warn { color: var(--warn); background: var(--warn-soft); border-color: rgba(242,178,92,.3); }
+.tag.bad { color: var(--err); background: var(--err-soft); border-color: rgba(255,155,146,.35); } .tag.req { color: var(--pri); background: var(--pri-soft); border-color: rgba(143,207,255,.3); } .tag.opt { color: var(--t2); border: 1px dashed var(--line2); }
+.iqs .opt:first-child { margin-top: 2px; }
+.iprov { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .iprov .lab { margin-right: 4px; }
+.iacc { display: flex; flex-direction: column; gap: 4px; } .iacc .oprow .linkbtn { margin-left: auto; flex: none; }
+.iissue { padding: 6px 10px; border-left: 2px solid var(--err); background: var(--err-soft); color: var(--t1); border-radius: 0 var(--r1) var(--r1) 0; }
+.irec { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.irecrow { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 1px dashed var(--line2); border-radius: var(--r2); } .irecrow .t { flex: 1; min-width: 0; display: flex; flex-direction: column; } .irecrow b { color: var(--t1); font-weight: 500; }
+.ifind { margin-top: 10px; position: relative; max-width: 520px; } .ifound { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.ifhit { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; text-align: left; padding: 8px 10px; border: 1px solid var(--line2); border-radius: var(--r2); background: var(--surf); } .ifhit:hover, .ifhit:focus-visible { background: var(--high); } .ifhit b { color: var(--t1); font-weight: 500; } .ifhit .sub { flex-basis: 100%; }
+.iinstr summary { cursor: pointer; color: var(--pri); } .ifrom { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.caps .d.warnt { color: var(--warn); }
+.udiff { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; } .urow { display: flex; flex-direction: column; gap: 2px; } .uadd { color: var(--ok); } .udel { color: var(--err); }
+/* worker evolution: proposals and versions */
+.evo { display: flex; flex-direction: column; gap: 10px; } .evo h4 { margin: 4px 0 0; font: 600 12px/16px var(--sans, inherit); color: var(--t2); }
+.evcard { padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--r3); background: var(--surf); display: flex; flex-direction: column; gap: 6px; }
+.evhead { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; } .evhead b { color: var(--t1); }
+.evst { display: inline-flex; height: 20px; align-items: center; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line2); color: var(--t2); font-size: 11px; }
+.evst.ok { color: var(--ok); border-color: rgba(79,214,156,.45); } .evst.bad { color: var(--err); border-color: var(--err); } .evst.warn { color: var(--warn); border-color: rgba(242,178,92,.5); }
+.evdiff { margin: 0; padding: 6px 8px; max-height: 280px; overflow: auto; border-radius: var(--r2); background: var(--bg, transparent); border: 1px solid var(--line); font: 400 11.5px/16px var(--mono); white-space: pre-wrap; word-break: break-word; }
+.evdiff .f { color: var(--t3); display: block; margin-top: 4px; } .evdiff .a { color: var(--ok); display: block; } .evdiff .d { color: var(--err); display: block; } .evdiff .s { color: var(--t3); display: block; }
+.evlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; } .evlist li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 3px 0; color: var(--t2); }
+.evacts { display: flex; flex-wrap: wrap; gap: 6px; }
+.mcard { margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--line2); border-radius: var(--r3); background: var(--surf); display: flex; flex-direction: column; gap: 8px; }
+.mchoices { display: flex; flex-direction: column; gap: 6px; } .mcard .gfopt { display: flex; gap: 8px; align-items: flex-start; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r2); } .mcard .gfopt.on { border-color: rgba(143,207,255,.4); background: var(--pri-soft); }
+.pkints { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r2); } .pkints li { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 12px; } .pkints li + li { border-top: 1px solid var(--line); }
 /* ---- smaller windows ---- */
 .scrim { display: none; }
 @media (max-width: 1240px) { body { grid-template-columns: 244px minmax(0, 1fr) 300px; } .view { padding: 0 18px; } .canvas { margin: 0 -18px; padding: 0 18px; } }
@@ -986,6 +1039,8 @@ a.iconbtn, .wkr a.ed { text-decoration: none; }
       <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lWk">Workers</span></button><span class="cnt" id="wkCnt"></span></h2>
       <ul id="wkList"></ul>
       <button class="row add" id="addWk"><svg class="i" width="9" height="9" data-i="plus"></svg><span>New worker</span></button>
+      <button class="row add" id="migWk" hidden title="Workers made before integrations: map them to pinned integrations"><svg class="i" width="9" height="9" data-i="branchSm"></svg><span>Review older workers</span></button>
+      <button class="row add" id="impWk" title="Install a worker from a .workerpack file"><svg class="i down" width="9" height="9" data-i="arrowUp"></svg><span>Import worker</span></button>
     </nav>
     <nav class="sect" data-sect="teams" aria-labelledby="lTm">
       <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lTm">Teams</span></button><span class="cnt" id="tmCnt"></span></h2>
@@ -1185,7 +1240,7 @@ function ask({ title, body, actions, focus }) {
 // The worker and Team pages are drafts until saved. Leaving one with changes asks first: save,
 // discard, or keep editing. Nothing else on the page navigates without going through this.
 let draft = null; // { kind: "worker" | "team", clean: <snapshot>, save: () => Promise<boolean> }
-const formSnap = () => { if (view === "gitflow") return GF && $("gfSetup") ? JSON.stringify(gfReadSetup()) : ""; if (view === "create") return crEdit ? JSON.stringify([crEdit.description, crEdit.integrations, crEdit.answers, crEdit.others, $("crDesc")?.value ?? null, $("crName")?.value ?? null, $("crMission")?.value ?? null]) : ""; const f = $("wkForm") || $("tmForm"); if (!f) return ""; return JSON.stringify([[...f.querySelectorAll("input,textarea,select")].map((x) => (x.type === "checkbox" ? x.checked : x.value)), wkEdit && { r: wkEdit.reqs }, tmEdit && { k: tmEdit.knowledge.map((k) => k.path || k.name), p: tmEdit.policies, q: tmEdit.prompts, r: tmEdit.reqs }]); };
+const formSnap = () => { if (view === "gitflow") return GF && $("gfSetup") ? JSON.stringify(gfReadSetup()) : ""; if (view === "create") return crEdit ? JSON.stringify([crEdit.description, crEdit.integrations, crEdit.answers, crEdit.others, $("crDesc")?.value ?? null, $("crName")?.value ?? null, $("crMission")?.value ?? null]) : ""; const f = $("wkForm") || $("tmForm"); if (!f) return ""; return JSON.stringify([[...f.querySelectorAll("input,textarea,select")].map((x) => (x.type === "checkbox" ? x.checked : x.value)), wkEdit && { r: wkEdit.reqs, i: wkEdit.integrations || null, c: wkEdit.core ? [...wkEdit.core] : null }, tmEdit && { k: tmEdit.knowledge.map((k) => k.path || k.name), p: tmEdit.policies, q: tmEdit.prompts, r: tmEdit.reqs }]); };
 const isDirty = () => !!draft && (view === "worker" || view === "team" || view === "create" || (view === "gitflow" && GF?.tab === "settings")) && formSnap() !== draft.clean;
 function trackDraft(kind, save) { draft = { kind, save, clean: formSnap() }; }
 // Resolves true when it's safe to go on (nothing to lose, saved, or discarded on purpose).
@@ -1710,13 +1765,16 @@ function renderWorkers() {
       <span class="grow"><span class="ell">${esc(x.name)}</span></span>
       <span class="meta m11">${x.general ? '<span class="sub">no definition</span>' : missing ? `<span class="missing">${missing} missing</span>` : ""}</span></button>
       <a class="ed tabopen" href="${esc(tabUrl(x.id))}" target="_blank" rel="noopener" data-wk-tab="${esc(x.id || "general")}" aria-label="Open ${esc(x.name)} in a new tab" title="Open ${esc(x.name)} in a new tab, full width">${svgIcon("openNew", 13, 13)}</a>
-      ${x.general ? "" : `<button class="ed" data-wk-edit="${esc(x.id)}" aria-label="Edit ${esc(x.name)}" title="Edit ${esc(x.name)} (v${x.version})">${svgIcon("edit", 13, 13)}</button>`}</li>`;
+      ${x.general ? `<button class="ed" data-wk-general aria-label="General worker settings" title="General worker: the core capabilities it's given">${svgIcon("edit", 13, 13)}</button>` : `<button class="ed" data-wk-edit="${esc(x.id)}" aria-label="Edit ${esc(x.name)}" title="Edit ${esc(x.name)} (v${x.version})${x.schema === 2 ? "" : " · made before integrations"}">${svgIcon("edit", 13, 13)}</button>`}</li>`;
   }).join("");
   $("wkCnt").textContent = WK.workers.length + 1;
+  const old = WK.workers.filter((w) => w.schema !== 2).length;
+  $("migWk").hidden = !old; $("migWk").querySelector("span").textContent = `Review ${plural(old, "older worker")}`;
   renderComposerWho();
 }
 $("wkList").onclick = (e) => {
   const ed = e.target.closest("[data-wk-edit]"), b = e.target.closest("[data-wk]");
+  if (e.target.closest("[data-wk-general]")) return openGeneralEditor();
   if (ed) { opener = ed; return openWorkerEditor(ed.dataset.wkEdit); }
   if (b) {
     wkId = b.dataset.wk || null; store.set("worker", wkId || "");
@@ -1726,51 +1784,224 @@ $("wkList").onclick = (e) => {
 };
 // A new worker starts from the work it's for (the full form is one link away, for advanced use).
 $("addWk").onclick = () => openCreate();
-const BLANK = { name: "", mission: "", specialization: "", capabilities: ["files.read"], knowledge: "", workflow: [], limitations: [], requirements: [], onMissing: "" };
-// Defining a worker. Every field here reaches the run: identity, tools, steps, knowledge, limits
-// and requirements go into its context, capabilities decide its tools, requirements are checked.
-function openWorkerEditor(id, note) {
+const BLANK = { schema: 2, name: "", mission: "", specialization: "", integrations: [], core: [], knowledge: "", workflow: [], limitations: [], extraRequirements: [], onMissing: "", repos: [] };
+// ---- the integration warehouse, as the page reads it (GET /catalog; one exact version: /catalog/:id/:version) ----
+let CAT = null; const MANIFESTS = new Map();
+async function loadCatalog(force = false) { if (!CAT || force) { CAT = await api("GET", "/catalog"); for (const m of CAT.integrations) MANIFESTS.set(`${m.id}@${m.version}`, m); } return CAT; }
+async function manifestOf(id, version) {
+  const k = `${id}@${version}`;
+  if (!MANIFESTS.has(k)) MANIFESTS.set(k, await api("GET", `/catalog/${encodeURIComponent(id)}/${encodeURIComponent(version)}`).catch(() => null));
+  return MANIFESTS.get(k);
+}
+const coreOf = (id) => CAT?.core.find((c) => c.id === id);
+const capName = (id) => WK.capabilities.find((c) => c.id === id)?.label || coreOf(id)?.label || id;
+const qShown = (q, config) => !q.when || [].concat(config[q.when.q] ?? []).some((v) => q.when.is.includes(v));
+// What an integration's settings turn on (the same rules the console applies: workerdef.mjs evaluate).
+function intProvides(m, config) {
+  const out = { enables: [...m.base.enables], core: [...m.base.core], requires: [...m.base.requires], pending: [] };
+  for (const q of m.questions) {
+    if (q.type === "info" || !qShown(q, config)) continue;
+    const v = config[q.id], picked = q.type === "multi" ? [].concat(v ?? []) : v == null || q.type === "text" ? [] : [v];
+    if (q.required && (q.type === "text" ? !v : !picked.length)) out.pending.push(q.label);
+    for (const c of (q.choices || []).filter((c) => picked.includes(c.id))) { out.enables.push(...(c.enables || [])); out.core.push(...(c.core || [])); out.requires.push(...(c.requires || [])); }
+  }
+  out.enables = [...new Set(out.enables)]; out.core = [...new Set(out.core)];
+  return out;
+}
+// A new integration's settings: each question's default, as the creation flow starts them.
+function intDefaults(m) {
+  const config = {};
+  for (const q of m.questions) { if (q.type === "info" || !qShown(q, config)) continue; config[q.id] = q.type === "text" ? "" : q.type === "multi" ? [].concat(q.default ?? []) : q.default ?? null; }
+  return config;
+}
+
+// Defining a worker. A worker is its role, its integrations (each pinned to an exact version, with its
+// settings), the core capabilities granted to it explicitly, and its own instructions. What an
+// integration brings comes from its manifest; nothing here grants access: accounts are connected
+// on their own pages, and what a run gets is decided again when it starts and at every tool call.
+async function openWorkerEditor(id, note) {
+  try { await loadCatalog(); } catch (e) { return notice(e); }
   setView("worker"); verOpen = null; renderVersions();
-  const d = id ? WK.workers.find((x) => x.id === id) : { ...BLANK };
+  const d = id ? WK.workers.find((x) => x.id === id) : structuredClone(BLANK);
   if (!d) return;
-  wkEdit = { id, reqs: (d.requirements || []).map((r) => ({ ...r })), confirmDelete: false };
-  // A definition is the same in every workspace: what a tool needs is a property of the tool, and
-  // what the selected workspace turns off is said once, above the list.
-  const inspect = WK.profile === "inspect", off = WK.capabilities.filter((c) => !c.profiles.includes("inspect") && d.capabilities.includes(c.id));
-  const capRows = WK.capabilities.map((c) => {
-    const workOnly = !c.profiles.includes("inspect");
-    return `<li><label class="cap"><input type="checkbox" data-cap="${esc(c.id)}" ${d.capabilities.includes(c.id) ? "checked" : ""}><span class="t"><span>${esc(c.label)}${c.unavailable ? ` <span class="needs m11 off" title="${esc(c.unavailable)}">not available in the hosted product</span>` : workOnly ? ` <span class="needs m11">needs a Work workspace</span>` : ""}</span><span class="d m11">${esc(c.tools)}</span></span></label></li>`;
-  }).join("");
-  const capNote = inspect && off.length ? `<span class="sub m11 off">In ${esc(ws().name)} (Inspect) ${plural(off.length, "checked tool")} ${off.length === 1 ? "is" : "are"} turned off: ${esc(off.map((c) => c.label).join(", "))}.</span>` : "";
-  // Repository access: none unless chosen here, per registered repository.
+  if (id && d.schema !== 2) return openLegacyEditor(d, note);
+  for (const r of d.integrations) await manifestOf(r.id, r.version);
+  wkEdit = { id, schema: 2, d, integrations: structuredClone(d.integrations), core: new Set(d.core), coreAdded: {}, reqs: (d.extraRequirements || []).map((r) => ({ ...r })), confirmDelete: false, rec: [], find: "" };
   const repoRows = (WK.repos || []).map((r) => { const cur = ((d.repos || []).find((g) => g.repo === r.id) || {}).level || "";
     return `<div class="wrepo"><span class="ell">${esc(r.fullName)}${r.status !== "ok" ? ' <span class="err m11">needs attention</span>' : ""}</span><select data-repo="${esc(r.id)}" aria-label="Access to ${esc(r.fullName)}"><option value="">No access</option>${(WK.repoLevels || []).map((l) => `<option value="${l.id}" ${cur === l.id ? "selected" : ""}>${esc(l.label)}</option>`).join("")}</select></div>`; }).join("");
   const title = id ? `${d.name} · v${d.version}` : "New worker";
   $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="${esc(title)}"><div class="vbar m11"><span class="ell">${esc(title)}</span><span class="ro">${id ? "Applies to new conversations; open ones keep their version" : "A definition: nothing runs until you start a task"}</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
     <div class="vbody"><form class="wform" id="wkForm" novalidate>
       <div class="wrow2">
-        <label class="wf"><span class="lab">Name</span><input class="wfield" id="wkN" maxlength="60" value="${esc(d.name)}" placeholder="e.g. Figma Specialist" autocomplete="off"></label>
-        <label class="wf"><span class="lab">Specialization</span><input class="wfield" id="wkS" maxlength="200" value="${esc(d.specialization)}" placeholder="e.g. Figma design and implementation" autocomplete="off"></label>
+        <label class="wf"><span class="lab">Name</span><input class="wfield" id="wkN" maxlength="60" value="${esc(d.name)}" placeholder="e.g. Shopify catalogue worker" autocomplete="off"></label>
+        <label class="wf"><span class="lab">Specialization</span><input class="wfield" id="wkS" maxlength="200" value="${esc(d.specialization)}" placeholder="e.g. Product data and storefront content" autocomplete="off"></label>
       </div>
-      <label class="wf"><span class="lab">Mission</span><textarea class="wtext" id="wkM" rows="2" maxlength="600" placeholder="What this worker is for, in a sentence or two">${esc(d.mission)}</textarea></label>
-      <div class="wf"><span class="lab">What it can use</span><span class="sub m11">Only checked tools are loaded. A tool gives no access by itself: requirements and the workspace decide that.</span>${capNote}<ul class="caps">${capRows}</ul></div>
+      <label class="wf"><span class="lab">Mission</span><span class="sub m11">What it's for. It suggests integrations below; it never grants anything.</span><textarea class="wtext" id="wkM" rows="2" maxlength="600" placeholder="What this worker is for, in a sentence or two">${esc(d.mission)}</textarea></label>
+      <div class="wf"><span class="lab">Integrations</span><span class="sub m11">The systems it works with, each at a pinned version with its own settings. What they can do is decided here and checked again in every run: in the workspace it runs in, against the accounts connected on this computer.</span>
+        <div id="wkInts" class="icards"></div>
+        <div id="wkRec"></div>
+        <div class="ifind"><input class="wfield" id="wkFind" placeholder="Add integration… (search: GitHub, Shopify, Figma…)" autocomplete="off" aria-label="Search integrations"><div id="wkFound" class="ifound" role="listbox" aria-label="Integrations"></div></div></div>
+      <div class="wf" id="wkCoreWrap"><span class="lab">Core capabilities</span><span class="sub m11">General-purpose tools, granted to this worker explicitly. None is given by default; an integration that needs one says so.</span><ul class="caps" id="wkCore"></ul></div>
       <div class="wf"><span class="lab">Repositories</span><span class="sub m11">Access to registered GitHub repositories, in a workspace assigned to that repository. Enforced by the console and the runtime; an Inspect workspace caps it at Read.</span>${repoRows || '<span class="sub m11">No registered repositories yet (GitHub, in the sidebar).</span>'}</div>
-      <label class="wf"><span class="lab">How it works</span><span class="sub m11">One step per line, in order.</span><textarea class="wtext" id="wkW" rows="5" placeholder="Understand the request&#10;Check access to everything it needs&#10;Inspect&#10;Plan&#10;Do the work&#10;Verify&#10;Report">${esc(d.workflow.join("\n"))}</textarea></label>
+      <label class="wf"><span class="lab">How it works</span><span class="sub m11">Its own steps, one per line. Its integrations add theirs (below); you don't need to repeat them.</span><textarea class="wtext" id="wkW" rows="5" placeholder="Understand the request&#10;Check access to everything it needs&#10;Do the work&#10;Verify&#10;Report">${esc(d.workflow.join("\n"))}</textarea></label>
       <label class="wf"><span class="lab">What it knows</span><span class="sub m11">Domain knowledge, conventions, operating principles.</span><textarea class="wtext" id="wkK" rows="6">${esc(d.knowledge)}</textarea></label>
-      <label class="wf"><span class="lab">Hard limits</span><span class="sub m11">One per line. Things it must never do, even if asked.</span><textarea class="wtext" id="wkL" rows="4">${esc(d.limitations.join("\n"))}</textarea></label>
-      <div class="wf"><span class="lab">What it requires</span><span class="sub m11">Checked at the start of every run. Missing access makes the worker stop and ask for it.</span><div class="reqs" id="wkReqs"></div><button type="button" class="row add" id="wkAddReq" style="width:auto"><svg class="i" width="9" height="9" viewBox="${ICONS.plus.vb}"><path d="${ICONS.plus.d[0]}"/></svg><span>Add requirement</span></button></div>
+      <label class="wf"><span class="lab">Hard limits</span><span class="sub m11">Its own, one per line. Things it must never do, even if asked.</span><textarea class="wtext" id="wkL" rows="4">${esc(d.limitations.join("\n"))}</textarea></label>
+      <div class="wf"><details class="iinstr" id="wkFromInts"><summary class="m12">What its integrations tell it</summary><div id="wkFromIntsBody"></div></details></div>
+      <div class="wf"><span class="lab">Other requirements</span><span class="sub m11">Beyond what its integrations need. Checked at the start of every run; missing access makes the worker stop and ask for it.</span><div class="reqs" id="wkReqs"></div><button type="button" class="row add" id="wkAddReq" style="width:auto"><svg class="i" width="9" height="9" viewBox="${ICONS.plus.vb}"><path d="${ICONS.plus.d[0]}"/></svg><span>Add requirement</span></button></div>
       <label class="wf"><span class="lab">When something is missing</span><span class="sub m11">How it should ask for what it needs.</span><textarea class="wtext" id="wkO" rows="2" maxlength="1000" placeholder="Ask in plain words, and say exactly what the person has to do.">${esc(d.onMissing)}</textarea></label>
       ${id ? `<div class="wf"><span class="lab">Memory</span><span class="sub m11">What it chose to remember (REMEMBER: lines). Given to its next runs; never part of its definition.</span><ul class="wmem" id="wkMem"><li class="when">Loading…</li></ul></div>` : ""}
-      <div class="wfoot">${id ? '<button type="button" class="btn danger m11" id="wkDel">Delete</button>' : ""}<span class="msg m11" id="wkMsg" role="status">${esc(note || "")}</span><button type="button" class="btn m11" id="wkCancel">Cancel</button><button type="submit" class="btn pri m11">Save</button></div>
+      ${id ? EVO_SECTION : ""}
+      <div class="wfoot">${id ? '<button type="button" class="btn danger m11" id="wkDel">Delete</button><button type="button" class="btn m11" id="wkClone" title="A new, independent copy on this console">Clone…</button><button type="button" class="btn m11" id="wkExport" title="A .workerpack file to give to someone">Export…</button>' : ""}<span class="msg m11" id="wkMsg" role="status">${esc(note || "")}</span><button type="button" class="btn m11" id="wkCancel">Cancel</button><button type="submit" class="btn pri m11">Save</button></div>
     </form></div></div>`;
   wireViewer();
-  renderReqs(d);
+  renderReqs(d); renderWkInts(); renderWkCore(); wkRecommend();
   $("wkAddReq").onclick = () => { const r = WK.resources[0]; wkEdit.reqs.push({ resource: r.resource, access: r.access, need: "required" }); renderReqs(d); };
   $("wkCancel").onclick = closeFile;
   $("wkForm").onsubmit = (e) => { e.preventDefault(); saveWorker(); };
-  if (id) { $("wkDel").onclick = () => deleteWorker(id); loadMemory(id); }
+  $("wkFind").oninput = (e) => { wkEdit.find = e.target.value; renderWkFind(); };
+  $("wkM").onchange = () => wkRecommend();
+  $("wkForm").addEventListener("click", wkClick); $("wkForm").addEventListener("change", wkChange);
+  if (id) { $("wkDel").onclick = () => deleteWorker(id); $("wkClone").onclick = () => cloneWorker(id); $("wkExport").onclick = () => openExport(id); loadMemory(id); loadEvolution(id); }
   trackDraft("worker", saveWorker);
   $("wkN").focus();
+}
+// The state of one integration on this worker: what it is, whether it's set up and connected, and
+// what it can do in the workspace selected now (for a saved worker; an unsaved change is checked when saved).
+function intState(ref, m) {
+  const d = wkEdit.d, saved = d.integrations?.some((x) => x.id === ref.id && x.version === ref.version && JSON.stringify(x.config) === JSON.stringify(ref.config)) && wkEdit.id;
+  const res = saved ? d.resolution?.integrations.find((x) => x.id === ref.id) : null, p = intProvides(m, ref.config || {}), chips = [];
+  const rec = wkEdit.rec.find((x) => x.id === ref.id);
+  if (rec) chips.push(rec.kind === "required" ? ["req", "Required"] : ["opt", rec.kind === "suggested" ? "Suggested" : "Optional"]);
+  if (m.status === "recognised") chips.push(["bad", "No connector yet"]);
+  else if (res && !res.ok) chips.push(["bad", "Incompatible"]);
+  else if (p.pending.length) chips.push(["warn", "Settings needed"]);
+  else chips.push(["ok", "Configured"]);
+  const st = saved ? (d.status || []).filter((s) => p.requires.some((r) => r.resource === s.resource && r.access === s.access)) : [];
+  if (st.length) chips.push(st.some((s) => !s.ok && s.need === "required") ? ["bad", "Account missing"] : st.every((s) => s.ok) ? ["ok", "Connected"] : ["warn", "Optional account missing"]);
+  else if (!saved && p.requires.length) chips.push(["", "Accounts checked when saved"]);
+  const rt = saved ? d.runtime : null, caps = p.enables;
+  const capState = (c) => !rt ? ["", "checked when saved"] : rt.usable.includes(c) ? ["ok", "available here"] : rt.byPlatform?.includes(c) ? ["bad", "not on this platform"] : rt.byPolicy?.includes(c) ? ["warn", "off by a policy here"] : ["warn", `not in ${WK.profile === "inspect" ? "an Inspect" : "this"} workspace`];
+  if (rt && caps.length && caps.every((c) => !rt.usable.includes(c))) chips.push(["warn", "Not authorised in this workspace"]);
+  return { chips, p, st, res, caps: caps.map((c) => ({ id: c, state: capState(c) })) };
+}
+function renderWkInts() {
+  const el = $("wkInts"); if (!el) return;
+  el.innerHTML = wkEdit.integrations.map((ref) => {
+    const m = MANIFESTS.get(`${ref.id}@${ref.version}`);
+    if (!m) return `<section class="icard bad" data-int="${esc(ref.id)}"><div class="ih"><b>${esc(ref.id)}</b><span class="mono m11">v${esc(ref.version)}</span><span class="tag bad">Not in this console's catalogue</span><span class="sp"></span><button type="button" class="iconbtn" data-wk-rmint="${esc(ref.id)}" aria-label="Remove">${svgIcon("close", 12, 12)}</button></div><span class="sub m12">This version isn't available here, so it provides nothing. Remove it, or add the integration again at a version this console has.</span></section>`;
+    const s = intState(ref, m), latest = CAT.integrations.find((x) => x.id === ref.id), upgrade = latest && latest.version !== ref.version ? latest.version : null;
+    const qs = m.questions.map((q) => wkQuestion(m, q, ref.config || {})).join("");
+    return `<section class="icard ${m.status === "recognised" ? "nc" : ""}" data-int="${esc(ref.id)}" aria-label="${esc(m.label)}">
+      <div class="ih"><b>${esc(m.label)}</b><span class="mono m11 sub">v${esc(ref.version)}</span>${s.chips.map(([c, t]) => `<span class="tag ${c}">${esc(t)}</span>`).join("")}<span class="sp"></span>
+        ${upgrade ? `<button type="button" class="linkbtn m11" data-wk-upgrade="${esc(ref.id)}">Upgrade to v${esc(upgrade)}…</button>` : ""}<button type="button" class="iconbtn" data-wk-rmint="${esc(ref.id)}" aria-label="Remove ${esc(m.label)}">${svgIcon("close", 12, 12)}</button></div>
+      <span class="sub m12">${esc(m.status === "recognised" ? m.why : m.summary)}</span>
+      ${s.res?.issues?.length ? `<div class="iissue m12">${s.res.issues.map(esc).join("<br>")}</div>` : ""}
+      ${qs ? `<div class="iqs">${qs}</div>` : ""}
+      ${s.caps.length ? `<div class="iprov"><span class="lab">It provides</span>${s.caps.map((c) => `<span class="cchip ${c.state[0] === "ok" ? "" : "off"}">${esc(capName(c.id))}<span class="sub">&nbsp;· ${esc(c.state[1])}</span></span>`).join("")}</div>` : ""}
+      ${s.p.core.length ? `<div class="iprov"><span class="lab">It uses</span>${s.p.core.map((c) => `<span class="cchip ${wkEdit.core.has(c) ? "" : "off"}" title="${esc(m.coreWhy?.[c] || "")}">${esc(capName(c))}<span class="sub">&nbsp;· ${wkEdit.core.has(c) ? "granted" : "not granted: grant it under Core capabilities"}</span></span>`).join("")}</div>` : ""}
+      ${s.p.requires.length ? `<div class="iacc">${s.p.requires.map((r) => { const x = s.st.find((y) => y.resource === r.resource && y.access === r.access), lab = WK.resources.find((y) => y.resource === r.resource && y.access === r.access)?.label || `${r.resource} ${r.access}`;
+        return `<div class="oprow ${x ? (x.ok ? "ok" : "bad") : ""}"><span class="dot ${x ? (x.ok ? "" : x.need === "required" ? "red" : "warn") : "grey"}" aria-hidden="true"></span><span><span>${esc(lab)} <span class="sub m11">${r.need}</span></span>${x ? `<span class="how">${esc(x.ok ? `${x.state}${x.detail ? ` · ${x.detail}` : ""}` : `${x.state}. ${x.how}`)}</span>` : '<span class="how">Checked when saved.</span>'}</span>${x && !x.ok ? wkSetupLink(r) : ""}</div>`; }).join("")}</div>` : ""}
+    </section>`;
+  }).join("") || '<span class="sub m12">No integrations yet: add the systems it works with below.</span>';
+  renderWkFromInts();
+}
+const wkSetupLink = (r) => (r.resource === "figma" ? '<button type="button" class="linkbtn m11" data-wk-setup="figma">Open Figma connection</button>' : r.resource === "github" ? '<button type="button" class="linkbtn m11" data-wk-setup="github">Open GitHub connection</button>' : "");
+// One question of an integration (the creation flow's form, for a saved worker's settings).
+function wkQuestion(m, q, config) {
+  const key = `${m.id}.${q.id}`;
+  if (q.type === "info") return `<div class="opt info"><span class="qlab">${esc(q.label)}</span><span class="sub m12">${esc(q.text)}</span></div>`;
+  if (!qShown(q, config)) return "";
+  const lab = `<span class="qlab" id="wq-${esc(key)}">${esc(q.label)}${q.required ? ' <span class="sub m11">needed</span>' : ""}</span>${q.help ? `<span class="sub m11">${esc(q.help)}</span>` : ""}`;
+  if (q.type === "text") return `<label class="opt">${lab}<input class="wfield" data-wq="${esc(key)}" maxlength="300" value="${esc(config[q.id] || "")}" placeholder="${esc(q.placeholder || "")}" autocomplete="off"></label>`;
+  const picked = [].concat(config[q.id] ?? []), multi = q.type === "multi";
+  return `<div class="opt">${lab}<div class="seg${multi ? " multi" : ""}" role="${multi ? "group" : "radiogroup"}" aria-labelledby="wq-${esc(key)}">${q.choices.map((ch) => { const on = picked.includes(ch.id);
+    return `<button type="button" class="m11" ${multi ? `aria-pressed="${on}"` : `role="radio" aria-checked="${on}"`} data-wq="${esc(key)}" data-choice="${esc(ch.id)}"${ch.unsupported ? ` title="${esc(ch.unsupported)}"` : ""}>${esc(ch.label)}${ch.via ? ` <span class="via">via ${esc(ch.via)}</span>` : ch.unsupported ? ' <span class="nc">not connected</span>' : ""}</button>`; }).join("")}</div></div>`;
+}
+function renderWkCore() {
+  const el = $("wkCore"); if (!el) return;
+  const neededBy = (c) => wkEdit.integrations.flatMap((ref) => { const m = MANIFESTS.get(`${ref.id}@${ref.version}`); return m && intProvides(m, ref.config || {}).core.includes(c) ? [m.short || m.label] : []; });
+  el.innerHTML = CAT.core.map((c) => { const by = neededBy(c.id), on = wkEdit.core.has(c.id), workOnly = !c.profiles.includes("inspect");
+    return `<li><label class="cap"><input type="checkbox" data-core="${esc(c.id)}" ${on ? "checked" : ""}><span class="t"><span>${esc(c.label)}${c.unavailable ? ` <span class="needs m11 off" title="${esc(c.unavailable)}">not available in the hosted product</span>` : workOnly ? ' <span class="needs m11">needs a Work workspace</span>' : ""}</span><span class="d m11">${esc(c.tools)}</span>${by.length ? `<span class="d m11 ${on ? "" : "warnt"}">${on ? "Used by" : "Needed by"} ${esc(by.join(", "))}${on ? "" : ": not granted"}</span>` : ""}</span></label></li>`; }).join("");
+}
+function renderWkFromInts() {
+  const el = $("wkFromIntsBody"); if (!el) return;
+  const parts = wkEdit.integrations.map((ref) => { const m = MANIFESTS.get(`${ref.id}@${ref.version}`); if (!m) return "";
+    const p = intProvides(m, ref.config || {}), lim = [...m.instructions.limits, ...m.questions.flatMap((q) => (q.choices || []).filter((c) => [].concat((ref.config || {})[q.id] ?? []).includes(c.id)).flatMap((c) => c.limits || []))];
+    return `<div class="ifrom"><b class="m12">${esc(m.label)} <span class="mono sub">v${esc(ref.version)}</span></b>${m.instructions.steps.length ? `<ol class="rlist">${m.instructions.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}${lim.length ? `<ul class="rlist">${lim.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}${p.pending.length ? `<span class="warnt m11">Needs: ${esc(p.pending.join(", "))}</span>` : ""}</div>`; }).join("");
+  el.innerHTML = parts || '<span class="sub m12">Nothing yet.</span>';
+}
+// Recommendations for this worker (deterministic: what its mission and request name, and what its
+// integrations declare they go with), each with its reasons. Adding one is the person's choice.
+async function wkRecommend() {
+  const text = [$("wkM")?.value, wkEdit.d.fromRequest?.description, $("wkS")?.value].filter(Boolean).join("\n");
+  try { wkEdit.rec = (await api("POST", "/integrations/recommend", { text, current: wkEdit.integrations.map((r) => r.id) })).items; } catch { wkEdit.rec = []; }
+  const el = $("wkRec"); if (!el) return;
+  const todo = wkEdit.rec.filter((r) => !r.added);
+  el.innerHTML = todo.length ? `<div class="irec"><span class="lab">Suggested for this worker</span>${todo.map((r) => `<div class="irecrow"><span class="tag ${r.kind === "required" ? "req" : "opt"}">${r.kind === "required" ? "Named in its mission" : r.kind === "suggested" ? "Suggested" : "Optional"}</span><span class="t"><b>${esc(r.label)}</b>${r.connector ? "" : ' <span class="tag bad">No connector yet</span>'}<span class="sub m11">${r.reasons.map((x) => esc(x.text)).join(" ")}</span></span><button type="button" class="btn m11" data-wk-addint="${esc(r.id)}">Add</button></div>`).join("")}</div>` : "";
+  renderWkInts();
+}
+function renderWkFind() {
+  const el = $("wkFound"), q = wkEdit.find.trim().toLowerCase(); if (!el) return;
+  if (!q) { el.innerHTML = ""; return; }
+  const have = new Set(wkEdit.integrations.map((r) => r.id));
+  const hits = CAT.integrations.filter((m) => !have.has(m.id) && `${m.label} ${m.short} ${m.summary} ${m.id}`.toLowerCase().includes(q)).sort((a, b) => Number(b.connector) - Number(a.connector) || a.label.localeCompare(b.label)).slice(0, 8);
+  el.innerHTML = hits.map((m) => `<button type="button" class="ifhit" role="option" data-wk-addint="${esc(m.id)}"><b>${esc(m.label)}</b> <span class="mono sub m11">v${esc(m.version)}</span>${m.connector ? "" : ' <span class="tag bad">No connector yet</span>'}<span class="sub m11">${esc(m.connector ? m.summary : m.why)}</span></button>`).join("") || '<span class="sub m12">No integration by that name. The worker can still use its core capabilities.</span>';
+}
+// Granting the core tools an integration needs is shown, not hidden: they're ticked under Core
+// capabilities (with what needs them) and can be unticked before saving.
+function wkGrantNeeded(m, config) { for (const c of intProvides(m, config).core) if (!wkEdit.core.has(c)) { wkEdit.core.add(c); wkEdit.coreAdded[c] = m.label; } }
+async function wkClick(e) {
+  if (!wkEdit || wkEdit.schema !== 2) return;
+  const t = e.target, add = t.closest("[data-wk-addint]"), rm = t.closest("[data-wk-rmint]"), ch = t.closest("[data-wq][data-choice]"), up = t.closest("[data-wk-upgrade]"), setup = t.closest("[data-wk-setup]");
+  if (add) {
+    const m = CAT.integrations.find((x) => x.id === add.dataset.wkAddint); if (!m || wkEdit.integrations.some((r) => r.id === m.id)) return;
+    const config = intDefaults(m); wkEdit.integrations.push({ id: m.id, version: m.version, config }); wkGrantNeeded(m, config);
+    wkEdit.find = ""; $("wkFind").value = ""; renderWkFind(); renderWkCore(); await wkRecommend();
+    $(`wkInts`).querySelector(`[data-int="${CSS.escape(m.id)}"]`)?.scrollIntoView({ block: "nearest" });
+  } else if (rm) { wkEdit.integrations = wkEdit.integrations.filter((r) => r.id !== rm.dataset.wkRmint); renderWkCore(); await wkRecommend(); }
+  else if (ch) {
+    const [iid, qid] = ch.dataset.wq.split("."), ref = wkEdit.integrations.find((r) => r.id === iid), m = MANIFESTS.get(`${ref.id}@${ref.version}`), q = m.questions.find((x) => x.id === qid), cfg = (ref.config ||= {});
+    if (q.type === "multi") { const cur = new Set([].concat(cfg[qid] ?? [])); cur.has(ch.dataset.choice) ? cur.delete(ch.dataset.choice) : cur.add(ch.dataset.choice); cfg[qid] = [...cur]; }
+    else cfg[qid] = cfg[qid] === ch.dataset.choice && !q.required ? null : ch.dataset.choice; // a second click: not set
+    for (const x of m.questions) if (x.type !== "info" && !qShown(x, cfg)) delete cfg[x.id]; else if (x.type !== "info" && !(x.id in cfg)) cfg[x.id] = x.type === "text" ? "" : x.type === "multi" ? [] : x.default ?? null;
+    // A choice that works through another integration (a Shopify products CSV is "Files in a folder") brings it in, as creating a worker does.
+    for (const c of (q.choices || []).filter((c) => c.adds && [].concat(cfg[qid] ?? []).includes(c.id))) {
+      const t = CAT.integrations.find((x) => x.id === c.adds.integration);
+      if (t && !wkEdit.integrations.some((r) => r.id === t.id)) { const config = { ...intDefaults(t), ...c.adds.preset }; wkEdit.integrations.push({ id: t.id, version: t.version, config }); wkGrantNeeded(t, config); }
+    }
+    wkGrantNeeded(m, cfg); renderWkInts(); renderWkCore();
+  } else if (up) openUpgrade(wkEdit.id, up.dataset.wkUpgrade);
+  else if (setup) { if (setup.dataset.wkSetup === "github") openGithubPage(); else $("fgOpen").click(); }
+}
+function wkChange(e) {
+  if (!wkEdit || wkEdit.schema !== 2) return;
+  const t = e.target;
+  if (t.dataset.core) { t.checked ? wkEdit.core.add(t.dataset.core) : wkEdit.core.delete(t.dataset.core); renderWkInts(); renderWkCore(); }
+  else if (t.dataset.wq && !t.dataset.choice) { const [iid, qid] = t.dataset.wq.split("."), ref = wkEdit.integrations.find((r) => r.id === iid); (ref.config ||= {})[qid] = t.value; renderWkFromInts(); }
+}
+// A worker made before integrations (schema 1): its tools as they are, and a way to its migration.
+function openLegacyEditor(d, note) {
+  wkEdit = { id: d.id, schema: 1, d, reqs: (d.requirements || []).map((r) => ({ ...r })), confirmDelete: false };
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="${esc(d.name)}"><div class="vbar m11"><span class="ell">${esc(d.name)} · v${d.version}</span><span class="ro">Made before integrations</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
+    <div class="vbody"><form class="wform" id="wkForm" novalidate>
+      <div class="where m12" id="wkLegacy"><b>This worker was made before integrations.</b> Its tools are a flat list, and its instructions include text copied from integrations. It works as before. Review its migration to give it pinned integrations, explicit core capabilities and its own instructions; nothing changes until you confirm it. <button type="button" class="btn m11" id="wkMigrate">Review migration…</button></div>
+      <div class="wrow2"><label class="wf"><span class="lab">Name</span><input class="wfield" id="wkN" maxlength="60" value="${esc(d.name)}" autocomplete="off"></label><label class="wf"><span class="lab">Specialization</span><input class="wfield" id="wkS" maxlength="200" value="${esc(d.specialization)}" autocomplete="off"></label></div>
+      <label class="wf"><span class="lab">Mission</span><textarea class="wtext" id="wkM" rows="2" maxlength="600">${esc(d.mission)}</textarea></label>
+      <div class="wf"><span class="lab">What it can use</span><span class="sub m11">Its tools as they were defined. To change them, migrate it first.</span><div class="chips" id="wkCaps">${d.capabilities.map((c) => `<span class="cchip" data-legacy-cap="${esc(c)}">${esc(capName(c))}</span>`).join("") || '<span class="sub m12">None.</span>'}</div></div>
+      <label class="wf"><span class="lab">How it works</span><textarea class="wtext" id="wkW" rows="5">${esc(d.workflow.join("\n"))}</textarea></label>
+      <label class="wf"><span class="lab">What it knows</span><textarea class="wtext" id="wkK" rows="6">${esc(d.knowledge)}</textarea></label>
+      <label class="wf"><span class="lab">Hard limits</span><textarea class="wtext" id="wkL" rows="4">${esc(d.limitations.join("\n"))}</textarea></label>
+      <div class="wf"><span class="lab">What it requires</span><div class="reqs" id="wkReqs"></div><button type="button" class="row add" id="wkAddReq" style="width:auto"><span>Add requirement</span></button></div>
+      <label class="wf"><span class="lab">When something is missing</span><textarea class="wtext" id="wkO" rows="2" maxlength="1000">${esc(d.onMissing)}</textarea></label>
+      <div class="wf"><span class="lab">Memory</span><ul class="wmem" id="wkMem"><li class="when">Loading…</li></ul></div>
+      ${EVO_SECTION}
+      <div class="wfoot"><button type="button" class="btn danger m11" id="wkDel">Delete</button><button type="button" class="btn m11" id="wkClone">Clone…</button><button type="button" class="btn m11" id="wkExport">Export…</button><span class="msg m11" id="wkMsg" role="status">${esc(note || "")}</span><button type="button" class="btn m11" id="wkCancel">Cancel</button><button type="submit" class="btn pri m11">Save</button></div>
+    </form></div></div>`;
+  wireViewer(); renderReqs(d);
+  $("wkAddReq").onclick = () => { const r = WK.resources[0]; wkEdit.reqs.push({ resource: r.resource, access: r.access, need: "required" }); renderReqs(d); };
+  $("wkCancel").onclick = closeFile; $("wkForm").onsubmit = (e) => { e.preventDefault(); saveWorker(); };
+  $("wkDel").onclick = () => deleteWorker(d.id); $("wkClone").onclick = () => cloneWorker(d.id); $("wkExport").onclick = () => openExport(d.id); $("wkMigrate").onclick = () => openMigration(d.id);
+  loadMemory(d.id); loadEvolution(d.id); trackDraft("worker", saveWorker); $("wkN").focus();
 }
 function renderReqs(d) {
   const statusOf = (r) => (wkEdit.id ? d.status || [] : []).find((x) => x.resource === r.resource && x.access === r.access);
@@ -1781,13 +2012,14 @@ function renderReqs(d) {
       <span class="wstat m11 ${st ? (st.ok ? "ok" : "bad") : ""}" title="${esc(st && !st.ok ? st.how : "")}">${st ? `<span class="dot ${st.ok ? "" : "red"}"></span>${esc(st.state)}` : "checked when saved"}</span>
       <button type="button" class="iconbtn" data-ri-del="${i}" aria-label="Remove requirement">${svgIcon("close", 12, 12)}</button></div>`;
   }).join("") : '<span class="sub m11">None.</span>';
-  $("wkReqs").onchange = (e) => { const el = e.target, i = +el.dataset.ri; if (el.dataset.k === "res") { const [res, acc] = el.value.split(":"); wkEdit.reqs[i] = { ...wkEdit.reqs[i], resource: res, access: acc }; } else wkEdit.reqs[i].need = el.value; renderReqs(d); };
+  $("wkReqs").onchange = (e) => { e.stopPropagation(); const el = e.target, i = +el.dataset.ri; if (el.dataset.k === "res") { const [res, acc] = el.value.split(":"); wkEdit.reqs[i] = { ...wkEdit.reqs[i], resource: res, access: acc }; } else wkEdit.reqs[i].need = el.value; renderReqs(d); };
   $("wkReqs").onclick = (e) => { const b = e.target.closest("[data-ri-del]"); if (b) { wkEdit.reqs.splice(+b.dataset.riDel, 1); renderReqs(d); } };
 }
 async function saveWorker() {
-  const body = { name: $("wkN").value, specialization: $("wkS").value, mission: $("wkM").value, workflow: $("wkW").value, knowledge: $("wkK").value, limitations: $("wkL").value, onMissing: $("wkO").value,
-    capabilities: [...document.querySelectorAll("[data-cap]")].filter((x) => x.checked).map((x) => x.dataset.cap), requirements: wkEdit.reqs,
-    repos: [...document.querySelectorAll("[data-repo]")].map((x) => ({ repo: x.dataset.repo, level: x.value })).filter((x) => x.level) };
+  const text = { name: $("wkN").value, specialization: $("wkS").value, mission: $("wkM").value, workflow: $("wkW").value, knowledge: $("wkK").value, limitations: $("wkL").value, onMissing: $("wkO").value };
+  const repos = [...document.querySelectorAll("[data-repo]")].map((x) => ({ repo: x.dataset.repo, level: x.value })).filter((x) => x.level);
+  const body = wkEdit.schema === 2 ? { schema: 2, ...text, integrations: wkEdit.integrations, core: [...wkEdit.core], extraRequirements: wkEdit.reqs, repos }
+    : { schema: 1, ...text, capabilities: wkEdit.d.capabilities, requirements: wkEdit.reqs, repos: wkEdit.d.repos || [] };
   try {
     const w = wkEdit.id ? await api("PUT", `/workers/${encodeURIComponent(wkEdit.id)}`, body) : await api("POST", "/workers", body);
     wkId = w.id; store.set("worker", w.id);
@@ -1795,6 +2027,17 @@ async function saveWorker() {
     openWorkerEditor(w.id, `Saved v${w.version}. New conversations use it; open ones keep the version they started with.`);
     return true;
   } catch (e) { $("wkMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; return false; }
+}
+// The General worker: no definition and no integrations; only the core capabilities granted here.
+async function openGeneralEditor() {
+  let g; try { g = await api("GET", "/general"); } catch (e) { return notice(e); }
+  setView("worker"); verOpen = null; renderVersions(); wkEdit = null; draft = null;
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="General worker"><div class="vbar m11"><span class="ell">General worker</span><span class="ro">No definition, no integrations</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
+    <div class="vbody"><form class="wform" id="gnForm" novalidate><div class="wf"><span class="lab">Core capabilities</span><span class="sub m11">${esc(g.why)} For Figma, Builder.io, Git workflows and other systems, use a worker with that integration.</span>
+      <ul class="caps" id="gnCore">${g.catalogue.map((c) => `<li><label class="cap"><input type="checkbox" data-gcore="${esc(c.id)}" ${g.core.includes(c.id) ? "checked" : ""}><span class="t"><span>${esc(c.label)}${!c.profiles.includes("inspect") ? ' <span class="needs m11">needs a Work workspace</span>' : ""}</span><span class="d m11">${esc(c.summary)}</span></span></label></li>`).join("")}</ul></div>
+      <div class="wfoot"><span class="msg m11" id="gnMsg" role="status">${g.saved ? "" : "Not saved yet: these are the defaults."}</span><button type="button" class="btn m11" id="gnCancel">Cancel</button><button type="submit" class="btn pri m11">Save</button></div></form></div></div>`;
+  wireViewer(); $("gnCancel").onclick = closeFile;
+  $("gnForm").onsubmit = async (e) => { e.preventDefault(); try { await api("PUT", "/general", { core: [...document.querySelectorAll("[data-gcore]:checked")].map((x) => x.dataset.gcore) }); $("gnMsg").textContent = "Saved. New conversations with the General worker use it."; } catch (er) { $("gnMsg").innerHTML = `<span class="err">${esc(er.message)}</span>`; } };
 }
 async function deleteWorker(id) {
   if (!wkEdit.confirmDelete) { wkEdit.confirmDelete = true; $("wkDel").textContent = "Delete: sure?"; $("wkMsg").textContent = "Its past runs stay readable; its memory is deleted."; return; }
@@ -1817,6 +2060,171 @@ async function loadMemory(id) {
     } else return;
     loadMemory(id); loadWorkers();
   };
+}
+
+// ---- worker evolution: proposed changes and versions (docs/worker-evolution.md) ----
+// The worker proposes; the console checks the proposal, can try it in a trial run and grade that run
+// against the proposal's checks (reading Builder itself); only you approve it, as a new version. Every
+// version is kept and can be restored (as a new version). What "verified" means is the console's
+// grade of a trial, never the worker's words.
+const EVO_SECTION = `<div class="wf"><span class="lab">Versions and proposed changes</span><span class="sub m11">Every saved version is kept. The worker can propose changes to its own steps, knowledge and limits; they apply only when you approve them, as a new version. A proposal never changes its tools or access.</span><div class="evo" id="wkEvo"><span class="when m11">Loading…</span></div></div>`;
+const EV_ST = { passed: ["ok", "Checks passed in a trial"], failed: ["bad", "Failed its checks"], untested: ["warn", "Not tested"], blocked: ["bad", "Blocked"], "no-checks": ["warn", "No checks"] };
+const evSrc = (s) => ({ create: "created", edit: "edited", restore: `restored from v${s.restoredFrom}`, proposal: `approved proposal${s.verification ? ` (${(EV_ST[s.verification.status] || [, s.verification.status])[1].toLowerCase()})` : ""}`, upgrade: "integration upgraded", migration: "migrated", "before-history": "as it was before history", import: "imported", clone: "cloned", "repository-removed": "repository removed" }[s.kind] || s.kind);
+const evDiff = (diff) => `<pre class="evdiff">${diff.map((f) => `<span class="f">${esc(f.field)}</span>${f.lines.filter((l) => l.op !== "=").map((l) => `<span class="${l.op === "+" ? "a" : "d"}">${l.op} ${esc(l.text)}</span>`).join("")}`).join("") || '<span class="s">No difference.</span>'}</pre>`;
+function evCard(p) {
+  const st = EV_ST[p.verification.status] || ["", p.verification.status];
+  const trial = (t) => `<li><button type="button" class="btn m11" data-ev-open="${esc(t.run)}">${t.baseline ? "Current version" : "Proposed version"}</button>${t.grade ? `<span class="evst ${t.grade.ok ? "ok" : t.grade.results.every((r) => r.ran) ? "bad" : "warn"}">${t.grade.ok ? "checks passed" : t.grade.results.every((r) => r.ran) ? "checks failed" : "not checked"}</span><span class="m11">${esc(t.grade.results.map((r) => r.detail).join("; "))}</span>` : ""}${p.status === "proposed" || p.status === "stale" ? `<button type="button" class="btn m11" data-ev-grade="${esc(t.run)}" data-pid="${esc(p.id)}">${t.grade ? "Grade again" : "Grade"}</button>` : ""}</li>`;
+  return `<div class="evcard"><div class="evhead"><b>${esc(p.title)}</b><span class="evst ${p.status === "approved" ? "ok" : ["stale", "rejected"].includes(p.status) ? "bad" : ""}">${esc(p.status === "approved" ? `approved: v${p.decision.version}` : p.status)}</span><span class="evst ${st[0]}" title="${esc(p.verification.why)}">${esc(st[1])}</span><span class="m11">for v${p.base} · ${p.createdBy.kind === "worker" ? "proposed by the worker" : "by you"} · ${esc(new Date(p.createdAt).toLocaleString())}</span></div>
+    <span class="m12">${esc(p.reason)}</span>${p.expected ? `<span class="sub m12">Expected: ${esc(p.expected)}</span>` : ""}<span class="sub m11">${esc(p.verification.why)}</span>
+    ${p.warnings.length ? `<div class="iissue m12">${p.warnings.map(esc).join("<br>")}</div>` : ""}
+    ${p.needs.length ? `<div class="m12"><b>Not possible with its tools</b><ul class="evlist">${p.needs.map((n) => `<li>${esc(n.what)} <span class="m11">${esc(n.why)}</span></li>`).join("")}</ul></div>` : ""}
+    ${evDiff(p.diff)}
+    <div class="m12"><b>Relies on</b> ${p.dependencies.map((d) => `<span class="evst ${d.ok ? "ok" : "bad"}" title="${esc(d.why)}">${esc(d.label)}${d.ok ? "" : `: ${esc(d.why)}`}</span>`).join(" ") || '<span class="m11">nothing declared</span>'}</div>
+    <div class="m12"><b>Checks</b> <span class="sub m11">written by the worker, graded by the console against what a trial run actually did</span><ul class="evlist">${p.checkText.map((c) => `<li>${esc(c)}</li>`).join("") || "<li class=\"m11\">None: it can't be tested.</li>"}</ul></div>
+    ${p.trials.length ? `<div class="m12"><b>Trial runs</b><ul class="evlist">${p.trials.map(trial).join("")}</ul></div>` : ""}
+    ${p.createdBy.kind === "worker" ? `<details class="m11"><summary>Where it came from</summary><span class="sub">Conversation <button type="button" class="btn m11" data-ev-open="${esc(p.createdBy.run)}">open</button> (v${p.createdBy.version}). ${p.createdBy.externalReads?.length ? `It read from outside: ${esc(p.createdBy.externalReads.join("; "))}` : "It read nothing from the web in that conversation."}</span></details>` : ""}
+    ${p.status === "proposed" ? `<div class="evacts"><button type="button" class="btn m11" data-ev-trial="${esc(p.id)}">Try it…</button><button type="button" class="btn m11" data-ev-baseline="${esc(p.id)}" title="The same task with the worker as it is now, to compare">Try the current version…</button><button type="button" class="btn m11" data-ev-recheck="${esc(p.id)}">Check access again</button><span style="flex:1"></span><button type="button" class="btn danger m11" data-ev-reject="${esc(p.id)}">Reject…</button><button type="button" class="btn pri m11" data-ev-approve="${esc(p.id)}">Approve as v${p.currentVersion + 1}…</button></div>`
+      : p.status === "stale" ? `<div class="evacts"><span class="sub m11">Made for v${p.base}; the worker is at v${p.currentVersion} now, so it can't be applied. Ask the worker to propose again.</span><button type="button" class="btn danger m11" data-ev-reject="${esc(p.id)}">Reject</button></div>`
+      : p.decision?.reason ? `<span class="sub m11">${esc(p.decision.reason)}</span>` : ""}
+  </div>`;
+}
+async function loadEvolution(id) {
+  const box = $("wkEvo"); if (!box) return;
+  const E = encodeURIComponent(id);
+  let ps, vs; try { [ps, vs] = await Promise.all([api("GET", `/workers/${E}/proposals`), api("GET", `/workers/${E}/versions`)]); } catch (e) { box.innerHTML = `<span class="err m11">${esc(e.message)}</span>`; return; }
+  const open = ps.proposals.filter((p) => ["proposed", "stale"].includes(p.status)), done = ps.proposals.filter((p) => !open.includes(p));
+  box.innerHTML = `${vs.integrity ? `<div class="iissue m12">${esc(vs.integrity)}</div>` : ""}<h4>Proposed changes</h4>${open.map(evCard).join("") || '<span class="sub m11">None waiting.</span>'}
+    ${done.length ? `<details><summary class="m12">Decided (${done.length})</summary><div class="evo">${done.map(evCard).join("")}</div></details>` : ""}
+    <h4>Versions</h4><ul class="evlist">${vs.versions.map((v) => `<li><span class="mono">v${v.version}</span>${v.version === vs.current ? '<span class="evst ok">current</span>' : ""}<span class="m11">${esc(evSrc(v.source))}${v.reason ? ` · ${esc(v.reason)}` : ""} · ${esc(new Date(v.savedAt).toLocaleString())}${v.runs ? ` · ${plural(v.runs, "conversation")}` : ""}</span>${v.version !== vs.current ? `<button type="button" class="btn m11" data-ev-cmp="${v.version}">Compare with current</button><button type="button" class="btn m11" data-ev-restore="${v.version}">Restore…</button>` : ""}</li>`).join("") || '<li class="m11">No recorded versions yet: the next save records one.</li>'}</ul>`;
+  box.onclick = async (e) => {
+    const t = e.target.closest("button"); if (!t) return;
+    const d = t.dataset, P = (pid) => ps.proposals.find((p) => p.id === pid), base = `/workers/${E}/proposals`;
+    try {
+      if (d.evOpen) return openRun(d.evOpen);
+      if (d.evGrade) { t.disabled = true; t.textContent = "Grading…"; await api("POST", `${base}/${d.pid}/grade`, { run: d.evGrade }); return loadEvolution(id); }
+      if (d.evRecheck) { await api("POST", `${base}/${d.evRecheck}/recheck`, {}); return loadEvolution(id); }
+      if (d.evTrial || d.evBaseline) {
+        const p = P(d.evTrial || d.evBaseline), baseline = !!d.evBaseline;
+        const r = await ask({ title: baseline ? "Try the current version" : "Try the proposed version", body: `<p class="m12">${baseline ? "A run of the worker as it is now (version " + p.currentVersion + "), to compare with the proposal." : "A run of the worker with this change, without changing the worker. It doesn't write to its memory."} It's a real run: it uses the tools the worker has, in a new Scratch conversation. Grade it when it has finished.</p><textarea class="wtext" id="evPrompt" rows="4">${esc(p.trialPrompt || "")}</textarea>`, actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Start", kind: "pri" }], focus: "cancel" });
+        if (r !== "go") return;
+        const out = await api("POST", `${base}/${p.id}/trial`, { prompt: $("evPrompt").value, baseline });
+        await loadRuns(); return openRun(out.run);
+      }
+      if (d.evReject) {
+        const r = await ask({ title: "Reject this proposal?", body: `<p class="m12">The worker keeps its current version. The proposal stays here, marked rejected.</p><input class="wfield" id="evWhy" placeholder="Why (optional)">`, actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Reject", kind: "danger" }], focus: "cancel" });
+        if (r !== "go") return;
+        await api("POST", `${base}/${d.evReject}/reject`, { reason: $("evWhy").value }); return loadEvolution(id);
+      }
+      if (d.evApprove) {
+        if (isDirty()) return notice("Save or discard your changes first: approving saves a new version of the worker.");
+        const p = P(d.evApprove), unverified = p.verification.status !== "passed", ack = unverified || p.warnings.length;
+        const r = await gfAskLike({ title: `Approve “${p.title}”?`, body: `<p class="m12">It becomes version ${p.currentVersion + 1} of the worker. New conversations use it; open ones keep the version they started with. You can restore version ${p.currentVersion} at any time.</p>${evDiff(p.diff)}
+          ${ack ? `<label class="gfchk m12 gfack"><input type="checkbox" id="evAck"><span>${unverified ? `It isn't verified (${esc(EV_ST[p.verification.status]?.[1] || p.verification.status)}: ${esc(p.verification.why)}). ` : ""}${p.warnings.map(esc).join(" ")} I approve it anyway.</span></label>` : ""}<input class="wfield" id="evWhy" placeholder="Note (optional)">`,
+          actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Approve", kind: "pri" }], focus: "cancel", requireAll: ack ? "#evAck" : null });
+        if (r !== "go") return;
+        const out = await api("POST", `${base}/${p.id}/approve`, { acknowledge: !!ack, reason: $("evWhy").value });
+        await loadWorkers(); return openWorkerEditor(id, `Approved: this is v${out.worker.version}. New conversations use it.`);
+      }
+      if (d.evCmp || d.evRestore) {
+        const n = d.evCmp || d.evRestore, diff = await api("GET", `/workers/${E}/versions/${n}/diff?to=current`);
+        if (d.evCmp) return ask({ title: `v${n} → v${diff.to} (current)`, body: evDiff(diff.diff), actions: [{ id: "ok", label: "Close" }], focus: "ok" });
+        if (isDirty()) return notice("Save or discard your changes first: restoring saves a new version of the worker.");
+        const r = await ask({ title: `Restore v${n}?`, body: `<p class="m12">Its definition becomes the next version; every version stays in the history. What changes from the current one:</p>${evDiff(diff.diff)}`, actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: `Restore v${n}`, kind: "pri" }], focus: "cancel" });
+        if (r !== "go") return;
+        const w = await api("POST", `/workers/${E}/restore`, { version: Number(n) });
+        await loadWorkers(); return openWorkerEditor(id, `Restored v${n}: this is v${w.version}.`);
+      }
+    } catch (er) { notice(er); loadEvolution(id); }
+  };
+}
+
+// ---- upgrading one of a worker's integrations: what changes, then the person's approval ----
+async function openUpgrade(id, integration) {
+  if (isDirty()) return notice("Save or discard your changes first: upgrading saves a new version of the worker.");
+  let ups; try { ups = (await api("GET", `/workers/${encodeURIComponent(id)}/upgrades`)).upgrades; } catch (e) { return notice(e); }
+  const d = ups.find((u) => u.integration === integration);
+  if (!d) return notice(`${integration} has no newer version.`); if (d.error) return notice(d.error);
+  const row = (title, added, removed, fmt = (x) => x) => `<div class="urow"><b class="m12">${title}</b>${added.length || removed.length ? `<ul class="rlist">${added.map((x) => `<li class="uadd">+ ${esc(fmt(x))}</li>`).join("")}${removed.map((x) => `<li class="udel">− ${esc(fmt(x))}</li>`).join("")}</ul>` : '<span class="sub m12">No change.</span>'}</div>`;
+  const acct = (k) => WK.resources.find((r) => `${r.resource}:${r.access}` === k)?.label || k;
+  let approve = false;
+  const body = `<p class="m12">${esc(d.label)} <span class="mono">${esc(d.from)}</span> → <span class="mono">${esc(d.to)}</span>${d.major ? " · a major version" : ""}. The worker keeps ${esc(d.from)} until you upgrade; nothing changes by itself.</p>
+    ${Object.entries(d.notes || {}).filter(([v]) => v === d.to).map(([, t]) => `<p class="sub m12">${esc(t)}</p>`).join("")}
+    <div class="udiff" id="upDiff">
+      ${row("What it provides", d.capabilities.added, d.capabilities.removed, capName)}
+      ${row("Core tools it needs", d.core.added, d.core.removed, capName)}${d.core.toGrant.length ? `<span class="warnt m11">Granting it ${esc(d.core.toGrant.map(capName).join(", "))} is part of this upgrade.</span>` : ""}
+      ${row("Accounts it asks for", d.accounts.added, d.accounts.removed, acct)}
+      <div class="urow"><b class="m12">Its settings</b><span class="sub m12">Kept: ${esc(d.config.kept.join(", ") || "none")}${d.config.defaulted.length ? ` · new or reset to their default: ${esc(d.config.defaulted.join(", "))}` : ""}${d.config.dropped.length ? ` · no longer used: ${esc(d.config.dropped.join(", "))}` : ""}</span>${d.config.errors.length ? `<span class="err m12">Not valid for ${esc(d.to)}: ${esc(d.config.errors.join("; "))}</span>` : ""}</div>
+      ${row("How to work with it", d.steps.added, d.steps.removed)}${row("Its hard limits", d.limits.added, d.limits.removed)}
+    </div>
+    ${d.expands ? `<label class="gfchk m12 gfack"><input type="checkbox" id="upApprove"><span>This gives the worker more access (${esc([...d.capabilities.added, ...d.core.toGrant].map(capName).join(", "))}). I approve it.</span></label>` : ""}`;
+  const r = await gfAskLike({ title: `Upgrade ${d.label} to ${d.to}?`, body, actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Upgrade", kind: "pri" }], focus: "cancel", requireAll: d.expands ? "#upApprove" : null, onChange: () => (approve = !!$("upApprove")?.checked), disabled: !d.compatible });
+  if (r !== "go") return;
+  try { const out = await api("POST", `/workers/${encodeURIComponent(id)}/upgrade`, { integration, to: d.to, approveExpansion: approve }); await loadWorkers(); openWorkerEditor(id, `Upgraded ${d.label} to ${d.to}: this is v${out.worker.version} of the worker.`); }
+  catch (e) { notice(e); }
+}
+// ask(), with the confirm button kept disabled until every box in requireAll is ticked (or always, when disabled).
+function gfAskLike(o) {
+  const done = ask(o);
+  setTimeout(() => {
+    const go = $("dlgA").querySelector('[data-dlg="go"]'); if (!go) return;
+    const boxes = o.requireAll ? [...$("dlgB").querySelectorAll(o.requireAll)] : [];
+    const update = () => { o.onChange?.(); go.disabled = !!o.disabled || !boxes.every((b) => b.checked); };
+    boxes.forEach((b) => b.addEventListener("change", update)); update();
+  }, 0);
+  return done;
+}
+
+// ---- migrating workers made before integrations ----
+// The console proposes a mapping for each (GET /migration); nothing changes until the person
+// confirms. A mapping that would add or remove a tool needs that change accepted; workers.json is
+// backed up first, and the last migration can be undone.
+let MG = null;
+async function openMigration(focus = null) {
+  let m; try { await loadCatalog(); m = await api("GET", "/migration"); } catch (e) { return notice(e); }
+  setView("worker"); verOpen = null; renderVersions(); wkEdit = null; draft = null;
+  MG = { items: m.workers, backups: m.backups, sel: new Set(m.workers.filter((w) => w.status !== "ambiguous" && (!focus || w.worker === focus)).map((w) => w.worker)), choice: {}, accept: {}, result: null, focus };
+  renderMigration();
+}
+function renderMigration() {
+  const statusTag = { exact: ["enf", "Exact: from the request it was made from"], likely: ["ref", "Likely: inferred from its tools"], ambiguous: ["ins", "Needs your choice"] };
+  const card = (p) => {
+    const [cls, lab] = statusTag[p.status], pick = MG.choice[p.worker], r = p.status === "ambiguous" && pick != null ? p.choices[pick].result : p, waiting = p.status === "ambiguous" && p.choices.length && pick == null;
+    const ints = r.integrations.map((i) => `<li><b>${esc(CAT?.integrations.find((m) => m.id === i.id)?.label || i.id)}</b> <span class="mono m11">v${esc(i.version)}</span> <span class="sub m11">${esc(i.why || (i.confidence === "chosen" ? "Your choice." : ""))}</span>${Object.keys(i.config || {}).length ? `<span class="sub m11 mono">${esc(Object.entries(i.config).filter(([, v]) => v != null && v !== "" && !(Array.isArray(v) && !v.length)).map(([k, v]) => `${k}: ${[].concat(v).join("+")}`).join(" · "))}</span>` : ""}</li>`).join("");
+    const eff = r.effective, changes = [...eff.added.map((c) => `+ ${capName(c)}`), ...eff.removed.map((c) => `− ${capName(c)}`)];
+    return `<section class="mcard" data-mig="${esc(p.worker)}"><div class="ih"><label class="gfchk"><input type="checkbox" data-mig-sel="${esc(p.worker)}" ${MG.sel.has(p.worker) ? "checked" : ""}><b>${esc(p.name)}</b></label><span class="mono m11 sub">v${p.version}</span><span class="tag ${cls}">${esc(lab)}</span></div>
+      ${p.notes.length ? `<div class="iissue m12">${p.notes.map(esc).join("<br>")}</div>` : ""}
+      ${p.status === "ambiguous" && p.choices.length ? `<div class="mchoices"><span class="lab">Choose</span>${p.choices.map((c, k) => `<label class="gfopt ${pick === k ? "on" : ""}"><input type="radio" name="mig-${esc(p.worker)}" data-mig-choice="${esc(p.worker)}" value="${k}" ${pick === k ? "checked" : ""}><span><b>${esc(c.label)}</b>: ${esc(c.gives.map(capName).join(", "))}${c.loses.length ? ` <span class="warnt m11">· it no longer has ${esc(c.loses.map(capName).join(", "))}</span>` : ""}</span></label>`).join("")}</div>` : ""}
+      ${waiting ? '<span class="sub m12">Choose one of the options to see exactly what it changes.</span>' : `<div class="wrow2"><div><span class="lab">Integrations</span><ul class="rlist">${ints || '<li class="sub">None</li>'}</ul></div><div><span class="lab">Core capabilities</span><div class="chips">${r.core.map((c) => `<span class="cchip">${esc(capName(c))}</span>`).join("") || '<span class="sub m12">None</span>'}</div></div></div>
+      <div><span class="lab">Its tools</span> ${changes.length ? `<span class="warnt m12">${esc(changes.join(", "))}</span>` : '<span class="sub m12">Exactly as before.</span>'}${r.requirements.added.length || r.requirements.removed.length ? ` <span class="sub m12">· requirements ${esc([...r.requirements.added.map((x) => `+${x}`), ...r.requirements.removed.map((x) => `−${x}`)].join(", "))}</span>` : ""}</div>
+      ${r.own.moved.steps.length || r.own.moved.limits.length || r.own.moved.knowledge.length ? `<details><summary class="m12">Text that comes from its integrations (${r.own.moved.steps.length + r.own.moved.limits.length + r.own.moved.knowledge.length} lines): moved out of its own instructions</summary><ul class="rlist">${[...r.own.moved.steps, ...r.own.moved.limits, ...r.own.moved.knowledge].map((x) => `<li>${esc(x)}</li>`).join("")}</ul></details>` : ""}
+      ${changes.length ? `<label class="gfchk m12 gfack"><input type="checkbox" data-mig-accept="${esc(p.worker)}" ${MG.accept[p.worker] ? "checked" : ""}><span>I accept this change to its tools: ${esc(changes.join(", "))}.</span></label>` : ""}`}</section>`;
+  };
+  const n = MG.sel.size;
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="Migrate workers"><div class="vbar m11"><span class="ell">Migrate workers made before integrations</span><span class="ro">Nothing changes until you confirm</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
+    <div class="vbody"><div class="wform" id="mgBody">
+      ${MG.result ? gfBan("ok", `Migrated ${plural(MG.result.migrated.length, "worker")}`, `${esc(MG.result.migrated.map((w) => w.name).join(", "))}. workers.json was backed up first (${esc(MG.result.backup)}). <button type="button" class="linkbtn" id="mgUndo">Undo this migration</button>`) : ""}
+      ${MG.undone ? gfBan("info", "Migration undone", `Restored ${esc(MG.undone)}.`) : ""}
+      <div class="wf"><span class="sub m12">Each worker is mapped to integrations pinned at a version, with its core tools granted explicitly, and the text its integrations provide separated from its own. A mapping never adds or removes a tool unless you accept that change below.</span></div>
+      ${MG.items.length ? MG.items.map(card).join("") : '<div class="wf"><span class="sub m12">Every worker uses integrations.</span></div>'}
+      <div class="wfoot"><span class="msg m11" id="mgMsg" role="status"></span>${MG.backups.length && !MG.result ? `<button type="button" class="btn m11" id="mgUndoLast" title="${esc(MG.backups[0])}">Undo the last migration</button>` : ""}<button type="button" class="btn m11" id="mgClose">Close</button><button type="button" class="btn pri m11" id="mgApply" ${n ? "" : "disabled"}>Migrate ${plural(n, "worker")}</button></div></div></div></div>`;
+  wireViewer();
+  $("mgClose").onclick = closeFile;
+  $("mgBody").onchange = (e) => {
+    const t = e.target;
+    if (t.dataset.migSel) { t.checked ? MG.sel.add(t.dataset.migSel) : MG.sel.delete(t.dataset.migSel); }
+    else if (t.dataset.migChoice) { MG.choice[t.dataset.migChoice] = +t.value; MG.accept[t.dataset.migChoice] = false; MG.sel.add(t.dataset.migChoice); }
+    else if (t.dataset.migAccept) MG.accept[t.dataset.migAccept] = t.checked;
+    renderMigration();
+  };
+  $("mgApply").onclick = async () => {
+    try {
+      MG.result = await api("POST", "/migration/apply", { workers: [...MG.sel].map((id) => ({ id, ...(MG.choice[id] != null ? { choice: MG.choice[id] } : {}), acceptChanges: !!MG.accept[id] })) });
+      const m = await api("GET", "/migration"); MG.items = m.workers; MG.backups = m.backups; MG.sel = new Set(); MG.undone = null; await loadWorkers(); renderMigration();
+    } catch (e) { $("mgMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  };
+  const undo = async (backup) => { try { const r = await api("POST", "/migration/undo", { backup }); const m = await api("GET", "/migration"); Object.assign(MG, { items: m.workers, backups: m.backups, result: null, undone: r.restored, sel: new Set() }); await loadWorkers(); renderMigration(); } catch (e) { $("mgMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; } };
+  if ($("mgUndo")) $("mgUndo").onclick = () => undo(MG.result.backup);
+  if ($("mgUndoLast")) $("mgUndoLast").onclick = () => undo(MG.backups[0]);
 }
 
 // ---------------- a new worker, for the work a person describes ----------------
@@ -1868,6 +2276,8 @@ async function crPreview() {
     if (to && to !== c.workspace) { c.workspace = to; return crPreview(); }
   }
   c.answers = p.answers; c.p = p;
+  // What else might belong (deterministic: what the description names, and what its integrations go with), with reasons; nothing is added by itself.
+  try { c.rec = (await api("POST", "/integrations/recommend", { text: c.description, current: c.integrations })).items; } catch { c.rec = []; }
   return p;
 }
 async function crToStep(step) {
@@ -1918,7 +2328,7 @@ function crQuestion(i, q, a, pend) {
 }
 function crStep2() {
   const c = crEdit, p = c.p, asked = c.integrations;
-  const avail = REG.filter((i) => !asked.includes(i.id));
+  const avail = REG.filter((i) => !asked.includes(i.id)), rec = (c.rec || []).filter((r) => !r.added && !asked.includes(r.id));
   const chip = (i) => `<span class="ichip ${i.connector ? "" : "nc"}">${esc(i.label)}<span class="m11">${i.connector ? "connected here" : "no connector yet"}</span><button type="button" class="iconbtn" data-cr-rm="${esc(i.id)}" aria-label="Remove ${esc(i.label)}">${svgIcon("close", 10, 10)}</button></span>`;
   const sections = p.integrations.map((id) => {
     const i = regOf(id), a = p.answers[id] || {}, pend = new Set(p.pending.filter((x) => x.integration === id).map((x) => x.question));
@@ -1930,6 +2340,8 @@ function crStep2() {
     <span class="lab" style="margin-top:6px">Tools and systems this work involves</span>
     <div class="ichips">${asked.map((id) => chip(regOf(id))).join("")}${c.others.map((o, n) => `<span class="ichip nc">${esc(o)}<span class="m11">no connector</span><button type="button" class="iconbtn" data-cr-rmo="${n}" aria-label="Remove ${esc(o)}">${svgIcon("close", 10, 10)}</button></span>`).join("")}
       ${!asked.length && !c.others.length ? '<span class="sub m12">Nothing recognised in your description yet. Which tools or systems does this work involve?</span>' : ""}</div>
+    ${rec.length ? `<div class="irec"><span class="lab">Suggested</span>${rec.map((r) => `<div class="irecrow"><span class="tag ${r.kind === "required" ? "req" : "opt"}">${r.kind === "required" ? "Named in your description" : r.kind === "suggested" ? "Suggested" : "Optional"}</span><span class="t"><b>${esc(r.label)}</b>${r.connector ? "" : ' <span class="tag bad">No connector yet</span>'}<span class="sub m11">${r.reasons.map((x) => esc(x.text)).join(" ")}</span></span><button type="button" class="btn m11" data-cr-addi="${esc(r.id)}">Add</button></div>`).join("")}</div>` : ""}
+    <div class="ifind"><input class="wfield" id="crFind" data-focus="find" placeholder="Add integration… (search any system)" autocomplete="off" aria-label="Search integrations" value="${esc(c.find || "")}"><div class="ifound" role="listbox" aria-label="Integrations">${(c.find || "").trim() ? avail.filter((i) => `${i.label} ${i.summary} ${i.id}`.toLowerCase().includes(c.find.trim().toLowerCase())).slice(0, 8).map((i) => `<button type="button" class="ifhit" role="option" data-cr-addi="${esc(i.id)}"><b>${esc(i.label)}</b>${i.version ? ` <span class="mono sub m11">v${esc(i.version)}</span>` : ""}${i.connector ? "" : ' <span class="tag bad">No connector yet</span>'}<span class="sub m11">${esc(i.connector ? i.summary : i.why)}</span></button>`).join("") || '<span class="sub m12">Nothing by that name: name it below.</span>' : ""}</div></div>
     <div class="iadd"><select id="crAdd" aria-label="Add a tool or system"><option value="">Add a tool or system…</option><optgroup label="Connected here">${avail.filter((i) => i.connector).map((i) => `<option value="${esc(i.id)}">${esc(i.label)}</option>`).join("")}</optgroup><optgroup label="No connector yet">${avail.filter((i) => !i.connector).map((i) => `<option value="${esc(i.id)}">${esc(i.label)}</option>`).join("")}</optgroup></select>
       <input class="wfield" id="crOther" maxlength="60" placeholder="Something else? Name it" autocomplete="off"><button type="button" class="btn" id="crOtherAdd">Add</button></div></div>
     ${sections ? `<div class="wf"><span class="lab">A few questions</span><span class="sub m11">Only for the tools above. An answer turns tools on or off and gives the worker context; it never connects an account or grants access.</span>${sections}</div>` : ""}
@@ -1944,6 +2356,8 @@ function crStep3() {
       <label class="wf"><span class="lab">Where it will work first</span><select class="wfield" id="crWs">${WS.map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? "selected" : ""}>${esc(x.name)} · ${modeOf(x)}</option>`).join("")}</select></label></div>
     <label class="wf"><span class="lab">What it's for</span><span class="sub m11">Your words; it reads this as its mission.</span><textarea class="wtext" id="crMission" rows="2" maxlength="600">${esc(c.mission ?? d.mission)}</textarea></label>
     <div class="wf"><span class="lab">Where it works</span><div class="where m12">${whereFor(p.workspace, w)}</div></div>
+    <div class="wf"><span class="lab">Integrations it's made with</span><span class="sub m11">Pinned at these versions: a newer version reaches it only when you upgrade it.</span><div class="chips" id="crInts">${p.integrations.map((id) => { const i = regOf(id); return `<span class="cchip ${i?.connector ? "" : "off"}">${esc(i?.label || id)}${i?.version ? `<span class="sub">&nbsp;v${esc(i.version)}</span>` : ""}</span>`; }).join("")}</div>
+      <span class="lab" style="margin-top:8px">Core capabilities it's given</span><div class="chips" id="crCore">${d.capabilities.filter((x) => ["files.read", "files.write", "shell", "web", "browser"].includes(x)).map((x) => `<span class="cchip">${esc(capLabel(x))}</span>`).join("") || '<span class="sub m12">None</span>'}</div></div>
     <div class="wf"><span class="lab">What it can do in ${esc(w.name)}</span><span class="sub m11">Enforced by the platform: these tools are all it gets here. The workspace's mode, a Team's rules and each connector's own limits can only take more away.</span>
       <div class="chips" id="crCaps">${[...p.usable.map((x) => `<span class="cchip">${esc(capLabel(x))}</span>`), ...p.blocked.map((x) => `<span class="cchip off">${esc(capLabel(x))}<span class="sub">&nbsp;· not in ${esc(mode)}</span></span>`), ...p.byPlatform.map((x) => `<span class="cchip off">${esc(capLabel(x))}<span class="sub">&nbsp;· not available here</span></span>`)].join("")}</div></div>
     <div class="wf"><span class="lab">Connections and access</span><span class="sub m11">Checked now, on this computer.${missing.length ? " Until these are connected, it stops and tells you what's needed (Needs your action)." : ""}</span><div class="oplist" id="crReqs">${p.status.map(reqRow).join("") || '<span class="sub m11">Nothing beyond the workspace.</span>'}</div></div>
@@ -1981,6 +2395,7 @@ $("canvas").addEventListener("click", (e) => {
   else if (t.closest("#crOtherAdd")) { const v = $("crOther").value.trim(); if (v && !c.others.includes(v)) { c.others.push(v); crChanged(); } }
   else if (rm) { c.integrations = c.integrations.filter((x) => x !== rm.dataset.crRm); delete c.answers[rm.dataset.crRm]; crChanged(); }
   else if (rmo) { c.others.splice(+rmo.dataset.crRmo, 1); crChanged(); }
+  else if (t.closest("[data-cr-addi]")) { const id = t.closest("[data-cr-addi]").dataset.crAddi; if (!c.integrations.includes(id)) { c.integrations = [...c.integrations, id]; c.find = ""; crChanged(); } }
   else if (ch) {
     const [iid, qid] = ch.dataset.q.split("."), q = regOf(iid).questions.find((x) => x.id === qid), a = (c.answers[iid] ||= {});
     if (q.type === "multi") { const cur = new Set([].concat(a[qid] ?? [])); cur.has(ch.dataset.choice) ? cur.delete(ch.dataset.choice) : cur.add(ch.dataset.choice); a[qid] = [...cur]; }
@@ -1988,10 +2403,13 @@ $("canvas").addEventListener("click", (e) => {
     crChanged();
   }
 });
+$("canvas").addEventListener("input", (e) => { if (view === "create" && crEdit && e.target.id === "crFind") { crEdit.find = e.target.value; renderCreate(); } });
+$("canvas").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.target.id === "crFind" || e.target.id === "wkFind")) e.preventDefault(); });
 $("canvas").addEventListener("change", (e) => {
   if (view !== "create" || !crEdit) return;
   const t = e.target, c = crEdit;
   if (t.id === "crDesc") c.description = t.value.trim();
+  else if (t.id === "crFind") return;
   else if (t.id === "crAdd" && t.value) { c.integrations = [...c.integrations, t.value]; crChanged(); }
   else if (t.id === "crWs") { c.workspace = t.value; c.wsChosen = true; c.name = $("crName").value; c.mission = $("crMission").value; crChanged(); }
   else if (t.dataset.q) { const [iid, qid] = t.dataset.q.split("."); (c.answers[iid] ||= {})[qid] = t.value; crChanged(false); }
@@ -2030,6 +2448,183 @@ $("canvas").addEventListener("click", (e) => {
   else if (a === "show") { store.set("gsHidden", ""); renderCanvas(); }
   else if (a === "example") { $("input").value = g.dataset.text; autosize(); $("input").focus(); }
   else if (a === "gitflow" && wk()) { opener = g; openGitflow(wk().id); }
+});
+
+// ---------------- worker packages: clone, export, import ----------------
+// A worker travels as a .workerpack file (worker-ui/workerpack.mjs): its definition, steps, knowledge,
+// the tools and access it needs, and its Git workflow rules. Never credentials, memory or history.
+// Cloning here and importing elsewhere use the same package and the same checks; what an installed
+// worker may do is decided by this console, and the person sets up its accounts here.
+let PK = null; // the import in progress: { token, pkg, plan, file, workspace, error, result }
+const PK_STATE = { available: ["ok", "Available here"], workspace: ["warn", "Not in this workspace"], platform: ["bad", "Not on this platform"], policy: ["warn", "Turned off by a policy here"] };
+const PK_ERRORS = { malformed: "The file isn't a valid worker package", unsupported: "This package contains something that isn't supported", incompatible: "This package isn't compatible with this console",
+  checksum: "The package was changed or damaged", "unsafe-path": "The package contains an unsafe file name", "too-large": "The package is too large", "too-many": "The package has too many files", expired: "The check expired" };
+const pkPage = (title, sub, inner) => {
+  setView("pack"); verOpen = null; renderVersions(); wkEdit = null; tmEdit = null; crEdit = null; draft = null;
+  $("canvas").innerHTML = `<div class="viewer pk" role="region" aria-label="${esc(title)}"><div class="vbar m11"><span class="ell">${esc(title)}</span><span class="ro">${esc(sub)}</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 12, 12)}</button></div>
+    <div class="vbody" id="pkBody">${inner}</div></div>`;
+  wireViewer();
+};
+const pkList = (xs, empty = "None.") => (xs.length ? `<ul class="pklist m12">${xs.map((x) => `<li>${x}</li>`).join("")}</ul>` : `<span class="sub m12">${empty}</span>`);
+const pkSection = (title, about, inner) => `<section class="pksec"><h3 class="pkh">${title}</h3>${about ? `<span class="sub m12">${about}</span>` : ""}${inner}</section>`;
+const pkGitflowSummary = (g) => `<dl class="gfdl m12"><dt>Teams</dt><dd>${esc(g.teams.map((t) => `${t.name}${t.ours ? " (yours)" : ""}${t.branchPatterns.length ? `: ${t.branchPatterns.join(", ")}` : ""}`).join(" · ") || "none")}</dd>
+  <dt>Relationships</dt><dd>${esc(g.mappings.map((m) => `${m.source} → ${m.destination} (${m.kind})`).join(", ") || "none")}</dd><dt>Shared</dt><dd>${esc((g.shared || []).join(", ") || "none")}</dd><dt>Off-limits</dt><dd>${esc((g.forbidden || []).join(", ") || "none")}</dd>
+  <dt>Blocks</dt><dd>${esc(Object.entries(g.exclude || {}).filter(([, v]) => v).map(([k]) => ({ otherTeams: "other teams' changes", uncertain: "uncertain owners", unknown: "unknown owners", reverted: "reverted changes", merges: "merge commits" })[k]).filter(Boolean).join(", ") || "nothing")}</dd></dl>`;
+
+// ---- export ----
+async function openExport(id) {
+  pkPage("Export worker", "a .workerpack file you can give to someone", '<div class="wform"><span class="sub m12">Preparing the preview…</span></div>');
+  let x; try { x = await api("GET", `/workers/${encodeURIComponent(id)}/export/preview`); } catch (e) { $("pkBody").innerHTML = `<div class="wform">${gfBan("bad", "Couldn't prepare the export", esc(e.message), "alert")}</div>`; return; }
+  const d = x.definition, deps = x.dependencies, blocked = x.preview.secrets.length;
+  $("pkBody").innerHTML = `<div class="wform pkform">
+    <div class="pkhead"><div><h2 class="pkt">${esc(x.name)}</h2><span class="sub m12">${esc(d.specialization || d.mission || "")}</span></div><span class="mono m11 sub">${esc(x.file)}</span></div>
+    ${blocked ? gfBan("bad", "It can't be exported yet", `${esc(x.preview.secrets.join(", "))} ${x.preview.secrets.length === 1 ? "contains" : "contain"} text that looks like a password or token. Edit the worker to remove it: a package never carries credentials.`, "alert") : ""}
+    ${x.preview.pathsRemoved.length ? gfBan("warn", "Paths on this computer are replaced", `They wouldn't exist on someone else's computer: ${esc(x.preview.pathsRemoved.slice(0, 5).join(", "))}${x.preview.pathsRemoved.length > 5 ? "…" : ""} become “&lt;path on the source computer&gt;”.`) : ""}
+    <div class="pkcols">
+      ${pkSection("What's in the package", "Its definition, as it is now. The person who installs it reviews it first.", pkList([
+        `Identity: name, specialization and mission`, `${plural(d.workflow.length, "step")} of how it works · ${plural(d.limitations.length, "hard limit")}`, `Knowledge: ${x.knowledgeChars.toLocaleString()} characters`,
+        d.schema === 2 ? `${plural(d.integrations.length, "integration")} pinned at their versions (${d.integrations.map((r) => `${r.id} ${r.version}`).join(", ") || "none"}) · ${plural(d.core.length, "core capability", "core capabilities")}` : `${plural(deps.capabilities.length, "tool")} it's meant to have · ${plural(deps.requirements.length, "requirement")} (made before integrations)`, ...(d.request.starters.length ? [`${plural(d.request.starters.length, "starter task")}`] : []),
+        ...(x.gitflow ? ["Its Git workflow rules: teams and branch patterns, relationships, exclusion and branch rules"] : []), "Checksums for every file, so changes are detected"].map(esc)))}
+      ${pkSection("What stays here", "Never in a package.", pkList([...x.preview.excluded, ...(x.memoryCount ? [`its ${plural(x.memoryCount, "memory note")}`] : [])].map(esc)))}
+    </div>
+    ${pkSection("What it needs where it's installed", "Checked on the other console. Nothing here is granted to whoever installs it: they connect their own accounts.", `
+      <div class="pkcols"><div><span class="lab">Tools</span>${pkList(deps.capabilities.map((c) => esc(c.label)))}</div><div><span class="lab">Accounts and access</span>${pkList(deps.requirements.map((r) => `${esc(r.label)} <span class="sub">(${r.need})</span>`))}</div></div>
+      ${deps.repositories.length ? `<span class="lab">Repositories</span>${pkList(deps.repositories.map((g) => `${esc(g.fullName)} <span class="sub">(${esc(g.level)})</span>`))}` : ""}`)}
+    ${x.gitflow ? pkSection("Git workflow rules", "People, emails, overrides and the repository location stay here.", pkGitflowSummary(x.gitflow)) : ""}
+    <div class="wfoot"><span class="msg m11" id="pkMsg" role="status"></span><button type="button" class="btn m11" id="pkCancel">Cancel</button><button type="button" class="btn pri m11" id="pkDownload" ${blocked ? "disabled" : ""}>Download ${esc(x.file)}</button></div></div>`;
+  $("pkCancel").onclick = closeFile;
+  $("pkDownload").onclick = async () => {
+    const b = $("pkDownload"); b.disabled = true;
+    try {
+      const r = await fetch(`/workers/${encodeURIComponent(id)}/export`, { headers: { "x-worker-console": "1" } });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+      const a = document.createElement("a"); a.href = URL.createObjectURL(await r.blob()); a.download = x.file; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      $("pkMsg").textContent = `Downloaded ${x.file}. Send it to whoever should have this worker; they install it with Import worker.`;
+    } catch (e) { $("pkMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+    b.disabled = false;
+  };
+}
+
+// ---- clone ----
+async function cloneWorker(id) {
+  const w = WK.workers.find((x) => x.id === id); if (!w) return;
+  const taken = new Set(WK.workers.map((x) => x.name.toLowerCase())); let name = `${w.name.slice(0, 53)} (copy)`;
+  for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${w.name.slice(0, 50)} (copy ${n})`;
+  const repos = WS.filter((x) => !isScratch(x) && x.available !== false), git = w.capabilities.includes("gitflow.read");
+  const r = await ask({ title: `Clone ${w.name}?`, body: `<p class="m12">Makes a new, independent worker with the same definition, steps, knowledge and tools. It starts with no memory and no conversations, and changing one never changes the other.</p>
+    <label class="wf"><span class="lab">Name</span><input class="wfield" id="pkCloneName" maxlength="60" value="${esc(name)}" autocomplete="off"></label>
+    ${git ? `<label class="wf"><span class="lab">Repository for its Git workflow</span><select class="wfield" id="pkCloneRepo"><option value="__same">The same as ${esc(w.name)}</option><option value="">Choose later, in its Git workflow settings</option>${repos.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</select><span class="sub m11">Its rules are copied. People, overrides and the audit trail aren't; proposal branches start off.</span></label>` : ""}
+    ${w.repos?.length ? '<p class="sub m11">Repository access isn\'t copied: grant it in the clone\'s settings if it should have it.</p>' : ""}`,
+    actions: [{ id: "cancel", label: "Cancel" }, { id: "go", label: "Clone", kind: "pri" }], focus: "go" });
+  if (r !== "go") return;
+  const nm = $("pkCloneName")?.value.trim() || name, repo = $("pkCloneRepo")?.value;
+  try {
+    const out = await api("POST", `/workers/${encodeURIComponent(id)}/clone`, { name: nm, ...(git && repo !== "__same" ? { gitflowWorkspace: repo } : {}) });
+    await loadWorkers(); openWorkerEditor(out.worker.id, `Cloned from ${w.name}: a new worker (${out.worker.id}), version 1, no memory or conversations.`);
+  } catch (e) { notice(e); }
+}
+
+// ---- import ----
+// A package being reviewed is kept while the person sets up an account elsewhere and comes back.
+function openImport(fresh = false) {
+  const resume = !fresh && PK?.token && !PK.result;
+  if (!resume) PK = { workspace: wsId };
+  pkPage("Import worker", "from a .workerpack file", `<div class="wform pkform"><div class="pkhead"><div><h2 class="pkt">Import a worker</h2><span class="sub m12">Choose a .workerpack file someone gave you. Nothing is installed until you've reviewed it, and nothing in it runs.</span></div></div>
+    <label class="pkdrop" id="pkDrop"><input type="file" id="pkFile" accept=".workerpack,application/zip,application/octet-stream"><b>Choose a package</b><span class="sub m12">or drop the file here · up to 2 MB</span></label><div id="pkOut"></div></div>`);
+  if (resume) pkRender();
+  const take = (f) => f && pkRead(f);
+  $("pkFile").onchange = (e) => take(e.target.files[0]);
+  const z = $("pkDrop"); z.ondragover = (e) => { e.preventDefault(); z.classList.add("on"); }; z.ondragleave = () => z.classList.remove("on"); z.ondrop = (e) => { e.preventDefault(); z.classList.remove("on"); take(e.dataTransfer.files[0]); };
+}
+async function pkRead(file) {
+  PK = { workspace: PK?.workspace || wsId, file: file.name };
+  $("pkOut").innerHTML = '<span class="sub m12">Checking the package…</span>';
+  if (file.size > 2 * 1024 * 1024) { PK.error = { code: "too-large", error: "The package is larger than 2 MB." }; return pkRender(); }
+  const bytes = new Uint8Array(await file.arrayBuffer()); let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  try {
+    const r = await fetch("/workerpacks/preview", { method: "POST", headers: { "content-type": "application/json", "x-worker-console": "1" }, body: JSON.stringify({ data: btoa(bin), workspace: PK.workspace }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) PK.error = { code: j.code || "malformed", error: j.error || r.statusText };
+    else Object.assign(PK, { token: j.token, pkg: j.package, plan: j.plan, name: j.plan.suggestedName, repos: {}, gitflowWorkspace: "", dropUnknown: false });
+  } catch (e) { PK.error = { code: "malformed", error: e.message }; }
+  pkRender();
+}
+async function pkReplan() {
+  try { PK.plan = await api("GET", `/workerpacks/${PK.token}/plan?workspace=${encodeURIComponent(PK.workspace || "")}`); } catch (e) { PK.error = { code: /expired/.test(e.message) ? "expired" : "malformed", error: e.message }; }
+  pkRender();
+}
+// What to do to provide a missing account or access here (the person's own, never the source's).
+function pkSetup(r) {
+  if (r.resource === "figma") return '<button type="button" class="linkbtn m12" data-pk-setup="figma">Open Figma connection</button>';
+  if (r.resource === "github") return '<button type="button" class="linkbtn m12" data-pk-setup="github">Open GitHub connection</button>';
+  if (r.resource === "workspace") return '<span class="sub m12">Choose a Work workspace below.</span>';
+  return "";
+}
+function pkRender() {
+  const out = $("pkOut"); if (!out) return;
+  if (PK.result) return pkDone();
+  if (PK.error) { out.innerHTML = `${gfBan("bad", PK_ERRORS[PK.error.code] || "The package can't be used", `${esc(PK.error.error)} Nothing was installed.`, "alert")}<div class="sub m12">${esc(PK.file || "")}</div>`; return; }
+  const p = PK.pkg, d = p.definition, pl = PK.plan, issues = pl.issues || [];
+  const wsOpts = WS.filter((x) => !isScratch(x) || x.id === PK.workspace);
+  const repoWs = WS.filter((x) => !isScratch(x) && x.available !== false);
+  out.innerHTML = `
+    ${p.warnings.map((w) => gfBan("warn", "Check this before installing", esc(w))).join("")}
+    ${issues.length ? gfBan("bad", "Not everything in it is supported here", `${pkList(issues.map((i) => esc(i.text)))}<label class="gfchk m12"><input type="checkbox" id="pkDrop2" ${PK.dropUnknown ? "checked" : ""}><span>Install it without them</span></label>`, "alert") : ""}
+    <div class="pkhead"><div><h2 class="pkt">${esc(d.name)}</h2><span class="sub m12">${esc(d.specialization)}</span></div><span class="sub m11">${esc(PK.file)} · made ${esc(p.manifest.createdAt ? new Date(p.manifest.createdAt).toLocaleString() : "?")} · format ${p.manifest.formatVersion} · checksums verified</span></div>
+    ${pkSection("Identity", "A new worker is created: its own id, version 1, no memory and no conversations. No existing worker is changed.", `
+      <label class="wf"><span class="lab">Name here</span><input class="wfield" id="pkName" maxlength="60" value="${esc(PK.name)}" autocomplete="off">${pl.nameTaken ? `<span class="sub m11 warnt">A worker called “${esc(d.name)}” already exists here; this one gets a different name.</span>` : ""}</label>
+      <div class="pkmission m12">${esc(d.mission || "No mission given.")}</div>`)}
+    <div class="pkcols">
+      ${pkSection("How it works", "", d.workflow.length ? `<ol class="pklist m12">${d.workflow.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : '<span class="sub m12">No steps.</span>')}
+      ${pkSection("Hard limits", "", pkList(d.limitations.map(esc)))}
+    </div>
+    ${pkSection("What it knows", `${p.knowledge.length.toLocaleString()} characters. Read it: it becomes part of the worker's instructions.`, p.knowledge ? `<details class="pkknow"><summary class="m12">Show its knowledge</summary><pre class="pkpre">${esc(p.knowledge)}</pre></details>` : '<span class="sub m12">None.</span>')}
+    ${pkSection("Tools", "What it's meant to have. What it actually gets is decided here, in each workspace it runs in.", `
+      <label class="wf pkws"><span class="lab">Check against workspace</span><select class="wfield" id="pkWs">${wsOpts.map((x) => `<option value="${esc(x.id)}" ${x.id === (pl.workspace?.id || PK.workspace) ? "selected" : ""}>${esc(x.name)} · ${esc(modeOf(x))}</option>`).join("")}</select></label>
+      <ul class="pkrows">${pl.capabilities.map((c) => { const [cls, l] = PK_STATE[c.state] || ["", c.state]; return `<li><span><b>${esc(c.label)}</b><span class="sub m11">${esc(c.tools)}${c.note ? ` · ${esc(c.note)}` : ""}</span></span>${pill(cls, l)}</li>`; }).join("") || '<li class="sub m12">No tools.</li>'}</ul>`)}
+    ${pkSection("Accounts and access", "Yours, on this console. The package carries no credentials: set up what's missing here, then check again.", `<ul class="pkrows">${pl.requirements.map((r) => `<li><span><b>${esc(r.label)}</b> <span class="sub m11">${r.need}</span>${r.ok ? "" : `<span class="sub m11">${esc(r.how || "")}</span>`}</span><span class="pkst">${pill(r.ok ? "ok" : r.need === "required" ? "bad" : "warn", r.ok ? r.state : `Missing · ${r.state}`)}${r.ok ? "" : pkSetup(r)}</span></li>`).join("") || '<li class="sub m12">It needs no accounts.</li>'}</ul>`)}
+    ${pl.repositories.length ? pkSection("Repositories it would work in", "The package grants nothing: choose what this worker may do in your own registered repositories.", `<ul class="pkrows">${pl.repositories.map((g) => `<li><span><b class="mono">${esc(g.fullName)}</b><span class="sub m11">asks for: ${esc(g.level)}</span></span>${g.registered ? `<select class="wfield pksel" data-pk-repo="${esc(g.fullName)}"><option value="">No access</option>${g.levels.map((l) => `<option value="${l}" ${PK.repos[g.fullName] === l ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : `<span class="pkst">${pill("warn", "Not registered here")}<button type="button" class="linkbtn m12" data-pk-setup="github">Open GitHub connection</button></span>`}</li>`).join("")}</ul>`) : ""}
+    ${pl.schema === 2 ? pkSection("Integrations", "Pinned at these versions. This console's own version of each is used: the same one, or another of the same major version only if you accept it.", `<ul class="pkints" id="pkInts">${pl.integrations.map((x) => `<li><span><b>${esc(x.label)}</b> <span class="mono m11">v${esc(x.version)}</span>${x.status === "recognised" ? ' <span class="tag bad">No connector yet</span>' : ""}</span>${pill(x.state === "exact" ? "ok" : x.state === "other-version" ? "warn" : "bad", x.state === "exact" ? "Same version here" : x.state === "other-version" ? `Installs as v${x.alternative}` : x.state === "invalid" ? "Settings not valid here" : x.state === "missing-version" ? "Version not here" : "Not on this console")}</li>`).join("") || '<li class="sub m12">None.</li>'}</ul>`) : ""}
+    ${pl.gitflow ? pkSection("Git workflow rules", "Its teams, branch patterns, relationships and rules. People, overrides and the source's repository aren't included; proposal branches start off.", `${pkGitflowSummary(pl.gitflow)}
+      <label class="wf"><span class="lab">Repository for its Git workflow</span><select class="wfield" id="pkGitWs"><option value="">Choose later, in its Git workflow settings</option>${repoWs.map((x) => `<option value="${esc(x.id)}" ${PK.gitflowWorkspace === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>`) : ""}
+    ${d.request.starters.length ? pkSection("Starter tasks", "Suggested on its new task; nothing runs by itself.", pkList(d.request.starters.map(esc))) : ""}
+    <div class="wfoot"><span class="msg m11" id="pkMsg" role="status">${pl.missingRequired ? `${plural(pl.missingRequired, "required account or access")} isn't set up here yet: it can be installed, and it will ask for ${pl.missingRequired === 1 ? "it" : "them"} when it runs.` : "Everything it needs is set up here."}</span>
+      <button type="button" class="btn m11" id="pkAgain">Check again</button><button type="button" class="btn pri m11" id="pkInstall" ${issues.length && !PK.dropUnknown ? "disabled" : ""}>Install worker</button></div>`;
+  $("pkName").oninput = (e) => (PK.name = e.target.value);
+  $("pkWs").onchange = (e) => { PK.workspace = e.target.value; pkReplan(); };
+  if ($("pkGitWs")) $("pkGitWs").onchange = (e) => (PK.gitflowWorkspace = e.target.value);
+  if ($("pkDrop2")) $("pkDrop2").onchange = (e) => { PK.dropUnknown = e.target.checked; $("pkInstall").disabled = !PK.dropUnknown; };
+  out.querySelectorAll("[data-pk-repo]").forEach((s) => (s.onchange = () => (PK.repos[s.dataset.pkRepo] = s.value)));
+  $("pkAgain").onclick = pkReplan;
+  $("pkInstall").onclick = pkInstall;
+}
+async function pkInstall() {
+  const pl = PK.plan;
+  if (pl.missingRequired) {
+    const r = await ask({ title: "Install with access still missing?", body: `<p class="m12">${pkList(pl.requirements.filter((x) => x.need === "required" && !x.ok).map((x) => esc(x.label)))}</p><p class="m12">The worker is installed now. When a task needs these, it stops and says what to set up; it never uses anyone else's.</p>`,
+      actions: [{ id: "cancel", label: "Set them up first" }, { id: "go", label: "Install anyway", kind: "pri" }], focus: "cancel" });
+    if (r !== "go") return;
+  }
+  const b = $("pkInstall"); b.disabled = true;
+  try {
+    PK.result = await api("POST", `/workerpacks/${PK.token}/install`, { name: PK.name, gitflowWorkspace: PK.gitflowWorkspace, dropUnknown: PK.dropUnknown, repos: Object.entries(PK.repos).map(([fullName, level]) => ({ fullName, level })) });
+    await loadWorkers(); pkRender();
+  } catch (e) { b.disabled = false; $("pkMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+function pkDone() {
+  const r = PK.result, w = r.worker, left = [...r.left.capabilities, ...r.left.requirements, ...(r.left.gitflow ? ["its Git workflow rules"] : [])];
+  $("pkOut").innerHTML = `${gfBan("ok", `Installed ${w.name}`, `A new worker on this console: ${esc(w.id)}, version 1, with no memory and no conversations. Its tools and access are decided here, in each workspace it runs in.${left.length ? ` Left out: ${esc(left.join(", "))}.` : ""}${r.gitflow ? (r.gitflowWorkspace ? " Its Git workflow rules are set up; proposal branches are off until you turn them on." : " Its Git workflow rules are saved: choose its repository in the Git workflow settings.") : ""}`)}
+    <div class="gfline"><button type="button" class="btn pri" id="pkStart">Start a task with it</button><button type="button" class="btn" id="pkEdit">Review its settings</button>${r.gitflow ? '<button type="button" class="btn" id="pkGit">Open its Git workflow</button>' : ""}<button type="button" class="linkbtn m12" id="pkMore">Import another</button></div>`;
+  $("pkStart").onclick = () => { wkId = w.id; renderWorkers(); closeFile(); openNewChat(); };
+  $("pkEdit").onclick = () => openWorkerEditor(w.id);
+  if ($("pkGit")) $("pkGit").onclick = () => openGitflow(w.id, r.gitflowWorkspace ? "overview" : "settings");
+  $("pkMore").onclick = () => openImport(true);
+}
+$("impWk").onclick = () => openImport();
+$("migWk").onclick = () => openMigration();
+$("canvas").addEventListener("click", (e) => {
+  const s = e.target.closest("[data-pk-setup]"); if (!s || view !== "pack") return;
+  if (s.dataset.pkSetup === "github") openGithubPage(); else if (s.dataset.pkSetup === "figma") $("fgOpen").click();
 });
 
 // ---------------- Git workflow (a worker with gitflow.read) ----------------
@@ -3509,9 +4104,15 @@ function onEvent(ev) {
   } else if (t === "note" && /^Resuming/.test(ev.summary)) {
     addCard({ title: "Resumed", meta: "", body: "Same conversation in a new worker process. Browser pages and logins start fresh." });
     T.items.push({ k: "s", text: "Resumed in a new worker process" });
+  } else if (t === "capability") {
+    // A connection that came up or went away during the task: its tools turn on or off in this task.
+    const d = JSON.parse(ev.detail || "{}"), on = !!d.added?.length, act = d.reload ? "reload" : d.waiting ? "recheck" : null;
+    addCard({ title: d.file ? "Figma file changed" : d.reload ? "Tools not picked up" : on ? "Connected" : "Waiting for a connection", meta: d.file ? "Tools on" : on ? "Tools on" : d.reload ? "Action needed" : "Tools off", metaCls: on || d.file ? "ok" : "bad", kind: d.reload ? "alert" : "",
+      body: `${esc(ev.summary)}${act ? `<div class="cx"><button type="button" class="btn m11" data-tel="${act}">${act === "reload" ? "Reload tools" : "Check connections"}</button></div>` : ""}` });
+    T.items.push({ k: "s", text: ev.summary });
   } else if (t === "worker") {
     const d = JSON.parse(ev.detail || "{}");
-    addCard({ title: "Worker", meta: ev.summary, body: `${esc((d.capabilities || []).join(" · ") || "No tools")}${d.blocked?.length ? `<div class="cx">Not in this workspace: ${esc(d.blocked.join(", "))}</div>` : ""}${d.memory ? `<div class="cx">${d.memory} remembered item${d.memory === 1 ? "" : "s"}</div>` : ""}` });
+    addCard({ title: "Worker", meta: ev.summary, body: `${esc((d.capabilities || []).join(" · ") || "No tools")}${d.blocked?.length ? `<div class="cx">Not in this workspace: ${esc(d.blocked.join(", "))}</div>` : ""}${d.waiting?.length ? `<div class="cx">Waiting for a connection: ${esc(d.waiting.join(", "))}</div>` : ""}${d.memory ? `<div class="cx">${d.memory} remembered item${d.memory === 1 ? "" : "s"}</div>` : ""}` });
   } else if (t === "telemetry") {
     renderTelCard(JSON.parse(ev.detail || "{}"));
   } else if (t === "context") {
@@ -3545,6 +4146,10 @@ function onEvent(ev) {
     addCard({ title: "Needs access", meta: "Needs your action", metaCls: "bad", body: esc(ev.summary), kind: "alert" });
   } else if (t === "memory") {
     addCard({ title: ev.ok === false ? "Not remembered" : "Remembered", meta: "", metaCls: ev.ok === false ? "bad" : "ok", body: esc(ev.summary) });
+  } else if (t === "proposal") {
+    // Nothing changed yet: the person reviews it in the worker's editor (Versions and proposed changes).
+    addCard({ title: "Proposed a change to this worker", meta: "Waiting for your review", metaCls: "", body: `${esc(ev.summary)}<br><span class="m11">Review it in the worker's editor, under “Versions and proposed changes”: try it, then approve or reject it.</span>`, kind: "alert" });
+    T.items.push({ k: "s", text: ev.summary });
   } else if (t === "commit") {
     const d = JSON.parse(ev.detail || "{}");
     addCard({ title: "Version", meta: "Committed", metaCls: "ok", body: `<code>${esc(ev.summary.split(" ")[0])}</code> ${esc(ev.summary.split(" ").slice(1).join(" "))}${d.files ? ` · ${d.files} file${d.files === 1 ? "" : "s"}` : ""}` });
@@ -3808,6 +4413,15 @@ const telClick = async (e) => {
     try { await api("POST", `/runs/${encodeURIComponent(id)}/continue`, { instruction: useDraft ? draftText : "" }); if (useDraft && $("input").value.trim() === draftText) { $("input").value = ""; autosize(); } refreshMeta(); }
     catch (err) { notice(err); b.disabled = false; }
     return;
+  }
+  if (b.dataset.tel === "recheck" || b.dataset.tel === "reload") {
+    b.disabled = true;
+    try {
+      if (b.dataset.tel === "reload") { await api("POST", `/runs/${encodeURIComponent(id)}/reload-tools`, {}); b.textContent = "Reply to continue with the tools connected now"; refreshMeta(); return; }
+      const r = await api("POST", `/runs/${encodeURIComponent(id)}/recheck`, {});
+      b.insertAdjacentHTML("afterend", `<div class="m11">${r.waiting.length ? `Still waiting: ${esc(r.waiting.map((w) => `${w.label} (${w.why})`).join("; "))}` : "Everything this worker uses is connected."}</div>`);
+    } catch (err) { notice(err); }
+    b.disabled = false; return;
   }
   b.disabled = true;
   try { await api("POST", `/runs/${encodeURIComponent(id)}/compact`, {}); refreshMeta(); }
@@ -4111,7 +4725,7 @@ $("scrim").onclick = closeDrawers;
 
 // Every way of leaving a worker or Team page goes through the unsaved-changes check: sidebar,
 // header, pickers, page buttons, Alt+N. (A click it holds back is replayed once it's safe.)
-const NAV = "[data-ws],[data-run],[data-wk],[data-wk-edit],[data-tm],[data-p],[data-tp],[data-rev],[data-pick],[data-starter],[data-open-run],[data-open-active],[data-edit-wk],#ghOpen,#newTask,#addWk,#addTm,#wPill,#vClose,#wkCancel,#tmCancel,#cEdit,#crCancel,#wkBlank,[data-gs],[data-gf-tab],[data-tchat],[data-quse],#tree [data-path]:not([data-dir])";
+const NAV = "#wkClone,#wkExport,#impWk,#migWk,[data-wk-general],[data-ws],[data-run],[data-wk],[data-wk-edit],[data-tm],[data-p],[data-tp],[data-rev],[data-pick],[data-starter],[data-open-run],[data-open-active],[data-edit-wk],#ghOpen,#newTask,#addWk,#addTm,#wPill,#vClose,#wkCancel,#tmCancel,#cEdit,#crCancel,#wkBlank,[data-gs],[data-gf-tab],[data-tchat],[data-quse],#tree [data-path]:not([data-dir])";
 let replaying = false;
 document.addEventListener("click", async (e) => {
   if (replaying || !isDirty()) return;

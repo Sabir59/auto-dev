@@ -594,6 +594,16 @@ await step("page: the Git workflow opens in its own tab, full width (navigation 
   assert(t.full && t.view === "gitflow" && t.left === "none" && t.w >= 1380 && t.newTabLink === "none" && /BAU branch sync worker/.test(t.title) && !back.full && back.left === "flex" && !/full=1/.test(back.url), JSON.stringify({ t, back }));
   return { href, inConsole, tab: t };
 });
+await step("page: the worker's editor shows its integration (Git sync, pinned, configured) and the core capability granted to it explicitly; Figma and Builder.io aren't offered, only found by searching for them", async () => {
+  await page.click(`[data-wk-edit="${W.id}"]`); await page.waitForSelector('#wkInts [data-int="gitsync"]'); await sleep(600);
+  const card = await page.locator('#wkInts [data-int="gitsync"]').innerText(), ints = await page.locator("#wkInts [data-int]").evaluateAll((xs) => xs.map((x) => x.dataset.int).join());
+  const core = await page.locator("#wkCore [data-core]:checked").evaluateAll((xs) => xs.map((x) => x.dataset.core).join());
+  const offered = await page.locator("[data-wk-addint]").evaluateAll((xs) => xs.map((x) => x.dataset.wkAddint));
+  await page.fill("#wkFind", "figma"); await page.waitForSelector('#wkFound [data-wk-addint="figma"]'); const found = await page.locator("#wkFound").innerText(); await page.fill("#wkFind", "");
+  await shot("worker-editor-tools"); await page.click("#wkCancel");
+  assert(ints === "gitsync" && card.includes("v1.0.0") && /configured/i.test(card) && core === "files.read" && !offered.includes("figma") && !offered.includes("builder") && /Figma/.test(found), JSON.stringify({ ints, card: card.slice(0, 200), core, offered }));
+  return { integrations: ints, core, searched: found.split(/\r?\n/)[0] };
+});
 await step("page: no script errors", async () => { assert(!pageErrors.length, pageErrors.join(" | ")); return { pageErrors: 0 }; });
 await b.close();
 

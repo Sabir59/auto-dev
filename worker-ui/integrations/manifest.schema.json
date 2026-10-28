@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ai-workforce/integration-manifest/1",
+  "title": "Integration manifest",
+  "description": "One released version of one integration. Released versions are immutable (releases.lock.json); executable logic stays in code. Capability, core and requirement ids must exist in the console's catalogues (checked when the console starts).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "label", "status", "owner", "review", "tests", "workspace", "detect", "capabilities", "base", "instructions", "questions", "config", "relations"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "$ref": "#/$defs/id" },
+    "version": { "$ref": "#/$defs/semver" },
+    "label": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "short": { "type": "string", "maxLength": 40 },
+    "summary": { "type": "string", "maxLength": 400 },
+    "status": { "enum": ["tested", "preview", "recognised"], "description": "tested: a real connector with tests; preview: a connector without full tests (never granted by default); recognised: named, no connector." },
+    "why": { "type": "string", "maxLength": 400, "description": "For a recognised integration: why it can't be used, said to the person." },
+    "owner": { "type": "object", "additionalProperties": false, "required": ["team", "accountable"], "properties": { "team": { "type": "string", "minLength": 1 }, "accountable": { "type": "string", "minLength": 1 } } },
+    "review": { "enum": ["platform", "security"], "description": "The review policy a change to this manifest needs (integrations/REVIEW.md)." },
+    "tests": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^bench/[\\w./-]+\\.mjs$" } },
+    "workspace": { "enum": ["project", "any"] },
+    "detect": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 200 } },
+    "absorbs": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+    "capabilities": { "type": "array", "description": "The tools this integration provides (never core ones), with the accounts each needs connected before it's loaded.", "items": {
+      "type": "object", "additionalProperties": false, "required": ["id", "accounts"],
+      "properties": { "id": { "$ref": "#/$defs/capId" }, "accounts": { "type": "array", "items": { "$ref": "#/$defs/account" } } } } },
+    "base": { "$ref": "#/$defs/grant", "description": "What the integration turns on whatever its answers." },
+    "coreWhy": { "type": "object", "description": "Why it uses each core tool it can turn on.", "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 200 } },
+    "naming": { "type": "object", "additionalProperties": false, "required": ["name", "specialization"], "properties": {
+      "name": { "type": "string" }, "fallback": { "type": "string" }, "specialization": { "type": "string" } } },
+    "instructions": { "type": "object", "additionalProperties": false, "required": ["steps", "limits", "starters"], "properties": {
+      "steps": { "$ref": "#/$defs/lines" }, "limits": { "$ref": "#/$defs/lines" }, "starters": { "$ref": "#/$defs/lines" } } },
+    "questions": { "type": "array", "items": { "$ref": "#/$defs/question" } },
+    "config": { "type": "object", "additionalProperties": false, "required": ["schema"], "properties": {
+      "schema": { "type": "object", "required": ["type", "properties"], "properties": { "type": { "const": "object" }, "properties": { "type": "object" }, "additionalProperties": { "const": false } } },
+      "secret": { "type": "array", "items": { "type": "string" }, "description": "Config fields that are never exported in a worker package." } } },
+    "relations": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["to", "kind", "why"], "properties": {
+      "to": { "$ref": "#/$defs/id" }, "kind": { "enum": ["requires", "suggested", "optional"] },
+      "when": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Patterns in the request that make this relation relevant (none: always)." },
+      "why": { "type": "string", "minLength": 1, "maxLength": 300 } } } },
+    "changes": { "type": "object", "description": "What changed from earlier versions, by version.", "additionalProperties": { "type": "string" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,39}$" },
+    "semver": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$" },
+    "capId": { "type": "string", "pattern": "^[a-z][a-z0-9.]{1,59}$" },
+    "lines": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 600 } },
+    "account": { "type": "object", "additionalProperties": false, "required": ["resource", "access"], "properties": { "resource": { "type": "string" }, "access": { "type": "string" } } },
+    "requirement": { "type": "object", "additionalProperties": false, "required": ["resource", "access", "need"], "properties": { "resource": { "type": "string" }, "access": { "type": "string" }, "need": { "enum": ["required", "optional"] } } },
+    "grant": { "type": "object", "additionalProperties": false, "required": ["enables", "core", "requires"], "properties": {
+      "enables": { "type": "array", "items": { "$ref": "#/$defs/capId" } }, "core": { "type": "array", "items": { "$ref": "#/$defs/capId" } }, "requires": { "type": "array", "items": { "$ref": "#/$defs/requirement" } } } },
+    "choice": { "type": "object", "additionalProperties": false, "required": ["id", "label"], "properties": {
+      "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,39}$" }, "label": { "type": "string", "minLength": 1 }, "help": { "type": "string" },
+      "enables": { "type": "array", "items": { "$ref": "#/$defs/capId" } }, "core": { "type": "array", "items": { "$ref": "#/$defs/capId" } }, "requires": { "type": "array", "items": { "$ref": "#/$defs/requirement" } },
+      "limits": { "$ref": "#/$defs/lines" }, "approval": { "type": "string" }, "know": { "type": "string" }, "unsupported": { "type": "string" },
+      "adds": { "type": "object", "additionalProperties": false, "required": ["integration", "preset"], "properties": { "integration": { "$ref": "#/$defs/id" }, "preset": { "type": "object" } } } } },
+    "question": { "type": "object", "additionalProperties": false, "required": ["id", "type", "label"], "properties": {
+      "id": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9]{0,39}$" }, "type": { "enum": ["text", "choice", "multi", "info"] }, "label": { "type": "string", "minLength": 1 },
+      "placeholder": { "type": "string" }, "knowledge": { "type": "string" }, "help": { "type": "string" }, "text": { "type": "string" }, "required": { "type": "boolean" },
+      "default": { "type": ["string", "array", "null"] }, "when": { "type": "object", "additionalProperties": false, "required": ["q", "is"], "properties": { "q": { "type": "string" }, "is": { "type": "array", "items": { "type": "string" } } } },
+      "prefill": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["pattern", "value"], "properties": { "pattern": { "type": "string" }, "value": { "type": "string" } } } },
+      "choices": { "type": "array", "items": { "$ref": "#/$defs/choice" } } } }
+  }
+}

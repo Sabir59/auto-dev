@@ -1,0 +1,247 @@
+{
+  "$schema": "../manifest.schema.json",
+  "id": "builder",
+  "version": "1.0.0",
+  "label": "Builder.io",
+  "short": "Builder.io",
+  "summary": "Reads, drafts and (if you allow it) publishes content in a Builder.io space, through the Builder adapter.",
+  "status": "tested",
+  "owner": {
+    "team": "Worker platform",
+    "accountable": "Sabir Nawaz"
+  },
+  "review": "platform",
+  "tests": [
+    "bench/workspace-ui/builder-access-test.mjs"
+  ],
+  "workspace": "any",
+  "detect": [
+    "builder(\\.io)?"
+  ],
+  "capabilities": [
+    {
+      "id": "builder.read",
+      "accounts": [
+        {
+          "resource": "builder",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "id": "builder.write.draft",
+      "accounts": [
+        {
+          "resource": "builder",
+          "access": "read"
+        },
+        {
+          "resource": "builder",
+          "access": "write"
+        }
+      ]
+    },
+    {
+      "id": "builder.write",
+      "accounts": [
+        {
+          "resource": "builder",
+          "access": "read"
+        },
+        {
+          "resource": "builder",
+          "access": "write"
+        }
+      ]
+    }
+  ],
+  "base": {
+    "enables": [
+      "builder.read"
+    ],
+    "core": [
+      "files.read"
+    ],
+    "requires": [
+      {
+        "resource": "builder",
+        "access": "read",
+        "need": "required"
+      }
+    ]
+  },
+  "coreWhy": {
+    "files.read": "Reads files the task refers to, such as page data to upload.",
+    "browser": "Opens the site to check pages, when you allow it."
+  },
+  "naming": {
+    "name": "Builder.io content worker",
+    "specialization": "Builder.io content and pages"
+  },
+  "instructions": {
+    "steps": [
+      "Find what already exists (models, entries, the page's url) before creating anything",
+      "Update an existing entry rather than creating a second one for the same page",
+      "Verify the result with builder_verify_content"
+    ],
+    "limits": [
+      "Never create a second entry for content that already exists: update it.",
+      "Never claim a page is live unless builder_verify_content says servedAsLive: true."
+    ],
+    "starters": [
+      "List the models and pages in the Builder space, and say which are live. Don't change anything."
+    ]
+  },
+  "questions": [
+    {
+      "id": "space",
+      "type": "text",
+      "label": "Builder space",
+      "placeholder": "e.g. MATW test space",
+      "knowledge": "Builder space"
+    },
+    {
+      "id": "models",
+      "type": "text",
+      "label": "Models and pages it works on",
+      "placeholder": "e.g. page, hero-section; /zakat",
+      "knowledge": "Models and pages"
+    },
+    {
+      "id": "publishing",
+      "type": "choice",
+      "label": "What may it do with content?",
+      "default": "drafts",
+      "help": "Writes only ever go to a Builder space marked as a test space on this computer: the adapter refuses production spaces, whatever you choose here.",
+      "choices": [
+        {
+          "id": "read",
+          "label": "Read only",
+          "approval": "It can't change content."
+        },
+        {
+          "id": "drafts",
+          "label": "Prepare drafts; a person publishes",
+          "approval": "It saves drafts; publishing is yours (it has no publish tool).",
+          "enables": [
+            "builder.write.draft"
+          ],
+          "requires": [
+            {
+              "resource": "builder",
+              "access": "write",
+              "need": "required"
+            }
+          ]
+        },
+        {
+          "id": "publish",
+          "label": "Create, update and publish",
+          "limits": [
+            "Publish only when the task asks for it."
+          ],
+          "approval": "It can publish, in test spaces only.",
+          "enables": [
+            "builder.write"
+          ],
+          "requires": [
+            {
+              "resource": "builder",
+              "access": "write",
+              "need": "required"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "check",
+      "type": "choice",
+      "label": "Check pages on the site",
+      "default": "yes",
+      "choices": [
+        {
+          "id": "yes",
+          "label": "Yes",
+          "core": [
+            "browser"
+          ]
+        },
+        {
+          "id": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "site",
+      "type": "text",
+      "label": "Site address",
+      "placeholder": "e.g. http://localhost:3000",
+      "knowledge": "Site to check pages on",
+      "when": {
+        "q": "check",
+        "is": [
+          "yes"
+        ]
+      }
+    }
+  ],
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "space": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "models": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "publishing": {
+          "enum": [
+            "read",
+            "drafts",
+            "publish",
+            null
+          ]
+        },
+        "check": {
+          "enum": [
+            "yes",
+            "no",
+            null
+          ]
+        },
+        "site": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
+    }
+  },
+  "relations": [
+    {
+      "to": "figma",
+      "kind": "optional",
+      "when": [
+        "figma",
+        "from (the )?designs?"
+      ],
+      "why": "Reads the Figma designs the pages are built from."
+    },
+    {
+      "to": "browser",
+      "kind": "suggested",
+      "when": [
+        "check",
+        "verify",
+        "preview",
+        "live"
+      ],
+      "why": "Opens the site to check the published pages."
+    }
+  ]
+}

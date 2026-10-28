@@ -46,7 +46,11 @@ await step("define a Figma Specialist in the UI and save it", async () => {
   await page.fill("#wkN", "Figma Specialist");
   await page.fill("#wkS", "Figma design and implementation");
   await page.fill("#wkM", "Help stakeholders understand, inspect and implement Figma designs.");
-  for (const c of ["figma.read", "files.write"]) await page.check(`[data-cap="${c}"]`);
+  // Integrations, not a flat tool list: Figma (reading by link; not the plugin), and editing files granted as a core capability.
+  await page.fill("#wkFind", "Figma"); await page.click('#wkFound [data-wk-addint="figma"]'); await page.waitForSelector('#wkInts [data-int="figma"]');
+  await page.click('#wkInts [data-int="figma"] [data-wq="figma.edit"][data-choice="edit"]'); // clicked again: not set (no plugin tools)
+  await page.click('#wkInts [data-int="figma"] [data-wq="figma.links"][data-choice="yes"]');
+  await page.check('[data-core="files.write"]');
   await page.fill("#wkW", "Understand the request\nCheck access to every resource it needs\nInspect the design\nReport what you found");
   await page.fill("#wkK", "Our design system uses an 8px spacing grid. Brand blue is #0ea5e9.");
   await page.fill("#wkL", "Never claim to have seen a design you could not open.\nNever open or read files whose names start with .env, and never reveal their contents.");
@@ -57,7 +61,7 @@ await step("define a Figma Specialist in the UI and save it", async () => {
   await page.waitForFunction(() => /Saved v1/.test(document.querySelector("#wkMsg")?.textContent || ""));
   await page.screenshot({ path: join(HERE, "shots", "worker-editor.png") });
   const saved = JSON.parse(readFileSync(join(DATA, "workers.json"), "utf8"))[0]; wid = saved.id;
-  return { saved: { name: saved.name, version: saved.version, capabilities: saved.capabilities, requirements: saved.requirements, workflow: saved.workflow.length, limitations: saved.limitations.length, knowledge: !!saved.knowledge }, sidebar: (await page.locator("#wkList .row").allInnerTexts()).map((t) => t.replace(/\s+/g, " ")) };
+  return { saved: { name: saved.name, version: saved.version, schema: saved.schema, integrations: saved.integrations, core: saved.core, requirements: saved.extraRequirements, workflow: saved.workflow.length, limitations: saved.limitations.length, knowledge: !!saved.knowledge }, sidebar: (await page.locator("#wkList .row").allInnerTexts()).map((t) => t.replace(/\s+/g, " ")) };
 });
 await step("run it with a Figma link and no Figma authorization: it stops and asks, no bypass", async () => {
   await page.click("#vClose");
