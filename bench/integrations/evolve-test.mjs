@@ -65,7 +65,18 @@ async function start(worker, prompt = "hello", extra = {}) {
   return { status: 200, id: r.body.id, mcp: JSON.parse(readFileSync(join(runsDir, `${r.body.id}.mcp.json`), "utf8")).mcpServers };
 }
 const stopAll = async () => { const a = (await call("GET", "/runs")).body.active; if (a) await call("POST", `/runs/${a}/stop`, {}); for (let i = 0; i < 50; i++) { if (!(await call("GET", "/runs")).body.active) break; await sleep(100); } };
-const fakeRecord = (runId) => { const recs = readdirSync(OUT).filter((f) => /^\d+-\d+\.json$/.test(f)).map((f) => JSON.parse(readFileSync(join(OUT, f), "utf8"))); return recs.find((r) => r.servers && Object.values(r.servers).some((s) => (s.env?.EVOLVE_URL || s.env?.AIW_AUTHZ_URL || "").includes(runId))) || recs[recs.length - 1]; };
+// The stand-in's record of how this run was started: matched by the run's own MCP config file
+// (<runs>/<id>.mcp.json in its argv), waiting for it to be written. Never another run's record: the
+// General worker's run has no evolve or authz URL to tell it apart, and the stand-in can start slowly.
+const fakeRecord = async (runId) => {
+  for (let i = 0; i < 50; i++) {
+    const recs = existsSync(OUT) ? readdirSync(OUT).filter((f) => /^\d+-\d+\.json$/.test(f)).map((f) => JSON.parse(readFileSync(join(OUT, f), "utf8"))) : [];
+    const hit = recs.find((r) => (r.argv || []).some((a) => a.includes(`${runId}.mcp.json`)));
+    if (hit) return hit;
+    await sleep(100);
+  }
+  throw new Error(`no record of how run ${runId} was started`);
+};
 const events = (id) => readFileSync(join(runsDir, `${id}.jsonl`), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
 async function waitTurn(id) { for (let i = 0; i < 100; i++) { const m = (await call("GET", `/runs/${id}`)).body; if (m.status === "waiting") return m; await sleep(100); } throw new Error(`run ${id} didn't finish its turn`); }
 
@@ -117,14 +128,14 @@ await step("integrity: a definition changed outside the console (the file edited
 let run;
 await step("a defined worker's run gets the evolve tools (with its run's token) and the platform's deny rules; the General worker gets no evolve tools", async () => {
   run = await start(W.id);
-  const ev = run.mcp.evolve, rec = fakeRecord(run.id);
+  const ev = run.mcp.evolve, rec = await fakeRecord(run.id);
   assert(ev && ev.env.EVOLVE_URL.endsWith(`/evolve/${run.id}`) && ev.env.EVOLVE_TOKEN.length >= 32 && rec.allowedTools.includes("mcp__evolve"), { servers: Object.keys(run.mcp), allowed: rec.allowedTools });
   const deny = rec.deny, d = (p) => deny.some((x) => x.includes(p));
   const want = ["/workers.json)", "/workers/**)", "/teams/**)", "/runs/**)", "integrations/**)", "worker-instructions.md)", "Edit(.claude/**)", "Edit(**/CLAUDE.md)", "Edit(**/AGENTS.md)", "Edit(**/CLAUDE.local.md)"];
   const missing = want.filter((p) => !(p === "/workers.json)" ? deny.some((x) => x.endsWith("/*.json)")) : d(p)));
   assert(!missing.length, { missing, deny });
   await stopAll();
-  const g = await start(null); const grec = fakeRecord(g.id);
+  const g = await start(null); const grec = await fakeRecord(g.id);
   assert(!g.mcp.evolve && !grec.allowedTools?.includes("mcp__evolve") && grec.deny.some((x) => x.includes("Edit(**/CLAUDE.md)")), { servers: Object.keys(g.mcp), allowed: grec.allowedTools });
   await stopAll();
   run = await start(W.id, "hello");
