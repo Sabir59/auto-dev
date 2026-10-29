@@ -38,7 +38,7 @@ const DEFINED = {
   designer: { name: "Designer", capabilities: ["files.read", "files.write", "shell", "web", "browser", "figma.read", "figma.plugin.read", "figma.plugin.edit"], requirements: [{ resource: "figma", access: "edit", need: "required" }, { resource: "figma", access: "read", need: "optional" }] },
   builderEngineer: { name: "Builder engineer", capabilities: ["files.read", "files.write", "shell", "web", "browser", "figma.read", "figma.plugin.read", "figma.plugin.edit", "builder.read", "builder.write", "builder.write.draft"], requirements: [{ resource: "builder", access: "read", need: "required" }, { resource: "builder", access: "write", need: "required" }, { resource: "browser", access: "use", need: "required" }] },
   branchSync: { name: "Branch sync", capabilities: ["files.read", "gitflow.read"], requirements: [] },
-  ...(CAPTURE ? {} : { coreDefault: { name: "Core default", capabilities: ["files.read", "files.write", "shell", "web", "browser"], requirements: [] } }),
+  ...(CAPTURE ? {} : { coreDefault: { name: "Core default", capabilities: ["files.read", "files.write", "web", "browser"], requirements: [] } }),
 };
 // Made the usual way, from what the person asks for (the creation flow and its questions).
 const REQUESTS = {

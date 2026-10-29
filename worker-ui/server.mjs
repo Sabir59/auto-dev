@@ -272,9 +272,9 @@ function workerRuntime(def, profile, scope = {}) {
   // exports folders; it may read those, and only those, outside its workspace, to look at its work.
   const exportsDirs = [...new Set(usable.flatMap((c) => (c.startsWith("figma.plugin") ? [join(REPO, "exports")] : c === "browser" ? [BROWSER_EXPORTS] : [])))];
   const readOnly = scope.knowledgeDir ? [scope.knowledgeDir] : [];
-  const deny = [...(lockGit ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`), ...platformDeny(), ...(HOSTED ? hostedDeny() : [])];
-  const settings = JSON.stringify({ ...JSON.parse(WORKER_SETTINGS), permissions: { deny: [...LOOPBACK_FETCH_DENY, ...deny] } });
+  const deny = [...(lockGit ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`), ...platformDeny(), ...secretDeny()];
   const dirs = [...exportsDirs, ...readOnly];
+  const settings = JSON.stringify({ ...JSON.parse(WORKER_SETTINGS), permissions: { deny: [...LOOPBACK_FETCH_DENY, ...deny] }, ...fileGuard([scope.root, ...dirs]) });
   return { usable, blocked: def.capabilities.filter((c) => !allowed.includes(c) && !offHere(c)), byPlatform: def.capabilities.filter(offHere), byPolicy: allowed.filter((c) => policyOff.has(c)), servers, exportsDirs, repoTools,
     args: ["--settings", settings, ...base, "--tools", builtins.join(","), "--allowedTools", ...allow, ...(dirs.length ? ["--add-dir", ...dirs] : []), "--permission-prompts", "none"] };
 }
@@ -289,7 +289,7 @@ const AUTHZ_SERVERS = new Set(["figma-executor", "figma-reader", "builder", "git
 const liveCap = (c) => AUTHZ_SERVERS.has(CAPABILITIES[c]?.mcp);
 function launchPlan(def, ws, scope, gate = {}, run = null) {
   const fixed = Object.fromEntries(Object.entries(gate).filter(([c]) => !liveCap(c)));
-  const rt = workerRuntime({ ...def, capabilities: def.capabilities.filter((c) => !fixed[c]) }, ws.profile, scope);
+  const rt = workerRuntime({ ...def, capabilities: def.capabilities.filter((c) => !fixed[c]) }, ws.profile, { ...scope, root: ws.root });
   rt.byAccount = Object.entries(fixed).filter(([c]) => def.capabilities.includes(c));
   rt.waiting = Object.entries(gate).filter(([c]) => liveCap(c) && rt.usable.includes(c));
   if (run) {
@@ -451,13 +451,33 @@ async function authorizeCall(runId, token, cap) {
   }
   return { ok: true };
 }
-// Hosted, a worker never reads or writes the person's integration credentials (GitHub, Figma,
-// Builder) or the runtime's session transcripts. Enforced by the runtime's permission rules; the OS
-// boundary (the person's own uid) is beneath it.
-function hostedDeny() {
-  const secret = [github.CRED_DIR, FIGMA_CRED_DIR, builderApi.CRED_DIR, CONFIG_DIR].map((d) => denyPath(d));
-  return secret.flatMap((d) => [`Read(${d}/**)`, `Edit(${d}/**)`]);
+// On every console, local and hosted, a worker's file tools never read or write the person's
+// integration credentials (GitHub, Figma, Builder), the runtime's sign-in and session records, the
+// tool-server tokens of runs (runs/<id>.mcp.json) or common credential files in the home folder.
+// Enforced by the runtime's permission rules, which follow junctions, symlinks and ../ and cover
+// Grep and Glob too (bench/integrations/file-boundary-test.mjs). The runtime's config dir isn't
+// denied as a whole: a run reads back its own large tool outputs from its session folder there
+// (tested: a whole-folder deny refuses that); fileGuard keeps reads out of every other session.
+// Hosted, the OS boundary (the person's own uid) is beneath it. Shell commands aren't held by
+// these rules (see platformDeny).
+const HOME_SECRETS = [".ssh", ".aws", ".azure", ".config/gcloud", ".config/gh", ".docker", ".kube", ".git-credentials", ".netrc", ".npmrc", ".pypirc"];
+const CONFIG_SECRETS = [".credentials.json", "*.json", "*.jsonl", "projects/*/*.jsonl", "projects/*/*/subagents/**", "projects/*/memory/**", "sessions/**", "session-env/**", "shell-snapshots/**", "file-history/**", "backups/**", "todos/**", "debug/**"];
+function secretDeny() {
+  const dirs = [github.CRED_DIR, FIGMA_CRED_DIR, builderApi.CRED_DIR].map(denyPath), cfg = denyPath(CONFIG_DIR);
+  const home = HOME_SECRETS.map((p) => denyPath(join(homedir(), p)));
+  return [...dirs.flatMap((d) => [`Read(${d}/**)`, `Edit(${d}/**)`]),
+    `Edit(${cfg}/**)`, ...CONFIG_SECRETS.map((p) => `Read(${cfg}/${p})`),
+    `Read(${denyPath(RUNS)}/*.mcp.json)`,
+    ...home.flatMap((d) => [`Read(${d})`, `Read(${d}/**)`, `Edit(${d})`, `Edit(${d}/**)`])];
 }
+// A run's file tools (Read, Glob, Grep, Write, Edit) stay inside its workspace and --add-dir
+// folders; reads may also reach its own session folder (file-guard.mjs, a PreToolUse hook the
+// runtime runs before each call). Without it a local run could read and write anywhere the
+// person's account can (tested). disableAllHooks is pinned off: a repository's own settings
+// can't switch the check off (tested: they could without it).
+const FILE_GUARD = join(HERE, "file-guard.mjs");
+const fileGuard = (roots) => ({ disableAllHooks: false, hooks: { PreToolUse: [{ matcher: "Read|Glob|Grep|Write|Edit|MultiEdit|NotebookEdit",
+  hooks: [{ type: "command", command: `"${process.execPath}" "${FILE_GUARD}" ${Buffer.from(JSON.stringify({ roots: roots.filter(Boolean) })).toString("base64url")}` }] }] } });
 // On every console, local and hosted, no worker's file tools may write:
 //  - the console's own records: worker definitions, their versions, proposals and memory, Teams,
 //    workspaces, settings, run logs, Git workflow configuration, backups (a worker could otherwise

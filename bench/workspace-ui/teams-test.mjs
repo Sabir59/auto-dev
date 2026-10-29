@@ -31,6 +31,12 @@ const sha = (s) => createHash("sha1").update(s).digest("hex");
 const CLONE = join(TFIX, "matw"), BARE = join(TFIX, "matw-remote.git"), OUT = join(TFIX, "outside"), UP = join(TFIX, "uploads");
 const git = (cwd, ...a) => execFileSync("git", ["-c", "core.longpaths=true", "-c", "user.name=Team test", "-c", "user.email=team-test@example.invalid", ...a], { cwd, stdio: "pipe" }).toString().trim();
 mkdirSync(TFIX, { recursive: true });
+// The fixture is a shallow clone of the person's MATW checkout, including its prod-main branch, so it
+// is only built when they allow it (TEAMS_FIXTURE_FROM_MATW=1). A clone without its Git objects (an
+// interrupted build) can't run the suite either. Either way: BLOCKED (exit 3), never a silent pass.
+const blocked = (why) => { console.log(`BLOCKED ${why}`); process.exit(3); };
+if (existsSync(join(CLONE, ".git"))) { try { execFileSync("git", ["-C", CLONE, "rev-parse", "--verify", "HEAD"], { stdio: "pipe" }); } catch { blocked(`the Teams fixture at ${CLONE} has no Git objects (an interrupted build). Remove that folder and run with TEAMS_FIXTURE_FROM_MATW=1 to rebuild it from MATW (fetches its prod-main branch locally, read-only).`); } }
+else if (process.env.TEAMS_FIXTURE_FROM_MATW !== "1") blocked(`no Teams fixture at ${CLONE}. Building it clones ${MATW_SRC} including prod-main; run with TEAMS_FIXTURE_FROM_MATW=1 once that's authorized.`);
 if (!existsSync(join(CLONE, ".git"))) {
   const UPK = "git -c uploadpack.allowFilter=true -c uploadpack.allowAnySHA1InWant=true upload-pack";
   const src = "file:///" + MATW_SRC.replace(/\\/g, "/");

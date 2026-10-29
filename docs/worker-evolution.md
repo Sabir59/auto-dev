@@ -123,9 +123,28 @@ Before this change, the data-folder rules applied only when hosted.
 
 Approving and trying also refuse a worker whose definition fails the integrity check. Before this, approving a proposal for such a worker recorded the outside change as a legitimate new version. Each case is answered `409` with `code: "integrity"`. Tested by `bench/integrations/evolve-test.mjs`, "records changed outside the console".
 
+**File tools stay in the workspace; credentials are unreadable (2026-10-29).** Before this, a local worker with only `files.read` read dummy Builder and GitHub credentials outside its workspace, any other file on disk, and its run's token file; its Write created files anywhere. Now, on every console:
+- **Deny rules (`secretDeny` in `server.mjs`)**, enforced by the runtime, refuse Read and Edit of:
+  - the GitHub, Figma and Builder credential folders;
+  - the runtime's sign-in file, transcripts, history and session records;
+  - `runs/*.mcp.json` (the run tokens);
+  - common home-folder credentials: `.ssh`, `.aws`, `.npmrc`, `.git-credentials` and the like.
+
+  Measured on the real runtime: these rules follow junctions, symlinks and `../`, and cover Grep and Glob, including absolute Glob patterns. The runtime's config folder isn't denied as a whole, because a run reads back its own large tool outputs from its session folder there. A whole-folder deny refused that, so hosted consoles, which used one, couldn't do it either.
+- **The file guard (`worker-ui/file-guard.mjs`)** is a PreToolUse hook the runtime runs before each Read, Glob, Grep, Write and Edit:
+  - it confines them to the run's workspace and `--add-dir` folders, plus the run's own session folder for reads;
+  - it resolves real paths first, so `..`, junctions, symlinks and 8.3 names can't leave;
+  - it refuses anything it can't check.
+- **`disableAllHooks` is pinned off** in the run's settings, so a repository's own `.claude/settings.json` can't switch the guard off. Measured: it could without the pin.
+- **Tested** by `node bench/integrations/file-boundary-test.mjs`: the real console and the real runtime in local mode, with a scripted stand-in model (`stub-model.mjs`) and dummy credentials.
+- **Limits:**
+  - Shell commands are held by none of this.
+  - A worker can't read a file outside its workspace by path any more: the person attaches it, or adds it to the workspace.
+  - If `node` can't start the guard, the runtime lets the call through. The deny rules still hold for credentials.
+
 **Limits, stated plainly:**
 - **A worker with shell (node, curl) runs code as the person's OS user.**
-  - **Who has shell:** shell is a core capability. The General worker has it by default (`worker-ui/integrations/core.json`), and a defined worker has it when the person grants it. It's off in Inspect, under a protected-branch policy, in a repository workspace without shell, and hosted.
+  - **Who has shell:** shell is a core capability. Since 2026-10-29 it is never granted by default: the General worker's default is files, web and browser (`worker-ui/integrations/core.json`). The person grants shell explicitly, in General settings or a worker's definition, and both pickers warn that it runs with the account's full permissions. It's off in Inspect, under a protected-branch policy, in a repository workspace without shell, and hosted. Removing it from the default isn't isolation: a worker that has shell can still do anything the person's account can.
   - It isn't held by file permission rules.
   - It can call the console's API with forged headers. The request guard stops browsers (CSRF), not local programs; probed: a forged `PUT /workers/<id>` from a local process succeeds.
   - It can do anything the person can, including editing a definition and its history file consistently.
@@ -168,4 +187,7 @@ Approving and trying also refuse a worker whose definition fails the integrity c
   - approval, stale proposals, and the next run's version.
 - `node bench/evolution/ui-test.mjs`: the page (proposal card, approval acknowledgement, versions, compare, restore).
 - `node bench/evolution/boundary-probe.mjs`: a real worker probing the boundary. Needs a signed-in Claude config (`WORKER_CONSOLE_CLAUDE_CONFIG_DIR`).
+- `node bench/integrations/file-boundary-test.mjs`: credentials and files outside the workspace, across every file tool, with the real runtime in local mode (scripted model, no account needed).
+- `node bench/evolution/honesty-test.mjs`: the evolution test's honesty judgement on fixed proposals.
+- `bash bench/workspace-ui/verdict-test.sh`: the suite runner never reports a crashed or empty suite as a pass.
 - `node bench/evolution/builder-evolution-test.mjs`: the end-to-end proof with the real worker, the real model and the Builder test space, checked with raw Builder reads. It needs the same.

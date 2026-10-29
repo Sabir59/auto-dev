@@ -132,7 +132,7 @@ await step("General worker (decision 1): only its granted core tools; never an i
   const put = await call("PUT", "/general", { core: ["files.read"] });
   const r2 = await start(null); const rec2 = JSON.parse(readFileSync(join(OUT, readdirSync(OUT).sort().slice(-1)[0]), "utf8")); await stop(r2.id);
   await call("PUT", "/general", { core: g.core });
-  assert(g.core.join() === "files.read,files.write,shell,web,browser" && !g.saved && bad.status === 400 && /isn't a core capability/.test(bad.body.error), { g, bad: bad.body });
+  assert(g.core.join() === "files.read,files.write,web,browser" && !g.saved && bad.status === 400 && /isn't a core capability/.test(bad.body.error), { g, bad: bad.body });
   assert(!Object.keys(r1.mcp).includes("figma-executor") && !rec1.allowedTools.some((t) => /figma/.test(t)) && rec1.tools && rec1.permissionPrompts === "none", rec1);
   assert(put.status === 200 && rec2.tools === "ToolSearch,Read,Glob,Grep" && !Object.keys(r2.mcp).length, rec2);
   return { default: g.core, narrowed: rec2.tools };

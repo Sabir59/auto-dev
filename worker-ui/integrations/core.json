@@ -11,5 +11,5 @@
     { "id": "web", "summary": "Search the web and read public pages.", "accounts": [] },
     { "id": "browser", "summary": "Open pages in a browser (in Inspect: open and read only).", "accounts": [{ "resource": "browser", "access": "use" }] }
   ],
-  "general": { "default": ["files.read", "files.write", "shell", "web", "browser"], "why": "The General worker has no definition: it gets only the core tools granted to it here (General settings), within the workspace's, Team's and platform's limits." }
+  "general": { "default": ["files.read", "files.write", "web", "browser"], "why": "The General worker has no definition: it gets only the core tools granted to it here (General settings), within the workspace's, Team's and platform's limits. Shell (node, curl) is never a default: a shell command runs with the person's own OS permissions, outside every file rule, so it must be granted explicitly." }
 }

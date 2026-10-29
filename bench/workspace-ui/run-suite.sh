@@ -8,6 +8,7 @@
 # on first use. The real worker runs, so most suites take minutes and use your Claude subscription.
 # Prints PASS/FAIL lines; the full evidence is in bench/workspace-ui/<suite>-results.json.
 set -u
+. "$(dirname "$0")/verdict.sh"
 suite=${1:?suite}
 R="$(cd "$(dirname "$0")/../.." && pwd)"
 FIXROOT="${FIXROOT:-$(cygpath -u "${TEMP:-/tmp}")/wsui}"
@@ -21,7 +22,8 @@ if [ "$suite" = devctl ]; then
   # test console (8797) and a dedicated test bridge port (8788) through devctl — it does not use
   # the generic pre-started console below, and nothing it starts needs cleaning up by $CPID.
   if curl -s -o /dev/null http://127.0.0.1:8797/; then echo "port 8797 is in use: stop that process first"; exit 1; fi
-  node bench/workspace-ui/devctl-test.mjs 8797 8788 "$(cygpath -w "$D")" 2>&1 | grep -E "^(PASS|FAIL)|passed" | cut -c1-160
+  node bench/workspace-ui/devctl-test.mjs 8797 8788 "$(cygpath -w "$D")" > "$D/suite.log" 2>&1
+  verdict $? "$D/suite.log"
   exit $?
 fi
 
@@ -65,7 +67,10 @@ case $suite in
   remediation) node bench/workspace-ui/remediation-test.mjs 8797 ;;
   github-app) GHDIR="$GITHUB_CONNECTOR_DIR" node bench/workspace-ui/github-app-test.mjs 8797 ;;
   builder-real) BUILDER_ADAPTER_DIR="$BDIR" SITE="${SITE:-http://localhost:3000}" node bench/workspace-ui/builder-worker-test.mjs 8797 ;;
-  *) echo "unknown suite: $suite" ;;
-esac 2>&1 | grep -E "^(PASS|FAIL)|passed" | cut -c1-160
+  *) echo "unknown suite: $suite"; (exit 99) ;;
+esac > "$D/suite.log" 2>&1
+code=$?
 kill $CPID 2>/dev/null; wait $CPID 2>/dev/null
 rm -rf "$FIXROOT/work/notes"
+verdict $code "$D/suite.log"
+exit $?

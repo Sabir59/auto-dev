@@ -1196,6 +1196,8 @@ if (location.protocol === "file:") {
 }
 
 const $ = (id) => document.getElementById(id);
+// Shown wherever shell can be granted: a shell command runs as the person's OS account, so no file rule holds it.
+const SHELL_WARN = ' <span class="needs m11 off" data-shellwarn title="node and curl run with your own Windows/OS account permissions. File limits, credential protections and the console\'s rules do not apply to shell commands. Grant it only to workers you trust like yourself.">runs with your account\'s full permissions</span>';
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const api = async (method, path, data) => {
   // The server accepts state-changing requests only from this page: same origin plus this header.
@@ -1921,7 +1923,7 @@ function renderWkCore() {
   const el = $("wkCore"); if (!el) return;
   const neededBy = (c) => wkEdit.integrations.flatMap((ref) => { const m = MANIFESTS.get(`${ref.id}@${ref.version}`); return m && intProvides(m, ref.config || {}).core.includes(c) ? [m.short || m.label] : []; });
   el.innerHTML = CAT.core.map((c) => { const by = neededBy(c.id), on = wkEdit.core.has(c.id), workOnly = !c.profiles.includes("inspect");
-    return `<li><label class="cap"><input type="checkbox" data-core="${esc(c.id)}" ${on ? "checked" : ""}><span class="t"><span>${esc(c.label)}${c.unavailable ? ` <span class="needs m11 off" title="${esc(c.unavailable)}">not available in the hosted product</span>` : workOnly ? ' <span class="needs m11">needs a Work workspace</span>' : ""}</span><span class="d m11">${esc(c.tools)}</span>${by.length ? `<span class="d m11 ${on ? "" : "warnt"}">${on ? "Used by" : "Needed by"} ${esc(by.join(", "))}${on ? "" : ": not granted"}</span>` : ""}</span></label></li>`; }).join("");
+    return `<li><label class="cap"><input type="checkbox" data-core="${esc(c.id)}" ${on ? "checked" : ""}><span class="t"><span>${esc(c.label)}${c.id === "shell" ? SHELL_WARN : ""}${c.unavailable ? ` <span class="needs m11 off" title="${esc(c.unavailable)}">not available in the hosted product</span>` : workOnly ? ' <span class="needs m11">needs a Work workspace</span>' : ""}</span><span class="d m11">${esc(c.tools)}</span>${by.length ? `<span class="d m11 ${on ? "" : "warnt"}">${on ? "Used by" : "Needed by"} ${esc(by.join(", "))}${on ? "" : ": not granted"}</span>` : ""}</span></label></li>`; }).join("");
 }
 function renderWkFromInts() {
   const el = $("wkFromIntsBody"); if (!el) return;
@@ -2034,7 +2036,7 @@ async function openGeneralEditor() {
   setView("worker"); verOpen = null; renderVersions(); wkEdit = null; draft = null;
   $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="General worker"><div class="vbar m11"><span class="ell">General worker</span><span class="ro">No definition, no integrations</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
     <div class="vbody"><form class="wform" id="gnForm" novalidate><div class="wf"><span class="lab">Core capabilities</span><span class="sub m11">${esc(g.why)} For Figma, Builder.io, Git workflows and other systems, use a worker with that integration.</span>
-      <ul class="caps" id="gnCore">${g.catalogue.map((c) => `<li><label class="cap"><input type="checkbox" data-gcore="${esc(c.id)}" ${g.core.includes(c.id) ? "checked" : ""}><span class="t"><span>${esc(c.label)}${!c.profiles.includes("inspect") ? ' <span class="needs m11">needs a Work workspace</span>' : ""}</span><span class="d m11">${esc(c.summary)}</span></span></label></li>`).join("")}</ul></div>
+      <ul class="caps" id="gnCore">${g.catalogue.map((c) => `<li><label class="cap"><input type="checkbox" data-gcore="${esc(c.id)}" ${g.core.includes(c.id) ? "checked" : ""}><span class="t"><span>${esc(c.label)}${c.id === "shell" ? SHELL_WARN : ""}${!c.profiles.includes("inspect") ? ' <span class="needs m11">needs a Work workspace</span>' : ""}</span><span class="d m11">${esc(c.summary)}</span></span></label></li>`).join("")}</ul></div>
       <div class="wfoot"><span class="msg m11" id="gnMsg" role="status">${g.saved ? "" : "Not saved yet: these are the defaults."}</span><button type="button" class="btn m11" id="gnCancel">Cancel</button><button type="submit" class="btn pri m11">Save</button></div></form></div></div>`;
   wireViewer(); $("gnCancel").onclick = closeFile;
   $("gnForm").onsubmit = async (e) => { e.preventDefault(); try { await api("PUT", "/general", { core: [...document.querySelectorAll("[data-gcore]:checked")].map((x) => x.dataset.gcore) }); $("gnMsg").textContent = "Saved. New conversations with the General worker use it."; } catch (er) { $("gnMsg").innerHTML = `<span class="err">${esc(er.message)}</span>`; } };
