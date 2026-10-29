@@ -3489,36 +3489,47 @@ async function loadGithub() {
   if (view === "github") renderGithub();
 }
 $("ghOpen").onclick = () => openGithubPage();
-// Figma reading (the Figma Reader): the account workers read Figma links with. The token is checked
-// with Figma before it's kept and never comes back to the page. The plugin tools are separate (they
-// need the Figma desktop app; on the hosted site they aren't available).
+// Figma: the three ways workers reach it, each with its state now and the workers given it. The token
+// (Figma's API, by link) is checked with Figma before it's kept and never comes back to the page.
+// Figma desktop's MCP (Dev Mode, read-only) and the plugin need the Figma desktop app; on the hosted
+// site they aren't available.
 let FG = null;
 async function loadFigma() {
   try { FG = await api("GET", "/figma"); } catch { return; }
-  $("fgState").textContent = FG.connected ? (FG.ok ? "Connected" : "Needs attention") : "Not connected";
-  $("fgMeta").textContent = FG.connected && FG.detail ? FG.detail : "";
+  const ready = [FG.ok ? "token" : "", FG.desktop?.ok ? "MCP" : "", FG.plugin?.ok ? "plugin" : ""].filter(Boolean);
+  $("fgState").textContent = ready.length ? "Ready" : FG.connected ? "Needs attention" : "Not connected";
+  $("fgMeta").textContent = ready.join(" · ");
   if (view === "figma") renderFigma();
 }
 $("fgOpen").onclick = () => {
   setView("figma"); verOpen = null; renderVersions();
-  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="Figma"><div class="vbar m11"><span class="ell">Figma</span><span class="ro">reading designs from Figma links</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 12, 12)}</button></div>
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="Figma"><div class="vbar m11"><span class="ell">Figma</span><span class="ro">how workers reach Figma: token, Figma desktop MCP, plugin</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 12, 12)}</button></div>
     <div class="vbody"><div class="wform" id="fgBody"><div class="sub m11">Loading…</div></div><div class="wform" style="padding-top:0"><span class="msg m11" id="fgMsg" role="status"></span></div></div></div>`;
   wireViewer(); if (FG) renderFigma(); loadFigma();
 };
 const fgSay = (m, bad) => { const el = $("fgMsg"); if (el) el.innerHTML = bad ? `<span class="err">${esc(m)}</span>` : esc(m); };
+const fgStat = (w) => `<div class="wstat m11 ${w.ok ? "ok" : "bad"}"><span class="dot ${w.ok ? "" : "red"}"></span>${esc(w.state)}${w.detail ? ` · ${esc(w.detail)}` : ""}</div>`;
+const fgUsers = (names, cap) => `<span class="sub m11">${names?.length ? `Given to: ${esc(names.join(", "))}.` : "No worker has it yet."} Give it to a worker in its editor (Tools: “${esc(cap)}”).</span>`;
 function renderFigma() {
   const b = $("fgBody"); if (!b || !FG) return;
-  const plugin = (PLATFORM.unavailable || []).find((u) => u.capability === "figma.plugin.edit");
-  b.innerHTML = `<div class="wf"><span class="lab">Connection</span><span class="sub m11">Workers with "Read Figma designs from a link" read designs through Figma's API as this account. A link alone grants nothing: the account must be able to open the file.</span>
-      ${FG.connected ? `<div class="wstat m11 ${FG.ok ? "ok" : "bad"}"><span class="dot ${FG.ok ? "" : "red"}"></span>${esc(FG.state)}${FG.detail ? ` · ${esc(FG.detail)}` : ""}</div>` : '<div class="wstat m11"><span class="dot grey"></span>Not connected</div>'}
+  const head = (n, title, what) => `<span class="lab">${n}. ${esc(title)}</span><span class="sub m11">${what}</span>`;
+  const local = (w, n, title, what, cap) => !w ? "" : `<div class="wf">${head(n, title, what)}${w.unavailable ? `<span class="sub m11 off">${esc(w.unavailable)}</span>`
+    : `${fgStat(w)}${w.ok ? "" : `<span class="sub m11">${esc(w.how)}</span>`}${fgUsers(w.workers, cap)}`}</div>`;
+  b.innerHTML = `<div class="wf"><span class="sub m11">Workers reach Figma in three ways. Give each worker the ones it needs; one with more than one uses the next when a way is refused.</span>
+      <div class="ghline"><button type="button" class="btn m11" id="fgCheck">Check again</button></div></div>
+    <div class="wf">${head(1, "Token: read designs by link", "Figma's API, as the account below. Nothing needs to be open. A link alone grants nothing: the account must be able to open the file, and Figma refuses a file whose owner turned off <b>copy and export</b> for viewers (\"not exportable\"); use Figma desktop (2) for those.")}
+      ${FG.connected ? fgStat(FG) : '<div class="wstat m11"><span class="dot grey"></span>Not connected</div>'}
       <span class="sub m11">Create a personal access token in Figma (Settings → Security → Personal access tokens) with <b>File content: read</b>, and paste it here.</span>
       <div class="ghline"><input class="wfield" id="fgToken" type="password" autocomplete="off" spellcheck="false" placeholder="figd_…" aria-label="Figma personal access token">
         <button type="button" class="btn ${FG.connected ? "" : "pri"} m11" id="fgConnect">${FG.connected ? "Replace" : "Connect"}</button>
-        ${FG.connected ? '<button type="button" class="btn danger m11" id="fgDisc">Disconnect</button>' : ""}</div></div>
-    ${plugin ? `<div class="wf"><span class="lab">Changing Figma files</span><span class="sub m11 off">${esc(plugin.reason)}</span></div>` : ""}`;
+        ${FG.connected ? '<button type="button" class="btn danger m11" id="fgDisc">Disconnect</button>' : ""}</div>
+      ${fgUsers(FG.workers, "Read Figma designs from a link")}</div>
+    ${local(FG.desktop, 2, "Figma desktop MCP: read in Dev Mode (read-only)", "Figma desktop's own MCP server reads the file open in the app, as you see it there, so it works on view-only files even when copy and export are off. Workers can only read through it, never change the file. Keep the file open in Figma desktop while the worker reads it.", "Read Figma designs through Figma desktop (Dev Mode MCP)")}
+    ${local(FG.plugin, 3, "Plugin: read and change the open file", "The AI Executor plugin, running in the open file in Figma desktop (Plugins → Development → AI Executor (POC)). Workers read the file in full detail, and change it if they're allowed to. It needs edit access to the file.", "Change the open Figma file (plugin)")}`;
   b.onclick = async (e) => {
     const t = e.target.closest("button"); if (!t) return;
     try {
+      if (t.id === "fgCheck") { t.disabled = true; fgSay("Checking…"); await loadFigma(); return fgSay("Checked just now."); }
       if (t.id === "fgConnect") { const v = $("fgToken").value.trim(); if (!v) return fgSay("Paste a token first.", true); t.disabled = true; fgSay("Checking with Figma…"); FG = await api("POST", "/figma/connection", { token: v }); fgSay("Connected."); }
       if (t.id === "fgDisc") { FG = await api("DELETE", "/figma/connection"); fgSay("Disconnected. The token was deleted."); }
     } catch (err) { fgSay(err.message, true); }

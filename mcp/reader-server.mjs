@@ -20,9 +20,15 @@ const refuse = (t) => ({ isError: true, content: [{ type: "text", text: t }] });
 const NO_AUTH = "Figma authorization is missing on this computer, so this worker can't read Figma files. Someone with access to the design must connect Figma once (figma-reader/README.md). A Figma link alone does not grant access. Stop and ask for that authorization instead of trying another way.";
 const ALLOWED_KEYS = (process.env.FIGMA_READER_ALLOWED_KEYS || "").split(",").map((k) => k.trim()).filter(Boolean);
 const authorized = () =>!!process.env.FIGMA_TOKEN || existsSync(CRED_FILE);
+// FIGMA_READER_ALT: the console also gave this run Figma desktop's MCP (figma_mcp_* tools), which
+// reads what the person sees in Figma desktop; Figma's API refuses some files it can show there.
+const ALT = process.env.FIGMA_READER_ALT === "figma-mcp";
+const figmaSays = (e) => e.message.match(/\((?:403|404)\): (.*?)\. The token's user/)?.[1] || "";
 const explain = (e, ref) => e.status === 401 ? "Figma rejected the stored authorization (expired or revoked). Someone with access must connect Figma again. Don't try another way in."
+  : /not exportable/i.test(figmaSays(e))
+  ? `Figma says this file is "not exportable": its owner turned off copy and export for viewers, and the connected account is a viewer, so Figma's API refuses it whatever the token. ${ALT ? "Use the figma_mcp_* tools for this file instead (figma_mcp_status first): they read it through Figma desktop, where the person has it open." : "The owner must give the account edit access or turn on \"Viewers can copy, share and export\"; or give this worker the Figma desktop (Dev Mode MCP) tool."} File key: ${ref.fileKey}`
   : e.status === 403 || e.status === 404
-  ? `The connected Figma account can't open this file (${e.status}). The file's owner must share it with that account (or a person who can open it must connect their own Figma account). Don't try another way in. File key: ${ref.fileKey}`
+  ? `The connected Figma account can't open this file (${e.status}${figmaSays(e) ? `: Figma says "${figmaSays(e)}"` : ""}). The file's owner must share it with that account (or a person who can open it must connect their own Figma account).${ALT ? " If the person has it open in Figma desktop, the figma_mcp_* tools can read it there." : " Don't try another way in."} File key: ${ref.fileKey}`
   : e.status === 429 ? `Figma's rate limit for this file was reached: ${e.message}. Try later or ask for a Figma seat with higher limits.`
   : `Figma API error: ${e.message}`;
 

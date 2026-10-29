@@ -4,7 +4,7 @@
 // releases made here (released through release.mjs, as a reviewer would):
 //   builder 1.1.0 — one more step; nothing else changes
 //   builder 2.0.0 — "Read only" now also prepares drafts (more access); "models" replaced by "locale"
-//   figma   1.1.0 — needs the web core capability too (more access)
+//   figma   1.2.0 — needs the web core capability too (more access); made from the real 1.1.0
 //   node bench/integrations/lifecycle-test.mjs
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, cpSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -36,8 +36,8 @@ const mf = (id, v) => JSON.parse(readFileSync(join(CAT, id, `${v}.json`), "utf8"
   const pub = m.questions.find((q) => q.id === "publishing"); Object.assign(pub.choices.find((c) => c.id === "read"), { enables: ["builder.write.draft"], requires: [{ resource: "builder", access: "write", need: "required" }] });
   m.questions = m.questions.filter((q) => q.id !== "models"); m.questions.splice(1, 0, { id: "locale", type: "text", label: "Locale", knowledge: "Locale" });
   delete m.config.schema.properties.models; m.config.schema.properties.locale = { type: "string", maxLength: 300 }; put(m); }
-{ const m = mf("figma", "1.0.0"); m.version = "1.1.0"; m.base.core = [...m.base.core, "web"]; m.coreWhy = { ...m.coreWhy, web: "Looks up design references on the web." }; m.changes = { "1.1.0": "Also looks up design references on the web." }; put(m); }
-execFileSync(process.execPath, [join(REPO, "worker-ui", "integrations", "release.mjs"), "builder@1.1.0", "builder@2.0.0", "figma@1.1.0"], { env: { ...process.env, AIW_INTEGRATIONS_DIR: CAT } });
+{ const m = mf("figma", "1.1.0"); m.version = "1.2.0"; m.base.core = [...m.base.core, "web"]; m.coreWhy = { ...m.coreWhy, web: "Looks up design references on the web." }; m.changes = { ...m.changes, "1.2.0": "Also looks up design references on the web." }; put(m); }
+execFileSync(process.execPath, [join(REPO, "worker-ui", "integrations", "release.mjs"), "builder@1.1.0", "builder@2.0.0", "figma@1.2.0"], { env: { ...process.env, AIW_INTEGRATIONS_DIR: CAT } });
 
 // ---- workers made before integrations (schema 1), as an earlier console saved them ----
 const now = new Date().toISOString(), v1 = (o) => ({ repos: [], specialization: "", knowledge: "", workflow: [], limitations: [], requirements: [], onMissing: "", version: 3, createdAt: now, updatedAt: now, ...o });
@@ -105,10 +105,10 @@ await step("upgrade diff (builder 1.0.0 → 2.0.0): more access (drafts), a sett
   assert(major.status === 200 && afterMajor.integrations[0].version === "2.0.0" && afterMajor.capabilities.includes("builder.write.draft") && !("models" in afterMajor.integrations[0].config) && "locale" in afterMajor.integrations[0].config && down.status === 400, { afterMajor: afterMajor.integrations, down: down.body });
   return { diff: { added: up.capabilities.added, dropped: up.config.dropped, defaulted: up.config.defaulted, accounts: up.accounts.added }, refused: refused.body.error.slice(0, 90) };
 });
-await step("an upgrade that needs another core tool (figma 1.1.0 needs web) is more access too: it lists the tool to grant, needs approval, and grants it only then", async () => {
+await step("an upgrade that needs another core tool (figma 1.2.0 needs web) is more access too: it lists the tool to grant, needs approval, and grants it only then", async () => {
   const w = (await call("POST", "/workers", { schema: 2, name: "Figma reader", mission: "Read designs", integrations: [{ id: "figma", version: "1.0.0", config: { file: "", edit: null, links: "yes" } }], core: ["files.read"] })).body;
-  const up = (await call("GET", `/workers/${w.id}/upgrades`)).body.upgrades[0], no = await call("POST", `/workers/${w.id}/upgrade`, { integration: "figma", to: "1.1.0" });
-  const yes = await call("POST", `/workers/${w.id}/upgrade`, { integration: "figma", to: "1.1.0", approveExpansion: true }), after = (await workers()).find((x) => x.id === w.id);
+  const up = (await call("GET", `/workers/${w.id}/upgrades`)).body.upgrades[0], no = await call("POST", `/workers/${w.id}/upgrade`, { integration: "figma", to: "1.2.0" });
+  const yes = await call("POST", `/workers/${w.id}/upgrade`, { integration: "figma", to: "1.2.0", approveExpansion: true }), after = (await workers()).find((x) => x.id === w.id);
   assert(up.core.toGrant.join() === "web" && up.expands && no.status === 400 && yes.status === 200 && after.core.join() === "files.read,web" && after.capabilities.includes("web"), { up: up.core, after: after.core });
   return { toGrant: up.core.toGrant, coreAfter: after.core };
 });

@@ -24,6 +24,7 @@ import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { randomUUID, createHash, timingSafeEqual } from "node:crypto";
 import { api as figmaApi, CRED_FILE as FIGMA_CRED_FILE, CRED_DIR as FIGMA_CRED_DIR, parseFigmaUrl, saveCredentials as saveFigmaCredentials } from "../figma-reader/reader.mjs";
+import { desktopStatus as figmaDesktopStatus, SETUP as FIGMA_DESKTOP_SETUP } from "../mcp/figma-desktop.mjs";
 import * as builderApi from "../builder-adapter/builder.mjs";
 import * as github from "./github.mjs";
 import * as ghApp from "./github-app.mjs";
@@ -77,6 +78,7 @@ const HOSTED_OFF = {
   shell: "Shell commands aren't available in the hosted product.",
   "figma.plugin.read": "The Figma plugin runs in the Figma desktop app on your own computer; the hosted product can't reach it. Use Figma links (Figma Reader) instead.",
   "figma.plugin.edit": "Changing a Figma file needs the Figma desktop app and plugin on your own computer; the hosted product can't reach it.",
+  "figma.mcp.read": "Figma desktop's MCP server runs on your own computer; the hosted product can't reach it. Use Figma links (Figma Reader) instead.",
 };
 const offHere = (c) => HOSTED && !!HOSTED_OFF[c];
 // WORKER_FIGMA_LEGACY=1: the Figma tools as they were before batches and compact reads (comparison runs).
@@ -89,6 +91,7 @@ mkdirSync(RUNS, { recursive: true });
 if (HOSTED) mkdirSync(HOSTED_WS_ROOT, { recursive: true });
 // Screenshots the browser adapter writes: the adapter's own folder locally, the person's data dir hosted.
 const BROWSER_EXPORTS = HOSTED ? join(DATA, "browser-exports") : join(REPO, "browser-adapter", "exports");
+const FIGMA_MCP_EXPORTS = join(REPO, "exports", "figma-mcp");
 // Scratch: work that has no project folder (a Figma design, Builder content, a browser task,
 // research). It's a mode, not a project: every scratch conversation gets its own empty folder,
 // <data>/scratch-runs/<run id>, created when it starts, kept with the conversation, and reused by
@@ -188,6 +191,10 @@ const CAPABILITIES = {
   "figma.read": { label: "Read Figma designs from a link", tools: "figma-reader: figma_read_design, figma_access_status (REST API)", mcp: "figma-reader", allow: ["mcp__figma-reader"], profiles: ["full", "inspect"] },
   "figma.plugin.read": { label: "Read the open Figma file (plugin)", tools: "figma-executor read tools; the plugin must be running", mcp: "figma-executor", allow: FIGMA_READ_TOOLS, profiles: ["full", "inspect"] },
   "figma.plugin.edit": { label: "Change the open Figma file (plugin)", tools: "figma-executor, all tools; the plugin must be running", mcp: "figma-executor", allow: ["mcp__figma-executor"], profiles: ["full"] },
+  // Figma desktop's own MCP server (Dev Mode), through mcp/figma-mcp-server.mjs: only its read tools
+  // are passed on, never its write tools. Reads what the person can see in Figma desktop, so it works
+  // where the REST API is refused (a view-only file whose owner turned off copy and export).
+  "figma.mcp.read": { label: "Read Figma designs through Figma desktop (Dev Mode MCP)", tools: "figma-mcp: figma_mcp_design, figma_mcp_outline, figma_mcp_variables, figma_mcp_screenshot, figma_mcp_status; Figma desktop must be open with its MCP server on", mcp: "figma-mcp", allow: ["mcp__figma-mcp"], profiles: ["full", "inspect"] },
   "builder.read": { label: "Read Builder.io content", tools: "builder: access status, models, content, verify (Builder APIs)", mcp: "builder", allow: BUILDER_READ_TOOLS, profiles: ["full", "inspect"] },
   "builder.write": { label: "Create, change and publish Builder.io content (test spaces only)", tools: "builder: create draft, update (as a draft or live, inline or from a file), publish, upload assets", mcp: "builder", allow: ["mcp__builder"], profiles: ["full"] },
   // Narrower than builder.write: drafts only, never publish, never live:true. Enforced twice, not
@@ -207,8 +214,14 @@ const MCP_SERVERS = {
   // refuses edit commands itself (FIGMA_EXECUTOR_PROFILE=read), not just the allow list.
   "figma-executor": (profile, scope = {}, usable = []) => ({ command: process.execPath, args: [join(REPO, "mcp", "server.mjs")],
     env: figmaEnv(profile === "full" && usable.includes("figma.plugin.edit") ? "edit" : "read", scope.figmaKey) }),
-  "figma-reader": (profile, scope = {}) => ({ command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")],
-    ...(scope.figmaKey ? { env: { FIGMA_READER_ALLOWED_KEYS: scope.figmaKey, ...(process.env.FIGMA_READER_DIR ? { FIGMA_READER_DIR: process.env.FIGMA_READER_DIR } : {}) } } : {}) }),
+  // FIGMA_READER_ALT: the run also has Figma desktop's MCP, so a refusal says to use that instead.
+  "figma-reader": (profile, scope = {}, usable = []) => { const alt = usable.includes("figma.mcp.read") ? { FIGMA_READER_ALT: "figma-mcp" } : {};
+    return { command: process.execPath, args: [join(REPO, "mcp", "reader-server.mjs")],
+      ...(scope.figmaKey || alt.FIGMA_READER_ALT ? { env: { ...(scope.figmaKey ? { FIGMA_READER_ALLOWED_KEYS: scope.figmaKey } : {}), ...alt, ...(process.env.FIGMA_READER_DIR ? { FIGMA_READER_DIR: process.env.FIGMA_READER_DIR } : {}) } } : {}) }; },
+  // The design's images go into the workspace (figma-assets/), where uploads can use them; in an
+  // Inspect workspace (read-only) into the exports folder the run may read.
+  "figma-mcp": (profile, scope = {}, usable = [], root = null) => ({ command: process.execPath, args: [join(REPO, "mcp", "figma-mcp-server.mjs")],
+    env: { FIGMA_MCP_ASSETS_DIR: profile === "full" && root ? join(root, "figma-assets") : FIGMA_MCP_EXPORTS, ...(scope.figmaKey ? { FIGMA_ALLOWED_KEYS: scope.figmaKey } : {}), ...(process.env.FIGMA_DESKTOP_MCP_URL ? { FIGMA_DESKTOP_MCP_URL: process.env.FIGMA_DESKTOP_MCP_URL } : {}) } }),
   // Hosted: no address on this machine or a private network, and screenshots in the person's own folder.
   "browser-executor": (profile) => ({ command: process.execPath, args: [join(REPO, "browser-adapter", "server.mjs")], env: { BROWSER_EXECUTOR_PROFILE: PROFILES[profile].browser, BROWSER_BLOCK_PORTS: PLATFORM_PORTS, ...(HOSTED ? { BROWSER_BLOCK_PRIVATE: "1", BROWSER_EXPORTS_DIR: BROWSER_EXPORTS } : {}) } }),
   // The write tools are registered only when the worker may write here (builder.write or the
@@ -270,7 +283,7 @@ function workerRuntime(def, profile, scope = {}) {
   const base = profile === "inspect" || lockGit ? ["--restricted"] : ["--setting-sources", "project,local"];
   // Renders the worker makes (figma_export_node, browser_screenshot) land in the adapters' own
   // exports folders; it may read those, and only those, outside its workspace, to look at its work.
-  const exportsDirs = [...new Set(usable.flatMap((c) => (c.startsWith("figma.plugin") ? [join(REPO, "exports")] : c === "browser" ? [BROWSER_EXPORTS] : [])))];
+  const exportsDirs = [...new Set(usable.flatMap((c) => (c.startsWith("figma.plugin") ? [join(REPO, "exports")] : c === "browser" ? [BROWSER_EXPORTS] : c === "figma.mcp.read" && profile !== "full" ? [FIGMA_MCP_EXPORTS] : [])))];
   const readOnly = scope.knowledgeDir ? [scope.knowledgeDir] : [];
   const deny = [...(lockGit ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`), ...platformDeny(), ...secretDeny()];
   const dirs = [...exportsDirs, ...readOnly];
@@ -285,7 +298,7 @@ function workerRuntime(def, profile, scope = {}) {
 // loaded: a process's built-in tools can't change while it runs. run: when given, its integration
 // servers get the per-call check (AIW_AUTHZ_URL/TOKEN → authorizeCall) and the live set, and the
 // run keeps what it was given.
-const AUTHZ_SERVERS = new Set(["figma-executor", "figma-reader", "builder", "gitflow", "repo"]);
+const AUTHZ_SERVERS = new Set(["figma-executor", "figma-reader", "figma-mcp", "builder", "gitflow", "repo"]);
 const liveCap = (c) => AUTHZ_SERVERS.has(CAPABILITIES[c]?.mcp);
 function launchPlan(def, ws, scope, gate = {}, run = null) {
   const fixed = Object.fromEntries(Object.entries(gate).filter(([c]) => !liveCap(c)));
@@ -544,6 +557,10 @@ const RESOURCES = {
         if (ctx.figmaKey && st.sessions && !f) return { ok: false, state: "Plugin running in another file", detail: clip(sessions.map((x) => x.fileName).join(", "), 120) };
         return { ok: true, state: "Connected", detail: f?.fileName ? `in "${f.fileName}"${sessions.length > 1 ? ` (+${sessions.length - 1} more)` : ""}` : "" };
       } },
+    // Figma desktop's MCP server (figma.mcp.read): running and answering as Figma's. Not started by
+    // the console: Figma desktop starts it when the person turns it on.
+    desktop: { label: "read designs in Figma desktop (Dev Mode MCP)", how: HOSTED ? HOSTED_OFF["figma.mcp.read"] : FIGMA_DESKTOP_SETUP,
+      async check() { return HOSTED ? { ok: false, state: "Not available in the hosted product" } : figmaDesktopStatus(); } },
   } },
   workspace: { label: "Workspace folder", access: {
     read: { label: "read files", how: "Run the worker in a workspace.", async check() { return { ok: true, state: "Available" }; } },
@@ -1268,10 +1285,17 @@ async function figmaConnect(token) {
   figmaCheck = { at: 0, value: null };
   return figmaReport({ handle: me.handle || null });
 }
+// The Figma page shows the three ways workers reach Figma, each with its state now and the workers
+// given it: the token (Figma's API, by link), Figma desktop's MCP (Dev Mode, read-only) and the
+// plugin (reads and edits the open file). Checking never starts anything.
 async function figmaReport(fresh) {
-  if (!existsSync(FIGMA_CRED_FILE)) return { connected: false };
-  const st = fresh ? { ok: true, state: "Connected", detail: fresh.handle ? `as ${fresh.handle}` : "" } : await RESOURCES.figma.access.read.check();
-  return { connected: true, ok: !!st.ok, state: st.state, detail: st.detail || "" };
+  const st = !existsSync(FIGMA_CRED_FILE) ? null : fresh ? { ok: true, state: "Connected", detail: fresh.handle ? `as ${fresh.handle}` : "" } : await RESOURCES.figma.access.read.check();
+  const [desktop, plugin] = await Promise.all([checkAccount({ resource: "figma", access: "desktop" }, {}, 6000), checkAccount({ resource: "figma", access: "edit" }, {}, 6000)]);
+  let workers = []; try { workers = readWorkers(); } catch {}
+  const using = (...caps) => workers.filter((w) => w.capabilities.some((c) => caps.includes(c))).map((w) => w.name);
+  const way = (s, caps, cap) => ({ ok: !!s.ok, state: s.state, detail: s.detail || "", how: RESOURCES.figma.access[s === desktop ? "desktop" : "edit"].how, workers: using(...caps), ...(offHere(cap) ? { unavailable: HOSTED_OFF[cap] } : {}) });
+  return { connected: !!st, ok: !!st?.ok, state: st?.state || "Not connected", detail: st?.detail || "", workers: using("figma.read"),
+    desktop: way(desktop, ["figma.mcp.read"], "figma.mcp.read"), plugin: way(plugin, ["figma.plugin.read", "figma.plugin.edit"], "figma.plugin.edit") };
 }
 function figmaDisconnect() { rmSync(FIGMA_CRED_FILE, { force: true }); figmaCheck = { at: 0, value: null }; return { connected: false }; }
 
@@ -1743,7 +1767,7 @@ function claudeCommand() {
 const CLAUDE = { pre: [], ...claudeCommand() };
 
 const envOf = (tool) =>
-  tool.startsWith("mcp__figma-executor") || tool.startsWith("mcp__figma-reader") ? "Figma"
+  tool.startsWith("mcp__figma-executor") || tool.startsWith("mcp__figma-reader") || tool.startsWith("mcp__figma-mcp") ? "Figma"
   : tool.startsWith("mcp__browser-executor") ? "Browser"
   : tool.startsWith("mcp__builder") ? "Builder"
   : ["Read", "Write", "Edit", "Glob", "Grep", "NotebookEdit"].includes(tool) ? "Files"

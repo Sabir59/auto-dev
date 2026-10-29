@@ -241,6 +241,7 @@ Organization
 | `figma.read` | figma-reader MCP (REST, by link) | both |
 | `figma.plugin.read` | figma-executor read tools | both |
 | `figma.plugin.edit` | figma-executor, every tool | Work |
+| `figma.mcp.read` | figma-mcp: Figma desktop's Dev Mode MCP, read tools only (figma@1.1.0) | both |
 
 **What a definition decides at runtime:**
 - **Tools:** effective tools = the worker's capabilities ∩ what the profile allows (`workerRuntime()` builds `--tools`, `--allowedTools`, MCP servers and `--add-dir` for the adapters' exports folders).

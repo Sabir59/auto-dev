@@ -81,3 +81,16 @@ No longer needed: starting or restarting the bridge, restarting it after an upda
 | `bench/hosted/hosted-test.mjs` (win32) | 24 passed, 2 skipped (Linux-only) | hosted console without the bridge code |
 
 **Not proven live:** a write. Each live test only read, because the open file is the person's own; a live write needs their go-ahead, or a scratch file (`live-batch-test.mjs` is the existing live write test). The plugin's own reconnect was proven live; the heartbeat drop was proven only with a fake plugin.
+
+## Figma desktop's MCP for workers, read-only (2026-10-29)
+
+A worker can now also read designs through Figma desktop's own MCP server (Dev Mode), as `figma.mcp.read` (Figma integration 1.1.0, question "Read designs through Figma desktop", default No). Why: Figma's REST API answers **403 "File not exportable"** for a viewer when the file's owner has turned off "Viewers can copy, share and export", whatever the token. The plugin needs edit access. Figma desktop's MCP reads what the person can see in the app. This was checked on the real MATW file, as a view-only account with a Dev seat: the token got 403, and Figma desktop's MCP returned the frame's code, variables, screenshot and images.
+
+- **Only reading.** `mcp/figma-mcp-server.mjs` sits between the worker and Figma desktop's server (`http://127.0.0.1:3845/mcp`). It offers five tools (`figma_mcp_design`, `figma_mcp_outline`, `figma_mcp_variables`, `figma_mcp_screenshot`, `figma_mcp_status`) and never passes on Figma's write tools (the Code Connect mappings). A worker never gets Figma desktop's server itself.
+- **Images.** Figma desktop serves a design's images on localhost. They're saved into the run's workspace (`figma-assets/`; the exports folder in an Inspect workspace), and the code points at the saved files, so a Builder upload can use them.
+- **Which file.** Figma desktop reads the file that's open and in front, and doesn't say which one that is. The tools say so. A Team run only accepts a link to the Team's own file.
+- **Checks.** The account check (`figma desktop`) is an MCP `initialize` that must be answered by Figma's server. Every call is checked with the console (`mcp/authz.mjs`), and the tools come on during a run when Figma desktop starts. It's off in the hosted product.
+- **The token's refusal now says why.** The Reader passes on Figma's own reason, and when the run has the Figma desktop tools, it tells the worker to use them.
+- **The Figma page** shows all three ways (token, Figma desktop MCP and plugin), each with its state now, how to set it up and which workers have it.
+
+Proof: `bench/integrations/figma-mcp-test.mjs` 7/7 with `FIGMA_MCP_LIVE=1` (6 against a stand-in for Figma desktop, plus one read-only read of a real node), and catalog 5/5, effective 5/5, authz 8/8, live 11/11, lifecycle 14/14. Not proven: a worker run end to end through the console with the real Figma desktop. That needs the person's console restarted on this code.

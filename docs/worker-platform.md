@@ -60,6 +60,7 @@ The catalogue is fixed in code, because a capability must name tools that exist.
 | `figma.read` | figma-reader MCP: read a design from a URL via the REST API | both |
 | `figma.plugin.read` | figma-executor read tools (the plugin must be open) | both |
 | `figma.plugin.edit` | figma-executor edit tools | Work |
+| `figma.mcp.read` | figma-mcp: Figma desktop's own MCP server (Dev Mode), read tools only, through `mcp/figma-mcp-server.mjs`; the design's images are saved into the workspace (`figma-assets/`) | both |
 
 A capability turns a tool on. It grants no access to any resource.
 
@@ -71,6 +72,7 @@ Requirements are generic `{resource, access, need}` entries. A small resource re
 |---|---|---|
 | `figma` | `read` | a Figma Reader credential exists **and** Figma accepts it (`GET /v1/me`, cached) |
 | `figma` | `edit` | the Figma plugin is connected to the bridge (PING) |
+| `figma` | `desktop` | Figma desktop's MCP server answers an MCP `initialize` as Figma's (`mcp/figma-desktop.mjs`, default `http://127.0.0.1:3845/mcp`, `FIGMA_DESKTOP_MCP_URL`) |
 | `workspace` | `write` | the run's workspace is Work |
 | `browser` | `use` | the browser adapter is installed |
 
