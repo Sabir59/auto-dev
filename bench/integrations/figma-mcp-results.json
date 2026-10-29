@@ -1,0 +1,73 @@
+{
+ "when": "2026-10-29T14:37:29.167Z",
+ "ok": true,
+ "results": [
+  {
+   "step": "only Figma desktop's read tools reach a worker; its write tools (Code Connect) are never offered",
+   "ok": true,
+   "detail": {
+    "tools": [
+     "figma_mcp_design",
+     "figma_mcp_outline",
+     "figma_mcp_screenshot",
+     "figma_mcp_status",
+     "figma_mcp_variables"
+    ]
+   }
+  },
+  {
+   "step": "a design link is read by its node id; the design's images are saved into the workspace and the code points at them; Figma's notes that aren't design are dropped",
+   "ok": true,
+   "detail": {
+    "called": [
+     "get_design_context(35499:71541)",
+     "get_variable_defs(35499:71541)",
+     "get_metadata(1:2)",
+     "get_screenshot(1:2)"
+    ],
+    "saved": [
+     "aaaa1111.png"
+    ]
+   }
+  },
+  {
+   "step": "bad input is refused before Figma desktop is asked: not a figma.com link, not a node id",
+   "ok": true,
+   "detail": {
+    "link": "That isn't a figma.com link.",
+    "node": "\"../../etc\" isn't a node id (like 123:456)."
+   }
+  },
+  {
+   "step": "a Team run reads only its own file: another file's link and a bare node id are refused, its own link is read",
+   "ok": true,
+   "detail": {
+    "refused": 2,
+    "read": [
+     "get_metadata"
+    ]
+   }
+  },
+  {
+   "step": "each call is checked with the console first: refused there, nothing reaches Figma desktop",
+   "ok": true,
+   "detail": {
+    "whileOff": 0,
+    "whenOn": 5,
+    "refused": "NOT_AUTHORIZED: Figma desktop: Not running. Nothing was done. If the task needs it, write a NEEDS: line saying what has "
+   }
+  },
+  {
+   "step": "Figma desktop not running: the tools say so and how to turn it on, and the console's check says Not running",
+   "ok": true,
+   "detail": {
+    "status": false,
+    "consoleCheck": {
+     "down": "Not running",
+     "up": "Running",
+     "other": "Something else is on that port"
+    }
+   }
+  }
+ ]
+}
