@@ -1535,7 +1535,7 @@ function renderAccount(r) {
     return;
   }
   if (a.error) h += `<div class="note warn">${esc(a.error)}</div>`;
-  else if (!a.loggedIn) h += '<div class="note warn">The workers\' Claude runtime isn\'t signed in. Run <code>claude auth login</code> in a terminal.</div>';
+  else if (!a.loggedIn) h += '<div class="note warn">The workers\' Claude runtime isn\'t signed in. Run <code>' + (a.configDir && !/[\\/]\.claude$/.test(a.configDir) ? 'CLAUDE_CONFIG_DIR=&quot;' + esc(a.configDir) + '&quot; ' : '') + 'claude auth login</code> in a terminal, then restart the console.</div>';
   else h += `<div class="kv"><span>Email</span><b id="acctEmail">${esc(a.email || "—")}</b></div>
     <div class="kv"><span>Plan</span><b>${esc(a.plan ? a.plan[0].toUpperCase() + a.plan.slice(1) : "—")}</b></div>
     ${a.orgName ? `<div class="kv"><span>Organization</span><b>${esc(a.orgName)}</b></div>` : ""}

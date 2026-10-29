@@ -1431,12 +1431,16 @@ function teamSection(t) {
 // variables of whatever started the console (its session id, messaging socket and token, entry
 // point) are dropped, so sessions never land in, or resume from, another tool's directory.
 const CONFIG_DIR = resolve(process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR || join(homedir(), ".claude"));
+const DEFAULT_CONFIG_DIR = ((a, b) => (process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b))(CONFIG_DIR, resolve(homedir(), ".claude"));
 const workerEnv = () => {
   // Integration tokens (FIGMA_TOKEN, BUILDER_*, GH_TOKEN, GITHUB_*, ...) never reach workers; the *_DIR ones are only paths.
   // The hosted console's own secrets (AIW_*: the gateway's internal secret, the broker token) never
   // either; the model provider adds only what the runtime needs to reach the model (provider.mjs).
   const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k === "FIGMA_READER_DIR" || k === "BUILDER_ADAPTER_DIR" || !/^(CLAUDE|AI_AGENT|WORKER_CONSOLE_|FIGMA_|BUILDER_|GITHUB_|GH_|AIW_|ANTHROPIC_)/i.test(k)));
-  return { ...env, ...PROVIDER.runtimeEnv(), CLAUDE_CONFIG_DIR: CONFIG_DIR };
+  // Only a non-default dir is named: on macOS the runtime keeps its sign-in in the Keychain under a
+  // name that changes when CLAUDE_CONFIG_DIR is set, so naming the default (~/.claude) would hide the
+  // person's ordinary `claude` login from the workers.
+  return { ...env, ...PROVIDER.runtimeEnv(), ...(DEFAULT_CONFIG_DIR ? {} : { CLAUDE_CONFIG_DIR: CONFIG_DIR }) };
 };
 
 // ---- account & usage ----------------------------------------------------------------
