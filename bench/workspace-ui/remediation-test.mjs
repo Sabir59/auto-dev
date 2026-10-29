@@ -84,12 +84,12 @@ await step("UX-013: every defined worker has a visible Edit control (not hover-o
   must(vis.length >= 1 && vis.every(Boolean) && /no definition/.test(general), JSON.stringify({ vis, general }));
   return { editButtons: vis.length, general: general.replace(/\s+/g, " ") };
 });
-await step("UX-017: Clear memory asks; Cancel keeps it, confirming clears it", async () => {
+await step("UX-017: Clear learnings asks; Cancel keeps it, confirming clears it", async () => {
   const w = (await call("GET", "/workers")).body.workers.find((x) => x.name === "Saved On Leave");
   mkdirSync(join(DATA, "workers"), { recursive: true });
   writeFileSync(join(DATA, "workers", `${w.id}.memory.json`), JSON.stringify([{ text: "The client prefers British English", at: new Date().toISOString() }, { text: "Staging is at staging.example", at: new Date().toISOString() }]));
   await page.click('#wkList .wkr:has-text("Saved On Leave") [data-wk-edit]'); await page.waitForSelector("#wkMemClear");
-  await page.click("#wkMemClear"); must(/Clear 2 remembered items/.test((await dialog()) || ""), "no confirmation");
+  await page.click("#wkMemClear"); must(/Clear 2 learnings/.test((await dialog()) || ""), "no confirmation");
   await page.click('#dlg [data-dlg="cancel"]'); await page.waitForTimeout(300);
   const kept = (await call("GET", `/workers/${w.id}/memory`)).body.length;
   await page.click("#wkMemClear"); await dialog(); await page.click('#dlg [data-dlg="clear"]');

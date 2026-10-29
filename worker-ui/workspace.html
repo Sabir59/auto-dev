@@ -1851,7 +1851,7 @@ async function openWorkerEditor(id, note) {
       <div class="wf"><details class="iinstr" id="wkFromInts"><summary class="m12">What its integrations tell it</summary><div id="wkFromIntsBody"></div></details></div>
       <div class="wf"><span class="lab">Other requirements</span><span class="sub m11">Beyond what its integrations need. Checked at the start of every run; missing access makes the worker stop and ask for it.</span><div class="reqs" id="wkReqs"></div><button type="button" class="row add" id="wkAddReq" style="width:auto"><svg class="i" width="9" height="9" viewBox="${ICONS.plus.vb}"><path d="${ICONS.plus.d[0]}"/></svg><span>Add requirement</span></button></div>
       <label class="wf"><span class="lab">When something is missing</span><span class="sub m11">How it should ask for what it needs.</span><textarea class="wtext" id="wkO" rows="2" maxlength="1000" placeholder="Ask in plain words, and say exactly what the person has to do.">${esc(d.onMissing)}</textarea></label>
-      ${id ? `<div class="wf"><span class="lab">Memory</span><span class="sub m11">What it chose to remember (REMEMBER: lines). Given to its next runs; never part of its definition.</span><ul class="wmem" id="wkMem"><li class="when">Loading…</li></ul></div>` : ""}
+      ${id ? `<div class="wf"><span class="lab">Learnings</span><span class="sub m11">What it learned from its work (LEARNED: lines). Given to its next runs and copied when it's cloned; never part of its definition.</span><ul class="wmem" id="wkMem"><li class="when">Loading…</li></ul></div>` : ""}
       ${id ? EVO_SECTION : ""}
       <div class="wfoot">${id ? '<button type="button" class="btn danger m11" id="wkDel">Delete</button><button type="button" class="btn m11" id="wkClone" title="A new, independent copy on this console">Clone…</button><button type="button" class="btn m11" id="wkExport" title="A .workerpack file to give to someone">Export…</button>' : ""}<span class="msg m11" id="wkMsg" role="status">${esc(note || "")}</span><button type="button" class="btn m11" id="wkCancel">Cancel</button><button type="submit" class="btn pri m11">Save</button></div>
     </form></div></div>`;
@@ -1995,7 +1995,7 @@ function openLegacyEditor(d, note) {
       <label class="wf"><span class="lab">Hard limits</span><textarea class="wtext" id="wkL" rows="4">${esc(d.limitations.join("\n"))}</textarea></label>
       <div class="wf"><span class="lab">What it requires</span><div class="reqs" id="wkReqs"></div><button type="button" class="row add" id="wkAddReq" style="width:auto"><span>Add requirement</span></button></div>
       <label class="wf"><span class="lab">When something is missing</span><textarea class="wtext" id="wkO" rows="2" maxlength="1000">${esc(d.onMissing)}</textarea></label>
-      <div class="wf"><span class="lab">Memory</span><ul class="wmem" id="wkMem"><li class="when">Loading…</li></ul></div>
+      <div class="wf"><span class="lab">Learnings</span><ul class="wmem" id="wkMem"><li class="when">Loading…</li></ul></div>
       ${EVO_SECTION}
       <div class="wfoot"><button type="button" class="btn danger m11" id="wkDel">Delete</button><button type="button" class="btn m11" id="wkClone">Clone…</button><button type="button" class="btn m11" id="wkExport">Export…</button><span class="msg m11" id="wkMsg" role="status">${esc(note || "")}</span><button type="button" class="btn m11" id="wkCancel">Cancel</button><button type="submit" class="btn pri m11">Save</button></div>
     </form></div></div>`;
@@ -2042,21 +2042,21 @@ async function openGeneralEditor() {
   $("gnForm").onsubmit = async (e) => { e.preventDefault(); try { await api("PUT", "/general", { core: [...document.querySelectorAll("[data-gcore]:checked")].map((x) => x.dataset.gcore) }); $("gnMsg").textContent = "Saved. New conversations with the General worker use it."; } catch (er) { $("gnMsg").innerHTML = `<span class="err">${esc(er.message)}</span>`; } };
 }
 async function deleteWorker(id) {
-  if (!wkEdit.confirmDelete) { wkEdit.confirmDelete = true; $("wkDel").textContent = "Delete: sure?"; $("wkMsg").textContent = "Its past runs stay readable; its memory is deleted."; return; }
+  if (!wkEdit.confirmDelete) { wkEdit.confirmDelete = true; $("wkDel").textContent = "Delete: sure?"; $("wkMsg").textContent = "Its past runs stay readable; its learnings are deleted."; return; }
   try { await api("DELETE", `/workers/${encodeURIComponent(id)}`); if (wkId === id) { wkId = null; store.set("worker", ""); } await loadWorkers(); closeFile(); }
   catch (e) { $("wkMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
 }
 async function loadMemory(id) {
   let m; try { m = await api("GET", `/workers/${encodeURIComponent(id)}/memory`); } catch { return; }
   const ul = $("wkMem"); if (!ul) return;
-  ul.innerHTML = m.length ? m.map((x, i) => `<li><span class="when m11">${esc(new Date(x.at).toLocaleDateString())}</span><span style="flex:1">${esc(x.text)}</span><button type="button" class="iconbtn" data-mem-del="${i}" aria-label="Forget this">${svgIcon("close", 12, 12)}</button></li>`).join("") + '<li><button type="button" class="btn danger" id="wkMemClear">Clear memory…</button></li>' : '<li class="when m11">Nothing yet.</li>';
+  ul.innerHTML = m.length ? m.map((x, i) => `<li><span class="when m11">${esc(new Date(x.at).toLocaleDateString())}</span><span style="flex:1">${esc(x.text)}</span><button type="button" class="iconbtn" data-mem-del="${i}" aria-label="Forget this">${svgIcon("close", 12, 12)}</button></li>`).join("") + '<li><button type="button" class="btn danger" id="wkMemClear">Clear learnings…</button></li>' : '<li class="when m11">Nothing yet.</li>';
   ul.onclick = async (e) => {
     const b = e.target.closest("[data-mem-del]");
     if (b) await api("DELETE", `/workers/${encodeURIComponent(id)}/memory/${b.dataset.memDel}`);
     else if (e.target.id === "wkMemClear") {
       // Irreversible: every remembered item goes, and later conversations start without them.
-      const r = await ask({ title: `Clear ${plural(m.length, "remembered item")}?`, body: "<p>This worker forgets everything it chose to remember. Its next conversations start without it. This can't be undone; its definition and past conversations are not affected.</p>",
-        actions: [{ id: "cancel", label: "Cancel" }, { id: "clear", label: "Clear memory", kind: "danger" }], focus: "cancel" });
+      const r = await ask({ title: `Clear ${plural(m.length, "learning")}?`, body: "<p>This worker forgets everything it learned. Its next conversations start without it. This can't be undone; its definition and past conversations are not affected.</p>",
+        actions: [{ id: "cancel", label: "Cancel" }, { id: "clear", label: "Clear learnings", kind: "danger" }], focus: "cancel" });
       if (r !== "clear") return;
       await api("DELETE", `/workers/${encodeURIComponent(id)}/memory`);
     } else return;
@@ -2487,7 +2487,7 @@ async function openExport(id) {
         `Identity: name, specialization and mission`, `${plural(d.workflow.length, "step")} of how it works · ${plural(d.limitations.length, "hard limit")}`, `Knowledge: ${x.knowledgeChars.toLocaleString()} characters`,
         d.schema === 2 ? `${plural(d.integrations.length, "integration")} pinned at their versions (${d.integrations.map((r) => `${r.id} ${r.version}`).join(", ") || "none"}) · ${plural(d.core.length, "core capability", "core capabilities")}` : `${plural(deps.capabilities.length, "tool")} it's meant to have · ${plural(deps.requirements.length, "requirement")} (made before integrations)`, ...(d.request.starters.length ? [`${plural(d.request.starters.length, "starter task")}`] : []),
         ...(x.gitflow ? ["Its Git workflow rules: teams and branch patterns, relationships, exclusion and branch rules"] : []), "Checksums for every file, so changes are detected"].map(esc)))}
-      ${pkSection("What stays here", "Never in a package.", pkList([...x.preview.excluded, ...(x.memoryCount ? [`its ${plural(x.memoryCount, "memory note")}`] : [])].map(esc)))}
+      ${pkSection("What stays here", "Never in a package.", pkList([...x.preview.excluded, ...(x.memoryCount ? [`its ${plural(x.memoryCount, "learning")}`] : [])].map(esc)))}
     </div>
     ${pkSection("What it needs where it's installed", "Checked on the other console. Nothing here is granted to whoever installs it: they connect their own accounts.", `
       <div class="pkcols"><div><span class="lab">Tools</span>${pkList(deps.capabilities.map((c) => esc(c.label)))}</div><div><span class="lab">Accounts and access</span>${pkList(deps.requirements.map((r) => `${esc(r.label)} <span class="sub">(${r.need})</span>`))}</div></div>
@@ -2513,7 +2513,7 @@ async function cloneWorker(id) {
   const taken = new Set(WK.workers.map((x) => x.name.toLowerCase())); let name = `${w.name.slice(0, 53)} (copy)`;
   for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${w.name.slice(0, 50)} (copy ${n})`;
   const repos = WS.filter((x) => !isScratch(x) && x.available !== false), git = w.capabilities.includes("gitflow.read");
-  const r = await ask({ title: `Clone ${w.name}?`, body: `<p class="m12">Makes a new, independent worker with the same definition, steps, knowledge and tools. It starts with no memory and no conversations, and changing one never changes the other.</p>
+  const r = await ask({ title: `Clone ${w.name}?`, body: `<p class="m12">Makes a new, independent worker with the same definition, steps, knowledge and tools. It starts with a copy of its ${plural(w.memoryCount || 0, "learning")} and no conversations, and changing one never changes the other.</p>
     <label class="wf"><span class="lab">Name</span><input class="wfield" id="pkCloneName" maxlength="60" value="${esc(name)}" autocomplete="off"></label>
     ${git ? `<label class="wf"><span class="lab">Repository for its Git workflow</span><select class="wfield" id="pkCloneRepo"><option value="__same">The same as ${esc(w.name)}</option><option value="">Choose later, in its Git workflow settings</option>${repos.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</select><span class="sub m11">Its rules are copied. People, overrides and the audit trail aren't; proposal branches start off.</span></label>` : ""}
     ${w.repos?.length ? '<p class="sub m11">Repository access isn\'t copied: grant it in the clone\'s settings if it should have it.</p>' : ""}`,
@@ -2522,7 +2522,7 @@ async function cloneWorker(id) {
   const nm = $("pkCloneName")?.value.trim() || name, repo = $("pkCloneRepo")?.value;
   try {
     const out = await api("POST", `/workers/${encodeURIComponent(id)}/clone`, { name: nm, ...(git && repo !== "__same" ? { gitflowWorkspace: repo } : {}) });
-    await loadWorkers(); openWorkerEditor(out.worker.id, `Cloned from ${w.name}: a new worker (${out.worker.id}), version 1, no memory or conversations.`);
+    await loadWorkers(); openWorkerEditor(out.worker.id, `Cloned from ${w.name}: a new worker (${out.worker.id}), version 1, with its learnings copied and no conversations.`);
   } catch (e) { notice(e); }
 }
 
@@ -2573,7 +2573,7 @@ function pkRender() {
     ${p.warnings.map((w) => gfBan("warn", "Check this before installing", esc(w))).join("")}
     ${issues.length ? gfBan("bad", "Not everything in it is supported here", `${pkList(issues.map((i) => esc(i.text)))}<label class="gfchk m12"><input type="checkbox" id="pkDrop2" ${PK.dropUnknown ? "checked" : ""}><span>Install it without them</span></label>`, "alert") : ""}
     <div class="pkhead"><div><h2 class="pkt">${esc(d.name)}</h2><span class="sub m12">${esc(d.specialization)}</span></div><span class="sub m11">${esc(PK.file)} · made ${esc(p.manifest.createdAt ? new Date(p.manifest.createdAt).toLocaleString() : "?")} · format ${p.manifest.formatVersion} · checksums verified</span></div>
-    ${pkSection("Identity", "A new worker is created: its own id, version 1, no memory and no conversations. No existing worker is changed.", `
+    ${pkSection("Identity", "A new worker is created: its own id, version 1, no learnings and no conversations. No existing worker is changed.", `
       <label class="wf"><span class="lab">Name here</span><input class="wfield" id="pkName" maxlength="60" value="${esc(PK.name)}" autocomplete="off">${pl.nameTaken ? `<span class="sub m11 warnt">A worker called “${esc(d.name)}” already exists here; this one gets a different name.</span>` : ""}</label>
       <div class="pkmission m12">${esc(d.mission || "No mission given.")}</div>`)}
     <div class="pkcols">
@@ -2615,7 +2615,7 @@ async function pkInstall() {
 }
 function pkDone() {
   const r = PK.result, w = r.worker, left = [...r.left.capabilities, ...r.left.requirements, ...(r.left.gitflow ? ["its Git workflow rules"] : [])];
-  $("pkOut").innerHTML = `${gfBan("ok", `Installed ${w.name}`, `A new worker on this console: ${esc(w.id)}, version 1, with no memory and no conversations. Its tools and access are decided here, in each workspace it runs in.${left.length ? ` Left out: ${esc(left.join(", "))}.` : ""}${r.gitflow ? (r.gitflowWorkspace ? " Its Git workflow rules are set up; proposal branches are off until you turn them on." : " Its Git workflow rules are saved: choose its repository in the Git workflow settings.") : ""}`)}
+  $("pkOut").innerHTML = `${gfBan("ok", `Installed ${w.name}`, `A new worker on this console: ${esc(w.id)}, version 1, with no learnings and no conversations. Its tools and access are decided here, in each workspace it runs in.${left.length ? ` Left out: ${esc(left.join(", "))}.` : ""}${r.gitflow ? (r.gitflowWorkspace ? " Its Git workflow rules are set up; proposal branches are off until you turn them on." : " Its Git workflow rules are saved: choose its repository in the Git workflow settings.") : ""}`)}
     <div class="gfline"><button type="button" class="btn pri" id="pkStart">Start a task with it</button><button type="button" class="btn" id="pkEdit">Review its settings</button>${r.gitflow ? '<button type="button" class="btn" id="pkGit">Open its Git workflow</button>' : ""}<button type="button" class="linkbtn m12" id="pkMore">Import another</button></div>`;
   $("pkStart").onclick = () => { wkId = w.id; renderWorkers(); closeFile(); openNewChat(); };
   $("pkEdit").onclick = () => openWorkerEditor(w.id);
@@ -3750,7 +3750,7 @@ function openTeamPage(id, note) {
     <div class="vbody">${id ? teamSummary(d) : ""}<form class="wform" id="tmForm" novalidate>
       <div class="wrow2"><label class="wf"><span class="lab">Name</span><input class="wfield" id="tmN" maxlength="60" value="${esc(d.name)}" placeholder="e.g. MATW" autocomplete="off"></label>
         <label class="wf"><span class="lab">Description</span><input class="wfield" id="tmD" maxlength="300" value="${esc(d.description)}" placeholder="e.g. Engineering & Design Team" autocomplete="off"></label></div>
-      <div class="wf"><span class="lab">Workers</span><span class="sub m11">Each keeps its own definition, tools and memory; the Team adds shared context. Chat starts a conversation with that worker as a member of this Team.</span><ul class="caps" id="tmW">${workerRows}</ul></div>
+      <div class="wf"><span class="lab">Workers</span><span class="sub m11">Each keeps its own definition, tools and learnings; the Team adds shared context. Chat starts a conversation with that worker as a member of this Team.</span><ul class="caps" id="tmW">${workerRows}</ul></div>
       <div class="wf"><span class="lab">Resources</span>
         <label class="trow"><span class="m11 k">Workspace</span><select class="wfield" id="tmWs">${wsOpts}</select></label>
         <label class="trow"><span class="m11 k">Figma file</span><input class="wfield" id="tmFu" maxlength="500" value="${esc(d.figma?.url || "")}" placeholder="https://www.figma.com/design/…" autocomplete="off"></label>
@@ -4147,7 +4147,7 @@ function onEvent(ev) {
     // In the conversation it's part of the message's result (What it needs from you).
     addCard({ title: "Needs access", meta: "Needs your action", metaCls: "bad", body: esc(ev.summary), kind: "alert" });
   } else if (t === "memory") {
-    addCard({ title: ev.ok === false ? "Not remembered" : "Remembered", meta: "", metaCls: ev.ok === false ? "bad" : "ok", body: esc(ev.summary) });
+    addCard({ title: ev.ok === false ? "Not kept" : "Learned", meta: "", metaCls: ev.ok === false ? "bad" : "ok", body: esc(ev.summary) });
   } else if (t === "proposal") {
     // Nothing changed yet: the person reviews it in the worker's editor (Versions and proposed changes).
     addCard({ title: "Proposed a change to this worker", meta: "Waiting for your review", metaCls: "", body: `${esc(ev.summary)}<br><span class="m11">Review it in the worker's editor, under “Versions and proposed changes”: try it, then approve or reject it.</span>`, kind: "alert" });

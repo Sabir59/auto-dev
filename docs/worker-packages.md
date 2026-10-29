@@ -5,7 +5,7 @@ A worker can be copied on this console (**Clone**) or given to someone else as a
 ## Using it
 - **Clone…** (in a worker's editor) makes a new, independent worker on this console:
   - a new id and version 1;
-  - no memory and no conversations;
+  - a copy of its **learnings** (what it kept from its work with `LEARNED:` lines; formerly "memory"), each marked with the worker it came from, and no conversations (since 2026-10-29: before, a clone started with none);
   - the same definition, steps, knowledge and tools.
 
   A Git workflow worker's rules are copied, and you choose its repository. Repository access isn't copied.
@@ -53,7 +53,7 @@ A ZIP archive holding exactly these files. Anything else makes the package inval
 
 **Never in a package:**
 - credentials, tokens, cookies or connected accounts;
-- memory, conversations, run history, logs and checkpoints;
+- learnings, conversations, run history, logs and checkpoints (a package goes to another person; learnings can hold details of one person's or customer's work, so only a clone on this console copies them);
 - the worker's id, version history and dates;
 - Team membership;
 - repository grants;

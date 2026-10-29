@@ -143,11 +143,11 @@ writeFileSync(join(A.DATA, "workers", `${GA.id}.memory.json`), JSON.stringify([{
 const aCfg = (await A.call("GET", `/gitflow/${GA.id}/config`)).body.config;
 
 let gitPack, designerPack;
-await step("A, export preview: it says what's in the package, what stays (memory, credentials, people, repository location) and what it needs; the download is a .workerpack with only allowed content", async () => {
+await step("A, export preview: it says what's in the package, what stays (learnings, credentials, people, repository location) and what it needs; the download is a .workerpack with only allowed content", async () => {
   const pv = (await A.call("GET", `/workers/${GA.id}/export/preview`)).body;
   const d = await download(A, GA.id); gitPack = d.buf;
   const files = wp.unzip(gitPack), all = [...files.values()].map((b) => b.toString()).join("\n"), g = JSON.parse(files.get("workflows/gitflow.json"));
-  assert(pv.memoryCount === 1 && pv.preview.excluded.some((x) => /memory/.test(x)) && pv.preview.excluded.some((x) => /people, emails/.test(x)) && pv.dependencies.workflows.includes("gitflow") && !pv.preview.secrets.length, pv);
+  assert(pv.memoryCount === 1 && pv.preview.excluded.some((x) => /learnings/.test(x)) && pv.preview.excluded.some((x) => /people, emails/.test(x)) && pv.dependencies.workflows.includes("gitflow") && !pv.preview.secrets.length, pv);
   assert(d.status === 200 && /attachment; filename="bau-branch-sync-worker\.workerpack"/.test(d.disposition), d.disposition);
   const people = aCfg.people.flatMap((p) => p.emails);
   assert(people.length && !people.some((e) => all.includes(e)) && !all.includes(A.DATA.split("\\").join("\\\\")) && !all.includes(A.ws.id) && !all.includes(GA.id) && !/Sameem's PRs/.test(all) && !("people" in g) && !("workspace" in g) && !("proposals" in g), "the package carries something it mustn't");
@@ -163,15 +163,17 @@ await step("A, export: a worker whose knowledge holds a token isn't exported (an
   return { refused: bad.body.error.slice(0, 80), replaced: pv.preview.pathsRemoved };
 });
 
-await step("A, clone: a new worker (new id, version 1, no memory) with the same definition and Git workflow rules (people and overrides not copied, proposals off); the original and its settings are untouched; a taken name is refused", async () => {
+await step("A, clone: a new worker (new id, version 1, a copy of its learnings, each marked where it came from) with the same definition and Git workflow rules (people and overrides not copied, proposals off); the original and its settings are untouched; a taken name is refused", async () => {
   const before = JSON.stringify((await A.workers()).find((w) => w.id === GA.id)), cfgBefore = readFileSync(join(A.DATA, "gitflow", GA.id, "config.json"), "utf8");
   const out = (await A.call("POST", `/workers/${GA.id}/clone`, {})).body, all = await A.workers(), c = all.find((w) => w.id === out.worker.id), src = all.find((w) => w.id === GA.id);
   const cc = (await A.call("GET", `/gitflow/${c.id}/config`)).body.config, taken = await A.call("POST", `/workers/${GA.id}/clone`, { name: "Figma Designer" });
-  assert(c && c.id !== GA.id && c.name === "BAU branch sync worker (copy)" && c.version === 1 && c.memoryCount === 0 && src.memoryCount === 1 && c.origin.kind === "clone" && c.origin.worker === GA.id, c);
+  assert(c && c.id !== GA.id && c.name === "BAU branch sync worker (copy)" && c.version === 1 && c.memoryCount === 1 && src.memoryCount === 1 && c.origin.kind === "clone" && c.origin.worker === GA.id, c);
   assert(JSON.stringify(strip(c)) === JSON.stringify(strip(src)) && c.fromRequest.starters.join() === src.fromRequest.starters.join(), { clone: strip(c), src: strip(src) });
   assert(cc.workspace === aCfg.workspace && cc.people.length === 0 && cc.overrides.length === 0 && cc.proposals === false && JSON.stringify(cc.mappings) === JSON.stringify(aCfg.mappings) && JSON.stringify(cc.teams) === JSON.stringify(aCfg.teams), cc);
   assert(JSON.stringify(src) === before && readFileSync(join(A.DATA, "gitflow", GA.id, "config.json"), "utf8") === cfgBefore && taken.status === 409 && (await A.workers()).length === all.length, "the original changed, or a taken name was accepted");
-  return { clone: c.id, name: c.name, memory: c.memoryCount, gitflowWorkspace: cc.workspace };
+  const learned = (await A.call("GET", `/workers/${c.id}/memory`)).body, srcLearned = (await A.call("GET", `/workers/${GA.id}/memory`)).body;
+  assert(learned.length === 1 && learned[0].text === srcLearned[0].text && learned[0].copiedFrom?.worker === GA.id && !srcLearned[0].copiedFrom, { learned, srcLearned });
+  return { clone: c.id, name: c.name, learnings: c.memoryCount, copiedFrom: learned[0].copiedFrom.name, gitflowWorkspace: cc.workspace };
 });
 
 let bExisting;
@@ -304,7 +306,7 @@ await step("page, B: Import worker → choose the file → its review (identity,
   await p.setInputFiles("#pkFile", bad); await p.waitForFunction(() => /isn't a valid worker package/.test(document.querySelector("#pkOut")?.innerText || "")); const err = await p.locator("#pkOut").innerText();
   await p.close();
   assert(/Figma Designer/.test(review) && /How it works/i.test(review) && /What it knows/i.test(review) && /Missing/.test(review) && /Open Figma connection/.test(review) && /checksums verified/.test(review), review.slice(0, 800));
-  assert(/required account or access|Set them up first|never uses anyone else/.test(asked) && /Installed Designer from A/.test(done) && /no memory and no conversations/.test(done) && /Nothing was installed/.test(err), { done, err });
+  assert(/required account or access|Set them up first|never uses anyone else/.test(asked) && /Installed Designer from A/.test(done) && /no learnings and no conversations/.test(done) && /Nothing was installed/.test(err), { done, err });
   const w = (await B.workers()).find((x) => x.name === "Designer from A");
   assert(w && w.version === 1 && w.memoryCount === 0, w);
   return { installed: w.id, composer: who.slice(0, 60) };

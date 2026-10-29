@@ -878,7 +878,7 @@ function installPack(pkg, o = {}, origin = "package") {
   const r = d.request;
   if (r.description || r.starters.length) w.fromRequest = { description: r.description, integrations: r.integrations, answers: {}, others: [], workspace: r.workspaceKind, unsupported: r.unsupported, starters: r.starters, at: w.createdAt };
   w.origin = { kind: origin, packageId: pkg.manifest.packageId, from: d.name, at: w.createdAt, ...(origin === "clone" && o.sourceId ? { worker: o.sourceId } : {}) };
-  if (existsSync(memPath(w.id))) writeMemory(w.id, []);
+  seedLearnings(w.id, origin === "clone" ? o.sourceId : null, d.name);
   writeWorkers([...list, w], { kind: origin === "clone" ? "clone" : "import", reason: `From ${d.name}` });
   const gitflowSaved = !!(flow && w.capabilities.includes("gitflow.read"));
   if (gitflowSaved) { writeGitflowConfig(w.id, { ...flow, workspace: o.gitflowWorkspace || "" }); gitflowAudit(w.id, { action: "import", by: origin === "clone" ? "clone" : "package", packageId: pkg.manifest.packageId, from: d.name }); }
@@ -943,7 +943,7 @@ function installPackV2(pkg, o = {}, origin = "package") {
   const r = d.request;
   if (r.description || r.starters.length) w.fromRequest = { description: r.description, integrations: r.integrations, answers: {}, others: [], workspace: r.workspaceKind, unsupported: r.unsupported, starters: r.starters, at: w.createdAt };
   w.origin = { kind: origin, packageId: pkg.manifest.packageId, from: d.name, at: w.createdAt, format: pkg.manifest.formatVersion, ...(origin === "clone" && o.sourceId ? { worker: o.sourceId } : {}) };
-  if (existsSync(memPath(w.id))) writeMemory(w.id, []);
+  seedLearnings(w.id, origin === "clone" ? o.sourceId : null, d.name);
   writeWorkers([...list, w], { kind: origin === "clone" ? "clone" : "import", reason: `From ${d.name}` });
   w = readWorkers().find((x) => x.id === w.id);
   const gitflowSaved = !!(flow && w.capabilities.includes("gitflow.read"));
@@ -952,11 +952,18 @@ function installPackV2(pkg, o = {}, origin = "package") {
     left: { capabilities: unknownCore, requirements: unknownReqs.map((x) => `${x.resource} ${x.access}`), gitflow: flowError, integrations: ints.filter((x) => !x.use || x.errors.length).map((x) => `${x.label} ${x.version}`), versions: ints.filter((x) => x.state === "other-version" && !x.errors.length).map((x) => `${x.label} ${x.version} → ${x.alternative}`) } };
 }
 const packFile = (w) => `${w.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "worker"}.workerpack`;
-// Memory: what a worker chose to remember from its work (REMEMBER: lines), kept apart from its
-// definition, shown to the person, and given to its later runs as a labelled section.
+// Learnings (stored as its memory file): what a worker chose to keep from its work (LEARNED: lines,
+// REMEMBER: before), kept apart from its definition, shown to the person, given to its later runs as
+// a labelled section, and copied to a clone (never into a package for another console).
 const memPath = (id) => join(MEMORY, `${id}.memory.json`);
 const readMemory = (id) => (/^[\w-]+$/.test(id) && existsSync(memPath(id)) ? JSON.parse(readFileSync(memPath(id), "utf8")) : []);
 const writeMemory = (id, list) => { mkdirSync(MEMORY, { recursive: true }); writeAtomic(memPath(id), JSON.stringify(list, null, 1)); };
+// A new worker's learnings: a clone starts with a copy of its source's (each marked where it came
+// from; the source keeps its own), anything else with none.
+function seedLearnings(id, sourceId, sourceName) {
+  const copied = sourceId ? readMemory(sourceId).map((m) => ({ ...m, copiedFrom: m.copiedFrom || { worker: sourceId, name: sourceName, at: new Date().toISOString() } })) : [];
+  if (copied.length || existsSync(memPath(id))) writeMemory(id, copied);
+}
 const SECRETISH = /(figd_|ghp_|github_pat_|sk-[a-z0-9]|xox[bp]-|AKIA[0-9A-Z]{8}|-----BEGIN|password\s*[:=]|api[_-]?key\s*[:=]|token\s*[:=])/i;
 
 // ---- worker evolution: proposals (worker-ui/evolve.mjs, docs/worker-evolution.md) ----
@@ -1056,9 +1063,9 @@ function workerContext(def, rt, status, memory, profile, extra = {}) {
       x.steps.length ? "How to work with it:\n" + x.steps.map((s) => `- ${s}`).join("\n") : "", x.limits.length ? "Hard limits:\n" + x.limits.map((s) => `- ${s}`).join("\n") : "",
       x.know.length ? "Set up:\n" + x.know.map((s) => `- ${s}`).join("\n") : "", x.unsupported.length ? "Not possible here:\n" + x.unsupported.map((s) => `- ${s}`).join("\n") : ""].filter(Boolean).join("\n") + "\n"),
     def.onMissing ? "## When something is missing\n" + def.onMissing + "\n" : "",
-    "## Memory",
-    memory.length ? "Things you remembered from earlier work (may be outdated; check if it matters):\n" + memory.slice(-40).map((m) => `- ${m.text}`).join("\n") : "Nothing remembered yet.",
-    "To remember something useful for later work with this worker (a preference, a convention, a decision), write a line starting \"REMEMBER: \". Never put secrets in memory.",
+    "## Learnings",
+    memory.length ? "What you learned from earlier work (may be outdated; check if it matters):\n" + memory.slice(-40).map((m) => `- ${m.text}`).join("\n") : "Nothing learned yet.",
+    "To keep something useful for later work with this worker (a preference, a convention, a decision), write a line starting \"LEARNED: \". Never put secrets in a learning.",
     ...(extra.evolve ? ["", "## Changing how you work (proposals)",
       "When the person teaches you a procedure, convention or rule that should apply to all your future work (\"from now on…\", \"our process is…\", \"learn how we do X\"), propose a change to your own definition instead of only remembering it: read yourself with evolve_read_self, then submit evolve_propose.",
       "Before proposing: compare what they ask with your steps, knowledge, limits and tools; say what's missing. Put in the procedure only what your tools can actually do. Anything that needs a tool, account, connector or API field you don't have goes under needs, and you tell the person plainly that it isn't possible with your tools today. Ask the person for facts you'd otherwise guess.",
@@ -1712,7 +1719,8 @@ function checkBinding(run, { resume }) {
   return bound;
 }
 
-const TAGS = { "NEEDS:": "needs", "REMEMBER:": "remember", "PLAN:": "plan", "OBSERVATION:": "observation", "DECISION:": "decision", "FAILURE:": "failure", "RECOVERY:": "recovery", "VERIFICATION:": "verification", "ARTIFACT:": "artifact", "DONE:": "done" };
+// LEARNED: adds to the worker's learnings; REMEMBER: (the earlier name) still does.
+const TAGS = { "NEEDS:": "needs", "LEARNED:": "remember", "REMEMBER:": "remember", "PLAN:": "plan", "OBSERVATION:": "observation", "DECISION:": "decision", "FAILURE:": "failure", "RECOVERY:": "recovery", "VERIFICATION:": "verification", "ARTIFACT:": "artifact", "DONE:": "done" };
 
 // Launch the real claude binary directly (no shell), so Stop kills the worker itself,
 // not just a cmd.exe wrapper. Falls back to the `claude` shim through a shell.
@@ -1889,9 +1897,9 @@ function translate(run, msg) {
 const relTo = (root, p) => { const r = String(p || "").replace(/\\/g, "/"), base = root.replace(/\\/g, "/"); return r.toLowerCase().startsWith(base.toLowerCase() + "/") ? r.slice(base.length + 1) : r; };
 function remember(run, text) {
   const w = run.meta.worker;
-  if (!w) return emit(run, { type: "note", summary: "REMEMBER ignored: the general worker has no memory." });
-  if (run.meta.candidate) return emit(run, { type: "note", summary: "REMEMBER ignored: a trial run of a proposal doesn't change the worker's memory." });
-  if (!text || SECRETISH.test(text)) return emit(run, { type: "memory", summary: "Not remembered: it looked like a secret.", ok: false });
+  if (!w) return emit(run, { type: "note", summary: "LEARNED ignored: the general worker keeps no learnings." });
+  if (run.meta.candidate) return emit(run, { type: "note", summary: "LEARNED ignored: a trial run of a proposal doesn't change the worker's learnings." });
+  if (!text || SECRETISH.test(text)) return emit(run, { type: "memory", summary: "Not kept: it looked like a secret.", ok: false });
   const list = readMemory(w.id);
   if (!list.some((m) => m.text === text)) { list.push({ text: text.slice(0, 500), at: new Date().toISOString(), run: run.meta.id }); writeMemory(w.id, list.slice(-200)); }
   emit(run, { type: "memory", summary: text });
