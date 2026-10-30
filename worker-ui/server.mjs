@@ -288,7 +288,7 @@ function workerRuntime(def, profile, scope = {}) {
   const deny = [...(lockGit ? PROTECT_DENY : []), ...readOnly.map((d) => `Edit(${denyPath(d)}/**)`), ...platformDeny(), ...secretDeny()];
   const dirs = [...exportsDirs, ...readOnly];
   const settings = JSON.stringify({ ...JSON.parse(WORKER_SETTINGS), permissions: { deny: [...LOOPBACK_FETCH_DENY, ...deny] }, ...fileGuard([scope.root, ...dirs]) });
-  return { usable, blocked: def.capabilities.filter((c) => !allowed.includes(c) && !offHere(c)), byPlatform: def.capabilities.filter(offHere), byPolicy: allowed.filter((c) => policyOff.has(c)), servers, exportsDirs, repoTools,
+  return { usable, blocked: def.capabilities.filter((c) => !allowed.includes(c) && !offHere(c)), byPlatform: def.capabilities.filter(offHere), byPolicy: allowed.filter((c) => policyOff.has(c)), servers, exportsDirs, dirs, repoTools,
     args: ["--settings", settings, ...base, "--tools", builtins.join(","), "--allowedTools", ...allow, ...(dirs.length ? ["--add-dir", ...dirs] : []), "--permission-prompts", "none"] };
 }
 // What a run starts with: its runtime and MCP servers. gate: capabilities whose accounts weren't
@@ -1726,6 +1726,9 @@ function inWorkspace(root, p) {
   let r; try { r = realpathSync.native(p); } catch { r = p; }
   return samePath(r, root) || inRoot(root, r);
 }
+// The folders a run is also given (--add-dir: the adapters' exports, a Team's knowledge) are the
+// only other places its shell can `cd` to, so a worker that moved there isn't outside its bounds.
+const inBounds = (root, dirs, p) => inWorkspace(root, p) || dirs.some((d) => inWorkspace(d, p));
 function checkBinding(run, { resume }) {
   // Runs from before workspaces were all created in this repo with the full profile.
   const bound = run.meta.workspace || { id: "console", root: realpathSync.native(REPO), profile: "full" };
@@ -1740,8 +1743,7 @@ function checkBinding(run, { resume }) {
     if (run.meta.configDir && !samePath(run.meta.configDir, CONFIG_DIR)) throw new Error(`This run's session lives in Claude config dir ${run.meta.configDir}; this console uses ${CONFIG_DIR}.`);
     const cwds = sessionCwds(run.meta.sessionId);
     if (!cwds) throw new Error(`Session ${run.meta.sessionId} isn't in this console's Claude config dir (${CONFIG_DIR}), so it can't be resumed here.`);
-    const elsewhere = cwds.find((c) => !inWorkspace(bound.root, c));
-    if (elsewhere) throw new Error(`Session ${run.meta.sessionId} has worked in ${elsewhere}, outside this run's workspace ${bound.root}. It won't be resumed here.`);
+    run.sessionCwds = cwds; // checked against the folders it was given once the run's plan is known (spawnWorker)
   }
   if (!run.meta.workspace) { run.meta.workspace = bound; saveMeta(run); }
   return bound;
@@ -1844,7 +1846,8 @@ function translate(run, msg) {
     const extra = ws.profile === "inspect" ? (msg.tools || []).filter((t) => !t.startsWith("mcp__") && !INSPECT_BUILTINS.includes(t)) : [];
     const off = [...(run.enforced?.noShell ? ["Bash", "PowerShell"] : []), ...(run.enforced?.noWrite ? ["Write", "Edit", "NotebookEdit"] : [])];
     const kept = (msg.tools || []).filter((t) => off.includes(t));
-    const why = !inWorkspace(ws.root, msg.cwd || "") ? `worker reports cwd ${msg.cwd}, outside the workspace ${ws.root}`
+    // A process starts in its workspace; after that its shell may have moved into a folder it was given.
+    const why = !(run.initSeen ? inBounds(ws.root, run.addDirs || [], msg.cwd || "") : inWorkspace(ws.root, msg.cwd || "")) ? `worker reports cwd ${msg.cwd}, outside the workspace ${ws.root}${run.addDirs?.length ? ` and the folders it was given` : ""}`
       : extra.length ? `inspect worker has tools outside its allow-list: ${extra.join(", ")}`
       : kept.length ? `an enforced policy turned off ${kept.join(", ")}, but the worker reports having them` : null;
     if (why) { run.bindingError = why; emit(run, { type: "failure", summary: `Stopped the worker: ${why}` }); run.child.kill(); return; }
@@ -1959,6 +1962,15 @@ function spawnWorker(run, { resume }) {
   const def = snap ? snap.definition : generalDefinition();
   run.enforced = null;
   const plan = launchPlan(def, ws, scope, (snap ? snap.gate : run.meta.gate) || {}, run);
+  if (resume) {
+    // Where the session has worked: its workspace, or a folder it was given at an earlier start
+    // (runs from before those were recorded: the ones it gets now).
+    const given = run.meta.addDirs || plan.rt.dirs;
+    const elsewhere = run.sessionCwds.find((c) => !inBounds(ws.root, given, c));
+    if (elsewhere) throw new Error(`Session ${run.meta.sessionId} has worked in ${elsewhere}, outside this run's workspace ${ws.root}. It won't be resumed here.`);
+  }
+  run.addDirs = plan.rt.dirs;
+  run.meta.addDirs = [...new Set([...(run.meta.addDirs || []), ...plan.rt.dirs])]; saveMeta(run);
   if (resume) run.authz.ready = false; // what was connected when it last ran may have changed
   clearInterval(run.liveTimer); run.liveTimer = null;
   const rt = plan.rt, mcpFile = join(RUNS, `${run.meta.id}.mcp.json`), profileArgs = plan.args;

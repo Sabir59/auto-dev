@@ -6,7 +6,7 @@
 // config dir is a temp folder too, so the person's own settings and sessions are never touched.
 //   node bench/integrations/file-boundary-test.mjs        (CLAUDE_BIN to choose the real binary)
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
-import { join, dirname, delimiter } from "node:path";
+import { join, dirname, delimiter, resolve, sep } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -20,6 +20,7 @@ const step = async (name, fn) => {
   catch (e) { results.push({ step: name, ok: false, error: e.message }); console.log("FAIL", name, e.message.slice(0, 1200)); }
 };
 const assert = (c, m) => { if (!c) throw new Error(typeof m === "string" ? m : JSON.stringify(m)); };
+const inside = (dir, p) => { const a = resolve(dir).toLowerCase(), b = resolve(String(p)).toLowerCase(); return b === a || b.startsWith(a + sep); };
 const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
 const real = process.env.CLAUDE_BIN || (process.env.PATH || "").split(delimiter).map((d) => join(d, "node_modules", "@anthropic-ai", "claude-code", "bin", "claude.exe")).find((f) => existsSync(f));
@@ -139,6 +140,36 @@ await step("when the workspace contains them, the deny rules still refuse creden
   assert(!l.length, { grepLeaked: l, grep: grep.slice(0, 300) });
   assert(existsSync(join(DATA, "runs", `${runA.id}.mcp.json`)) && /AIW_AUTHZ_TOKEN|EVOLVE_TOKEN/.test(readFileSync(join(DATA, "runs", `${runA.id}.mcp.json`), "utf8")), "the token file this case protects wasn't there");
   return { cases: cases.length, grepFound: grep.split("\n").filter(Boolean).length };
+});
+
+await step("a worker whose shell moved into a folder it was given (the plugin's exports) keeps working in its next task and after a resume; the runtime reports that folder as its cwd", async () => {
+  const exportsDir = join(REPO, "exports");
+  const w = (await call("POST", "/workers", { name: "Exports cd probe", mission: "Test worker: moves into its exports folder.", capabilities: ["files.read", "shell", "figma.plugin.read"] })).body.id;
+  const wait = async (id) => { const t0 = Date.now(); for (;;) { await sleep(800); const s = (await call("GET", `/runs/${id}`)).body; if (["waiting", "finished", "failed", "stopped"].includes(s?.status) || Date.now() - t0 > 180000) return s; } };
+  const initCwds = (id) => readFileSync(join(DATA, "runs", `${id}.raw.jsonl`), "utf8").split("\n").filter((l) => l.includes('"subtype":"init"')).map((l) => JSON.parse(l).cwd);
+  const stopped = (id) => /Stopped the worker|won't be resumed/.test(readFileSync(join(DATA, "runs", `${id}.jsonl`), "utf8"));
+  const one = planLine([{ name: "Bash", input: { command: `cd "${exportsDir.replace(/\\/g, "/")}" && pwd` } }]);
+  const r = await call("POST", "/runs", { prompt: `${one}\nFollow the plan.`, workspace: ws, worker: w });
+  assert(r.status === 200, r.body);
+  const id = r.body.id; let st = await wait(id);
+  assert(st?.status === "waiting" && !stopped(id), { first: st?.status });
+  // the next task, same process: the runtime starts it in the exports folder
+  const two = planLine([{ name: "Bash", input: { command: "pwd" } }]);
+  await call("POST", `/runs/${id}/message`, { text: `${two}\nFollow the plan.` });
+  st = await wait(id);
+  const cwds = initCwds(id), moved = cwds.some((c) => inside(exportsDir, c));
+  assert(moved, { cwds, note: "the runtime didn't report the exports folder; this step proves nothing" });
+  assert(st?.status === "waiting" && !stopped(id) && stub.results(two).length === 1, { second: st?.status, cwds });
+  // a new process resuming that session (it has worked in the exports folder)
+  await call("POST", `/runs/${id}/end`, {});
+  for (let i = 0; i < 100; i++) { if (!(await call("GET", "/runs")).body?.active) break; await sleep(200); }
+  const three = planLine([{ name: "Bash", input: { command: "pwd" } }]);
+  const m = await call("POST", `/runs/${id}/message`, { text: `${three}\nFollow the plan.` });
+  st = await wait(id);
+  assert(m.status === 200 && st?.status === "waiting" && !stopped(id) && stub.results(three).length === 1, { resume: m.status, body: m.body, status: st?.status });
+  await call("POST", `/runs/${id}/end`, {});
+  for (let i = 0; i < 100; i++) { if (!(await call("GET", "/runs")).body?.active) break; await sleep(200); }
+  return { initCwds: cwds, resumed: true };
 });
 
 await step("the General worker has no shell by default; granting shell explicitly adds it (and only then)", async () => {
