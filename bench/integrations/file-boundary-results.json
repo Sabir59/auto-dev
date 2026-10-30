@@ -1,0 +1,71 @@
+{
+ "at": "2026-10-29T15:52:39.143Z",
+ "runtime": "2.1.283 (Claude Code)",
+ "results": [
+  {
+   "step": "local console: credentials, other files, traversal, a junction, an 8.3 name and every file-reading route are refused; workspace files read normally (real runtime, local mode)",
+   "ok": true,
+   "detail": {
+    "cases": 23,
+    "refused": 17,
+    "shortName": true
+   }
+  },
+  {
+   "step": "no dummy secret reached the run's record, the tool results or the console's API answers",
+   "ok": true,
+   "detail": {
+    "checked": [
+     "run record",
+     "tool results",
+     "GET /runs/:id"
+    ]
+   }
+  },
+  {
+   "step": "when the workspace contains them, the deny rules still refuse credentials, the sign-in file, transcripts and run token files (second layer; the guard allows the folder)",
+   "ok": true,
+   "detail": {
+    "cases": 8,
+    "grepFound": 1
+   }
+  },
+  {
+   "step": "a worker whose shell moved into a folder it was given (the plugin's exports) keeps working in its next task and after a resume; the runtime reports that folder as its cwd",
+   "ok": true,
+   "detail": {
+    "initCwds": [
+     "C:\\Users\\hp\\AppData\\Local\\Temp\\fileb-1793289117336\\ws",
+     "C:\\Users\\hp\\Desktop\\millionaire\\auto-dev\\figma-ai-executor\\exports"
+    ],
+    "resumed": true
+   }
+  },
+  {
+   "step": "the General worker has no shell by default; granting shell explicitly adds it (and only then)",
+   "ok": true,
+   "detail": {
+    "default": [
+     "files.read",
+     "files.write",
+     "web",
+     "browser"
+    ],
+    "granted": [
+     "files.read",
+     "files.write",
+     "web",
+     "browser",
+     "shell"
+    ]
+   }
+  },
+  {
+   "step": "the settings and the worker editor warn wherever shell can be granted",
+   "ok": true,
+   "detail": {
+    "pickers": 2
+   }
+  }
+ ]
+}
