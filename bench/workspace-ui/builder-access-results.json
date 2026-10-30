@@ -1,5 +1,5 @@
 {
- "when": "2026-10-19T19:57:51.157Z",
+ "when": "2026-10-29T08:36:10.271Z",
  "results": [
   {
    "step": "the catalogue offers builder.read (both modes) and builder.write (Work only)",
@@ -60,7 +60,7 @@
    "step": "Inspect workspace: the editor's run gets only the read tools; its server is read-only",
    "ok": true,
    "detail": {
-    "id": "2026-10-19T19-57-11-445Z",
+    "id": "2026-10-29T08-35-22-889Z",
     "tools": [
      "builder_access_status",
      "builder_get_content",
@@ -75,7 +75,10 @@
      ],
      "env": {
       "BUILDER_ADAPTER_PROFILE": "read",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1792439826\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1793262917\\builder",
+      "AIW_AUTHZ_URL": "http://127.0.0.1:8797/authz/2026-10-29T08-35-22-889Z",
+      "AIW_AUTHZ_TOKEN": "cec664f4-3e23-46c4-966e-7e0a05cf8a15",
+      "AIW_AUTHZ_SERVER": "builder"
      }
     }
    }
@@ -84,7 +87,7 @@
    "step": "Work workspace: the editor's run gets the write tools too",
    "ok": true,
    "detail": {
-    "id": "2026-10-19T19-57-18-753Z",
+    "id": "2026-10-29T08-35-30-217Z",
     "tools": [
      "builder_access_status",
      "builder_create_draft",
@@ -104,7 +107,10 @@
      "env": {
       "BUILDER_ADAPTER_PROFILE": "full",
       "BUILDER_UPLOAD_ROOT": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\work",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1792439826\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1793262917\\builder",
+      "AIW_AUTHZ_URL": "http://127.0.0.1:8797/authz/2026-10-29T08-35-30-217Z",
+      "AIW_AUTHZ_TOKEN": "d89384bc-fd42-4096-b6ac-2a50f2f4ace0",
+      "AIW_AUTHZ_SERVER": "builder"
      }
     }
    }
@@ -113,7 +119,7 @@
    "step": "Work workspace, read-only worker: no write tools (capabilities narrow, never widen)",
    "ok": true,
    "detail": {
-    "id": "2026-10-19T19-57-26-199Z",
+    "id": "2026-10-29T08-35-39-767Z",
     "tools": [
      "builder_access_status",
      "builder_get_content",
@@ -128,7 +134,10 @@
      ],
      "env": {
       "BUILDER_ADAPTER_PROFILE": "read",
-      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1792439826\\builder"
+      "BUILDER_ADAPTER_DIR": "C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-builder-1793262917\\builder",
+      "AIW_AUTHZ_URL": "http://127.0.0.1:8797/authz/2026-10-29T08-35-39-767Z",
+      "AIW_AUTHZ_TOKEN": "a4aa1e04-a5e8-4cf6-8564-adedf33e6c97",
+      "AIW_AUTHZ_SERVER": "builder"
      }
     }
    }
@@ -138,6 +147,9 @@
    "ok": true,
    "detail": {
     "env": [
+     "AIW_AUTHZ_SERVER",
+     "AIW_AUTHZ_TOKEN",
+     "AIW_AUTHZ_URL",
      "BUILDER_ADAPTER_DIR",
      "BUILDER_ADAPTER_PROFILE",
      "BUILDER_UPLOAD_ROOT"

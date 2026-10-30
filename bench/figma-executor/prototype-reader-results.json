@@ -1,0 +1,104 @@
+{
+ "at": "2026-10-29T08:27:46.590Z",
+ "results": [
+  {
+   "step": "screens inside sections (and nested sections) are found; their wiring is read at any depth, a button inside a card instance included, with the layer's id and the destination's name and id",
+   "ok": true,
+   "detail": {
+    "screens": [
+     "Desktop",
+     "Project Full Details",
+     "Desktop (6002:2000)",
+     "Footer"
+    ],
+    "button": {
+     "on": "Desktop › Projects › Project Card › Button",
+     "id": "I6002:1655;1:9",
+     "trigger": "on_click",
+     "action": "overlay",
+     "to": "Project Full Details",
+     "toId": "6002:2194",
+     "transition": "dissolve 0.3s"
+    }
+   }
+  },
+  {
+   "step": "every kind of action is described: close overlay, set a variable, open a URL, a timed link (its delay in ms); the screen's own reactions are included",
+   "ok": true,
+   "detail": {
+    "modal": [
+     "set_variable",
+     "close overlay"
+    ],
+    "timed": {
+     "on": "Desktop",
+     "id": "6002:2000",
+     "trigger": "after_timeout",
+     "delay": 800,
+     "action": "navigate",
+     "to": "Desktop",
+     "toId": "6002:1569",
+     "transition": "instant"
+    },
+    "url": "https://matwproject.org"
+   }
+  },
+  {
+   "step": "two screens with the same name are both kept (the second keyed with its id); the index lists every screen with its section and reaction count, so 'no reactions' is visible as such; the flow start is reported",
+   "ok": true,
+   "detail": {
+    "index": [
+     {
+      "screen": "Desktop",
+      "id": "6002:1569",
+      "section": "1536P Screen Dimensions",
+      "reactions": 1
+     },
+     {
+      "screen": "Project Full Details",
+      "id": "6002:2194",
+      "section": "1536P Screen Dimensions › Modals",
+      "reactions": 2
+     },
+     {
+      "screen": "Desktop",
+      "id": "6002:2000",
+      "section": "1536P Screen Dimensions",
+      "reactions": 1
+     },
+     {
+      "screen": "Footer",
+      "id": "7:1",
+      "section": null,
+      "reactions": 1
+     },
+     {
+      "screen": "Empty screen",
+      "id": "7:3",
+      "section": null,
+      "reactions": 0
+     }
+    ]
+   }
+  },
+  {
+   "step": "nodeId reads just one part: a section, a card instance, or one button by its instance-sublayer id; the page's flows still come with it",
+   "ok": true,
+   "detail": {
+    "section": [
+     "Project Full Details"
+    ],
+    "card": "Project Card › Button",
+    "button": "overlay"
+   }
+  },
+  {
+   "step": "refused clearly: neither a page nor a node, or a node that doesn't exist",
+   "ok": true,
+   "detail": {
+    "bad": "6002:1569 is not a page",
+    "missing": "Node not found: 9:9"
+   }
+  }
+ ]
+}

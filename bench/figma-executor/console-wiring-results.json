@@ -1,32 +1,32 @@
 {
- "at": "2026-10-22T08:52:06.500Z",
+ "at": "2026-10-29T14:41:37.870Z",
  "passed": 2,
  "total": 2,
  "results": [
   {
-   "step": "a worker with figma.plugin.read only gets the read-only Executor; nothing starts the bridge for it",
+   "step": "a worker with figma.plugin.read only: its run start brings up the bridge; without the plugin it gets the read-only Executor with its tools waiting; with the plugin open, the read-only Executor and nothing waiting",
    "ok": true,
    "detail": {
-    "env": {
-     "FIGMA_EXECUTOR_PROFILE": "read",
-     "FIGMA_BRIDGE_AUTOSTART": "1",
-     "FIGMA_BRIDGE_PORT": "8792"
-    }
+    "withoutPlugin": "read, waiting",
+    "withPlugin": "read",
+    "bridgeStartedByRun": true
    }
   },
   {
-   "step": "a worker with figma.plugin.edit that needs Figma edit access gets the edit Executor, and its run start brings up the bridge",
+   "step": "a worker with figma.plugin.edit: without the plugin open it gets the edit Executor with its tools waiting (they come on when the plugin connects); with it, the edit Executor and nothing waiting",
    "ok": true,
    "detail": {
     "env": {
      "FIGMA_EXECUTOR_PROFILE": "edit",
      "FIGMA_BRIDGE_AUTOSTART": "1",
-     "FIGMA_BRIDGE_PORT": "8792"
+     "FIGMA_BRIDGE_PORT": "8792",
+     "AIW_AUTHZ_URL": "http://127.0.0.1:8798/authz/2026-10-29T14-41-37-463Z",
+     "AIW_AUTHZ_TOKEN": "8fd14626-c00d-4042-8a70-416524192dd3",
+     "AIW_AUTHZ_SERVER": "figma-executor"
     },
     "bridge": {
      "protocol": 2,
-     "port": 8792,
-     "pluginConnected": false
+     "port": 8792
     }
    }
   }

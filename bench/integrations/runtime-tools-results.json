@@ -1,0 +1,30 @@
+{
+ "at": "2026-10-29T14:41:45.912Z",
+ "runtime": "2.1.283 (Claude Code)",
+ "results": [
+  {
+   "step": "the runtime (2.1.283 (Claude Code)) starts the tool server with its tools off when nothing is connected",
+   "ok": true,
+   "detail": {
+    "status": "connected",
+    "tools": []
+   }
+  },
+  {
+   "step": "a connection coming up turns the tools on in the same session (no restart): the runtime lists them within seconds",
+   "ok": true,
+   "detail": {
+    "took": "1537 ms",
+    "tools": 43
+   }
+  },
+  {
+   "step": "a connection going away turns them off again; reading only turns on only the read tools",
+   "ok": true,
+   "detail": {
+    "off": 0,
+    "readOnly": 15
+   }
+  }
+ ]
+}

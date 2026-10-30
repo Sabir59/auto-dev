@@ -1,0 +1,85 @@
+{
+ "at": "2026-10-29T15:54:51.189Z",
+ "results": [
+  {
+   "step": "at the start: with the Figma plugin running, the worker's Figma tool is loaded, and its server gets the per-call check",
+   "ok": true,
+   "detail": {
+    "servers": [
+     "figma-executor",
+     "evolve"
+    ]
+   }
+  },
+  {
+   "step": "each call: allowed for a tool given to this run; refused with a wrong token, for a tool not given to it (Figma edit, Builder), and from another address",
+   "ok": true,
+   "detail": {
+    "allowed": "figma.plugin.read",
+    "refused": {
+     "badToken": "the call didn't come from this run's tool server",
+     "edit": "Change the open Figma file (plugin) isn't given to this worker in this run",
+     "builder": "Read Builder.io content isn't given to this worker in this run"
+    }
+   }
+  },
+  {
+   "step": "mid-run: the plugin disconnecting is noticed at the next call (within 10 seconds) and refused; reconnecting allows it again; a bridge that stops answering is refused, not waited on",
+   "ok": true,
+   "detail": {
+    "disconnected": "Figma: change the open file: Plugin not running (Run the AI Executor plugin in the Figma file.)",
+    "hung": "Figma: change the open file: Bridge not running (It starts by itself on the first Figma call.) (2017 ms)"
+   }
+  },
+  {
+   "step": "the tool server itself: a tool that's listed is still checked at each call (NOT_AUTHORIZED, nothing reaches Figma); allowed, the call goes through; its tools follow the live set, and with no answer they're all off",
+   "ok": true,
+   "detail": {
+    "refused": "NOT_AUTHORIZED: Figma: change the open file: Plugin not running. Nothing was done. If the task needs it, write a NEEDS: ",
+    "tools": {
+     "listed": 15,
+     "off": 0,
+     "on": 15,
+     "noAnswer": 0
+    }
+   }
+  },
+  {
+   "step": "after the run stops, its tool servers' calls are refused",
+   "ok": true,
+   "detail": {
+    "after": "this run isn't active"
+   }
+  },
+  {
+   "step": "fail-closed at the start: with the plugin not running, the Figma tool server is loaded with its tools off (the live set is empty, a call is refused), the run says it's waiting, and its context tells the worker why and that they'll come on in this task",
+   "ok": true,
+   "detail": {
+    "gate": {
+     "figma.plugin.read": "Figma: change the open file: Plugin not running"
+    },
+    "live": []
+   }
+  },
+  {
+   "step": "General worker (decision 1): only its granted core tools; never an integration's (granting one is refused); narrowing its grant narrows its launch",
+   "ok": true,
+   "detail": {
+    "default": [
+     "files.read",
+     "files.write",
+     "web",
+     "browser"
+    ],
+    "narrowed": "ToolSearch,Read,Glob,Grep"
+   }
+  },
+  {
+   "step": "run snapshots stay readable: an earlier run's record and events load",
+   "ok": true,
+   "detail": {
+    "runs": 4
+   }
+  }
+ ]
+}

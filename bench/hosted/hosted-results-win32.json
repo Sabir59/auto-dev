@@ -1,5 +1,5 @@
 {
- "when": "2026-10-21T18:18:10.311Z",
+ "when": "2026-10-28T10:12:25.622Z",
  "platform": "win32",
  "isolation": "none",
  "tag": null,
@@ -85,10 +85,10 @@
    "step": "hosted workspace: a new one is a folder of the person's own; a path from the page is ignored; Executor, folder browsing and the platform's files don't exist",
    "ok": true,
    "detail": {
-    "root": "<data>\\users\\u-062130ab-895\\data\\workspaces\\site-3435",
+    "root": "<data>\\users\\u-44289a61-6da\\data\\workspaces\\site-404e",
     "list": [
      "scratch",
-     "site-3435"
+     "site-404e"
     ]
    }
   },
@@ -98,8 +98,8 @@
    "detail": {
     "outcome": "done",
     "refusals": [
-     "C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-tWE1qB\\users\\u-e5450781-ce0\\data\\bob-secret.txt ",
-     "C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-tWE1qB\\control\\users.json is outside C:\\Users\\hp",
+     "C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-FYvBmO\\users\\u-adadbfba-a82\\data\\bob-secret.txt ",
+     "C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-FYvBmO\\control\\users.json is outside C:\\Users\\hp",
      "<tool_use_error>Error: No such tool available: Bash. Bash is disabled for this session, in",
      "WebFetch denied access to domain:169.254.169.254."
     ]
@@ -110,7 +110,7 @@
    "ok": true,
    "detail": {
     "providerRequests": 6,
-    "filesScanned": 22,
+    "filesScanned": 21,
     "processes": null
    }
   },
@@ -126,7 +126,9 @@
      "Read",
      "WebFetch",
      "WebSearch",
-     "Write"
+     "Write",
+     "mcp__evolve__evolve_propose",
+     "mcp__evolve__evolve_read_self"
     ]
    }
   },
@@ -134,7 +136,7 @@
    "step": "Scratch (the default with no workspace): the conversation gets its own folder under the person's data; the worker writes there; it's listed only through the conversation",
    "ok": true,
    "detail": {
-    "folder": "<data>\\users\\u-062130ab-895\\data\\scratch-runs\\2026-10-21T18-17-07-001Z"
+    "folder": "<data>\\users\\u-44289a61-6da\\data\\scratch-runs\\2026-10-28T10-11-43-781Z"
    }
   },
   {
@@ -142,7 +144,7 @@
    "ok": true,
    "detail": {
     "status": "stopped",
-    "ms": 549
+    "ms": 555
    }
   },
   {
@@ -160,7 +162,7 @@
    "detail": {
     "status": "waiting",
     "outcome": "error",
-    "seconds": 6
+    "seconds": 5
    }
   },
   {

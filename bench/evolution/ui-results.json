@@ -1,0 +1,47 @@
+{
+ "at": "2026-10-29T08:23:15.692Z",
+ "results": [
+  {
+   "step": "the worker's editor shows the proposal: title, waiting, blocked (no Builder account here), what isn't possible, the diff, its checks and where it came from",
+   "ok": true,
+   "detail": {
+    "card": [
+     "A/B variant drafts in our convention",
+     "proposed",
+     "Blocked",
+     "for v1 · proposed by the worker · 10/29/2026, 1:23:02 PM"
+    ]
+   }
+  },
+  {
+   "step": "approving an unverified proposal: the Approve button stays disabled until you tick that you approve it anyway; then it's v2",
+   "ok": true,
+   "detail": {
+    "disabledUntilTicked": true,
+    "version": 2
+   }
+  },
+  {
+   "step": "the versions list: v2 current (approved proposal, not tested), v1 created; compare shows the step; restore v1 makes v3",
+   "ok": true,
+   "detail": {
+    "list": [
+     "v2",
+     "current",
+     "approved proposal (blocked) · A/B variant drafts in our convention · 10/29/2026, 1:23:14 PM",
+     "v1",
+     "created · 10/29/2026, 1:23:01 PM · 1 conversation",
+     "Compare with current"
+    ],
+    "now": 3
+   }
+  },
+  {
+   "step": "no errors in the page",
+   "ok": true,
+   "detail": {
+    "errors": 0
+   }
+  }
+ ]
+}

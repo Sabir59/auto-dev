@@ -1,5 +1,5 @@
 {
- "when": "2026-10-19T19:58:15.430Z",
+ "when": "2026-10-29T11:06:59.651Z",
  "results": [
   {
    "step": "the account icon is in the top bar; the popup opens and shows the Claude login the workers use",
@@ -14,8 +14,8 @@
    "step": "usage is live from Claude Code (its own usage query, no model request): both windows and today's totals",
    "ok": true,
    "detail": {
-    "five": "Session (5hr) 60% Resets in 3h 22m",
-    "week": "Weekly (7 day) 72% Resets in 1d 1h",
+    "five": "Session (5hr) 40% Resets in 2h 3m",
+    "week": "Weekly (7 day) 30% Resets in 5d 9h",
     "source": "runtime",
     "workerRunsStarted": 0
    }
@@ -34,7 +34,7 @@
    "step": "a reading from before its window reset isn't shown as current: no %, no limit warning",
    "ok": true,
    "detail": {
-    "five": "Session (5hr) — Reset Tue 12:48 AM; no reading since",
+    "five": "Session (5hr) — Reset Thu 3:56 PM; no reading since",
     "limitWarning": false
    }
   },

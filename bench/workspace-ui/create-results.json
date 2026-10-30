@@ -1,5 +1,5 @@
 {
- "when": "2026-10-24T18:29:50.740Z",
+ "when": "2026-10-25T11:32:55.503Z",
  "results": [
   {
    "step": "1. Shopify: recognised as having no connector; asks what to work on (no guess); products → an exported CSV, and the live store stays out of reach",
@@ -91,14 +91,14 @@
      "Site address"
     ],
     "drafts": [
-     "files.read",
      "builder.read",
+     "files.read",
      "builder.write.draft",
      "browser"
     ],
     "publish": [
-     "files.read",
      "builder.read",
+     "files.read",
      "builder.write",
      "browser"
     ]
@@ -183,7 +183,7 @@
    "detail": {
     "status": "waiting",
     "worker": {
-     "id": "next-js-engineer-8beb",
+     "id": "next-js-engineer-5446",
      "name": "Next.js engineer",
      "version": 1
     },

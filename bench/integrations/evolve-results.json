@@ -1,0 +1,206 @@
+{
+ "at": "2026-10-29T10:09:19.038Z",
+ "results": [
+  {
+   "step": "creating a worker records version 1; each save records the next version with its parent and reason, never overwriting one",
+   "ok": true,
+   "detail": {
+    "versions": [
+     "2:edit",
+     "1:create"
+    ],
+    "diff": [
+     "knowledge"
+    ]
+   }
+  },
+  {
+   "step": "restore: an earlier version comes back as a NEW version (history kept); restoring the current one is refused",
+   "ok": true,
+   "detail": {
+    "restored": "v1 → v3",
+    "kept": [
+     1,
+     2,
+     3
+    ]
+   }
+  },
+  {
+   "step": "a worker from before history gets its previous form recorded on its first change (so it can be compared and restored)",
+   "ok": true,
+   "detail": {
+    "recorded": [
+     "v4 before-history",
+     "v5 edit"
+    ]
+   }
+  },
+  {
+   "step": "integrity: a definition changed outside the console (the file edited directly) isn't run; saving it in the editor records it and it runs again",
+   "ok": true,
+   "detail": {
+    "refused": "Builder.io Content Editor's definition was changed outside the console (it doesn't match its recorded version 3). Open i",
+    "thenRecorded": 4
+   }
+  },
+  {
+   "step": "a defined worker's run gets the evolve tools (with its run's token) and the platform's deny rules; the General worker gets no evolve tools",
+   "ok": true,
+   "detail": {
+    "evolve": true,
+    "denyRules": 10
+   }
+  },
+  {
+   "step": "the evolve endpoints answer only this run's token, for its own worker: a wrong token, another run or another Host is refused",
+   "ok": true,
+   "detail": {
+    "self": {
+     "version": 4,
+     "canChange": [
+      "workflow",
+      "knowledge",
+      "limitations",
+      "onMissing"
+     ],
+     "tools": [
+      "builder.read",
+      "builder.write.draft",
+      "browser"
+     ]
+    }
+   }
+  },
+  {
+   "step": "the worker's token can't reach the person's endpoints (approve, edit, restore): the console's guard refuses it",
+   "ok": true,
+   "detail": {
+    "put": "Rejected: Origin missing is not this console",
+    "restore": "Rejected: Origin missing is not this console"
+   }
+  },
+  {
+   "step": "through the evolve tool server (MCP): read itself, then proposals that touch access, use tools it doesn't have, carry a secret or target an old version are refused with the reasons",
+   "ok": true,
+   "detail": {
+    "refused": {
+     "access": 3,
+     "tool": "The proposal wasn't accepted. Fix these and propose again:\n- uses: builder.write",
+     "secret": true,
+     "stale": true
+    }
+   }
+  },
+  {
+   "step": "a valid proposal is stored as proposed: its base version, provenance (this run), what it relies on checked now, and verification UNTESTED — nothing changed in the worker",
+   "ok": true,
+   "detail": {
+    "id": "p-mvtdsle3-1ba543",
+    "base": 4,
+    "verification": {
+     "status": "untested",
+     "why": "No trial run has been graded yet."
+    },
+    "deps": [
+     "builder.read:true",
+     "builder.write.draft:true"
+    ]
+   }
+  },
+  {
+   "step": "a trial run uses the proposed definition (marked, no evolve tools, the worker unchanged); a REMEMBER in a trial doesn't reach the worker's memory",
+   "ok": true,
+   "detail": {
+    "run": "2026-10-29T10-09-10-973Z",
+    "snapshotHasChange": true,
+    "memory": 0
+   }
+  },
+  {
+   "step": "grading: the console reads Builder itself; an entry made during the trial with the convention passes; the baseline (the worker as it is) finds none and fails",
+   "ok": true,
+   "detail": {
+    "candidate": {
+     "status": "passed",
+     "why": "All 1 checks passed in trial run 2026-10-29T10-09-10-973Z.",
+     "run": "2026-10-29T10-09-10-973Z"
+    },
+    "baseline": {
+     "run": "2026-10-29T10-09-16-868Z",
+     "ok": false,
+     "ran": true
+    },
+    "detail": "found 0 matching entries changed during the trial, expected 1"
+   }
+  },
+  {
+   "step": "grading catches an impostor: a variant whose 'variations' is only a data field fails the check",
+   "ok": true,
+   "detail": {
+    "impostor": "Landing [AB EXP-1 B]: data.variations is present ({\"b\":{\"testRatio\":0.5}}), expected absent",
+    "toolCalled": "builder_create_draft called 1 time",
+    "nestedRepetitionRefused": 2
+   }
+  },
+  {
+   "step": "approving needs the person's request; a verified proposal becomes the next recorded version (source: the proposal), and is decided once",
+   "ok": true,
+   "detail": {
+    "version": 5,
+    "source": {
+     "kind": "proposal",
+     "proposal": "p-mvtdsle3-1ba543",
+     "verification": {
+      "status": "passed",
+      "why": "All 1 checks passed in trial run 2026-10-29T10-09-10-973Z.",
+      "run": "2026-10-29T10-09-10-973Z"
+     }
+    }
+   }
+  },
+  {
+   "step": "the next run loads the approved version: its snapshot records that version and its context has the new step",
+   "ok": true,
+   "detail": {
+    "version": 5
+   }
+  },
+  {
+   "step": "an unverified proposal (Builder not connected: blocked, its checks not run) is never shown as passed, and approving it needs explicit acknowledgement",
+   "ok": true,
+   "detail": {
+    "verification": {
+     "status": "blocked",
+     "why": "Read Builder.io content: Builder.io: read content: Not connected; Create and change Builder.io content as drafts only (test spaces only) — publishing is not available: Builder.io: read content: Not connected"
+    },
+    "approve": "Approving this needs your explicit acknowledgement: it isn't verified (blocked: Read Builder.io content: Builder.io: rea"
+   }
+  },
+  {
+   "step": "stale: after the worker changes, an older proposal can't be tried or approved over the newer version",
+   "ok": true,
+   "detail": {
+    "stale": "This proposal was made for version 5; the worker is at version 6 now. It can't be applied over the n",
+    "rejected": true
+   }
+  },
+  {
+   "step": "records changed outside the console: a proposal file given a tool or an unchecked pattern, or a worker whose definition was edited directly, can't be tried, graded or approved",
+   "ok": true,
+   "detail": {
+    "proposalTool": "This proposal's record was changed outside the console (it changes capabilities, which a proposal can't). It c",
+    "uncheckedPattern": "This proposal's record was changed outside the console (its checks aren't the ones the console accepted). It c",
+    "definitionEdited": "Builder.io Content Editor's definition was changed outside the console (it doesn't match its recorded version "
+   }
+  },
+  {
+   "step": "restoring the version before the evolution takes the change back out, as a new version",
+   "ok": true,
+   "detail": {
+    "restoredFrom": 4,
+    "now": 7
+   }
+  }
+ ]
+}

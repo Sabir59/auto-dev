@@ -1,5 +1,5 @@
 {
- "when": "2026-10-22T10:43:53.928Z",
+ "when": "2026-10-29T10:11:56.720Z",
  "results": [
   {
    "step": "UX-001: Escape on a worker page with unsaved changes asks; Keep editing keeps the draft",
@@ -42,7 +42,7 @@
    }
   },
   {
-   "step": "UX-017: Clear memory asks; Cancel keeps it, confirming clears it",
+   "step": "UX-017: Clear learnings asks; Cancel keeps it, confirming clears it",
    "ok": true,
    "detail": {
     "afterCancel": 2,
@@ -159,7 +159,7 @@
    "detail": {
     "box": "DRAFT-I-KEEP",
     "instruction": null,
-    "next": "2026-10-22T10-41-59-680Z"
+    "next": "2026-10-29T10-10-34-955Z"
    }
   },
   {
@@ -173,15 +173,15 @@
    "step": "cleanup: close the open conversation",
    "ok": true,
    "detail": {
-    "closed": "2026-10-22T10-41-59-680Z"
+    "closed": "2026-10-29T10-10-34-955Z"
    }
   },
   {
    "step": "Scratch: each conversation gets its own empty folder; one's files are invisible to the other and to Scratch itself",
    "ok": true,
    "detail": {
-    "folderA": "scratch-runs/2026-10-22T10-42-00-900Z",
-    "folderB": "scratch-runs/2026-10-22T10-42-17-859Z",
+    "folderA": "scratch-runs/2026-10-29T10-10-36-164Z",
+    "folderB": "scratch-runs/2026-10-29T10-10-45-211Z",
     "filesA": [
      "note.txt"
     ],

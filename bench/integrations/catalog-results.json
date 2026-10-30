@@ -1,0 +1,86 @@
+{
+ "at": "2026-10-29T14:35:10.362Z",
+ "results": [
+  {
+   "step": "the real catalogue: every manifest valid, released and owned, with its tests present; the console starts with it; the registry the creation flow reads comes from it, in its order",
+   "ok": true,
+   "detail": {
+    "manifests": 24,
+    "core": [
+     "files.read",
+     "files.write",
+     "shell",
+     "web",
+     "browser"
+    ],
+    "connectors": [
+     "browser",
+     "builder",
+     "code",
+     "figma",
+     "files",
+     "gitsync",
+     "web"
+    ]
+   }
+  },
+  {
+   "step": "core and integration capabilities are separate: no core tool is provided by an integration, every integration capability names the accounts it needs, every core tool an integration uses says why",
+   "ok": true,
+   "detail": {
+    "core": [
+     "files.read",
+     "files.write",
+     "shell",
+     "web",
+     "browser"
+    ],
+    "provided": {
+     "builder": [
+      "builder.read",
+      "builder.write.draft",
+      "builder.write"
+     ],
+     "figma": [
+      "figma.plugin.read",
+      "figma.plugin.edit",
+      "figma.read",
+      "figma.mcp.read"
+     ],
+     "gitsync": [
+      "gitflow.read"
+     ]
+    }
+   }
+  },
+  {
+   "step": "released manifests are immutable: a changed value is refused (the console won't start); reformatting (indentation, line endings) isn't a change",
+   "ok": true,
+   "detail": {
+    "refused": "integrations: builder@1.0.0 changed after it was released. Released versions are immutable: publish a new version instea"
+   }
+  },
+  {
+   "step": "a new version stays unreleased until it's released: refused normally, loaded in development; releasing it records its hash; a released version that disappears is refused",
+   "ok": true,
+   "detail": {
+    "versions": [
+     "1.0.0",
+     "1.1.0"
+    ]
+   }
+  },
+  {
+   "step": "bad manifests stop the console: an unknown field, a bad version, a path that doesn't match, a capability the console doesn't have, a core tool used without a reason, a relation to nothing",
+   "ok": true,
+   "detail": {
+    "unknownField": "integrations: web@1.0.0: $: \"grantsEverything\" isn't allowed",
+    "badVersion": "integrations: web@1.0: $.version: doesn't match ^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+    "pathMismatch": "integrations: web@1.0.0: its id and version (webx@1.0.0) must match its path",
+    "unknownCapability": "integrations: web@1.1.0: unknown capability teleport.anywhere",
+    "coreWithoutWhy": "integrations: web@1.1.0 base: uses core shell without saying why (coreWhy)",
+    "relationToNothing": "integrations: web@1.1.0: relation to unknown integration nowhere"
+   }
+  }
+ ]
+}

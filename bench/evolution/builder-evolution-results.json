@@ -1,0 +1,242 @@
+{
+ "at": "2026-10-28T21:45:58.633Z",
+ "model": "matw-next-application",
+ "stamp": "n3ojv",
+ "root": "C:\\Users\\hp\\AppData\\Local\\Temp\\evo-builder-n3ojv",
+ "results": [
+  {
+   "step": "baseline: the shared Builder worker (workers/builder-content-editor.json) is installed as version 1, and nothing in it describes A/B variants",
+   "ok": true,
+   "detail": {
+    "id": "builder-io-content-edito-4911",
+    "version": 1,
+    "tools": [
+     "builder.read",
+     "builder.write.draft",
+     "browser"
+    ],
+    "requirements": [
+     "Builder.io: read content: Connected",
+     "Builder.io: change content: Test space"
+    ]
+   }
+  },
+  {
+   "step": "control pages exist in the test space (drafts made by this test)",
+   "ok": true,
+   "detail": {
+    "teach": {
+     "id": "5fca49771e7e48908c7cd07aace535f1",
+     "name": "Evo teach n3ojv",
+     "url": "/evo-teach-n3ojv"
+    },
+    "base": {
+     "id": "1ca2c5927d7342faad11957ff24003b6",
+     "name": "Evo base n3ojv",
+     "url": "/evo-base-n3ojv"
+    },
+    "after": {
+     "id": "de8a3bf5425449be9392842967aac6b0",
+     "name": "Evo after n3ojv",
+     "url": "/evo-after-n3ojv"
+    }
+   }
+  },
+  {
+   "step": "teaching run: the worker inspects itself and submits a proposal (the console records it; nothing changes yet)",
+   "ok": true,
+   "detail": {
+    "run": "2026-10-28T21-42-12-059Z",
+    "proposal": "p-mvsn4tr1-40d382",
+    "title": "Create A/B test variants the team's way (as separate draft pages)",
+    "fields": [
+     "workflow",
+     "knowledge",
+     "limitations"
+    ],
+    "uses": [
+     "builder.read",
+     "builder.write.draft",
+     "browser"
+    ],
+    "needs": [
+     {
+      "what": "Google Sheets access (a connector to the sheet 'Experiments')",
+      "why": "To register each experiment in the team's sheet; no Google Sheets tool is available, so this stays a manual step."
+     },
+     {
+      "what": "A tool for Builder's built-in A/B test settings (traffic split on an entry)",
+      "why": "To set the 50/50 split on the control entry. The Builder tools can't change A/B settings, and doing it would edit the control, which the same convention forbids. The person needs to confirm how traffic should be split if the built-in A/B feature isn't used."
+     }
+    ],
+    "checks": [
+     "Builder matw-next-application: entries named /^Evo teach n3ojv \\| EXP-TRIAL-n3ojv \\| B$/, changed during the trial, exactly 1, draft, abExperiment ~ /^EXP-TRIAL-n3ojv$/, abVariant ~ /^B$/, abControlId ~ /^5fca49771e7e48908c7cd07aace535f1$/, abHypothesis ~ /.+/",
+     "Builder matw-next-application: entries at /evo-teach-n3ojv, changed during the trial, exactly 0",
+     "calls builder_get_content",
+     "calls builder_verify_content"
+    ],
+    "nudges": 0
+   }
+  },
+  {
+   "step": "the proposal identifies the gap honestly: only the worker's own instructions change; the Sheet and Builder's traffic split are listed as not possible, not written as procedures",
+   "ok": false,
+   "error": "{\"why\":\"the change claims it can register in the Sheet or set the split\",\"claims\":[\"The team also registers each experiment in a Google Sheet called 'Experiments' and wants a 50/50 traffic split set in Builder's A/B test settings on the control entry.\"]}"
+  },
+  {
+   "step": "the platform's validation: what it relies on is available (Builder test space connected); verification is untested until a trial is graded",
+   "ok": true,
+   "detail": {
+    "dependencies": [
+     "builder.read: available",
+     "builder.write.draft: available",
+     "browser: available"
+    ],
+    "verification": {
+     "status": "untested",
+     "why": "No trial run has been graded yet."
+    }
+   }
+  },
+  {
+   "step": "the gap is real: the worker as it is (a baseline trial, the person's task) doesn't follow the convention — checked with raw Builder reads",
+   "ok": true,
+   "detail": {
+    "run": "2026-10-28T21-43-05-523Z",
+    "entriesMade": 1,
+    "baselineProblems": [
+     "Evo variant B n3ojv (EXP-n3ojv-A): name is \"Evo variant B n3ojv (EXP-n3ojv-A)\", expected \"Evo base n3ojv | EXP-n3ojv-A | B\"; abExperiment is undefined; abVariant is undefined; abControlId is undefined, expected 1ca2c5927d7342faad11957ff24003b6"
+    ]
+   }
+  },
+  {
+   "step": "trial of the proposed version (the console's trial, the worker's own trial task): the console grades its checks against Builder",
+   "ok": true,
+   "detail": {
+    "run": "2026-10-28T21-43-56-372Z",
+    "verification": {
+     "status": "passed",
+     "why": "All 4 checks passed in trial run 2026-10-28T21-43-56-372Z.",
+     "run": "2026-10-28T21-43-56-372Z"
+    },
+    "baseline": {
+     "run": "2026-10-28T21-43-05-523Z",
+     "ok": false,
+     "ran": true
+    },
+    "results": [
+     "ok: Builder matw-next-application: entries named /^Evo teach n3ojv \\| EXP-TRIAL-n3ojv \\| B$/, changed during the trial, exactly 1, draft, abExperiment ~ /^EXP-TRIAL-n3ojv$/, abVariant ~ /^B$/, abControlId ~ /^5fca49771e7e48908c7cd07aace535f1$/, abHypothesis ~ /.+/ — 1 entry as expected",
+     "ok: Builder matw-next-application: entries at /evo-teach-n3ojv, changed during the trial, exactly 0 — 0 entries as expected",
+     "ok: calls builder_get_content — builder_get_content called 2 times",
+     "ok: calls builder_verify_content — builder_verify_content called 2 times"
+    ],
+    "tools": [
+     "builder_access_status",
+     "builder_list_content",
+     "builder_get_content",
+     "builder_create_draft",
+     "builder_verify_content",
+     "builder_get_content",
+     "builder_verify_content"
+    ]
+   }
+  },
+  {
+   "step": "the person approves: the change becomes version 2 (recorded, with the proposal and its verification as its source)",
+   "ok": true,
+   "detail": {
+    "version": 2,
+    "verificationAtApproval": {
+     "status": "passed",
+     "why": "All 4 checks passed in trial run 2026-10-28T21-43-56-372Z.",
+     "run": "2026-10-28T21-43-56-372Z"
+    },
+    "acknowledged": null
+   }
+  },
+  {
+   "step": "a NEW run loads version 2 and, on the person's task alone, follows the convention — checked field by field with raw Builder reads; the control is untouched",
+   "ok": true,
+   "detail": {
+    "run": "2026-10-28T21-44-47-114Z",
+    "version": 2,
+    "variant": {
+     "id": "eb82b69e332c48378b5f522d2c44a686",
+     "name": "Evo after n3ojv | EXP-n3ojv-B | B",
+     "published": "draft",
+     "url": "/evo-after-n3ojv-b",
+     "abExperiment": "EXP-n3ojv-B",
+     "abControlId": "de8a3bf5425449be9392842967aac6b0"
+    },
+    "controlUnchanged": true,
+    "tools": [
+     "builder_access_status",
+     "builder_list_content",
+     "builder_get_content",
+     "builder_create_draft",
+     "builder_verify_content",
+     "builder_get_content",
+     "builder_get_content"
+    ]
+   }
+  },
+  {
+   "step": "restore: version 1 comes back as version 3 (history kept), and the next run's context no longer has the convention",
+   "ok": true,
+   "detail": {
+    "versions": [
+     "3:restore",
+     "2:proposal",
+     "1:create"
+    ],
+    "runVersion": 3
+   }
+  },
+  {
+   "step": "with Builder unavailable (no credentials on that console): the same pending proposal is BLOCKED, its trial's checks aren't run, the worker reports what's missing, and approval needs explicit acknowledgement",
+   "ok": true,
+   "detail": {
+    "verification": {
+     "status": "blocked",
+     "why": "Read Builder.io content: Builder.io: read content: Not connected; Create and change Builder.io content as drafts only (test spaces only) — publishing is not available: Builder.io: read content: Not connected"
+    },
+    "checks": [
+     "Not checked: Builder isn't available to the console (Builder.io: read content: Not connected).",
+     "Not checked: Builder isn't available to the console (Builder.io: read content: Not connected).",
+     "builder_get_content called 0 times",
+     "builder_verify_content called 0 times"
+    ],
+    "workerSaid": [
+     "Builder.io read content: Add the Builder test space's keys on this computer (see builder-adapter/README.md).",
+     "Builder.io change content (drafts only): Mark that space as a test space in builder-adapter's credentials. Writes aren't allowed in production spaces."
+    ]
+   }
+  }
+ ],
+ "createdInTestSpace": [
+  {
+   "id": "5fca49771e7e48908c7cd07aace535f1",
+   "name": "Evo teach n3ojv"
+  },
+  {
+   "id": "1ca2c5927d7342faad11957ff24003b6",
+   "name": "Evo base n3ojv"
+  },
+  {
+   "id": "de8a3bf5425449be9392842967aac6b0",
+   "name": "Evo after n3ojv"
+  },
+  {
+   "id": "1cef3a736de84b4f835ccfd08e6803fa",
+   "name": "Evo variant B n3ojv (EXP-n3ojv-A)"
+  },
+  {
+   "id": "59c71a84221b4a3885cfe979cece4b42",
+   "name": "Evo teach n3ojv | EXP-TRIAL-n3ojv | B"
+  },
+  {
+   "id": "eb82b69e332c48378b5f522d2c44a686",
+   "name": "Evo after n3ojv | EXP-n3ojv-B | B"
+  }
+ ]
+}

@@ -1,0 +1,183 @@
+{
+ "at": "2026-10-29T14:38:13.808Z",
+ "results": [
+  {
+   "step": "recommendations (deterministic): a Shopify worker gets Shopify, not Builder.io; Builder.io is optional, with its reason, only for a headless storefront's content; branch sync gets no CI unless the work mentions deploying; nothing is added or changed by recommending",
+   "ok": true,
+   "detail": {
+    "shop": [
+     "shopify:required"
+    ],
+    "headless": [
+     "shopify:required (Your description mentions “Shopify”.)",
+     "builder:optional (Shopify: Builder.io can manage the content of a headless Shopify storefront; it isn't needed for products, orders or the theme. (you mention “headless”))"
+    ],
+    "deploy": [
+     "gitsync:required",
+     "code:optional"
+    ]
+   }
+  },
+  {
+   "step": "pinned: a worker made with builder 1.0.0 keeps 1.0.0 although 1.1.0 and 2.0.0 are released; its tools and instructions are 1.0.0's",
+   "ok": true,
+   "detail": {
+    "pinned": "builder 1.0.0",
+    "capabilities": [
+     "files.read",
+     "builder.read"
+    ],
+    "upgradeAvailable": "2.0.0"
+   }
+  },
+  {
+   "step": "upgrade diff (builder 1.0.0 → 2.0.0): more access (drafts), a setting no longer used (models) and a new one (locale), its instructions; refused without approval (nothing changes), applied with it; a lower version is refused",
+   "ok": true,
+   "detail": {
+    "diff": {
+     "added": [
+      "builder.write.draft"
+     ],
+     "dropped": [
+      "models"
+     ],
+     "defaulted": [
+      "locale"
+     ],
+     "accounts": [
+      "builder:write"
+     ]
+    },
+    "refused": "Upgrading Builder.io to 2.0.0 gives this worker more access (builder.write.draft). Approve"
+   }
+  },
+  {
+   "step": "an upgrade that needs another core tool (figma 1.2.0 needs web) is more access too: it lists the tool to grant, needs approval, and grants it only then",
+   "ok": true,
+   "detail": {
+    "toGrant": [
+     "web"
+    ],
+    "coreAfter": [
+     "files.read",
+     "web"
+    ]
+   }
+  },
+  {
+   "step": "migration proposals: the worker made from a request maps exactly (its integrations and answers), the designer likely (one Figma setting gives its tools), the Builder engineer is ambiguous (publish and drafts-only contradict) with choices that say what each loses",
+   "ok": true,
+   "detail": {
+    "exact": [
+     "gitsync"
+    ],
+    "likely": [
+     "figma {\"file\":\"\",\"edit\":\"edit\",\"links\":\"yes\"}"
+    ],
+    "ambiguous": [
+     "builder.read+builder.write.draft (loses builder.write)",
+     "builder.read+builder.write (loses builder.write.draft)",
+     "builder.read (loses builder.write+builder.write.draft)"
+    ]
+   }
+  },
+  {
+   "step": "migration is refused for an ambiguous worker without a choice, and for a choice that changes its tools until that change is accepted; nothing is written",
+   "ok": true,
+   "detail": {
+    "refused": [
+     "Builder engineer: its mapping is ambiguous; choose one of its options.",
+     "Builder engineer: this mapping changes its tools (-builder.write). Accept that change to m"
+    ]
+   }
+  },
+  {
+   "step": "migrating the exact and likely ones: schema 2, pinned integrations, explicit core, their own text separated — and their access at launch is exactly what it was; a backup is kept; earlier runs still read",
+   "ok": true,
+   "detail": {
+    "migrated": [
+     "Designer (likely)",
+     "BAU branch sync worker (exact)"
+    ],
+    "backup": "workers-2026-10-29T14-38-08-914Z.json",
+    "accessUnchanged": true
+   }
+  },
+  {
+   "step": "after migration a run's context keeps the integration's instructions apart from the worker's own",
+   "ok": true,
+   "detail": {
+    "section": "From the Git branch sync and promotion integration (gitsync 1.0.0)"
+   }
+  },
+  {
+   "step": "the ambiguous one, with a choice and its change accepted: it keeps what that choice gives and loses only what was shown; undo restores workers.json exactly as it was before",
+   "ok": true,
+   "detail": {
+    "chosen": [
+     "builder.read",
+     "builder.write.draft"
+    ],
+    "lost": [
+     "-builder.write"
+    ],
+    "undone": [
+     "workers-2026-10-29T14-38-09-450Z.json",
+     "workers-2026-10-29T14-38-08-914Z.json"
+    ]
+   }
+  },
+  {
+   "step": "page: a worker made before integrations shows its tools as they are and leads to its migration; choosing an option and accepting its change migrates it; Undo puts it back",
+   "ok": true,
+   "detail": {
+    "sidebar": "Review 3 older workers",
+    "migratedThenUndone": [
+     2,
+     1
+    ]
+   }
+  },
+  {
+   "step": "page: the editor shows each integration's state (pinned version, configured, account missing) and an upgrade that asks for approval before giving more access",
+   "ok": true,
+   "detail": {
+    "card": "Builder.io v1.0.0 CONFIGURED ACCOUNT MISSING Upgrade to v2.0.0… Reads, drafts and (if you allow it) publishes content in a Builder.io space, through the Builder",
+    "approvedUpgrade": "2.0.0"
+   }
+  },
+  {
+   "step": "page: the General worker's settings offer core capabilities only; turning one off narrows what it gets",
+   "ok": true,
+   "detail": {
+    "offered": [
+     "files.read",
+     "files.write",
+     "shell",
+     "web",
+     "browser"
+    ],
+    "saved": [
+     "files.read",
+     "files.write",
+     "web",
+     "browser"
+    ]
+   }
+  },
+  {
+   "step": "page: creating a worker suggests what else belongs, with reasons (Builder.io for a headless Shopify storefront), and adds it only when asked",
+   "ok": true,
+   "detail": {
+    "suggested": "SUGGESTED OPTIONAL Builder.io Shopify: Builder.io can manage the content of a headless Shopify storefront; it isn't needed for products, orders or the theme. (y"
+   }
+  },
+  {
+   "step": "page: no script errors",
+   "ok": true,
+   "detail": {
+    "pageErrors": 0
+   }
+  }
+ ]
+}

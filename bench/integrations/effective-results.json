@@ -1,0 +1,50 @@
+{
+ "at": "2026-10-29T15:53:53.838Z",
+ "results": [
+  {
+   "step": "planned access (definition ∩ workspace, before accounts) matches the recording for every worker, apart from the intentional changes (each with its reason)",
+   "ok": true,
+   "detail": {
+    "launches": 36,
+    "intentional": [
+     "General worker (decision 1): only the core capabilities granted to it (by default files.read, files.write, shell, web, browser), never an integration's tools. Before, outside policies and the hosted product, it ran on the profile's flags: every built-in tool in a Work workspace (no --tools limit), the Figma executor, and no --permission-prompts none. Now it launches exactly as a worker with those core capabilities does.",
+     "Shell off by default (2026-10-29): the General worker's default core tools no longer include shell (node, curl); a shell command runs with the person's OS permissions, outside every file rule, so it's granted only explicitly (General settings or a worker's definition). The coreDefault worker in effective-test.mjs follows the new default.",
+     "Worker evolution (2026-10-28, docs/worker-evolution.md): every defined worker also gets the evolve tool server (mcp__evolve: read its own definition, propose a change to it; nothing that approves or edits). It reads and writes only console records about that worker, through the console, with its run's token. The General worker has no definition, so it doesn't get it."
+    ]
+   }
+  },
+  {
+   "step": "every real launch starts with exactly the effective plan (the stand-in's record equals /access/preview's effective)",
+   "ok": true,
+   "detail": {
+    "launches": 38
+   }
+  },
+  {
+   "step": "fail-closed: an integration tool whose account isn't available here starts off and waits for its connection (Figma: no token, no plugin; Builder: no keys), each saying why; nothing is taken away or added",
+   "ok": true,
+   "detail": {
+    "gatedLaunches": 14,
+    "example": {
+     "figma.read": "Figma: read designs: Not connected",
+     "figma.plugin.read": "Figma: change the open file: Plugin not running",
+     "figma.plugin.edit": "Figma: change the open file: Plugin not running"
+    }
+   }
+  },
+  {
+   "step": "integration tool servers get the per-call check (an authorization address and the run's token); core ones don't need it",
+   "ok": true,
+   "detail": {
+    "checked": 38
+   }
+  },
+  {
+   "step": "workers made by the creation flow are schema 2 (integrations pinned, core tools explicit) and resolve to the tools and requirements the flow composed",
+   "ok": true,
+   "detail": {
+    "requests": 14
+   }
+  }
+ ]
+}

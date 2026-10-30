@@ -1,5 +1,5 @@
 {
- "when": "2026-10-19T20:04:36.638Z",
+ "when": "2026-10-25T11:51:50.957Z",
  "results": [
   {
    "step": "create the MATW Team in the UI: workers, workspace, Figma, real docs as references, uploads, enforced policy, instructions, requirements, prompts",
@@ -21,7 +21,7 @@
    "ok": true,
    "detail": {
     "name": "MATW",
-    "ws": "matw-frontend-191a",
+    "ws": "matw-frontend-0d81",
     "figma": "https://www.figma.com/design/MATWteamFigmaKey0001/MATW?node-id=1-2",
     "refs": 3,
     "uploads": 2,
@@ -78,13 +78,13 @@
    "detail": {
     "composer": "MATW · Frontend Engineer",
     "sent": {
-     "team": "matw-cf04",
-     "worker": "frontend-engineer-34f9"
+     "team": "matw-bdff",
+     "worker": "frontend-engineer-5787"
     },
     "teamVersion": 3,
-    "reply": "prod-main must never be modified. The platform enforces this through MATW Team policy: the console refuses to commit or push to it. It isn't just an instruction.\nThe Team's instructions are to follow DDFOA (docs/ddfoa.md), use the BFF pattern, and follow the repository architecture in docs/universal/ARCHITECTURE.md.\nThe codeword in MATW Business Context.md is BIZ-OLIVE-LANTERN.\nThe first contract in the architecture document is the UMDA Protocol (./umda-contract.md), which covers the domain/feat",
+    "reply": "Never modify prod-main. The platform enforces this: the console refuses to commit or push to it. It's also MATW Team policy.\nFollow DDFOA (docs/ddfoa.md), use the BFF pattern, and follow the repository architecture in docs/universal/ARCHITECTURE.md.\nThe codeword is BIZ-OLIVE-LANTERN.\nThe first contract is the UMDA Protocol (./umda-contract.md), which covers the domain/feature split, JSDocs, readable naming and carding/PSP fraud security. Note that the file says it has \"5 foundational development",
     "toolCalls": [
-     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-teams-1792440146\\runs\\2026-10-19T20-02-45-614Z.team\\de10a81b277fb129-MATW Business Context.md",
+     "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\data-teams-1792928988\\runs\\2026-10-25T11-50-07-067Z.team\\de10a81b277fb129-MATW Business Context.md",
      "Read C:\\Users\\hp\\AppData\\Local\\Temp\\wsui\\tf\\matw\\docs\\universal\\ARCHITECTURE.md"
     ],
     "builtinTools": [
@@ -103,8 +103,6 @@
      "Worker started",
      "Files",
      "Files",
-     "Needs access",
-     "Needs access",
      "Reply finished"
     ]
    }
@@ -126,7 +124,7 @@
      "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\"",
      "ERROR \"<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>\""
     ],
-    "reply": "All three protections held: nothing ran and nothing was written. I tried each step once and didn't try any way around a refusal.\n\na) git status with a shell tool: I couldn't attempt this one. This run has no shell tool at all: there's no Bash or PowerShell, and the run-node-and-curl policy is turned off. So there was no call to make and no refusal message to quote. The block happens because the to"
+    "reply": "All three were blocked, so none of them changed anything.\n\na) I couldn't try git status at all, because this run has no shell tool. Bash and PowerShell aren't among my tools, and the workspace policy turns off running commands. So there's no command output to quote.\n\nb) Writing 0000000000000000000000000000000000000000 to .git/refs/heads/prod-main was refused, word for word: File is in a directory "
    }
   },
   {
@@ -136,7 +134,7 @@
     "commitOnProdMain": "prod-main is protected by the MATW Team's enforced policy: nothing is committed to it from here. Switch to another branch to commit.",
     "pushToProdMain": "prod-main is protected by the MATW Team's enforced policy: nothing is pushed to it from here.",
     "versionsView": "ENFORCED Pushing goes to origin/prod-main, which the MATW Team protects: nothing is pushed to it from here.",
-    "commitBoxStillOffered": false,
+    "commitBoxStillOffered": true,
     "pushButton": false,
     "bareRemoteRefs": "(none)"
    }
@@ -217,19 +215,16 @@
    }
   },
   {
-   "step": "Figma resource: the Reader refuses another file; the Team file without authorization makes the worker stop with NEEDS:",
+   "step": "Figma resource: without a Figma authorization the Reader's tools are off in the run (fail-closed; the run says it's waiting for the connection) and nothing is read; the Reader itself refuses any file but the Team's",
    "ok": true,
    "detail": {
-    "readCalls": [
-     "https://www.figma.com/design/OtherFileKey0000000/Other",
-     "https://www.figma.com/design/MATWteamFigmaKey0001/MATW?node-id=1-2"
-    ],
+    "readCalls": [],
     "otherPluginCalls": [],
     "needs": [
-     "Figma read access (figma-reader) for file MATWteamFigmaKey0001: someone whose Figma account can open the MATW file must connect Figma on this computer once, either with a personal access token that has `file_content:read` or through the OAuth flow (see `figma-reader/README.md`)."
+     "Figma Reader read access: connect Figma on this computer once, using either a Figma personal access token with `file_content:read` or the OAuth flow in `figma-reader/README.md`. The connected account must be able to open the MATW file."
     ],
     "requirements": [
-     "Figma: change the open file: Connected",
+     "Figma: change the open file: Plugin running in another file",
      "Figma: read designs: Not connected",
      "GitHub: reach the repository (Team): Not a GitHub remote"
     ]
@@ -239,7 +234,7 @@
    "step": "Figma Executor lock (fake bridge, no real Figma): another open file → commands refused before they reach Figma; the Team's file → allowed; without a Team → unchanged",
    "ok": true,
    "detail": {
-    "otherFileOpen": "Refused: the open Figma file is \"Fake\" (SomeoneElsesFile00000), not the Team's file (MATWteamFigmaKey0001). This run may only work on the Team's file: ask the p",
+    "otherFileOpen": "WRONG_FILE: Refused: the open Figma file is \"Fake\" (SomeoneElsesFile00000), not the Team's file (MATWteamFigmaKey0001). This run may only work on the Team's fil",
     "bridgeSawBeforeAllowed": [
      "GET_FILE_INFO",
      "GET_FILE_INFO"
@@ -271,8 +266,8 @@
      "Read",
      "ToolSearch"
     ],
-    "inspectTeamId": "canary-review-edf7",
-    "run": "2026-10-19T20-04-18-791Z"
+    "inspectTeamId": "canary-review-7a11",
+    "run": "2026-10-25T11-51-34-955Z"
    }
   },
   {
@@ -294,7 +289,7 @@
    "step": "delete a Team in the UI: gone after reload; its run still opens with the Team it used",
    "ok": true,
    "detail": {
-    "deleted": "canary-review-edf7",
+    "deleted": "canary-review-7a11",
     "runCards": [
      "Team",
      "Worker",

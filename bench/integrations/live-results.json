@@ -1,0 +1,115 @@
+{
+ "at": "2026-10-29T15:53:35.449Z",
+ "results": [
+  {
+   "step": "plugin closed at the start: the Figma tools are loaded but off (the executor can edit once it's connected); the run and the worker's context say they're waiting and will come on in this task, not 'not loaded'",
+   "ok": true,
+   "detail": {
+    "initialFigmaTools": 0,
+    "waiting": "Waiting for: Read the open Figma file (plugin) (Figma: change the open file: Plugin not running); Change the open Figma file (plugin) (Figma: change the open file: Plugin not running); Read Figma designs from a link (Figma: read designs: Not connected). Its tools come on in this task when it's connected."
+   }
+  },
+  {
+   "step": "the plugin opens mid-task: its tools come on in the same worker process (no restart, no resume), the tool server and the runtime both list them, and the run shows 'Connected' with nothing to reload",
+   "ok": true,
+   "detail": {
+    "took": "3578 ms",
+    "toolsNow": 43,
+    "sameProcess": true
+   }
+  },
+  {
+   "step": "the worker hears about it with the person's next message (once), while the person's own message is shown as typed",
+   "ok": true,
+   "detail": {
+    "told": "[Console: since your last turn, now connected, its tools are available (search with ToolSearch): Read the open Figma file (plugin), Change the open Figma file ("
+   }
+  },
+  {
+   "step": "only what the run was given can come on: the live set never holds a capability outside the worker; a wrong token gets nothing; a call for one it wasn't given is refused",
+   "ok": true,
+   "detail": {
+    "live": [
+     "figma.plugin.read",
+     "figma.plugin.edit"
+    ],
+    "wrongToken": 403
+   }
+  },
+  {
+   "step": "the plugin closes mid-task: its tools go off at the next check and calls are refused with the reason; the run says so and offers 'Check connections'",
+   "ok": true,
+   "detail": {
+    "off": "Unavailable: Read the open Figma file (plugin) (Figma: change the open file: Plugin not running); Change the open Figma file (plugin) (Figma"
+   }
+  },
+  {
+   "step": "'Check connections' turns what came up on at once (no second check needed); with nothing connected it says what's still missing",
+   "ok": true,
+   "detail": {
+    "before": [
+     "Figma: change the open file: Plugin not running",
+     "Figma: change the open file: Plugin not running",
+     "Figma: read designs: Not connected"
+    ],
+    "after": [
+     "Read the open Figma file (plugin)",
+     "Change the open Figma file (plugin)"
+    ],
+    "took": "24 ms"
+   }
+  },
+  {
+   "step": "a resumed run starts with what's connected now, not what its first start found: the plugin closed while it wasn't running, so its tools start off and the run says so",
+   "ok": true,
+   "detail": {
+    "resumed": true,
+    "figmaToolsAtStart": 0
+   }
+  },
+  {
+   "step": "a runtime that doesn't pick up the change is noticed: 'Reload tools' is offered; reloading ends the process between turns, and the next message continues the same conversation with the tools on",
+   "ok": true,
+   "detail": {
+    "offered": "The worker's runtime didn't pick up the new tools (figma-executor). Reload tools to continue this conversation with them",
+    "afterReload": "43 Figma tools at start"
+   }
+  },
+  {
+   "step": "the plugin reopened in another file mid-task: the person and the worker are told which file the Figma tools act on now (with the next message)",
+   "ok": true,
+   "detail": {
+    "shown": "The Figma plugin is now in \"Other file\" (was \"Test file\"). The Figma tools act on that file now."
+   }
+  },
+  {
+   "step": "the access preview shows what a run would wait for",
+   "ok": true,
+   "detail": {
+    "waiting": [
+     "figma.plugin.read",
+     "figma.plugin.edit",
+     "figma.read"
+    ]
+   }
+  },
+  {
+   "step": "the page: the run's Activity shows each connection change (Waiting, Connected, Unavailable, file changed, reload offer), and 'Check connections' answers in place",
+   "ok": true,
+   "detail": {
+    "cards": [
+     "Waiting for a connection",
+     "Connected",
+     "Waiting for a connection",
+     "Connected",
+     "Waiting for a connection",
+     "Connected",
+     "Tools not picked up",
+     "Figma file changed",
+     "Waiting for a connection"
+    ],
+    "answer": "Still waiting: Read the open Figma file (plugin) (Figma: change the open file: Plugin not running); Change the open Figma file (plugin) (Figma: change the open "
+   }
+  }
+ ]
+}

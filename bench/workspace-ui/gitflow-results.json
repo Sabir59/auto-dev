@@ -1,5 +1,5 @@
 {
- "when": "2026-10-24T18:29:16.271Z",
+ "when": "2026-10-28T21:07:19.025Z",
  "results": [
   {
    "step": "created through the existing flow: described in words, recognised as Git branch sync, read-only Git tools only, a starting configuration from the answers",
@@ -170,15 +170,15 @@
    "step": "execution is guarded: a blocked plan is refused; an approved ready plan creates only a NEW branch (copies record their originals); no existing branch, remote-tracking branch or origin ref changes",
    "ok": true,
    "detail": {
-    "branch": "gitflow/sabir-dev-20261024-182615",
-    "recovery": "Nothing that existed was changed. To discard: git branch -D gitflow/sabir-dev-20261024-182615. To use it: review it, push it yourself and open a pull request into sabir-dev."
+    "branch": "gitflow/sabir-dev-20261028-210431",
+    "recovery": "Nothing that existed was changed. To discard: git branch -D gitflow/sabir-dev-20261028-210431. To use it: review it, push it yourself and open a pull request into sabir-dev."
    }
   },
   {
    "step": "into a destination only by pull request: the approved proposal branch is pushed under its own new name (no other origin branch changes); anything else is refused",
    "ok": true,
    "detail": {
-    "pushed": "gitflow/sabir-dev-20261024-182615",
+    "pushed": "gitflow/sabir-dev-20261028-210431",
     "base": "sabir-dev",
     "originAdded": 1,
     "refused": [
@@ -230,7 +230,7 @@
      "The confirmation doesn't match this plan's points (it's inco",
      "The confirmation doesn't match this plan's points (it's inco"
     ],
-    "branch": "gitflow/sabir-dev-20261024-182649",
+    "branch": "gitflow/sabir-dev-20261028-210505",
     "confirmed": [
      "overlap:7db838d6e:9ef53b0ac"
     ],
@@ -334,6 +334,7 @@
      "check:done",
      "create:running",
      "create:done",
+     "verify:running",
      "verify:done"
     ],
     "lateCancel": "The job has already finished."
@@ -377,11 +378,11 @@
    "step": "deleting a proposal branch: only one this worker created, only while it's where the worker left it and isn't checked out; nothing else changes; the pushed copy is left alone and said so",
    "ok": true,
    "detail": {
-    "deleted": "gitflow/sabir-dev-20261024-182752",
+    "deleted": "gitflow/sabir-dev-20261028-210607",
     "refused": [
      "Only a proposal branch this worker created can be deleted here.",
-     "gitflow/sabir-dev-20261024-182758 has new commits since the worker cre",
-     "gitflow/sabir-dev-20261024-182752 is checked out: switch to another br"
+     "gitflow/sabir-dev-20261028-210612 has new commits since the worker cre",
+     "gitflow/sabir-dev-20261028-210607 is checked out: switch to another br"
     ]
    }
   },
@@ -417,6 +418,7 @@
    "detail": {
     "used": [
      "ToolSearch",
+     "ToolSearch",
      "mcp__gitflow__gitflow_overview"
     ],
     "reply": "BAU, Innovax"
@@ -443,17 +445,35 @@
    }
   },
   {
+   "step": "page: Included is the design's diff studio (the first change opens on its own; files, old/new line numbers, Unified or Split, raw git show); Excluded filters by reason with counts",
+   "ok": true,
+   "detail": {
+    "studio": "src/donate.js",
+    "files": 1,
+    "secondFile": null,
+    "excludedFilters": [
+     "All 11",
+     "Merge commit 4",
+     "Other team 3",
+     "Uncertain owner 1",
+     "Unknown owner 1",
+     "Already present 1",
+     "Reverted later 1"
+    ]
+   }
+  },
+  {
    "step": "page: Create asks first (what's created, what isn't), then shows the new branch and 'existing branches changed: none'; pushing asks a second time and pushes only the new branch",
    "ok": true,
    "detail": {
-    "created": "gitflow/sabir-dev-20261024-182840",
-    "pr": "Pushed gitflow/sabir-dev-20261024-182840 to origin",
+    "created": "gitflow/sabir-dev-20261028-210647",
+    "pr": "Pushed gitflow/sabir-dev-20261028-210647 to origin",
     "patch": "dev-main-to-sabir-dev-42e9310b7fb4b143.patch",
     "stepsShown": [
      "Recompute the plan from the branches as fetched (simulated in a private copy)",
      "running",
      "Check it's the approved plan and its confirmations",
-     "waiting"
+     "Create the new branch"
     ]
    }
   },
@@ -462,7 +482,7 @@
    "ok": true,
    "detail": {
     "mine": 2,
-    "branch": "gitflow/sabir-dev-20261024-182850",
+    "branch": "gitflow/sabir-dev-20261028-210656",
     "innovaxChangeLeftOut": true,
     "deletedFromThePage": true
    }
@@ -473,11 +493,11 @@
    "detail": {
     "d5": {
      "uncertain": {
-      "checked": true,
+      "block": true,
       "disabled": false
      },
      "unknown": {
-      "checked": true,
+      "block": true,
       "disabled": false
      }
     },
@@ -493,12 +513,12 @@
    "detail": {
     "stale": "refused and shown",
     "history": [
-     "11:29 PM\tRefused\tPlan 111abd2cfdc4e7b5 · stale",
-     "11:29 PM\tPreview · Needs review\tPlan 952053bde4c0c472 · dev-main-to-sabir-dev · 1 selected",
-     "11:28 PM\tPreview · Needs review\tPlan 111abd2cfdc4e7b5 · dev-main-to-sabir-dev · 1 selected",
-     "11:28 PM\tSettings saved\texclude.reverted: true → false",
-     "11:28 PM\tBranch created\tgitflow/sabir-dev-20261024-182850 from plan b822bce440f1021c · 1 step · 1 point confirmed · existing refs changed: none",
-     "11:28 PM\tPreview · Needs review\tPlan b822bce440f1021c · dev-main-to-sabir-dev · 1 selected"
+     "02:07 AM\tRefused\tPlan 111abd2cfdc4e7b5 · stale",
+     "02:07 AM\tPreview · Needs review\tPlan f99b3037bac7af7e · dev-main-to-sabir-dev · 1 selected",
+     "02:07 AM\tPreview · Needs review\tPlan 111abd2cfdc4e7b5 · dev-main-to-sabir-dev · 1 selected",
+     "02:06 AM\tSettings saved\texclude.reverted: true → false",
+     "02:06 AM\tBranch created\tgitflow/sabir-dev-20261028-210656 from plan b822bce440f1021c · 1 step · 1 point confirmed · existing refs changed: none",
+     "02:06 AM\tPreview · Needs review\tPlan b822bce440f1021c · dev-main-to-sabir-dev · 1 selected"
     ]
    }
   },
@@ -531,6 +551,34 @@
    }
   },
   {
+   "step": "page: the Git workflow opens in its own tab, full width (navigation and activity become drawers; 'Exit full view' brings them back); the console's own page takes the right column for it too",
+   "ok": true,
+   "detail": {
+    "href": "/?worker=bau-branch-sync-worker-d9a3&view=gitflow&ws=matw-fixture-b7b1&full=1",
+    "inConsole": {
+     "right": "none",
+     "w": 1128
+    },
+    "tab": {
+     "full": true,
+     "view": "gitflow",
+     "left": "none",
+     "w": 1392,
+     "newTabLink": "none",
+     "title": "BAU branch sync worker · AI Workspace"
+    }
+   }
+  },
+  {
+   "step": "page: the worker's editor shows its integration (Git sync, pinned, configured) and the core capability granted to it explicitly; Figma and Builder.io aren't offered, only found by searching for them",
+   "ok": true,
+   "detail": {
+    "integrations": "gitsync",
+    "core": "files.read",
+    "searched": "Figma"
+   }
+  },
+  {
    "step": "page: no script errors",
    "ok": true,
    "detail": {
@@ -541,9 +589,9 @@
    "step": "real MATW repository, read-only: dev-main → sabir-dev analysed in a private copy; the count matches git; no ref in MATW changed",
    "ok": true,
    "detail": {
-    "pending": 222,
-    "git": "222",
-    "prs": 19,
+    "pending": 300,
+    "git": "536",
+    "prs": 0,
     "copiesInDestination": 0,
     "refsUnchanged": true
    }

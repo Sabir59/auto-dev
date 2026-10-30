@@ -1,0 +1,238 @@
+{
+ "at": "2026-10-29T14:41:12.297Z",
+ "consoles": {
+  "A": "port 8781, data C:\\Users\\hp\\AppData\\Local\\Temp\\wpk-1793284806490\\A",
+  "B": "port 8782, data C:\\Users\\hp\\AppData\\Local\\Temp\\wpk-1793284806490\\B"
+ },
+ "results": [
+  {
+   "step": "format: a package round-trips the definition, its knowledge and its Git workflow rules, and contains exactly the allowed files with a checksum each",
+   "ok": true,
+   "detail": {
+    "files": "dependencies.json,knowledge/knowledge.md,manifest.json,worker.json,workflows/gitflow.json",
+    "size": 1702
+   }
+  },
+  {
+   "step": "format: credentials stop an export; paths on this computer are replaced (and listed); a local clone keeps its own paths",
+   "ok": true,
+   "detail": {
+    "secrets": [
+     "knowledge"
+    ],
+    "pathsRemoved": [
+     "C:\\Users\\alice\\secret\\plan.txt",
+     "/home/bob/x"
+    ]
+   }
+  },
+  {
+   "step": "format: refuses unsafe archives before reading them: path traversal, absolute and drive paths, backslashes, links, duplicate names, encryption, unknown compression, unknown files",
+   "ok": true,
+   "detail": {
+    "traversal": true,
+    "absolute": true,
+    "drive": true,
+    "backslash": true,
+    "dotdot-inner": true,
+    "link": true,
+    "encrypted": true,
+    "method": true,
+    "duplicate": true,
+    "extra": true,
+    "script": true
+   }
+  },
+  {
+   "step": "format: refuses malformed, unsupported, incompatible, oversized and tampered packages (and says which)",
+   "ok": true,
+   "detail": [
+    "notZip",
+    "truncated",
+    "noManifest",
+    "badJson",
+    "otherFormat",
+    "newer",
+    "schemaMismatch",
+    "older",
+    "schema",
+    "missingFile",
+    "depsMismatch",
+    "checksum",
+    "crc",
+    "bigFile",
+    "bomb",
+    "tooMany",
+    "bigPackage"
+   ]
+  },
+  {
+   "step": "A, export preview: it says what's in the package, what stays (learnings, credentials, people, repository location) and what it needs; the download is a .workerpack with only allowed content",
+   "ok": true,
+   "detail": {
+    "file": "attachment; filename=\"bau-branch-sync-worker.workerpack\"",
+    "bytes": 2428,
+    "excluded": 6
+   }
+  },
+  {
+   "step": "A, export: a worker whose knowledge holds a token isn't exported (and says why); a local path in knowledge is replaced",
+   "ok": true,
+   "detail": {
+    "refused": "Not exported: knowledge contains what looks like a password or token. Remove it ",
+    "replaced": [
+     "C:\\Users\\alice\\design\\notes.md"
+    ]
+   }
+  },
+  {
+   "step": "A, clone: a new worker (new id, version 1, a copy of its learnings, each marked where it came from) with the same definition and Git workflow rules (people and overrides not copied, proposals off); the original and its settings are untouched; a taken name is refused",
+   "ok": true,
+   "detail": {
+    "clone": "bau-branch-sync-worker-c-30ea",
+    "name": "BAU branch sync worker (copy)",
+    "learnings": 1,
+    "copiedFrom": "BAU branch sync worker",
+    "gitflowWorkspace": "a-repo-060a"
+   }
+  },
+  {
+   "step": "B (a separate console), import preview: the package is checked and shown with its identity, steps, knowledge, tools as this console would give them, its accounts checked here, and its name already taken here",
+   "ok": true,
+   "detail": {
+    "token": true,
+    "suggested": "BAU branch sync worker (2)",
+    "tools": [
+     "files.read:available",
+     "gitflow.read:available"
+    ]
+   }
+  },
+  {
+   "step": "B, install: never over a worker of the same name; with a new name it's a new worker (its own id, version 1, no memory, no runs) with B's repository for its Git workflow, proposals off, and the package's definition; B's existing worker is untouched; a token can't be installed twice",
+   "ok": true,
+   "detail": {
+    "installed": "bau-branch-sync-worker-2-cfae",
+    "name": "BAU branch sync worker (2)",
+    "gitflowWorkspace": "b-repo-2eda",
+    "usableInB": [
+     "files.read",
+     "gitflow.read"
+    ]
+   }
+  },
+  {
+   "step": "B, missing dependencies: the designer needs Figma edit access B doesn't have; it's shown as missing (with how to set it up), can still be installed, and its runs will ask for it; B's checks use B's own accounts",
+   "ok": true,
+   "detail": {
+    "missing": 1,
+    "figmaEdit": "Bridge not running"
+   }
+  },
+  {
+   "step": "B, incompatible content: a tool this console doesn't have is listed as an issue; installing needs the person's consent to leave it out, and then it's left out; a repository grant for a repository not registered here is refused",
+   "ok": true,
+   "detail": {
+    "left": [
+     "teleport.anywhere"
+    ],
+    "repoGrantRefused": "“acme/site” isn't a repository registered on this console."
+   }
+  },
+  {
+   "step": "B, refused packages: tampered (checksum), malformed, path traversal, newer format and oversized uploads are refused with a reason, and nothing is installed",
+   "ok": true,
+   "detail": {
+    "checksum": "400:checksum",
+    "malformed": "400:malformed",
+    "traversal": "400:unsafe-path",
+    "newer": "400:incompatible",
+    "oversized": "413:too-large"
+   }
+  },
+  {
+   "step": "round trip across both consoles: B exports what it imported, A imports it, and the definition, steps, knowledge and Git workflow rules are what A started with",
+   "ok": true,
+   "detail": {
+    "id": "bau-sync-round-trip-5520",
+    "preserved": "definition, steps, knowledge, tools, requirements, Git workflow rules"
+   }
+  },
+  {
+   "step": "format 2: a worker with integrations travels as its pinned references (id, exact version, settings), its explicit core capabilities and its own text; no flat tool list; a worker made before integrations still exports as format 1",
+   "ok": true,
+   "detail": {
+    "format2": [
+     {
+      "id": "gitsync",
+      "version": "1.0.0",
+      "config": {
+       "team": "BAU",
+       "others": "Innovax",
+       "mappings": "dev-main → sabir-dev; uat-main → sabir-uat; sabir-uat → preprod-main",
+       "writes": "propose"
+      }
+     }
+    ],
+    "format1": "3 tools"
+   }
+  },
+  {
+   "step": "format 2 on another console: a version it doesn't have installs at its own version of the same major only with consent (settings carried over), an integration it doesn't have is left out only with consent, and both are listed; the exact ones are pinned as they were",
+   "ok": true,
+   "detail": {
+    "states": {
+     "builder": "other-version",
+     "zendesk": "unknown",
+     "web": "exact"
+    },
+    "installed": [
+     "builder@1.0.0",
+     "web@1.0.0"
+    ],
+    "left": {
+     "capabilities": [],
+     "requirements": [],
+     "gitflow": "",
+     "integrations": [
+      "zendesk 2.0.0"
+     ],
+     "versions": [
+      "Builder.io 1.9.0 → 1.0.0"
+     ]
+    }
+   }
+  },
+  {
+   "step": "format 1 on a console with integrations: it installs as a worker made before integrations (its tools as they were), says so, and can then be migrated",
+   "ok": true,
+   "detail": {
+    "installedAs": "schema 1",
+    "migration": "ambiguous"
+   }
+  },
+  {
+   "step": "page, A: the editor's Export… shows what's in the package and what stays, and downloads it; Clone… asks for a name and opens the new worker",
+   "ok": true,
+   "detail": {
+    "downloaded": "figma-designer.workerpack",
+    "clone": "Figma Designer, mine"
+   }
+  },
+  {
+   "step": "page, B: Import worker → choose the file → its review (identity, steps, knowledge, tools here, missing Figma access with where to set it up) → Install (asks first, because access is missing) → installed, with a new task offered",
+   "ok": true,
+   "detail": {
+    "installed": "designer-from-a-c996",
+    "composer": "Describe the task, or reply to the worker\n◆\nDesigner from A\n"
+   }
+  },
+  {
+   "step": "page: no script errors",
+   "ok": true,
+   "detail": {
+    "pageErrors": 0
+   }
+  }
+ ]
+}
