@@ -29,6 +29,7 @@ import * as builderApi from "../builder-adapter/builder.mjs";
 import * as github from "./github.mjs";
 import * as ghApp from "./github-app.mjs";
 import { resolveProvider } from "./provider.mjs";
+import { hasKey as hasCredentialKey } from "./secret-file.mjs";
 import * as drafts from "./integrations.mjs";
 import * as gitflow from "./gitflow.mjs";
 import * as workerpack from "./workerpack.mjs";
@@ -63,6 +64,8 @@ const INTERNAL_SECRET = process.env.AIW_INTERNAL_SECRET || "";
 const PUBLIC_ORIGIN = HOSTED ? String(process.env.AIW_PUBLIC_ORIGIN || "").replace(/\/+$/, "") : null;
 if (HOSTED && !/^[\w-]{32,}$/.test(INTERNAL_SECRET)) fatal("AIW_INTERNAL_SECRET is missing (a hosted console is started by the gateway).");
 if (HOSTED && !/^https?:\/\/[^/]+$/.test(PUBLIC_ORIGIN)) fatal("AIW_PUBLIC_ORIGIN is missing or not an origin.");
+// Hosted, the person's integration credentials (GitHub, Figma, Builder) are only ever written encrypted.
+if (HOSTED && !hasCredentialKey()) fatal("AIW_CREDENTIAL_KEY is missing (the gateway gives each person's console their credential key).");
 // The model provider: how workers are authenticated (worker-ui/provider.mjs). No fallback.
 const PROVIDER = (() => { try { return resolveProvider(process.env, { hosted: HOSTED }); } catch (e) { return fatal(e.message); } })();
 // A hosted person's workspaces are folders the console creates under their own data dir: there's
@@ -411,6 +414,17 @@ async function liveFor(runId, token, server, at, on) {
   if (!a.ready) await Promise.race([refreshLive(run, { force: true }), new Promise((ok) => setTimeout(ok, 9000))]);
   if (run.authz !== a || !a.ready) return { live: [], v: -1 };
   return { live: [...a.live, ...(a.repo ? ["repo"] : [])], v: a.v };
+}
+// A tool server that reads a stored credential (the Figma reader, Builder) asking for the person's
+// credential key at start (worker-ui/secret-file.mjs): only with its live run's token, only for those
+// servers. The key never goes into a run's files; locally there's none (null).
+const CREDENTIAL_SERVERS = new Set(["figma-reader", "builder"]);
+function credentialKeyFor(runId, token, server) {
+  const run = runs.get(runId), a = run?.authz;
+  if (!a || !alive(run) || !CREDENTIAL_SERVERS.has(server)) return null;
+  const t = Buffer.from(String(token)), want = Buffer.from(a.token);
+  if (t.length !== want.length || !timingSafeEqual(t, want)) return null;
+  return { key: process.env.AIW_CREDENTIAL_KEY || null };
 }
 // One account check, never throwing and never hanging: anything but a clear "available" is a no.
 async function checkAccount(a, ctx, timeout = 15000) {
@@ -2822,6 +2836,12 @@ function rejectReason(req) {
 http.createServer(async (req, res) => {
   // A run's tool servers asking whether a call is allowed (authorizeCall). Token-checked; it answers
   // only on this console's own address.
+  if (req.method === "GET" && /^\/authz\/[\w-]+\/credential-key$/.test(String(req.url).split("?")[0])) {
+    if (!HOSTS.has(String(req.headers.host || "").toLowerCase())) { res.writeHead(403); return res.end(); }
+    const u = new URL(req.url, `http://localhost:${PORT}`);
+    const r = credentialKeyFor(u.pathname.split("/")[2], req.headers["x-aiw-authz"] || "", u.searchParams.get("server") || "");
+    return json(res, r ? 200 : 403, r || {});
+  }
   if (req.method === "GET" && /^\/authz\/[\w-]+\/live$/.test(String(req.url).split("?")[0])) {
     if (!HOSTS.has(String(req.headers.host || "").toLowerCase())) { res.writeHead(403); return res.end(); }
     const u = new URL(req.url, `http://localhost:${PORT}`);

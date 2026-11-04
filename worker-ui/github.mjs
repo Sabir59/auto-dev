@@ -17,9 +17,10 @@
 //  - A pasted token: { method: "token", token }. Least privilege: a fine-grained personal access
 //    token limited to the chosen repositories, with "Metadata: read" (enough for discovery and
 //    verification). Classic tokens work too; their scopes are reported so a broad one is visible.
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, renameSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
+import { readSecretJson, writeSecretJson } from "./secret-file.mjs";
 import { fileURLToPath } from "node:url";
 
 // One spelling per repository, to compare a checkout's remote with the registered one: credentials
@@ -46,8 +47,10 @@ export class GitHubError extends Error {
   constructor(message, { status = 0, kind = "error" } = {}) { super(message); this.status = status; this.kind = kind; }
 }
 
-export const hasToken = () => existsSync(CRED_FILE);
-const readCred = () => { try { const c = JSON.parse(readFileSync(CRED_FILE, "utf8")); return c?.token ? { method: c.method || "token", ...c } : null; } catch { return null; } };
+// Connected = a credential this console can read (not merely a file: one stored with another key, or damaged, isn't).
+export const hasToken = () => !!readCred();
+// Encrypted at rest when the console has the person's credential key (hosted); secret-file.mjs.
+const readCred = () => { try { const c = readSecretJson(CRED_FILE, "github"); return c?.token ? { method: c.method || "token", ...c } : null; } catch { return null; } };
 export const connectionMethod = () => readCred()?.method || null;
 // The app's token expires (GitHub default: 8 hours); it's refreshed with its refresh token through
 // the refresher the console installs (github-app.mjs's, which holds the client secret).
@@ -65,9 +68,7 @@ async function currentToken() {
 export const gitToken = () => currentToken();
 export function saveCredentials(c) {
   if (!c?.token || !TOKEN.test(c.token)) throw new GitHubError("GitHub returned something that isn't a token.", { kind: "exchange" });
-  mkdirSync(CRED_DIR, { recursive: true });
-  writeFileSync(CRED_FILE + ".tmp", JSON.stringify({ method: c.method || "token", token: c.token, ...(c.refreshToken ? { refreshToken: c.refreshToken } : {}), ...(c.expiresAt ? { expiresAt: c.expiresAt } : {}), ...(c.refreshExpiresAt ? { refreshExpiresAt: c.refreshExpiresAt } : {}), savedAt: new Date().toISOString() }), { mode: 0o600 });
-  renameSync(CRED_FILE + ".tmp", CRED_FILE);
+  writeSecretJson(CRED_FILE, "github", { method: c.method || "token", token: c.token, ...(c.refreshToken ? { refreshToken: c.refreshToken } : {}), ...(c.expiresAt ? { expiresAt: c.expiresAt } : {}), ...(c.refreshExpiresAt ? { refreshExpiresAt: c.refreshExpiresAt } : {}), savedAt: new Date().toISOString() });
 }
 export function checkToken(t) {
   t = String(t || "").trim();

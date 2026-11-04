@@ -17,6 +17,7 @@
 // worker) for a worker or Team scoped to draft-only writes. publishContent() and updateContent()
 // with live:true both refuse here, in the adapter itself, regardless of how they're called.
 import { readFileSync, existsSync, statSync, realpathSync } from "node:fs";
+import { readSecretJson, SecretFileError } from "../worker-ui/secret-file.mjs";
 import { join, resolve, relative, isAbsolute, extname, basename } from "node:path";
 import { homedir } from "node:os";
 
@@ -62,7 +63,8 @@ export class BuilderError extends Error {
 export function readCredentials() {
   if (!existsSync(CRED_FILE)) throw new BuilderError(`No Builder credentials on this computer (${CRED_FILE}).`, { code: "NO_CREDENTIALS" });
   let c;
-  try { c = JSON.parse(readFileSync(CRED_FILE, "utf8")); } catch { throw new BuilderError(`The Builder credentials file isn't valid JSON (${CRED_FILE}).`, { code: "BAD_CREDENTIALS" }); }
+  // encrypted at rest when the person's key is present (hosted): worker-ui/secret-file.mjs
+  try { c = readSecretJson(CRED_FILE, "builder"); } catch (e) { if (e instanceof SecretFileError) throw new BuilderError(`The Builder credentials can't be read (${e.message})`, { code: "BAD_CREDENTIALS" }); throw new BuilderError(`The Builder credentials file isn't valid JSON (${CRED_FILE}).`, { code: "BAD_CREDENTIALS" }); }
   if (!c.publicKey || !c.privateKey) throw new BuilderError("The Builder credentials file needs both publicKey and privateKey.", { code: "BAD_CREDENTIALS" });
   return { label: String(c.label || "Builder space"), environment: c.environment === "test" ? "test" : "production", publicKey: String(c.publicKey), privateKey: String(c.privateKey) };
 }

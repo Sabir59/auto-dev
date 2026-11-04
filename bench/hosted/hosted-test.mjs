@@ -13,7 +13,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, readdi
 import { join, dirname, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { randomBytes, createHash } from "node:crypto";
+import { randomBytes, createHash, hkdfSync, createDecipheriv } from "node:crypto";
 import { startFakeAnthropic } from "./fake-anthropic.mjs";
 import { startMock, APP } from "../github/mock-github.mjs";
 import { resolveProvider } from "../../worker-ui/provider.mjs";
@@ -28,6 +28,9 @@ const O = `http://127.0.0.1:${P.site}`;
 const KEY = "sk-ant-test-" + randomBytes(20).toString("hex"), KEY_B = "sk-ant-test-" + randomBytes(20).toString("hex"), KEY_A2 = "sk-ant-test-" + randomBytes(20).toString("hex"), KEYS = [KEY, KEY_B, KEY_A2];
 const keySha = (k) => createHash("sha256").update(k).digest("hex").slice(0, 16);
 const SECRETS = randomBytes(32).toString("base64"); // the gateway's AIW_SECRETS_KEY
+// A person's credential key, derived as the gateway derives it (worker-ui/gateway.mjs), to check files at rest.
+const personKey = (id) => Buffer.from(hkdfSync("sha256", Buffer.from(SECRETS, "base64"), "aiw-person-credentials", `v1:${id}`, 32));
+const openSecretFile = (file, kind, key) => { const r = JSON.parse(readFileSync(file, "utf8")); const d = createDecipheriv("aes-256-gcm", key, Buffer.from(r.iv, "base64"), { authTagLength: 16 }); d.setAAD(Buffer.from(`aiw-secret-file:v1:${kind}`)); d.setAuthTag(Buffer.from(r.tag, "base64")); return JSON.parse(Buffer.concat([d.update(Buffer.from(r.ct, "base64")), d.final()]).toString("utf8")); };
 const DATA = mkdtempSync(join(LINUX ? "/var/tmp" : tmpdir(), "aiw-hosted-"));
 if (ROOT) spawnSync("chmod", ["711", DATA]);
 const results = [], gwOut = [];
@@ -440,6 +443,32 @@ await step("AI provider isolation: alice changing, then deleting, her key while 
   assert(back.status === 200, "alice's key couldn't be restored");
   return { bobRequests: bobReqs.length, bobOutcome: done.outcome, aliceNewKeyRequests: aliceReqs.length };
 });
+await step("integration credentials: the person's credential key goes only to their own live run's Figma and Builder tool servers, never into the run's files", async () => {
+  const w = await A.req("POST", "/workers", { name: "Figma reader", mission: "Reads designs.", capabilities: ["files.read", "figma.read"] });
+  assert(w.status === 200, JSON.stringify(w.json));
+  await script("credLive", [{ delayMs: 5000, then: { text: "DONE: cred" } }]);
+  const r = await A.run({ prompt: "Read. FAKE-SCRIPT:credLive", workspace: wsA.id, worker: w.json.id });
+  assert(r.status === 200, r.text);
+  const mcpFile = join(home(alice), "data", "runs", `${r.json.id}.mcp.json`);
+  for (let i = 0; i < 100 && !existsSync(mcpFile); i++) await sleep(100);
+  const raw = readFileSync(mcpFile, "utf8"), fr = JSON.parse(raw).mcpServers["figma-reader"];
+  assert(fr?.env?.AIW_AUTHZ_URL && fr.env.AIW_AUTHZ_TOKEN, "no figma-reader server with an access check in the run");
+  const mine = personKey(alice.id).toString("base64");
+  assert(!raw.includes(mine) && !raw.includes("AIW_CREDENTIAL_KEY"), "the credential key is in the run's MCP config file");
+  const ask = async (url, token, server) => { const x = await fetch(`${url}/credential-key?server=${server}`, { headers: { "x-aiw-authz": token } }); return { status: x.status, key: (await x.json().catch(() => ({}))).key }; };
+  const url = fr.env.AIW_AUTHZ_URL, tok = fr.env.AIW_AUTHZ_TOKEN;
+  const own = await ask(url, tok, "figma-reader"), builder = await ask(url, tok, "builder"), other = await ask(url, tok, "repo"), wrong = await ask(url, "x".repeat(36), "figma-reader");
+  const bobConsole = url.replace(/:\d+\//, `:${P.consoles + bob.seq}/`), viaBob = await ask(bobConsole, tok, "figma-reader");
+  assert(own.status === 200 && own.key === mine, `own figma-reader → ${own.status}`);
+  assert(builder.status === 200 && builder.key === mine, `own builder → ${builder.status}`);
+  assert(other.status === 403 && !other.key && wrong.status === 403 && viaBob.status === 403, `other server ${other.status}, wrong token ${wrong.status}, bob's console ${viaBob.status}`);
+  assert(mine !== personKey(bob.id).toString("base64"), "two people share a key");
+  await A.req("POST", `/runs/${r.json.id}/end`, {});
+  for (let i = 0; i < 60 && (await A.req("GET", "/runs")).json.active; i++) await sleep(250);
+  const ended = await ask(url, tok, "figma-reader");
+  assert(ended.status === 403, `after the run ended → ${ended.status}`);
+  return { ownServer: own.status, otherServer: other.status, wrongToken: wrong.status, bobsConsole: viaBob.status, afterEnd: ended.status };
+});
 await step("OS boundary (Linux): each person's folder is theirs alone (mode 700, own uid); their console and workers run as that uid; another uid can't read it", async () => {
   const st = (p) => { const s = statSync(p); return { uid: s.uid, mode: (s.mode & 0o777).toString(8) }; };
   const a = st(home(alice)), b = st(home(bob));
@@ -477,6 +506,22 @@ await step("Connect with GitHub: GitHub's consent returns to the public site; th
   assert(brokerless.status === 401, `broker without a token → ${brokerless.status}`);
   assert(!JSON.stringify(gh).includes(APP.clientSecret), "secret on the page");
   return { connectedAs: gh.connection.login, replay: replay.headers.get("location") };
+});
+await step("GitHub credential at rest: stored encrypted with alice's own key (no token on disk); copied into bob's folder it doesn't open as alice's", async () => {
+  const file = join(home(alice), "github", "credentials.json"), raw = readFileSync(file, "utf8");
+  assert(Object.keys(JSON.parse(raw)).sort().join() === "ct,enc,iv,tag,v", `not an encrypted file: ${Object.keys(JSON.parse(raw))}`);
+  assert(!/gh[pousr]_|github_pat_|refresh/i.test(raw), "a token is readable in the file");
+  const c = openSecretFile(file, "github", personKey(alice.id));
+  assert(c.method === "app" && c.token && c.refreshToken, "alice's key doesn't open it as her GitHub credential");
+  let bobOpens = true; try { openSecretFile(file, "github", personKey(bob.id)); } catch { bobOpens = false; }
+  assert(!bobOpens, "bob's key opens alice's credential");
+  const bobFile = join(home(bob), "github", "credentials.json");
+  writeFileSync(bobFile, raw); if (ROOT) chownSync(bobFile, bob.uid, bob.uid);
+  const bobGh = (await B.req("GET", "/github")).json;
+  rmSync(bobFile, { force: true });
+  assert(!bobGh.connected && bobGh.connection?.login !== "alice", `bob's console used or showed alice's copied credential: ${JSON.stringify(bobGh).slice(0, 200)}`);
+  if (LINUX) assert((statSync(file).mode & 0o777) === 0o600, "file mode");
+  return { encrypted: true, bobConnected: !!bobGh.connected };
 });
 await step("repository workspace: cloned into the person's own folder with the connection; workers get at most commit (the person pushes); the push goes to the registered remote; protected branches are refused", async () => {
   const reg = await A.req("POST", "/github/repos", { fullName: "alice/site" });

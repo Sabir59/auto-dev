@@ -10,6 +10,7 @@
 //     "client_id": "...", "client_secret": "..." }                  written by oauth.mjs
 // FIGMA_TOKEN in the environment (a personal access token) takes precedence.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readSecretJson, writeSecretJson } from "../worker-ui/secret-file.mjs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
@@ -36,9 +37,9 @@ export function parseFigmaUrl(input) {
 function readCredentials() {
   if (process.env.FIGMA_TOKEN) return { type: "pat", token: process.env.FIGMA_TOKEN.trim() };
   if (!existsSync(CRED_FILE)) throw new Error(`No Figma credentials. Put a personal access token in FIGMA_TOKEN, or create ${CRED_FILE} (see figma-reader/README.md).`);
-  return JSON.parse(readFileSync(CRED_FILE, "utf8"));
+  return readSecretJson(CRED_FILE, "figma"); // encrypted at rest when the person's key is present (hosted): worker-ui/secret-file.mjs
 }
-export function saveCredentials(c) { mkdirSync(CRED_DIR, { recursive: true }); writeFileSync(CRED_FILE, JSON.stringify(c, null, 1), { mode: 0o600 }); }
+export function saveCredentials(c) { writeSecretJson(CRED_FILE, "figma", c); }
 // Refresh goes to /v1/oauth/token with grant_type=refresh_token (changelog, May 16, 2025); the
 // older /v1/oauth/refresh is still accepted and used as a fallback.
 async function refreshOAuth(c) {

@@ -12,6 +12,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { guardTools } from "./authz.mjs";
+import { loadKeyFromConsole } from "../worker-ui/secret-file.mjs";
 import { z } from "zod";
 import * as B from "../builder-adapter/builder.mjs";
 
@@ -89,4 +90,6 @@ if (FULL) {
   }, run(({ model, id }) => B.publishContent(model, id)));
 }
 
+// The person's credential key, from their own console (hosted: credentials are encrypted at rest).
+await loadKeyFromConsole();
 await server.connect(new StdioServerTransport());

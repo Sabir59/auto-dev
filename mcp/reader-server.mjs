@@ -9,6 +9,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { guardTools } from "./authz.mjs";
+import { loadKeyFromConsole } from "../worker-ui/secret-file.mjs";
 import { z } from "zod";
 import { readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -68,4 +69,6 @@ server.registerTool("figma_read_design", {
   } catch (e) { return refuse(explain(e, ref)); }
 });
 
+// The person's credential key, from their own console (hosted: credentials are encrypted at rest).
+await loadKeyFromConsole();
 await server.connect(new StdioServerTransport());

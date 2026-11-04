@@ -89,7 +89,7 @@ Each person then: GitHub page → Connect with GitHub → authorize → "Choose 
 
 ## 5. Storage
 - **`/data/control/`** (root, 700): `users.json` (accounts, scrypt hashes) and `sessions.json` (session hashes).
-- **`/data/users/<id>/`** (the person's uid, 700): `data/` (runs, workspaces, workers, Teams, Scratch), `claude/` (sessions, for resume), `github/` (their GitHub token), `figma/` (their Figma token), `builder/`, `tmp/`.
+- **`/data/users/<id>/`** (the person's uid, 700): `data/` (runs, workspaces, workers, Teams, Scratch), `claude/` (sessions, for resume), `github/` (their GitHub token), `figma/` (their Figma token), `builder/`, `tmp/`. The three credential files are encrypted (AES-256-GCM) with the person's own key, derived from `AIW_SECRETS_KEY` and their id. Only their console holds that key, in memory, and it's never on the volume (`worker-ui/secret-file.mjs`, `docs/ENCRYPTION_AT_REST.md`).
 - **`/data/logs/`** (root, 700): `<id>.console.log`, each console's own log.
 
 **Requirements:** a POSIX filesystem that keeps uids and modes (ext4/xfs on a block volume; not SMB, and not NFS with root squash). **Encrypt the volume at rest.**

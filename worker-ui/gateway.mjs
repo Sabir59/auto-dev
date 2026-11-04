@@ -24,7 +24,7 @@
 import http from "node:http";
 import https from "node:https";
 import { spawn, spawnSync } from "node:child_process";
-import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
+import { randomBytes, createHash, timingSafeEqual, hkdfSync } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, chownSync, chmodSync, openSync, accessSync, constants as FS, statSync } from "node:fs";
 import { join, dirname, resolve, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -153,12 +153,15 @@ function prepareHome(u) {
   if (ISOLATION === "uid") for (const d of dirs.reverse()) { chownSync(d, u.uid, u.uid); chmodSync(d, 0o700); }
   return home;
 }
+// Each person's key for their integration credentials at rest (GitHub, Figma, Builder; secret-file.mjs),
+// derived from AIW_SECRETS_KEY and their id: only their console gets it, in memory; it's never stored.
+const credentialKeyOf = (u) => Buffer.from(hkdfSync("sha256", SECRETS_KEY, "aiw-person-credentials", `v1:${u.id}`, 32)).toString("base64");
 function consoleEnv(u, c, home) {
   const keep = ["PATH", "LANG", "TZ", "PLAYWRIGHT_BROWSERS_PATH", "NODE_EXTRA_CA_CERTS", "GITHUB_STATE_TTL_MS",
     ...(process.platform === "win32" ? ["SystemRoot", "windir", "ComSpec", "PATHEXT", "APPDATA", "LOCALAPPDATA", "ProgramData", "ProgramFiles", "ProgramFiles(x86)", "SystemDrive", "TEMP", "TMP"] : [])];
   const e = Object.fromEntries(keep.filter((k) => env[k] !== undefined).map((k) => [k, env[k]]));
   return { ...e, HOME: home, USERPROFILE: home, TMPDIR: join(home, "tmp"), LANG: env.LANG || "C.UTF-8",
-    AIW_HOSTED: "1", AIW_INTERNAL_SECRET: c.secret, AIW_PUBLIC_ORIGIN: PUBLIC_ORIGIN, AIW_USER_NAME: u.name, AIW_USER_EMAIL: u.email,
+    AIW_HOSTED: "1", AIW_INTERNAL_SECRET: c.secret, AIW_CREDENTIAL_KEY: credentialKeyOf(u), AIW_PUBLIC_ORIGIN: PUBLIC_ORIGIN, AIW_USER_NAME: u.name, AIW_USER_EMAIL: u.email,
     WORKER_CONSOLE_PORT: String(c.port), WORKER_CONSOLE_DATA: join(home, "data"), WORKER_CONSOLE_CLAUDE_CONFIG_DIR: join(home, "claude"),
     GITHUB_CONNECTOR_DIR: join(home, "github"), FIGMA_READER_DIR: join(home, "figma"), BUILDER_ADAPTER_DIR: join(home, "builder"),
     MODEL_PROVIDER: "anthropic-gateway", ANTHROPIC_BASE_URL: `http://127.0.0.1:${MODEL_PORT}`, ANTHROPIC_AUTH_TOKEN: c.modelKey,
