@@ -1,5 +1,5 @@
 {
- "when": "2026-10-28T10:12:25.622Z",
+ "when": "2026-11-04T17:27:16.213Z",
  "platform": "win32",
  "isolation": "none",
  "tag": null,
@@ -7,11 +7,11 @@
  "node": "v22.23.2",
  "results": [
   {
-   "step": "config: a production gateway refuses to start without https, an API key, isolation and a real provider address",
+   "step": "config: a production gateway refuses to start without https, isolation, a secrets key and a real provider address, or with a central provider key; it needs no provider key",
    "ok": true,
    "detail": {
     "exit": 1,
-    "problems": 4
+    "problems": 5
    }
   },
   {
@@ -82,13 +82,26 @@
    }
   },
   {
+   "step": "AI provider: with none connected the platform is ready and a run is refused in the person's own console; a rejected key isn't kept; each person's key is stored encrypted, bound to them, and never shown",
+   "ok": true,
+   "detail": {
+    "refused": 409,
+    "rejectedKey": 400,
+    "crossOrigin": 403,
+    "connected": [
+     "anthropic-api",
+     "anthropic-api"
+    ]
+   }
+  },
+  {
    "step": "hosted workspace: a new one is a folder of the person's own; a path from the page is ignored; Executor, folder browsing and the platform's files don't exist",
    "ok": true,
    "detail": {
-    "root": "<data>\\users\\u-44289a61-6da\\data\\workspaces\\site-404e",
+    "root": "<data>\\users\\u-656c1e4f-c02\\data\\workspaces\\site-aa97",
     "list": [
      "scratch",
-     "site-404e"
+     "site-aa97"
     ]
    }
   },
@@ -98,18 +111,18 @@
    "detail": {
     "outcome": "done",
     "refusals": [
-     "C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-FYvBmO\\users\\u-adadbfba-a82\\data\\bob-secret.txt ",
-     "C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-FYvBmO\\control\\users.json is outside C:\\Users\\hp",
+     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-TABQwb\\users\\u-0e000b9f-cab\\data\\bob-se",
+     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-TABQwb\\control\\users.json is outside th",
      "<tool_use_error>Error: No such tool available: Bash. Bash is disabled for this session, in",
      "WebFetch denied access to domain:169.254.169.254."
     ]
    }
   },
   {
-   "step": "the provider key stays in the gateway: the provider saw it, nothing else did (activity, run records, API answers, logs)",
+   "step": "each person's provider key stays in the gateway: the provider saw it on that person's requests, nothing else did (activity, run records, API answers, logs, processes)",
    "ok": true,
    "detail": {
-    "providerRequests": 6,
+    "providerRequests": 9,
     "filesScanned": 21,
     "processes": null
    }
@@ -136,7 +149,7 @@
    "step": "Scratch (the default with no workspace): the conversation gets its own folder under the person's data; the worker writes there; it's listed only through the conversation",
    "ok": true,
    "detail": {
-    "folder": "<data>\\users\\u-44289a61-6da\\data\\scratch-runs\\2026-10-28T10-11-43-781Z"
+    "folder": "<data>\\users\\u-656c1e4f-c02\\data\\scratch-runs\\2026-11-04T17-26-26-954Z"
    }
   },
   {
@@ -144,7 +157,7 @@
    "ok": true,
    "detail": {
     "status": "stopped",
-    "ms": 555
+    "ms": 548
    }
   },
   {
@@ -162,7 +175,7 @@
    "detail": {
     "status": "waiting",
     "outcome": "error",
-    "seconds": 5
+    "seconds": 3
    }
   },
   {
@@ -173,6 +186,15 @@
     "events": 404,
     "file": 404,
     "message": 404
+   }
+  },
+  {
+   "step": "AI provider isolation: alice changing, then deleting, her key while bob's run is live doesn't touch bob's run; alice's next run uses her new key",
+   "ok": true,
+   "detail": {
+    "bobRequests": 2,
+    "bobOutcome": "done",
+    "aliceNewKeyRequests": 1
    }
   },
   {
@@ -201,10 +223,10 @@
    "ok": true,
    "detail": {
     "refused": [
-     "Refused: 127.0.0.1:8770 is on this server; the browser can't",
+     "Refused: 127.0.0.1:8870 is on this server; the browser can't",
      "Refused: 169.254.169.254 is a private or internal network ad",
      "Refused: 10.1.2.3 is a private or internal network address; ",
-     "Refused: localhost.:8772 is on this server; the browser can'",
+     "Refused: localhost.:8872 is on this server; the browser can'",
      "Refused: files outside the workspace can't be opened."
     ],
     "publicPage": "{ \"url\": \"https://example.com/\", \"title\": \"Example Domain\", ",

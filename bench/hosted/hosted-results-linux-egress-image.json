@@ -1,5 +1,5 @@
 {
- "when": "2026-11-04T16:58:23.420Z",
+ "when": "2026-11-04T17:28:33.528Z",
  "platform": "linux",
  "isolation": "uid",
  "tag": "image",
@@ -7,11 +7,11 @@
  "node": "v22.23.3",
  "results": [
   {
-   "step": "config: a production gateway refuses to start without https, an API key, isolation and a real provider address",
+   "step": "config: a production gateway refuses to start without https, isolation, a secrets key and a real provider address, or with a central provider key; it needs no provider key",
    "ok": true,
    "detail": {
     "exit": 1,
-    "problems": 4
+    "problems": 5
    }
   },
   {
@@ -82,13 +82,26 @@
    }
   },
   {
+   "step": "AI provider: with none connected the platform is ready and a run is refused in the person's own console; a rejected key isn't kept; each person's key is stored encrypted, bound to them, and never shown",
+   "ok": true,
+   "detail": {
+    "refused": 409,
+    "rejectedKey": 400,
+    "crossOrigin": 403,
+    "connected": [
+     "anthropic-api",
+     "anthropic-api"
+    ]
+   }
+  },
+  {
    "step": "hosted workspace: a new one is a folder of the person's own; a path from the page is ignored; Executor, folder browsing and the platform's files don't exist",
    "ok": true,
    "detail": {
-    "root": "<data>/users/u-8d04cd1c-38a/data/workspaces/site-66f6",
+    "root": "<data>/users/u-15ca3f0e-78c/data/workspaces/site-eb02",
     "list": [
      "scratch",
-     "site-66f6"
+     "site-eb02"
     ]
    }
   },
@@ -98,18 +111,18 @@
    "detail": {
     "outcome": "done",
     "refusals": [
-     "Refused: /var/tmp/aiw-hosted-OWV0fe/users/u-e9cd106b-597/data/bob-secret.txt is outside th",
-     "Refused: /var/tmp/aiw-hosted-OWV0fe/control/users.json is outside the folders this run can",
+     "Refused: /var/tmp/aiw-hosted-pfdZeq/users/u-251b27d6-b05/data/bob-secret.txt is outside th",
+     "Refused: /var/tmp/aiw-hosted-pfdZeq/control/users.json is outside the folders this run can",
      "<tool_use_error>Error: No such tool available: Bash. Bash is disabled for this session, in",
      "WebFetch denied access to domain:169.254.169.254."
     ]
    }
   },
   {
-   "step": "the provider key stays in the gateway: the provider saw it, nothing else did (activity, run records, API answers, logs)",
+   "step": "each person's provider key stays in the gateway: the provider saw it on that person's requests, nothing else did (activity, run records, API answers, logs, processes)",
    "ok": true,
    "detail": {
-    "providerRequests": 6,
+    "providerRequests": 9,
     "filesScanned": 23,
     "processes": [
      {
@@ -161,7 +174,7 @@
    "step": "Scratch (the default with no workspace): the conversation gets its own folder under the person's data; the worker writes there; it's listed only through the conversation",
    "ok": true,
    "detail": {
-    "folder": "<data>/users/u-8d04cd1c-38a/data/scratch-runs/2026-11-04T16-57-49-072Z"
+    "folder": "<data>/users/u-15ca3f0e-78c/data/scratch-runs/2026-11-04T17-27-53-472Z"
    }
   },
   {
@@ -187,7 +200,7 @@
    "detail": {
     "status": "waiting",
     "outcome": "error",
-    "seconds": 2
+    "seconds": 4
    }
   },
   {
@@ -198,6 +211,15 @@
     "events": 404,
     "file": 404,
     "message": 404
+   }
+  },
+  {
+   "step": "AI provider isolation: alice changing, then deleting, her key while bob's run is live doesn't touch bob's run; alice's next run uses her new key",
+   "ok": true,
+   "detail": {
+    "bobRequests": 2,
+    "bobOutcome": "done",
+    "aliceNewKeyRequests": 1
    }
   },
   {
@@ -212,7 +234,7 @@
      "uid": 20002,
      "mode": "700"
     },
-    "crossRead": "cat: /var/tmp/aiw-hosted-OWV0fe/users/u-e9cd106b-597/data/bob-secret.txt: Permis",
+    "crossRead": "cat: /var/tmp/aiw-hosted-pfdZeq/users/u-251b27d6-b05/data/bob-secret.txt: Permis",
     "processUids": [
      20001
     ]
