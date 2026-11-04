@@ -86,6 +86,17 @@ function claudeBin() {
 }
 const SETPRIV = ["/usr/bin/setpriv", "/bin/setpriv"].find(existsSync) || null;
 const PRLIMIT = ["/usr/bin/prlimit", "/bin/prlimit"].find(existsSync) || null;
+// With the egress firewall (deploy/egress-firewall.sh) a person's uid can't reach loopback, but
+// their run's tool servers (repo, Figma, Builder, Git flow, evolve) ask their own console whether a
+// call is allowed (/authz, /evolve). So each person's uid may reach their own console's port and no
+// other: another person's console stays refused. Added when the console starts; idempotent.
+function allowOwnConsole(uid, port) {
+  if (env.AIW_EGRESS_FIREWALL !== "1" || ISOLATION !== "uid") return;
+  const rule = ["AIW_EGRESS", "-m", "owner", "--uid-owner", String(uid), "-d", "127.0.0.1", "-p", "tcp", "--dport", String(port), "-j", "RETURN"];
+  if (spawnSync("iptables", ["-C", ...rule], { stdio: "ignore" }).status === 0) return;
+  const r = spawnSync("iptables", ["-I", ...rule.slice(0, 1), "1", ...rule.slice(1)], { encoding: "utf8" });
+  if (r.status !== 0) log("warn", "couldn't allow a console its own port: its integration tools stay off", { uid, port, error: String(r.stderr || r.error?.message || "").trim().slice(0, 200) });
+}
 
 // ---- stores (control dir: root-only when isolated) ----
 const CONTROL = join(DATA, "control");
@@ -166,6 +177,7 @@ async function ensureConsole(u) {
     const lim = PRLIMIT ? [PRLIMIT, `--nproc=${NPROC}`, "--nofile=8192", "--core=0", `--fsize=${FSIZE}`, "--"] : [];
     [cmd, ...args] = [...lim, ...priv];
     if (!SETPRIV) opts = { uid: u.uid, gid: u.uid };
+    allowOwnConsole(u.uid, c.port);
   }
   const out = openSync(join(LOGS, `${u.id}.console.log`), "a", 0o600);
   c.proc = spawn(cmd, args, { cwd: home, env: consoleEnv(u, c, home), stdio: ["ignore", out, out], ...opts });

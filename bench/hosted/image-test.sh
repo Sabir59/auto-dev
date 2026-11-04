@@ -57,6 +57,9 @@ probe() { docker exec $NAME setpriv --reuid=20001 --regid=20001 --clear-groups n
 [ "$(probe http://169.254.169.254/latest/meta-data/)" = refused ] && ok "firewall: metadata refused for a person uid" || no "metadata reachable"
 [ "$(probe http://127.0.0.1:8080/healthz)" = refused ] && ok "firewall: the gateway's public port refused for a person uid" || no "gateway port reachable from a person uid"
 [ "$(probe https://api.github.com/zen)" = reachable ] && ok "firewall: the internet reachable for a person uid" || no "internet unreachable"
+# A person's tool servers ask their own console (/authz, /evolve); another person's console stays refused.
+[ "$(probe http://127.0.0.1:9101/__health)" = reachable ] && ok "firewall: a person uid reaches its own console (its tool servers' access checks)" || no "own console port refused: integration tools would stay off"
+[ "$(probe http://127.0.0.1:9102/__health)" = refused ] && ok "firewall: another person's console refused for a person uid" || no "another person's console reachable from uid 20001"
 caps=$(docker exec $NAME sh -c 'for p in /proc/[0-9]*; do grep -q 'worker-ui/server[.]mjs' $p/cmdline 2>/dev/null && grep CapEff $p/status; done' | sort -u | tr -s ' \t' ' ')
 [ "$caps" = "CapEff: 0000000000000000" ] && ok "consoles have no capabilities" || no "console capabilities: $caps"
 

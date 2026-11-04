@@ -20,10 +20,9 @@
 !worker-ui/*.html
 !worker-ui/worker-instructions.md
 !worker-ui/worker-efficiency.md
-!worker-ui/server.mjs
-!worker-ui/gateway.mjs
-!worker-ui/users.mjs
-!worker-ui/provider.mjs
-!worker-ui/github.mjs
-!worker-ui/github-app.mjs
-!worker-ui/git-credential.mjs
+# Every console module by pattern, not by name: a named list went stale when the console gained
+# modules (catalog, integrations, workerdef, …) and the image's consoles couldn't start.
+!worker-ui/*.mjs
+# The integrations registry: manifests, schemas, order and the release lock (data, no state). The
+# whole folder: with the legacy builder, "integrations/*/*.json" doesn't reach the subfolders.
+!worker-ui/integrations

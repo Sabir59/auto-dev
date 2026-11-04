@@ -95,7 +95,8 @@ Each person then: GitHub page → Connect with GitHub → authorize → "Choose 
   - `api.figma.com:443`;
   - the web (WebFetch, WebSearch, the browser);
   - the gateway's loopback model port.
-- **Egress firewall (required before launch):** the person uids must not reach the cloud metadata service (169.254.169.254), the VPC's private ranges, or the container's loopback services other than the model port.
+- **Egress firewall (required before launch):** the person uids must not reach the cloud metadata service (169.254.169.254), the VPC's private ranges, or the container's loopback services other than the model port and **their own console's port**.
+  - The own-console exception: a run's integration tool servers (repo, Figma, Builder, Git flow, evolve) ask their console whether each call is allowed (`/authz`, `/evolve`). When the gateway starts a person's console with `AIW_EGRESS_FIREWALL=1`, it adds one rule letting that uid reach that console's port only. Another person's console stays refused (`image-test.sh` checks both). Without it, those tools never turn on (found 2026-11-04).
   - `deploy/egress-firewall.sh` installs these rules (iptables owner match on the person uid range). Run the container with `--cap-add NET_ADMIN` and `AIW_EGRESS_FIREWALL=1`, or apply the equivalent rules on the host for the container's network namespace.
   - DNS to the resolvers in `/etc/resolv.conf` stays allowed (port 53 only), so a VPC or Docker resolver on a private address keeps working. `AIW_DNS_SERVER` adds another.
   - Also block metadata at the cloud level where possible: AWS IMDSv2 with hop limit 1, or the equivalent.
@@ -158,6 +159,7 @@ What `deploy/docker-compose.yml` sets:
 ## 9. Status: what's verified, what isn't, what blocks launch
 
 ### Verified (automated; results in `bench/hosted/`)
+- **2026-11-04, the image rebuilt from current code** (before the Hetzner deployment): `image-test.sh` 18/18 and `hosted-test.mjs` inside the image with the firewall on 26/26 (`hosted-results-linux-egress-image.json`). Three faults the 2026-10-21 image didn't have were fixed first: the `.dockerignore` allowlist missed the console modules added since (catalog, integrations, workerdef, …) and the integrations registry; the catalogue refused to start without `bench/` test files; and the firewall blocked the tool servers' access checks to their own console.
 - `hosted-test.mjs`, **Linux (Ubuntu 24.04 on WSL2), as root, per-person uids:** 26/26 (`hosted-results-linux.json`).
   - It also passed **with the egress firewall active** (`EGRESS=1`, `hosted-results-linux-egress.json`: 25/25, the run before the Scratch step was added).
 - `hosted-test.mjs`, **Windows** (isolation none): 24/24, with the 2 Linux-only steps skipped (`hosted-results-win32.json`).

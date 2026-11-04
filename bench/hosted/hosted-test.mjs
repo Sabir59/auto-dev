@@ -60,6 +60,8 @@ if (ROOT) spawnSync("chown", ["-R", `${alice.uid}:${alice.uid}`, join(DATA, "rem
 const gwEnv = (extra = {}) => ({ PATH: process.env.PATH, ...(process.platform === "win32" ? Object.fromEntries(["SystemRoot", "windir", "ComSpec", "PATHEXT", "APPDATA", "LOCALAPPDATA", "ProgramData", "ProgramFiles", "SystemDrive", "TEMP", "TMP", "USERPROFILE"].filter((k) => process.env[k]).map((k) => [k, process.env[k]])) : {}),
   ...(process.env.CLAUDE_BIN ? { CLAUDE_BIN: process.env.CLAUDE_BIN } : {}), ...(process.env.PLAYWRIGHT_BROWSERS_PATH ? { PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH } : {}),
   AIW_ENV: "test", AIW_DATA: DATA, AIW_PUBLIC_ORIGIN: O, AIW_PORT: String(P.site), AIW_BIND: "127.0.0.1", AIW_MODEL_PORT: String(P.model), AIW_CONSOLE_PORT_BASE: String(P.consoles), AIW_ISOLATION: ISOLATION,
+  // as in production (deploy/docker-compose.yml): the gateway knows the firewall is on, and lets each console's uid reach its own port
+  ...(EGRESS ? { AIW_EGRESS_FIREWALL: "1" } : {}),
   ANTHROPIC_API_KEY: KEY, ANTHROPIC_UPSTREAM_URL: `http://127.0.0.1:${P.fake}`,
   GITHUB_APP_CLIENT_ID: APP.clientId, GITHUB_APP_CLIENT_SECRET: APP.clientSecret, GITHUB_APP_SLUG: APP.slug, GITHUB_WEB_BASE: `http://127.0.0.1:${P.gh}`, GITHUB_API_BASE: `http://127.0.0.1:${P.gh}`, ...extra });
 let gw;
@@ -260,7 +262,7 @@ await step("a real run: the CLI works through the gateway; a write stays in the 
   assert(readFileSync(join(wsA.root, "hello.txt"), "utf8") === "hello from the worker\n", "file not written");
   assert(ev.some((e) => e.type === "artifact" && e.summary === "hello.txt"), "no artifact event");
   assert(fails.length >= 4, `expected 4 refusals, got ${fails.length}: ${fails.join(" | ")}`);
-  assert(fails.some((f) => /bob-secret/.test(f) && /outside|denied|permission/i.test(f)), "bob's file wasn't refused");
+  assert(fails.some((f) => /bob-secret/.test(f) && /outside|denied|permission/i.test(f)), `bob's file wasn't refused: ${fails.join(" | ")}`);
   assert(fails.some((f) => /users\.json/.test(f)), "control file not refused");
   assert(fails.some((f) => /No such tool available: Bash/.test(f)), "shell not refused");
   assert(fails.some((f) => /WebFetch|169\.254|denied|permission/i.test(f) && !/Bash/.test(f)), "metadata fetch not refused");
@@ -425,7 +427,7 @@ await step("repository workspace: cloned into the person's own folder with the c
   assert(r.status === 200, JSON.stringify(r.json));
   await runUntil(A, r.json.id, (x) => x.status === "waiting");
   const offered = fake.log.slice(n0).find((e) => e.script === "commit")?.tools || [];
-  assert(offered.includes("mcp__repo__repo_commit") && !offered.includes("mcp__repo__repo_push"), `repo tools offered: ${offered.filter((t) => t.includes("repo")).join(",")}`);
+  assert(offered.includes("mcp__repo__repo_commit") && !offered.includes("mcp__repo__repo_push"), `repo tools offered: ${offered.filter((t) => t.includes("repo")).join(",")} (all: ${offered.join(",")}; worker: ${JSON.stringify(w.json).slice(0, 400)})`);
   const log = g(repoWs.root, "log", "-1", "--format=%an <%ae>|%s");
   assert(log.trim() === "Alice <alice@pilot.test>|Add a hosted change", `commit: ${log}`);
   assert(!g(remote, "branch", "--list", "work/hosted").trim(), "the worker pushed");

@@ -1900,7 +1900,10 @@ function translate(run, msg) {
       if (use.name === "ToolSearch") continue;
       observeToolResult(run, use, b);
       if (b.is_error) run.meta.failures++;
-      emit(run, { type: b.is_error ? "failure" : "result", ref: b.tool_use_id, env: use.env, tool: shortName(use.name), summary: clip(resultText(b.content), 220) });
+      // A file-guard refusal comes back as "PreToolUse:Read hook error: [<node> <file-guard.mjs> <base64…>]: Refused: …";
+      // the command alone fills the summary, so the person sees the reason instead.
+      const text = resultText(b.content).replace(/^PreToolUse:\w+ hook error: \[[^\]]*file-guard\.mjs"? [\w-]+\]:?\s*/, "");
+      emit(run, { type: b.is_error ? "failure" : "result", ref: b.tool_use_id, env: use.env, tool: shortName(use.name), summary: clip(text, 220) });
       if (use.writes && !b.is_error) addArtifact(run, use.writes, use.env, { ref: b.tool_use_id });
     }
     return;

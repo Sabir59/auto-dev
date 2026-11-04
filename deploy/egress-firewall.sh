@@ -2,7 +2,8 @@
 # Egress rules for the per-person uids (AIW_UID_BASE+1 … AIW_UID_BASE+9999): their consoles, workers,
 # browsers and git may reach the public internet and the gateway's model endpoint, but not this
 # machine's other services, private networks or the cloud metadata service. The gateway itself
-# (root) is not affected. Needs iptables and NET_ADMIN in the network namespace the processes run in
+# (root) is not affected. The gateway adds one rule per person when it starts their console: that uid
+# may reach its own console's port (its tool servers' access checks), no other. Needs iptables and NET_ADMIN in the network namespace the processes run in
 # (the container's). docs/CLOUD_DEPLOYMENT.md §6.
 set -eu
 BASE=${AIW_UID_BASE:-20000}

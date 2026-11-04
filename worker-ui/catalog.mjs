@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { validate } from "./jsonschema.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url)), REPO = join(HERE, "..");
+const HAS_TESTS = existsSync(join(REPO, "bench"));
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 export const semver = (v) => SEMVER.exec(v)?.slice(1).map(Number) || null;
 export const cmpVersion = (a, b) => { const x = semver(a), y = semver(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };
@@ -113,7 +114,9 @@ export function check(capabilities, resources) {
     for (const d of m.detect) { try { new RegExp(d, "i"); } catch { problems.push(`${key}: bad detection pattern ${d}`); } }
     for (const r of m.relations) { if (!st.byId.has(r.to)) problems.push(`${key}: relation to unknown integration ${r.to}`); for (const w of r.when || []) { try { new RegExp(w, "i"); } catch { problems.push(`${key}: bad relation pattern ${w}`); } } }
     for (const a of m.absorbs || []) if (!st.byId.has(a)) problems.push(`${key}: absorbs unknown integration ${a}`);
-    for (const t of m.tests) if (!existsSync(join(REPO, t))) problems.push(`${key}: its test ${t} doesn't exist`);
+    // Only where the tests are: the deployment image ships no bench/ (.dockerignore), and a
+    // missing test there isn't a broken manifest.
+    if (HAS_TESTS) for (const t of m.tests) if (!existsSync(join(REPO, t))) problems.push(`${key}: its test ${t} doesn't exist`);
     if (m.status !== "recognised" && !m.capabilities.length && !m.base.core.length && !m.questions.some((q) => q.choices?.some((c) => c.core?.length || c.enables?.length))) problems.push(`${key}: a connector that turns nothing on`);
   }
   for (const id of Object.keys(capabilities)) if (!core.has(id) && !provided.has(id)) problems.push(`capability ${id} is neither core nor provided by any integration`);
