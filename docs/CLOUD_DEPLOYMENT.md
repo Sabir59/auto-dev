@@ -30,8 +30,10 @@ How to run AI Worker as a website for a few trusted people. The design is in `do
 | Variable | Value |
 |---|---|
 | `AIW_PUBLIC_ORIGIN` | `https://<your domain>`: the exact origin people open. Used for the Origin check, cookies and the GitHub callback |
-| `ANTHROPIC_API_KEY` | The platform's Anthropic API key (Claude Console, under Commercial Terms). Read only by the gateway |
+| `AIW_SECRETS_KEY` | 32 random bytes, base64 (`openssl rand -base64 32`). Encrypts each person's stored provider credential (§3). Keep it in the host's env file, not on the data volume, and keep an offline copy: losing it loses only the stored credentials (people connect again) |
 | `AIW_DATA` | `/data` (the image's default) |
+
+**No provider key.** The platform holds no AI provider credential of its own: each person connects their own (§3). A gateway started with `ANTHROPIC_API_KEY` set refuses to start, so the platform can't end up paying for people's usage by accident.
 
 ### Set by the image (change only for a reason)
 | Variable | Default | Meaning |
@@ -58,12 +60,21 @@ How to run AI Worker as a website for a few trusted people. The design is in `do
 
 **Never put secrets in the image or the repository.** Pass them from the host's secret store (`--env-file` with mode 600, or the platform's secrets).
 
-## 3. Model provider
-- **Provider:** an Anthropic API key from the Claude Console, under Anthropic's Commercial Terms.
-- **Why not the subscription:** a claude.ai login may not back a product offered to others (`HOSTED_RUNTIME_AUDIT.md` §2), so the hosted consoles refuse it.
-- **Where the key goes:** only into the gateway's environment. Workers reach the model through the gateway's loopback endpoint with a per-console token.
-- **Model and effort:** the CLI's defaults, or the person's choice per run in the page. Set a monthly spend limit on the Console account.
-- **Bedrock or Vertex instead** (later): the CLI supports them; the gateway's upstream would need that provider's endpoint and signing.
+## 3. Model provider: each person's own account (decided 2026-11-04)
+AI Workforce supplies no model access. Each person connects their own provider account and pays for their own usage. Anthropic's terms for products that host Claude Code require this (Legal and compliance, checked 2026-11-04): *"Customers may not pay for, resell, or intermediate Claude usage on their end users' behalf. Each end user must authenticate with their own Anthropic API key, Claude subscription plan credentials, or 3P inference provider credential."*
+
+| Provider | Auth | Status |
+|---|---|---|
+| Anthropic API, the person's own key | api-key | **Built** (backend; the settings page comes after the infrastructure) |
+| Claude subscription, the person's own plan | subscription | **Not built.** Allowed by the terms only through Anthropic's own sign-in flow, with the platform never collecting, storing or proxying the login. The headless sign-in ends with a code the person pastes back, which our page would have to relay: waiting for Anthropic's confirmation |
+| Amazon Bedrock, Google Vertex AI, Microsoft Foundry | cloud | Later |
+| Non-Claude providers | — | Needs a second worker runtime (workers run on Claude Code, which runs Claude models only) |
+
+- **Where it's defined:** `worker-ui/model-credentials.mjs` is the only code that knows how a provider authenticates (upstream, headers, validation). The gateway asks it for the calling person's credential at each model request; consoles and workers never receive one.
+- **Storage:** `/data/control/credentials/<person>.json` (root, 600, in the root-only control dir), AES-256-GCM under `AIW_SECRETS_KEY`, with the person's id as associated data: a file copied to another person doesn't decrypt.
+- **The person's API:** `GET /account/provider` (connected or not, never the credential), `PUT /account/provider {"provider":"anthropic-api","apiKey":"…"}` (checked with Anthropic first; a rejected key is never kept; 10 failures per 15 minutes), `DELETE /account/provider`. Same-origin only, like every other change.
+- **Without a provider:** the platform is healthy (`/readyz` doesn't depend on any person's provider); that person's runs are refused with a message in their own console, and nothing reaches a provider.
+- **Model and effort:** the CLI's defaults, or the person's choice per run. Spend limits are the person's, on their own Console account.
 
 ## 4. GitHub App (Connect with GitHub)
 Register **one** GitHub App for the platform (github.com → Settings → Developer settings → GitHub Apps → New; for an organisation, in its settings):
@@ -127,7 +138,7 @@ What `deploy/docker-compose.yml` sets:
   - `passwd`, `disable`, `enable` and `list` are the other commands. `disable` and `passwd` end the person's sessions at once.
 - **Health:**
   - `GET /healthz`: the process answers (the image's HEALTHCHECK);
-  - `GET /readyz`: data dir writable, provider key set, Claude Code CLI runnable, isolation active, GitHub App configured. 503 if a required one fails. It reports no secret.
+  - `GET /readyz`: the platform's readiness only: data dir writable, credential store usable, Claude Code CLI runnable, isolation active, GitHub App configured or not. 503 if a required one fails. It reports no secret and doesn't depend on any person's provider account.
 - **Graceful shutdown:** `docker compose stop` (SIGTERM through tini, 30 s grace) → the gateway stops taking requests and each console records live runs as `interrupted`, then stops its workers. People continue a run by sending a message after the restart.
 - **Logs:** JSON lines on stdout (`docker logs`): requests (method, path without query, status, ms, person id), sign-ins, model requests (person, path, status, ms), console starts and exits.
   - Never bodies, cookies, query strings, tokens or keys.
@@ -142,7 +153,7 @@ What `deploy/docker-compose.yml` sets:
 3. **Get the code:** clone the repository on the VM (a deploy key or the GitHub CLI; the repository is private).
 4. **Write `/etc/ai-worker.env`** (`sudo install -m 600 /dev/null /etc/ai-worker.env`, then edit):
    - `AIW_PUBLIC_ORIGIN=https://aiworker.<your domain>`
-   - `ANTHROPIC_API_KEY=…`
+   - `AIW_SECRETS_KEY=…` (`openssl rand -base64 32`; keep an offline copy). No provider key: people connect their own.
    - `GITHUB_APP_CLIENT_ID=…`, `GITHUB_APP_CLIENT_SECRET=…`, `GITHUB_APP_SLUG=…`
 5. **Set up TLS:** copy `deploy/Caddyfile` to `/etc/caddy/Caddyfile`, set `AIW_DOMAIN=aiworker.<your domain>` in `/etc/default/caddy` (or write the name into the file), then `sudo systemctl restart caddy`.
 6. **Start:** `sudo docker compose -f deploy/docker-compose.yml up -d --build` (§7). Then `curl -s https://aiworker.<your domain>/readyz` must answer 200 with every check `ok`.

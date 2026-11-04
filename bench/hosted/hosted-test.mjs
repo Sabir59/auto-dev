@@ -13,7 +13,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, readdi
 import { join, dirname, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { startFakeAnthropic } from "./fake-anthropic.mjs";
 import { startMock, APP } from "../github/mock-github.mjs";
 import { resolveProvider } from "../../worker-ui/provider.mjs";
@@ -23,7 +23,11 @@ const LINUX = process.platform === "linux", ROOT = LINUX && process.getuid() ===
 const BASE = Number(process.env.HOSTED_TEST_PORT_BASE) || 8770; // another range when other suites hold these
 const P = { site: BASE, fake: BASE + 1, model: BASE + 2, consoles: BASE + 3, gh: BASE + 15 };
 const O = `http://127.0.0.1:${P.site}`;
-const KEY = "sk-ant-test-" + randomBytes(20).toString("hex"); // a TEST key: the fake provider accepts only it
+// TEST keys, each person's own (no central key): the fake provider accepts only these.
+// KEY_A2: the new key alice switches to while bob's run is live.
+const KEY = "sk-ant-test-" + randomBytes(20).toString("hex"), KEY_B = "sk-ant-test-" + randomBytes(20).toString("hex"), KEY_A2 = "sk-ant-test-" + randomBytes(20).toString("hex"), KEYS = [KEY, KEY_B, KEY_A2];
+const keySha = (k) => createHash("sha256").update(k).digest("hex").slice(0, 16);
+const SECRETS = randomBytes(32).toString("base64"); // the gateway's AIW_SECRETS_KEY
 const DATA = mkdtempSync(join(LINUX ? "/var/tmp" : tmpdir(), "aiw-hosted-"));
 if (ROOT) spawnSync("chmod", ["711", DATA]);
 const results = [], gwOut = [];
@@ -36,7 +40,7 @@ const assert = (c, m) => { if (!c) throw new Error(m); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---- fixtures: fake provider, mock GitHub, a bare "GitHub" remote ----
-const fake = await startFakeAnthropic(P.fake, { apiKey: KEY });
+const fake = await startFakeAnthropic(P.fake, { apiKey: KEYS });
 const script = (name, steps) => fetch(`http://127.0.0.1:${P.fake}/__script`, { method: "POST", body: JSON.stringify({ name, steps }) });
 const remote = join(DATA, "remotes", "site.git"), seed = join(DATA, "remotes", "seed");
 mkdirSync(seed, { recursive: true });
@@ -62,7 +66,7 @@ const gwEnv = (extra = {}) => ({ PATH: process.env.PATH, ...(process.platform ==
   AIW_ENV: "test", AIW_DATA: DATA, AIW_PUBLIC_ORIGIN: O, AIW_PORT: String(P.site), AIW_BIND: "127.0.0.1", AIW_MODEL_PORT: String(P.model), AIW_CONSOLE_PORT_BASE: String(P.consoles), AIW_ISOLATION: ISOLATION,
   // as in production (deploy/docker-compose.yml): the gateway knows the firewall is on, and lets each console's uid reach its own port
   ...(EGRESS ? { AIW_EGRESS_FIREWALL: "1" } : {}),
-  ANTHROPIC_API_KEY: KEY, ANTHROPIC_UPSTREAM_URL: `http://127.0.0.1:${P.fake}`,
+  AIW_SECRETS_KEY: SECRETS, ANTHROPIC_UPSTREAM_URL: `http://127.0.0.1:${P.fake}`,
   GITHUB_APP_CLIENT_ID: APP.clientId, GITHUB_APP_CLIENT_SECRET: APP.clientSecret, GITHUB_APP_SLUG: APP.slug, GITHUB_WEB_BASE: `http://127.0.0.1:${P.gh}`, GITHUB_API_BASE: `http://127.0.0.1:${P.gh}`, ...extra });
 let gw;
 async function startGateway() {
@@ -140,13 +144,15 @@ if (EGRESS) {
 await startGateway();
 
 // ---------------- configuration and provider ----------------
-await step("config: a production gateway refuses to start without https, an API key, isolation and a real provider address", async () => {
-  const r = spawnSync(process.execPath, [join(REPO, "worker-ui", "gateway.mjs")], { env: gwEnv({ AIW_ENV: "production", ANTHROPIC_API_KEY: "", AIW_ISOLATION: "none", AIW_PORT: "8769" }), encoding: "utf8", timeout: 20000 });
+await step("config: a production gateway refuses to start without https, isolation, a secrets key and a real provider address, or with a central provider key; it needs no provider key", async () => {
+  const r = spawnSync(process.execPath, [join(REPO, "worker-ui", "gateway.mjs")], { env: gwEnv({ AIW_ENV: "production", AIW_SECRETS_KEY: "", ANTHROPIC_API_KEY: KEY, AIW_ISOLATION: "none", AIW_PORT: "8769" }), encoding: "utf8", timeout: 20000 });
   assert(r.status === 1, `exit ${r.status}`);
-  for (const want of ["https in production", "ANTHROPIC_API_KEY is required", "requires AIW_ISOLATION=uid"]) assert(r.stderr.includes(want), `missing "${want}" in: ${r.stderr}`);
+  for (const want of ["https in production", "AIW_SECRETS_KEY is required", "holds no central provider key", "requires AIW_ISOLATION=uid"]) assert(r.stderr.includes(want), `missing "${want}" in: ${r.stderr}`);
   const t = spawnSync(process.execPath, [join(REPO, "worker-ui", "gateway.mjs")], { env: gwEnv({ AIW_ENV: "production", AIW_PUBLIC_ORIGIN: "https://aiworker.example", AIW_PORT: "8769" }), encoding: "utf8", timeout: 20000 });
   assert(t.status === 1 && t.stderr.includes("ANTHROPIC_UPSTREAM_URL must be an https provider address"), "a test upstream was accepted in production: " + t.stderr);
-  assert(!r.stderr.includes(KEY) && !t.stderr.includes(KEY), "the key was printed");
+  // Only that (and isolation on Windows) stands in the way: no provider credential is asked for.
+  assert(!/ANTHROPIC_API_KEY|SECRETS_KEY/.test(t.stderr), "a production gateway asked for a provider key: " + t.stderr);
+  assert(![KEY, SECRETS].some((k) => r.stderr.includes(k) || t.stderr.includes(k)), "a key was printed");
   return { exit: r.status, problems: r.stderr.split("\n").filter((l) => l.startsWith("- ")).length };
 });
 await step("provider: hosted consoles refuse the subscription and the in-env API key; the gateway provider needs its token; no silent fallback", async () => {
@@ -230,6 +236,38 @@ await step("model gateway: refuses requests without a console's token; the publi
   return { none: none.status, forged: forged.status, publicSite: pub.status };
 });
 
+// ---------------- each person's own AI provider ----------------
+await step("AI provider: with none connected the platform is ready and a run is refused in the person's own console; a rejected key isn't kept; each person's key is stored encrypted, bound to them, and never shown", async () => {
+  const ready = await fetch(`${O}/readyz`); const rj = await ready.json();
+  assert(ready.status === 200 && !rj.checks.some((c) => /provider key/.test(c.name)), `readyz ${ready.status}: ${JSON.stringify(rj)}`);
+  const none = await A.req("GET", "/account/provider");
+  assert(none.status === 200 && none.json.connected === false && none.json.available.some((p) => p.id === "anthropic-api" && p.auth === "api-key"), JSON.stringify(none.json));
+  const n0 = fake.log.length;
+  const refused = await A.run({ prompt: "x" });
+  assert(refused.status === 409 && /No AI provider is connected/.test(refused.json?.error || ""), `run without a provider → ${refused.status} ${refused.text}`);
+  assert(fake.log.length === n0, "something reached the provider without a credential");
+  const bad = await A.req("PUT", "/account/provider", { provider: "anthropic-api", apiKey: "sk-ant-test-" + "0".repeat(40) });
+  assert(bad.status === 400 && /rejected this key/.test(bad.json?.error || ""), `rejected key → ${bad.status} ${bad.text}`);
+  assert((await A.req("GET", "/account/provider")).json.connected === false, "a rejected key was kept");
+  const noOrigin = await A.req("PUT", "/account/provider", { provider: "anthropic-api", apiKey: KEY }, { origin: "https://evil.example" });
+  assert(noOrigin.status === 403, `cross-origin connect → ${noOrigin.status}`);
+  // two checks at once for one person: one runs, the other is refused (no bulk key-testing through the platform)
+  const pair = await Promise.all([1, 2].map(() => A.req("PUT", "/account/provider", { provider: "anthropic-api", apiKey: KEY })));
+  const ca = pair.find((r) => r.status === 200), busy = pair.find((r) => r.status === 429);
+  assert(ca && busy && /already being checked/.test(busy.json?.error || ""), `parallel connects: ${pair.map((r) => r.status)}`);
+  const cb = await B.req("PUT", "/account/provider", { provider: "anthropic-api", apiKey: KEY_B });
+  assert(ca.status === 200 && ca.json.connected && cb.status === 200 && cb.json.connected, `connect: ${ca.text} / ${cb.text}`);
+  const shown = [ca.text, cb.text, (await A.req("GET", "/account/provider")).text, (await B.req("GET", "/account/provider")).text].join("\n");
+  assert(!KEYS.some((k) => shown.includes(k)), "a key came back in an answer");
+  // stored encrypted: no plaintext anywhere on the data volume; a file moved to another person doesn't decrypt
+  const onDisk = allFiles(DATA).filter((f) => { try { const t = readFileSync(f, "utf8"); return KEYS.some((k) => t.includes(k)); } catch { return false; } });
+  assert(!onDisk.length, `a key is in plaintext on disk: ${onDisk.join(", ")}`);
+  const credDir = join(DATA, "control", "credentials"), fa = join(credDir, `${alice.id}.json`), fb = join(credDir, `${bob.id}.json`);
+  assert(existsSync(fa) && existsSync(fb), "no stored credential files");
+  if (LINUX) { const s = statSync(fa); assert(s.uid === 0 && (s.mode & 0o777) === 0o600 && (statSync(credDir).mode & 0o777) === 0o700, `credential file mode ${(s.mode & 0o777).toString(8)}`); }
+  return { refused: refused.status, rejectedKey: bad.status, crossOrigin: noOrigin.status, connected: [ca.json.provider, cb.json.provider] };
+});
+
 // ---------------- workspaces and a real run ----------------
 let wsA, wsB;
 await step("hosted workspace: a new one is a folder of the person's own; a path from the page is ignored; Executor, folder browsing and the platform's files don't exist", async () => {
@@ -270,14 +308,16 @@ await step("a real run: the CLI works through the gateway; a write stays in the 
   assert(m.outcome === "done", `outcome ${m.outcome}`);
   return { outcome: m.outcome, refusals: fails.map((f) => f.slice(0, 90)) };
 });
-await step("the provider key stays in the gateway: the provider saw it, nothing else did (activity, run records, API answers, logs)", async () => {
-  assert(fake.log.length && fake.log.every((e) => e.keyOk && !e.authorization), "a request reached the provider without the key, or with the console's token");
+await step("each person's provider key stays in the gateway: the provider saw it on that person's requests, nothing else did (activity, run records, API answers, logs, processes)", async () => {
+  const models = fake.log.filter((e) => e.path !== "/v1/models"); // the key checks at connect time are the gateway's own
+  assert(models.length && models.every((e) => e.keyOk && !e.authorization), "a request reached the provider without a person's key, or with the console's token");
+  assert(models.every((e) => e.keySha === keySha(KEY)), "alice's run used another key");
   const files = [...allFiles(home(alice)), ...allFiles(home(bob)), ...allFiles(join(DATA, "logs"))];
-  const leaks = files.filter((f) => { try { return readFileSync(f, "utf8").includes(KEY); } catch { return false; } });
-  assert(!leaks.length, `key found in ${leaks.join(", ")}`);
-  const answers = [await A.req("GET", "/runs"), await A.req("GET", `/runs/${runA}`), await A.req("GET", "/account"), await A.req("GET", "/platform"), await A.req("GET", "/workers")];
-  assert(!answers.some((a) => a.text.includes(KEY)), "key in an API answer");
-  assert(!gwOut.join("").includes(KEY), "key in the gateway log");
+  const leaks = files.filter((f) => { try { const t = readFileSync(f, "utf8"); return [...KEYS, SECRETS].some((k) => t.includes(k)); } catch { return false; } });
+  assert(!leaks.length, `a key found in ${leaks.join(", ")}`);
+  const answers = [await A.req("GET", "/runs"), await A.req("GET", `/runs/${runA}`), await A.req("GET", "/account"), await A.req("GET", "/platform"), await A.req("GET", "/workers"), await A.req("GET", "/account/provider")];
+  assert(!answers.some((a) => KEYS.some((k) => a.text.includes(k))), "a key in an API answer");
+  assert(![...KEYS, SECRETS].some((k) => gwOut.join("").includes(k)), "a key in the gateway log");
   let procs = null;
   if (LINUX) { // the console and the worker processes, as the kernel sees them
     procs = [];
@@ -286,7 +326,7 @@ await step("the provider key stays in the gateway: the provider saw it, nothing 
       if (!envs.includes(`AIW_USER_EMAIL=alice@pilot.test`) && !envs.includes(`ANTHROPIC_BASE_URL=http://127.0.0.1:${P.model}`)) continue;
       const argv = readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0");
       const role = argv.some((a) => a.endsWith("server.mjs") && a.includes("worker-ui")) ? "console" : /claude(\.exe)?$/.test(argv[0]) ? "worker" : "adapter";
-      procs.push({ role, apiKey: envs.includes(KEY), clientSecret: envs.includes(APP.clientSecret), internalSecret: /AIW_INTERNAL_SECRET=/.test(envs) });
+      procs.push({ role, apiKey: KEYS.some((k) => envs.includes(k)) || envs.includes(SECRETS), clientSecret: envs.includes(APP.clientSecret), internalSecret: /AIW_INTERNAL_SECRET=/.test(envs) });
     }
     assert(procs.length >= 2, "didn't find the console and worker processes");
     assert(!procs.some((p) => p.apiKey || p.clientSecret), `a secret is in a process environment: ${JSON.stringify(procs)}`);
@@ -364,11 +404,41 @@ await step("two people at once: concurrent runs each write only their own worksp
   await Promise.all([runUntil(A, ra.json.id, (x) => x.status === "waiting"), runUntil(B, runB, (x) => x.status === "waiting")]);
   assert(readFileSync(join(wsA.root, "mine.txt"), "utf8") === "alice\n" && readFileSync(join(wsB.root, "mine.txt"), "utf8") === "bob\n", "files crossed");
   assert(!existsSync(join(wsA.root, "from-bob.txt")), "bob's worker wrote into alice's workspace");
+  // each person's run used their own provider key, resolved per request by the gateway
+  const by = (s) => [...new Set(fake.log.filter((e) => e.script === s).map((e) => e.keySha))];
+  assert(by("mineA").join() === keySha(KEY) && by("mineB").join() === keySha(KEY_B), `keys crossed: mineA ${by("mineA")}, mineB ${by("mineB")}`);
   const probes = { run: (await A.req("GET", `/runs/${runB}`)).status, events: (await fetch(`${O}/events?run=${runB}`, { headers: { cookie: A.cookie } })).status,
     file: (await A.req("GET", `/file?run=${runB}&path=mine.txt`)).status, message: (await A.req("POST", `/runs/${runB}/message`, { text: "hi" })).status };
   assert(Object.values(probes).every((s) => s === 404), JSON.stringify(probes));
   assert(!(await A.req("GET", "/runs")).json.runs.some((x) => x.id === runB), "bob's run is listed for alice");
   return probes;
+});
+await step("AI provider isolation: alice changing, then deleting, her key while bob's run is live doesn't touch bob's run; alice's next run uses her new key", async () => {
+  // bob's first model answer is held open for 4 s; alice changes and deletes her key meanwhile; bob's
+  // next requests (after his tool result) come after both changes
+  await script("bobLive", [{ delayMs: 4000, then: { tool: { name: "Write", input: { file_path: join(wsB.root, "live.txt"), content: "bob live\n" } } } }, { text: "DONE: bob live" }]);
+  const rb = await B.run({ prompt: "B live. FAKE-SCRIPT:bobLive", workspace: wsB.id });
+  assert(rb.status === 200, `bob's run: ${rb.text}`);
+  for (let i = 0; i < 40 && !fake.log.some((e) => e.script === "bobLive"); i++) await sleep(100); // bob's request is in flight
+  const changed = await A.req("PUT", "/account/provider", { provider: "anthropic-api", apiKey: KEY_A2 });
+  const deleted = await A.req("DELETE", "/account/provider");
+  assert(changed.status === 200 && deleted.status === 200 && deleted.json.connected === false, `alice change ${changed.status}, delete ${deleted.status}`);
+  const done = await runUntil(B, rb.json.id, (x) => x.status === "waiting");
+  const bobReqs = fake.log.filter((e) => e.script === "bobLive");
+  assert(done.outcome === "done" && readFileSync(join(wsB.root, "live.txt"), "utf8") === "bob live\n", `bob's run: ${done.outcome}`);
+  assert(bobReqs.length >= 2 && bobReqs.every((e) => e.keyOk && e.keySha === keySha(KEY_B)), `bob's requests: ${JSON.stringify(bobReqs.map((e) => e.keySha))}`);
+  assert((await B.req("GET", "/account/provider")).json.connected === true, "bob's provider changed");
+  // alice: refused while she has none; her own new key is used as soon as she connects it
+  assert((await A.run({ prompt: "x" })).status === 409, "alice ran without a provider");
+  await A.req("PUT", "/account/provider", { provider: "anthropic-api", apiKey: KEY_A2 });
+  await script("aliceNew", [{ text: "DONE: alice new key" }]);
+  const ra = await A.run({ prompt: "A new key. FAKE-SCRIPT:aliceNew", workspace: wsA.id });
+  await runUntil(A, ra.json.id, (x) => x.status === "waiting");
+  const aliceReqs = fake.log.filter((e) => e.script === "aliceNew");
+  assert(aliceReqs.length && aliceReqs.every((e) => e.keySha === keySha(KEY_A2)), `alice's new key wasn't used: ${JSON.stringify(aliceReqs.map((e) => e.keySha))}`);
+  const back = await A.req("PUT", "/account/provider", { provider: "anthropic-api", apiKey: KEY }); // the later steps use her first key
+  assert(back.status === 200, "alice's key couldn't be restored");
+  return { bobRequests: bobReqs.length, bobOutcome: done.outcome, aliceNewKeyRequests: aliceReqs.length };
 });
 await step("OS boundary (Linux): each person's folder is theirs alone (mode 700, own uid); their console and workers run as that uid; another uid can't read it", async () => {
   const st = (p) => { const s = statSync(p); return { uid: s.uid, mode: (s.mode & 0o777).toString(8) }; };

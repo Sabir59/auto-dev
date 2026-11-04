@@ -29,6 +29,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, chownSy
 import { join, dirname, resolve, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
 import { openUsers } from "./users.mjs";
+import { PROVIDERS, CredentialError, configProblems as credentialProblems, openCredentials, parseSecretsKey } from "./model-credentials.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -41,8 +42,8 @@ const CONSOLE_PORT_BASE = Number(env.AIW_CONSOLE_PORT_BASE) || 9100;
 const DATA = resolve(env.AIW_DATA || "");
 const ISOLATION = env.AIW_ISOLATION || (process.platform === "linux" ? "uid" : "none");
 const UID_BASE = Number(env.AIW_UID_BASE) || 20000;
-const UPSTREAM = String(env.ANTHROPIC_UPSTREAM_URL || "https://api.anthropic.com").replace(/\/+$/, "");
-const API_KEY = env.ANTHROPIC_API_KEY || "";
+// No central provider key: each person's own provider credential, encrypted under this key (model-credentials.mjs).
+const SECRETS_KEY = parseSecretsKey(env.AIW_SECRETS_KEY);
 const MODEL_MAX_CONCURRENT = Number(env.AIW_MODEL_MAX_CONCURRENT) || 4;
 const MODEL_DAILY_REQUESTS = Number(env.AIW_MODEL_DAILY_REQUESTS) || 0; // 0: no daily cap
 const MODEL_IDLE_MS = Number(env.AIW_MODEL_IDLE_MS) || 10 * 60 * 1000;
@@ -57,6 +58,10 @@ const COOKIE = HTTPS ? "__Host-aiw_session" : "aiw_session";
 
 // ---- logging: one JSON line per event; never a body, a query string, a cookie or a key ----
 const log = (level, msg, extra = {}) => console.log(JSON.stringify({ ts: new Date().toISOString(), level, msg, ...extra }));
+// The environment for the gateway's own tool calls (git, iptables, claude --version): no secret of the
+// gateway's (AIW_SECRETS_KEY, the GitHub App secret) reaches a child process.
+const TOOL_ENV = Object.fromEntries(["PATH", "HOME", "LANG", ...(process.platform === "win32" ? ["SystemRoot", "windir", "ComSpec", "PATHEXT", "TEMP", "TMP", "USERPROFILE", "APPDATA", "LOCALAPPDATA"] : [])]
+  .filter((k) => env[k] !== undefined).map((k) => [k, env[k]]));
 
 // ---- configuration: refuse to start rather than run half-configured ----
 function configProblems() {
@@ -64,15 +69,13 @@ function configProblems() {
   if (!/^https?:\/\/[^/]+$/.test(PUBLIC_ORIGIN)) p.push("AIW_PUBLIC_ORIGIN must be the site's origin, e.g. https://aiworker.example.com");
   if (PROD && !HTTPS) p.push("AIW_PUBLIC_ORIGIN must be https in production");
   if (!env.AIW_DATA) p.push("AIW_DATA must name the persistent data directory");
-  if (!API_KEY) p.push("ANTHROPIC_API_KEY is required (the model provider's key; kept by the gateway only)");
-  let up; try { up = new URL(UPSTREAM); } catch { p.push("ANTHROPIC_UPSTREAM_URL isn't a URL"); }
-  if (up && PROD && (up.protocol !== "https:" || /^(127\.|localhost$|\[::1\]$)/.test(up.hostname))) p.push("ANTHROPIC_UPSTREAM_URL must be an https provider address in production (a test upstream is only allowed with AIW_ENV=test)");
+  p.push(...credentialProblems(env, { prod: PROD }));
   if (!["uid", "none"].includes(ISOLATION)) p.push("AIW_ISOLATION must be uid or none");
   if (ISOLATION === "uid" && process.platform !== "linux") p.push("AIW_ISOLATION=uid needs Linux");
   if (ISOLATION === "uid" && process.getuid?.() !== 0) p.push("AIW_ISOLATION=uid needs the gateway to start as root (it starts each person's console as their own uid)");
   if (PROD && ISOLATION !== "uid") p.push("production requires AIW_ISOLATION=uid: without it every person's runs share one OS user");
   if (!claudeBin()) p.push("the Claude Code CLI wasn't found (install @anthropic-ai/claude-code, or set CLAUDE_BIN)");
-  if (!spawnSync("git", ["--version"]).stdout?.length) p.push("git isn't installed");
+  if (!spawnSync("git", ["--version"], { env: TOOL_ENV }).stdout?.length) p.push("git isn't installed");
   return p;
 }
 function claudeBin() {
@@ -93,14 +96,15 @@ const PRLIMIT = ["/usr/bin/prlimit", "/bin/prlimit"].find(existsSync) || null;
 function allowOwnConsole(uid, port) {
   if (env.AIW_EGRESS_FIREWALL !== "1" || ISOLATION !== "uid") return;
   const rule = ["AIW_EGRESS", "-m", "owner", "--uid-owner", String(uid), "-d", "127.0.0.1", "-p", "tcp", "--dport", String(port), "-j", "RETURN"];
-  if (spawnSync("iptables", ["-C", ...rule], { stdio: "ignore" }).status === 0) return;
-  const r = spawnSync("iptables", ["-I", ...rule.slice(0, 1), "1", ...rule.slice(1)], { encoding: "utf8" });
+  if (spawnSync("iptables", ["-C", ...rule], { stdio: "ignore", env: TOOL_ENV }).status === 0) return;
+  const r = spawnSync("iptables", ["-I", ...rule.slice(0, 1), "1", ...rule.slice(1)], { encoding: "utf8", env: TOOL_ENV });
   if (r.status !== 0) log("warn", "couldn't allow a console its own port: its integration tools stay off", { uid, port, error: String(r.stderr || r.error?.message || "").trim().slice(0, 200) });
 }
 
 // ---- stores (control dir: root-only when isolated) ----
 const CONTROL = join(DATA, "control");
-const USERS_DIR = join(DATA, "users"), LOGS = join(DATA, "logs");
+const USERS_DIR = join(DATA, "users"), LOGS = join(DATA, "logs"), CRED_DIR = join(CONTROL, "credentials");
+let credentials;
 function prepareDirs() {
   for (const d of [CONTROL, USERS_DIR, LOGS]) mkdirSync(d, { recursive: true, mode: 0o700 });
   if (ISOLATION === "uid") { chmodSync(CONTROL, 0o700); chmodSync(LOGS, 0o700); chmodSync(USERS_DIR, 0o711); chmodSync(DATA, 0o711); } // users/ can be traversed, not listed
@@ -271,8 +275,34 @@ async function site(req, res) {
   // The console's local-development routes aren't part of the hosted site.
   if (path.startsWith("/__") || path === "/pick-folder" || path === "/console") return sendJson(res, 404, { error: "Not found." });
   if (!["GET", "HEAD"].includes(req.method)) { const why = originProblem(req); if (why) { log("warn", "rejected", { path, why, user: u.id }); return sendJson(res, 403, { error: `Rejected: ${why}` }); } }
+  if (path === "/account/provider") return accountProvider(req, res, u);
   return proxy(req, res, u, path + url.search);
 }
+// The person's own AI provider account: the gateway keeps it (encrypted); their console never sees it.
+// GET: whether one is connected (never the credential). PUT { provider, ...fields }: checked with the
+// provider first, stored only if it's accepted. DELETE: removed. The person's runs use it from their
+// next model request.
+async function accountProvider(req, res, u) {
+  if (req.method === "GET") return sendJson(res, 200, { ...credentials.status(u.id), available: credentials.available() });
+  if (req.method === "DELETE") { const s = credentials.disconnect(u.id); log("info", "provider disconnected", { user: u.id }); return sendJson(res, 200, s); }
+  if (req.method !== "PUT") return sendJson(res, 405, { error: "Use GET, PUT or DELETE." });
+  // Each attempt asks the provider, from the platform's address: one at a time per person, and every
+  // attempt counts (10 per 15 minutes), so an account can't use the platform to test keys in bulk.
+  if (tooMany(`prov:${u.id}`)) return sendJson(res, 429, { error: "Too many attempts. Wait 15 minutes and try again." }, { "retry-after": "900" });
+  if (checking.has(u.id)) return sendJson(res, 429, { error: "A key is already being checked for your account. Wait for it to finish." }, { "retry-after": "15" });
+  let b; try { b = JSON.parse(await readBody(req, 16 * 1024)); } catch { return sendJson(res, 400, { error: "Bad request." }); }
+  fail(`prov:${u.id}`); checking.add(u.id);
+  try {
+    const s = await credentials.connect(u.id, String(b.provider || ""), b);
+    log("info", "provider connected", { user: u.id, provider: s.provider });
+    return sendJson(res, 200, s);
+  } catch (e) {
+    if (!(e instanceof CredentialError)) { log("error", "provider connect failed", { user: u.id }); return sendJson(res, 500, { error: "Something went wrong. Nothing was saved." }); }
+    log("warn", "provider not connected", { user: u.id, provider: String(b.provider || "").slice(0, 40), status: e.status });
+    return sendJson(res, e.status, { error: e.message });
+  } finally { checking.delete(u.id); }
+}
+const checking = new Set(); // people whose provider key is being checked now
 async function login(req, res) {
   if (originProblem(req)) return sendJson(res, 403, { error: "Rejected." });
   let b; try { const raw = await readBody(req); b = String(req.headers["content-type"] || "").includes("json") ? JSON.parse(raw || "{}") : Object.fromEntries(new URLSearchParams(raw)); } catch { return sendJson(res, 400, { error: "Bad request." }); }
@@ -292,8 +322,9 @@ function readiness(res) {
   const checks = [];
   const add = (name, ok, detail) => checks.push({ name, ok, ...(detail ? { detail } : {}) });
   try { accessSync(CONTROL, FS.W_OK); add("data directory writable", true); } catch { add("data directory writable", false); }
-  add("model provider key configured", !!API_KEY);
-  add("model upstream", true, new URL(UPSTREAM).host + (UPSTREAM === "https://api.anthropic.com" ? "" : " (not the default provider address)"));
+  // The platform's readiness only: whether a person has connected a provider is theirs (/account/provider).
+  { const t = credentials.selfTest(); add("credential store", t.ok, t.ok ? "per-person, encrypted" : t.why); }
+  add("model providers", true, Object.entries(PROVIDERS).map(([id, p]) => `${id} (${p.describe(env)})`).join(", "));
   add("Claude Code CLI", !!claudeVersion, claudeVersion || "not runnable");
   add("isolation", ISOLATION === "uid" ? process.getuid?.() === 0 : !PROD, ISOLATION === "uid" ? `per-person uid${SETPRIV ? ", no_new_privs" : ""}${PRLIMIT ? ", process limits" : ""}` : "none (development only)");
   add("GitHub App", true, GH.clientId && GH.clientSecret ? "configured" : "not configured (Connect with GitHub is unavailable)");
@@ -311,6 +342,11 @@ async function modelGateway(req, res) {
   if (url.pathname === "/github/token" || url.pathname === "/github/revoke") return broker(req, res, url.pathname);
   const key = bearer(req), userId = key && byModelKey.get(sha(key));
   if (!userId) return apiError(res, 401, "authentication_error", "This console's model token isn't valid.");
+  // A console asking, before a run, whether its person has a provider connected (never the credential).
+  if (url.pathname === "/provider/status" && req.method === "GET") return sendJson(res, 200, credentials.status(userId));
+  // The person's own provider account, resolved at each request: a change takes effect at once.
+  const cred = credentials.resolve(userId), prov = cred && PROVIDERS[cred.provider];
+  if (!prov) return apiError(res, 403, "permission_error", credentials.status(userId).message, { "x-should-retry": "false" });
   const route = req.method === "POST" && (url.pathname === "/v1/messages" || url.pathname === "/v1/messages/count_tokens") || (req.method === "GET" && url.pathname === "/v1/models");
   if (!route) return apiError(res, 404, "not_found_error", "Not available through the platform's model gateway.");
   const day = new Date().toISOString().slice(0, 10), dk = `${userId}:${day}`;
@@ -318,12 +354,12 @@ async function modelGateway(req, res) {
   if ((active.get(userId) || 0) >= MODEL_MAX_CONCURRENT) return apiError(res, 429, "rate_limit_error", "Too many model requests at once for this account.", { "retry-after": "5" });
   active.set(userId, (active.get(userId) || 0) + 1); if (url.pathname === "/v1/messages") daily.set(dk, (daily.get(dk) || 0) + 1);
   let released = false; const release = () => { if (!released) { released = true; active.set(userId, active.get(userId) - 1); } };
-  // Forward anthropic-* and the body unchanged (Claude Code's gateway contract); the person's token
-  // is replaced by the provider key.
-  const headers = { "x-api-key": API_KEY, "content-type": req.headers["content-type"] || "application/json", accept: req.headers.accept || "application/json" };
+  // Forward anthropic-* and the body unchanged (Claude Code's gateway contract); the console's token
+  // is replaced by the person's own provider credential.
+  const headers = { ...prov.authHeaders(cred.secret), "content-type": req.headers["content-type"] || "application/json", accept: req.headers.accept || "application/json" };
   for (const [k, v] of Object.entries(req.headers)) if (k.startsWith("anthropic-")) headers[k] = v;
   if (req.headers["content-length"]) headers["content-length"] = req.headers["content-length"];
-  const target = new URL(UPSTREAM + url.pathname + url.search), lib = target.protocol === "https:" ? https : http;
+  const target = new URL(prov.upstream(env) + url.pathname + url.search), lib = target.protocol === "https:" ? https : http;
   let idle, finished = false;
   const up = lib.request(target, { method: req.method, headers }, (r) => {
     clearTimeout(headersTimer);
@@ -372,15 +408,16 @@ async function broker(req, res, path) {
 const problems = configProblems();
 if (problems.length) { console.error(`AI Worker gateway can't start:\n- ${problems.join("\n- ")}`); process.exit(1); }
 prepareDirs();
+credentials = openCredentials(CRED_DIR, SECRETS_KEY, { env, log });
 users = openUsers(DATA, { uidBase: UID_BASE });
 loadSessions();
-claudeVersion = (spawnSync(claudeBin(), ["--version"], { encoding: "utf8", timeout: 30000 }).stdout || "").trim() || null;
+claudeVersion = (spawnSync(claudeBin(), ["--version"], { encoding: "utf8", timeout: 30000, env: TOOL_ENV }).stdout || "").trim() || null;
 const publicServer = http.createServer((req, res) => site(req, res).catch((e) => { log("error", "unhandled", { why: e.message }); if (!res.headersSent) sendJson(res, 500, { error: "Something went wrong." }); }));
 publicServer.requestTimeout = 0; // the event stream stays open; idle sockets are closed by headersTimeout/keepAlive
 const modelServer = http.createServer((req, res) => modelGateway(req, res).catch(() => { if (!res.headersSent) apiError(res, 500, "api_error", "Gateway error."); }));
 modelServer.requestTimeout = 0;
 modelServer.listen(MODEL_PORT, "127.0.0.1", () => {
-  publicServer.listen(PORT, BIND, () => log("info", "gateway started", { env: ENV, origin: PUBLIC_ORIGIN, port: PORT, modelPort: MODEL_PORT, isolation: ISOLATION, upstream: new URL(UPSTREAM).host, claude: claudeVersion }));
+  publicServer.listen(PORT, BIND, () => log("info", "gateway started", { env: ENV, origin: PUBLIC_ORIGIN, port: PORT, modelPort: MODEL_PORT, isolation: ISOLATION, providers: Object.keys(PROVIDERS), claude: claudeVersion }));
 });
 // Graceful shutdown: stop taking requests, let each console stop its live runs (they're recorded as
 // interrupted), then exit.

@@ -1,11 +1,12 @@
 #!/bin/sh
 # The deployment image, run the way deploy/docker-compose.yml runs it: AIW_ENV=production, the
 # gateway's seven capabilities only, no-new-privileges, the egress firewall on, a named volume.
-# No real secrets: the provider key is a placeholder (no model call is made), so this proves
+# No provider credential at all: the platform holds none (each person connects their own), so this proves
 # startup, readiness, the firewall, sign-in, per-person uids, image contents, graceful stop and
 # restart persistence, not a live model.
 #   sudo sh bench/hosted/image-test.sh        (Linux with Docker; image ai-worker:pilot built)
 set -u
+SECRETS=$(head -c 32 /dev/urandom | base64)
 IMG=${IMG:-ai-worker:pilot} NAME=aiw-imagetest VOL=aiw-imagetest PORT=18080 ORIGIN=https://aiworker.test
 PW="correct-horse-battery-1"
 pass=0 fail=0
@@ -16,7 +17,7 @@ cleanup
 start() {
   docker run -d --name $NAME --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add SETUID --cap-add SETGID --cap-add KILL --cap-add NET_ADMIN \
     --security-opt no-new-privileges:true --stop-timeout 30 -v $VOL:/data -p 127.0.0.1:$PORT:8080 \
-    -e AIW_PUBLIC_ORIGIN=$ORIGIN -e ANTHROPIC_API_KEY=sk-ant-placeholder-not-a-real-key -e AIW_EGRESS_FIREWALL=1 -e AIW_TRUST_PROXY=1 "$IMG" >/dev/null
+    -e AIW_PUBLIC_ORIGIN=$ORIGIN -e AIW_SECRETS_KEY=$SECRETS -e AIW_EGRESS_FIREWALL=1 -e AIW_TRUST_PROXY=1 "$IMG" >/dev/null
   for i in $(seq 1 60); do curl -fs http://127.0.0.1:$PORT/healthz >/dev/null && return 0; sleep 1; done; return 1
 }
 U="http://127.0.0.1:$PORT"
@@ -30,7 +31,8 @@ if start; then ok "production start: healthy on /healthz"; else no "didn't start
 docker logs $NAME 2>&1 | grep -q "egress firewall installed" && ok "the egress firewall was installed at start" || no "no firewall line in the log"
 r=$(curl -s -o /tmp/aiw-readyz.json -w '%{http_code}' $U/readyz)
 [ "$r" = 200 ] && ok "/readyz 200: $(tr -d '\n' < /tmp/aiw-readyz.json | cut -c1-200)" || no "/readyz $r: $(cat /tmp/aiw-readyz.json)"
-grep -q "sk-ant-placeholder" /tmp/aiw-readyz.json && no "/readyz shows the key" || ok "/readyz shows no secret"
+grep -qF "$SECRETS" /tmp/aiw-readyz.json && no "/readyz shows the secrets key" || ok "/readyz shows no secret"
+grep -q "provider key" /tmp/aiw-readyz.json && no "/readyz asks for a provider key" || ok "/readyz 200 with no provider credential on the platform (infrastructure readiness only)"
 
 # 3. Sign-in through the gateway as in production (https origin: __Host- cookie, Secure).
 docker exec -i $NAME node /app/worker-ui/users.mjs add alice@pilot.test --name Alice --password-stdin >/dev/null <<EOF
@@ -45,6 +47,8 @@ hdr=$(curl -s -D - -o /dev/null -H "Origin: $ORIGIN" -H 'content-type: applicati
 echo "$hdr" | grep -q "__Host-aiw_session=" && echo "$hdr" | grep -q "Secure" && echo "$hdr" | grep -q "HttpOnly" && ok "session cookie is __Host-, Secure, HttpOnly" || no "cookie: $hdr"
 pa=$(curl -s -H "cookie: $CA" $U/platform); pb=$(curl -s -H "cookie: $CB" $U/platform)
 echo "$pa" | grep -q '"hosted":true' && echo "$pa" | grep -q alice@pilot.test && echo "$pb" | grep -q bob@pilot.test && ok "both people reach their own console" || no "platform: $pa / $pb"
+nr=$(curl -s -w ' %{http_code}' -H "cookie: $CA" -H "Origin: $ORIGIN" -H 'content-type: application/json' -H 'x-worker-console: 1' -d '{"prompt":"hello"}' $U/runs)
+echo "$nr" | grep -q 'No AI provider is connected' && echo "$nr" | grep -q ' 409$' && [ "$(curl -s -o /dev/null -w '%{http_code}' $U/readyz)" = 200 ] && ok "no provider connected: the person's run is refused with a clear message; the platform stays ready" || no "run without a provider: $nr"
 [ "$(curl -s -o /dev/null -w '%{http_code}' $U/runs)" = 401 ] && ok "signed out: the API refuses" || no "signed-out API answered"
 
 # 4. Per-person uids and the egress firewall inside the running container.

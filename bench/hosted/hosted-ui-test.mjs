@@ -24,7 +24,7 @@ const step = async (name, fn) => { try { const d = await fn(); results.push({ st
 
 const fake = await startFakeAnthropic(BASE + 1, { apiKey: KEY });
 spawnSync(process.execPath, [join(REPO, "worker-ui", "users.mjs"), "add", "alice@pilot.test", "--name", "Alice", "--password-stdin"], { env: { ...process.env, AIW_DATA: DATA }, input: "correct-horse-battery-1\n" });
-const gw = spawn(process.execPath, [join(REPO, "worker-ui", "gateway.mjs")], { env: { ...process.env, AIW_ENV: "test", AIW_DATA: DATA, AIW_PUBLIC_ORIGIN: O, AIW_PORT: String(BASE), AIW_BIND: "127.0.0.1", AIW_MODEL_PORT: String(BASE + 2), AIW_CONSOLE_PORT_BASE: String(BASE + 3), AIW_ISOLATION: "none", ANTHROPIC_API_KEY: KEY, ANTHROPIC_UPSTREAM_URL: `http://127.0.0.1:${BASE + 1}` }, stdio: "ignore" });
+const gw = spawn(process.execPath, [join(REPO, "worker-ui", "gateway.mjs")], { env: { ...process.env, AIW_ENV: "test", AIW_DATA: DATA, AIW_PUBLIC_ORIGIN: O, AIW_PORT: String(BASE), AIW_BIND: "127.0.0.1", AIW_MODEL_PORT: String(BASE + 2), AIW_CONSOLE_PORT_BASE: String(BASE + 3), AIW_ISOLATION: "none", ANTHROPIC_API_KEY: "", AIW_SECRETS_KEY: randomBytes(32).toString("base64"), ANTHROPIC_UPSTREAM_URL: `http://127.0.0.1:${BASE + 1}` }, stdio: "ignore" });
 for (let i = 0; i < 100; i++) { try { if ((await fetch(O + "/healthz")).ok) break; } catch {} await new Promise((r) => setTimeout(r, 200)); }
 
 const browser = await chromium.launch();
@@ -44,6 +44,9 @@ await step("opening the site signed out shows the sign-in page; a wrong password
 await step("signing in opens the workspace page as a hosted person sees it: no local services, no folder path, Executor absent", async () => {
   await page.fill("#password", "correct-horse-battery-1"); await page.click("#go");
   await page.waitForURL(O + "/"); await page.waitForSelector("#wsList [data-ws]");
+  // no central key: the person connects their own provider (here the fake provider's test key), from the page
+  const conn = await page.evaluate((k) => fetch("/account/provider", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ provider: "anthropic-api", apiKey: k }) }).then((r) => r.status), KEY);
+  must(conn === 200, `connect provider → ${conn}`);
   const st = await page.evaluate(() => ({ hosted: document.body.dataset.hosted, title: document.title, lfoot: document.querySelector(".lfoot").hidden,
     ws: [...document.querySelectorAll("#wsList [data-ws]")].map((b) => b.dataset.ws) }));
   must(st.hosted === "1" && st.lfoot && !st.ws.includes("console"), JSON.stringify(st));
@@ -60,7 +63,7 @@ await step("signing in opens the workspace page as a hosted person sees it: no l
 await step("the account panel names the signed-in person and the model provider, with Sign out", async () => {
   await page.click("#acctBtn"); await page.waitForSelector("#acctOut");
   const t = await page.textContent("#acctPop");
-  must(/alice@pilot\.test/.test(t) && /Anthropic API through the platform's model gateway/.test(t), t);
+  must(/alice@pilot\.test/.test(t) && /Your own AI provider account, through the platform's model gateway/.test(t), t);
   must(!/claude auth login|Login folder|Plan/.test(t), "subscription details shown: " + t);
   await page.keyboard.press("Escape");
   return { text: t.replace(/\s+/g, " ").slice(0, 160) };

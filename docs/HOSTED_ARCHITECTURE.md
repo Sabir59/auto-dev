@@ -18,7 +18,7 @@ Browser ──HTTPS──► load balancer (TLS) ──HTTP──► gateway  wo
                          ▼
                        Claude Code CLI (same uid)  ──ANTHROPIC_BASE_URL + per-console token──►
                          │                         gateway model endpoint 127.0.0.1:AIW_MODEL_PORT
-                         │                           └─► Anthropic API (x-api-key: the platform's key)
+                         │                           └─► Anthropic API (x-api-key: that person's own key)
                          ├─ browser-executor (Playwright, fresh profile per worker process)
                          ├─ figma-reader (REST, the person's own Figma token)
                          ├─ repo (git in the workspace; the person's identity; no push)
@@ -29,7 +29,7 @@ A run, step by step:
 1. The page posts `POST /runs` with this site's Origin and the session cookie.
 2. The gateway checks the session and the Origin, starts the person's console if it isn't running, and forwards the request with the console's internal secret. Cookies, `Authorization` and `X-Forwarded-*` aren't forwarded.
 3. The console does exactly what it does locally: checks the worker, Team and workspace, snapshots the definition and Team (`runs/<id>.worker.json`), computes the tool set (`workerRuntime()`), writes the context, and spawns the CLI in the workspace folder.
-4. The CLI calls the model through the gateway's model endpoint. The gateway swaps the console's token for the provider key, streams the answer back unbuffered and logs only `user, path, status, ms`.
+4. The CLI calls the model through the gateway's model endpoint. The gateway swaps the console's token for that person's own provider credential (`model-credentials.mjs`, looked up at each request), streams the answer back unbuffered and logs only `user, path, status, ms`.
 5. Tool calls, results, `NEEDS:`/`DONE:`/`ARTIFACT:` lines become events in `runs/<id>.jsonl`; the page follows them over SSE (`/events`, replayed from the start on every reconnect).
 6. The person reviews diffs in Changes & versions, commits and pushes from there.
 
@@ -37,7 +37,7 @@ A run, step by step:
 
 | | Process | Runs as | Holds |
 |---|---|---|---|
-| **Control plane** | `gateway.mjs` | root in its container (needed to start consoles as other uids) | accounts and sessions (`<AIW_DATA>/control/`, 700), the provider API key, the GitHub App client secret |
+| **Control plane** | `gateway.mjs` | root in its container (needed to start consoles as other uids) | accounts and sessions (`<AIW_DATA>/control/`, 700), each person's own provider credential (encrypted under `AIW_SECRETS_KEY`), the GitHub App client secret. No provider key of the platform's own |
 | **Execution plane** | one `server.mjs` per person, and the CLI and adapter processes it starts | that person's uid, `no_new_privs`, process limits | that person's data only: runs, workspaces, workers, Teams, their GitHub/Figma/Builder tokens, their Claude sessions |
 
 They're one deployable image. The split is by process and uid, not by service, which is the smallest boundary that keeps one person's runs away from another's data.
@@ -62,7 +62,7 @@ They're one deployable image. The split is by process and uid, not by service, w
 |---|---|---|
 | Per-person uid, data dir mode 700, control dir root-only | the kernel (gateway starts consoles with `setpriv --reuid --regid --clear-groups --no-new-privs --inh-caps=-all`, under `prlimit` nproc/nofile/fsize/core) | one person's processes reading or writing another's files, the account store or the gateway's secrets |
 | Console answers only the gateway | `AIW_INTERNAL_SECRET` on every request (constant-time compare), loopback only | another process on the host driving a person's console |
-| Model endpoint needs a per-console token | gateway | using the platform's key without being a running console; tokens change on every console start |
+| Model endpoint needs a per-console token | gateway | using a person's provider credential without being their running console; tokens change on every console start |
 | Hosted platform rules (`AIW_HOSTED=1` in `server.mjs`) | the console and the CLI's permission system | see the next table |
 | Existing workspace, Team and worker narrowing | unchanged (`workerRuntime()`, `runScope()`, adapters, server-side Git) | everything it prevented locally |
 
@@ -93,7 +93,7 @@ They're one deployable image. The split is by process and uid, not by service, w
 |---|---|---|
 | `claude-subscription` | local default | the CLI's own claude.ai sign-in. **Refused hosted:** Anthropic doesn't allow a claude.ai login to back a product for others |
 | `anthropic-api` | local, a developer's own key | `ANTHROPIC_API_KEY` in the worker env. Refused hosted |
-| `anthropic-gateway` | hosted default | `ANTHROPIC_BASE_URL` = the gateway's loopback model endpoint, `ANTHROPIC_AUTH_TOKEN` = a per-console token. Claude Code's documented LLM-gateway variables |
+| `anthropic-gateway` | hosted default | `ANTHROPIC_BASE_URL` = the gateway's loopback model endpoint, `ANTHROPIC_AUTH_TOKEN` = a per-console token. Claude Code's documented LLM-gateway variables. The gateway adds the person's own credential; without one, their runs are refused (`/provider/status`) |
 
 - **Provider failures:** the gateway forwards `anthropic-*` headers and bodies unchanged (Claude Code's gateway contract) and streams events as they arrive.
   - It passes through `retry-after`, `x-should-retry` and `anthropic-ratelimit-*`.
@@ -101,7 +101,7 @@ They're one deployable image. The split is by process and uid, not by service, w
   - Per person: 4 concurrent requests (`AIW_MODEL_MAX_CONCURRENT`) and an optional daily cap (`AIW_MODEL_DAILY_REQUESTS`).
 - **No fallback:** a console with no valid provider configuration doesn't start. A production gateway refuses a non-https or loopback upstream (a test upstream needs `AIW_ENV=test`).
 - **Replaceable:** another provider is a new entry in `provider.mjs` plus, for the hosted path, the gateway's upstream. Bedrock and Vertex are supported by the same CLI through their own base-URL variables. Worker, Team and Workspace code doesn't change.
-- **Not verified live:** no Anthropic API key was available while building this. The tests use a scripted fake provider (`bench/hosted/fake-anthropic.mjs`, clearly marked) behind the real CLI and the real gateway.
+- **Not verified live:** no Anthropic API key was used while building this (the platform holds none; each person connects their own, docs/CLOUD_DEPLOYMENT.md §3). The tests use a scripted fake provider (`bench/hosted/fake-anthropic.mjs`, clearly marked) behind the real CLI and the real gateway.
 
 ## 6. Run lifecycle and persistence
 

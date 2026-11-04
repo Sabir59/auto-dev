@@ -2255,8 +2255,15 @@ function sendToWorker(run, text, atts = [], mentions = [], opts = {}) {
 // A Team run: one of the Team's workers, in the Team's workspace (a request for another workspace
 // is refused), with the Team's context added before the worker's own.
 const teamWorkspace = (t) => t.workspace || "scratch";
+// Hosted, each person brings their own AI provider account; without one, no run starts (the reason is
+// shown in their console, and the platform stays healthy).
+async function requireProvider() {
+  const s = await PROVIDER.ready();
+  if (!s.connected) throw Object.assign(new Error(s.message || "No AI provider is connected to your account."), { status: 409 });
+}
 async function newRun(prompt, workspaceId = "console", atts = [], workerId = null, mentions = [], teamId = null, settings = {}, extra = {}) {
   if (active()) throw busyError("A worker is already running. Stop or end it first.");
+  await requireProvider();
   const team = teamId ? readTeams().find((t) => t.id === teamId) : null;
   if (teamId && !team) throw new Error(`No Team "${teamId}".`);
   if (team) {
@@ -3338,6 +3345,7 @@ http.createServer(async (req, res) => {
         if (!text?.trim() && !atts.length) throw new Error("Empty message");
         const target = latestInChain(run);
         const mentions = resolveMentions(checkBinding(target, { resume: false }).root, ms); // the run's own workspace
+        await requireProvider();
         return json(res, 200, sendMessage(run, String(text || "").trim(), atts, mentions));
       }
       if (action === "stop") {

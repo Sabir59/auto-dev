@@ -17,7 +17,9 @@
 import http from "node:http";
 import { createHash } from "node:crypto";
 
+// apiKey: the test key it accepts, or several (each person's own key, hosted); keySha says whose it was.
 export function startFakeAnthropic(port, { apiKey }) {
+  const keys = new Set([apiKey].flat());
   const scripts = new Map(), log = [];
   let n = 0;
   const sha = (s) => createHash("sha256").update(String(s)).digest("hex").slice(0, 16);
@@ -57,7 +59,7 @@ export function startFakeAnthropic(port, { apiKey }) {
     if (u.pathname === "/__script" && req.method === "POST") { const j = JSON.parse(raw); scripts.set(j.name, j.steps); res.writeHead(200); return res.end("{}"); }
     if (u.pathname === "/__log") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(log)); }
     if (u.pathname === "/api/hello") { res.writeHead(200); return res.end(); }
-    const keyOk = req.headers["x-api-key"] === apiKey;
+    const keyOk = keys.has(req.headers["x-api-key"]);
     const entry = { at: Date.now(), method: req.method, path: u.pathname, search: u.search, keyOk, keySha: req.headers["x-api-key"] ? sha(req.headers["x-api-key"]) : null, authorization: !!req.headers.authorization,
       anthropicVersion: req.headers["anthropic-version"] || null, anthropicBeta: !!req.headers["anthropic-beta"], headerNames: Object.keys(req.headers) };
     log.push(entry);

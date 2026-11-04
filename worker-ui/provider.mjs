@@ -9,17 +9,19 @@
 //   anthropic-api        an Anthropic API key (ANTHROPIC_API_KEY) on this computer, for a developer
 //                        running the console locally with their own key. The key is in the worker's
 //                        environment, so this is never used hosted.
-//   anthropic-gateway    hosted: the control plane (gateway.mjs) holds the API key. Workers get the
-//                        gateway's address and a per-console token (ANTHROPIC_BASE_URL +
-//                        ANTHROPIC_AUTH_TOKEN, Claude Code's documented LLM-gateway variables); the
-//                        key never reaches a console, a worker, the page or a log.
+//   anthropic-gateway    hosted: each person connects their own AI provider account, which the
+//                        control plane (gateway.mjs, model-credentials.mjs) keeps encrypted; the
+//                        platform supplies no model access of its own. Workers get the gateway's
+//                        address and a per-console token (ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN,
+//                        Claude Code's documented LLM-gateway variables); the gateway adds the
+//                        person's credential, which never reaches a console, a worker, the page or a log.
 //
 // MODEL_PROVIDER picks one; unset means claude-subscription locally and anthropic-gateway hosted.
 // There is no fallback: a provider whose configuration is missing makes the console refuse to start.
 export const PROVIDERS = {
   "claude-subscription": { label: "Claude Code sign-in on this computer (local development)", hosted: false },
   "anthropic-api": { label: "Anthropic API key on this computer (local development)", hosted: false },
-  "anthropic-gateway": { label: "Anthropic API through the platform's model gateway", hosted: true },
+  "anthropic-gateway": { label: "Your own AI provider account, through the platform's model gateway", hosted: true },
 };
 
 export class ProviderConfigError extends Error {}
@@ -51,5 +53,16 @@ export function resolveProvider(env = process.env, { hosted = false } = {}) {
     },
     // Shown on the page: which provider, never a credential.
     summary() { return { id, label: p.label }; },
+    // Whether a run can use the model now: { connected, message? }. Hosted, the gateway answers for
+    // this console's person (their own provider account); a local provider is the computer's own.
+    async ready() {
+      if (id !== "anthropic-gateway") return { connected: true };
+      try {
+        const r = await fetch(`${env.ANTHROPIC_BASE_URL}/provider/status`, { headers: { authorization: `Bearer ${env.ANTHROPIC_AUTH_TOKEN}` }, signal: AbortSignal.timeout(5000) });
+        const s = await r.json().catch(() => null);
+        if (r.ok && s && typeof s.connected === "boolean") return s;
+      } catch {}
+      return { connected: false, message: "The platform's model gateway isn't answering. Try again in a moment." };
+    },
   };
 }
