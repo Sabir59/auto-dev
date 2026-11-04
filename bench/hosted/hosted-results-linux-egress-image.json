@@ -1,5 +1,5 @@
 {
- "when": "2026-10-20T20:42:48.105Z",
+ "when": "2026-11-04T16:58:23.420Z",
  "platform": "linux",
  "isolation": "uid",
  "tag": "image",
@@ -85,10 +85,10 @@
    "step": "hosted workspace: a new one is a folder of the person's own; a path from the page is ignored; Executor, folder browsing and the platform's files don't exist",
    "ok": true,
    "detail": {
-    "root": "<data>/users/u-1ece3eeb-72c/data/workspaces/site-e971",
+    "root": "<data>/users/u-8d04cd1c-38a/data/workspaces/site-66f6",
     "list": [
      "scratch",
-     "site-e971"
+     "site-66f6"
     ]
    }
   },
@@ -98,8 +98,8 @@
    "detail": {
     "outcome": "done",
     "refusals": [
-     "/var/tmp/aiw-hosted-qwBTaJ/users/u-963ef7fc-ede/data/bob-secret.txt is outside /var/tmp/ai",
-     "/var/tmp/aiw-hosted-qwBTaJ/control/users.json is outside /var/tmp/aiw-hosted-qwBTaJ/users/",
+     "Refused: /var/tmp/aiw-hosted-OWV0fe/users/u-e9cd106b-597/data/bob-secret.txt is outside th",
+     "Refused: /var/tmp/aiw-hosted-OWV0fe/control/users.json is outside the folders this run can",
      "<tool_use_error>Error: No such tool available: Bash. Bash is disabled for this session, in",
      "WebFetch denied access to domain:169.254.169.254."
     ]
@@ -110,7 +110,7 @@
    "ok": true,
    "detail": {
     "providerRequests": 6,
-    "filesScanned": 24,
+    "filesScanned": 23,
     "processes": [
      {
       "role": "console",
@@ -151,7 +151,9 @@
      "Read",
      "WebFetch",
      "WebSearch",
-     "Write"
+     "Write",
+     "mcp__evolve__evolve_propose",
+     "mcp__evolve__evolve_read_self"
     ]
    }
   },
@@ -159,7 +161,7 @@
    "step": "Scratch (the default with no workspace): the conversation gets its own folder under the person's data; the worker writes there; it's listed only through the conversation",
    "ok": true,
    "detail": {
-    "folder": "<data>/users/u-1ece3eeb-72c/data/scratch-runs/2026-10-20T20-41-48-640Z"
+    "folder": "<data>/users/u-8d04cd1c-38a/data/scratch-runs/2026-11-04T16-57-49-072Z"
    }
   },
   {
@@ -167,7 +169,7 @@
    "ok": true,
    "detail": {
     "status": "stopped",
-    "ms": 533
+    "ms": 512
    }
   },
   {
@@ -185,7 +187,7 @@
    "detail": {
     "status": "waiting",
     "outcome": "error",
-    "seconds": 5
+    "seconds": 2
    }
   },
   {
@@ -210,7 +212,7 @@
      "uid": 20002,
      "mode": "700"
     },
-    "crossRead": "cat: /var/tmp/aiw-hosted-qwBTaJ/users/u-963ef7fc-ede/data/bob-secret.txt: Permis",
+    "crossRead": "cat: /var/tmp/aiw-hosted-OWV0fe/users/u-e9cd106b-597/data/bob-secret.txt: Permis",
     "processUids": [
      20001
     ]
@@ -238,10 +240,10 @@
    "ok": true,
    "detail": {
     "refused": [
-     "Refused: 127.0.0.1:18770 is on this server; the browser can'",
+     "Refused: 127.0.0.1:8770 is on this server; the browser can't",
      "Refused: 169.254.169.254 is a private or internal network ad",
      "Refused: 10.1.2.3 is a private or internal network address; ",
-     "Refused: localhost.:18772 is on this server; the browser can",
+     "Refused: localhost.:8772 is on this server; the browser can'",
      "Refused: files outside the workspace can't be opened."
     ],
     "publicPage": "{ \"url\": \"https://example.com/\", \"title\": \"Example Domain\", ",
