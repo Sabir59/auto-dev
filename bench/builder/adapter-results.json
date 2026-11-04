@@ -1,5 +1,5 @@
 {
- "when": "2026-10-16T08:21:32.329Z",
+ "when": "2026-11-04T17:39:06.863Z",
  "note": "Mocked Builder API: proves the adapter's requests and guards, not Builder's behaviour.",
  "results": [
   {
@@ -130,8 +130,8 @@
      "servedAtUrl": true,
      "pendingDraft": false,
      "previewUrl": "/adapter-test?builder.preview=page&builder.cachebust=true&builder.overrides.page=created00000001",
-     "lastUpdated": 1792138878045,
-     "firstPublished": 1792138878045
+     "lastUpdated": 1793813929174,
+     "firstPublished": 1793813929174
     }
    }
   },
@@ -146,7 +146,7 @@
     "servedAtUrl": false,
     "pendingDraft": false,
     "previewUrl": "/draft?builder.preview=page&builder.cachebust=true&builder.overrides.page=seeddraft00001",
-    "lastUpdated": 1792138873622,
+    "lastUpdated": 1793813924631,
     "firstPublished": null
    }
   },
@@ -163,7 +163,7 @@
      "servedAtUrl": false,
      "pendingDraft": false,
      "previewUrl": "/ignored?builder.preview=page&builder.cachebust=true&builder.overrides.page=created00000002",
-     "lastUpdated": 1792138878169,
+     "lastUpdated": 1793813929287,
      "firstPublished": null
     }
    }
@@ -362,8 +362,8 @@
    "ok": true,
    "detail": {
     "refused": [
-     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\bld-out-bm",
-     "Refused: ../bld-out-bmruMi/secret.png is outside t",
+     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\bld-out-VW",
+     "Refused: ../bld-out-VWYRca/secret.png is outside t",
      "Only images and fonts can be uploaded (.png, .jpg,",
      "Reading local files isn't available in this run (n",
      "Refused: the connected Builder space (\"Mock test s"

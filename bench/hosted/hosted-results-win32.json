@@ -1,5 +1,5 @@
 {
- "when": "2026-11-04T17:27:16.213Z",
+ "when": "2026-11-04T17:45:13.215Z",
  "platform": "win32",
  "isolation": "none",
  "tag": null,
@@ -98,10 +98,10 @@
    "step": "hosted workspace: a new one is a folder of the person's own; a path from the page is ignored; Executor, folder browsing and the platform's files don't exist",
    "ok": true,
    "detail": {
-    "root": "<data>\\users\\u-656c1e4f-c02\\data\\workspaces\\site-aa97",
+    "root": "<data>\\users\\u-ccc218ae-e98\\data\\workspaces\\site-f038",
     "list": [
      "scratch",
-     "site-aa97"
+     "site-f038"
     ]
    }
   },
@@ -111,8 +111,8 @@
    "detail": {
     "outcome": "done",
     "refusals": [
-     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-TABQwb\\users\\u-0e000b9f-cab\\data\\bob-se",
-     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-TABQwb\\control\\users.json is outside th",
+     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-0ueBEK\\users\\u-53e900da-9e6\\data\\bob-se",
+     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\aiw-hosted-0ueBEK\\control\\users.json is outside th",
      "<tool_use_error>Error: No such tool available: Bash. Bash is disabled for this session, in",
      "WebFetch denied access to domain:169.254.169.254."
     ]
@@ -149,7 +149,7 @@
    "step": "Scratch (the default with no workspace): the conversation gets its own folder under the person's data; the worker writes there; it's listed only through the conversation",
    "ok": true,
    "detail": {
-    "folder": "<data>\\users\\u-656c1e4f-c02\\data\\scratch-runs\\2026-11-04T17-26-26-954Z"
+    "folder": "<data>\\users\\u-ccc218ae-e98\\data\\scratch-runs\\2026-11-04T17-44-09-754Z"
    }
   },
   {
@@ -157,7 +157,7 @@
    "ok": true,
    "detail": {
     "status": "stopped",
-    "ms": 548
+    "ms": 537
    }
   },
   {
@@ -175,7 +175,7 @@
    "detail": {
     "status": "waiting",
     "outcome": "error",
-    "seconds": 3
+    "seconds": 4
    }
   },
   {
@@ -198,6 +198,17 @@
    }
   },
   {
+   "step": "integration credentials: the person's credential key goes only to their own live run's Figma and Builder tool servers, never into the run's files",
+   "ok": true,
+   "detail": {
+    "ownServer": 200,
+    "otherServer": 403,
+    "wrongToken": 403,
+    "bobsConsole": 403,
+    "afterEnd": 403
+   }
+  },
+  {
    "step": "OS boundary (Linux): each person's folder is theirs alone (mode 700, own uid); their console and workers run as that uid; another uid can't read it",
    "skipped": "needs Linux and root (AIW_ISOLATION=uid); this run uses AIW_ISOLATION=none"
   },
@@ -207,6 +218,14 @@
    "detail": {
     "connectedAs": "alice",
     "replay": "/?github=state"
+   }
+  },
+  {
+   "step": "GitHub credential at rest: stored encrypted with alice's own key (no token on disk); copied into bob's folder it doesn't open as alice's",
+   "ok": true,
+   "detail": {
+    "encrypted": true,
+    "bobConnected": false
    }
   },
   {
