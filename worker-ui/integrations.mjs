@@ -107,6 +107,8 @@ export function compose(req = {}) {
       const fallback = presets[i.id]?.[q.id] ?? (q.type === "text" ? (q.prefill || []).find(([re]) => rx(re).test(description))?.[1] ?? "" : q.default);
       const v = given[q.id] !== undefined ? given[q.id] : fallback;
       if (!shown(q, a)) continue;
+      // Which connected accounts (Builder spaces) it may use: ids like sp_…:read, checked again when it runs.
+      if (q.type === "accounts") { a[q.id] = (Array.isArray(v) ? v : []).filter((x) => typeof x === "string" && /^sp_[a-f0-9]{12}:(read|write)$/.test(x)).slice(0, 20); continue; }
       if (q.type === "text") { a[q.id] = clip(v, 300); if (a[q.id] && q.knowledge) out.know.push(`${q.knowledge}: ${a[q.id]}`); continue; }
       const ids = q.type === "multi" ? (v == null ? [] : v) : v == null ? [] : [v];
       if (!Array.isArray(ids) || ids.some((x) => typeof x !== "string")) throw new DraftError(`Answer "${q.label}" with ${q.type === "multi" ? "a list of choices" : "one choice"}.`);

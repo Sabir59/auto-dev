@@ -55,7 +55,7 @@
       "limits": { "$ref": "#/$defs/lines" }, "approval": { "type": "string" }, "know": { "type": "string" }, "unsupported": { "type": "string" },
       "adds": { "type": "object", "additionalProperties": false, "required": ["integration", "preset"], "properties": { "integration": { "$ref": "#/$defs/id" }, "preset": { "type": "object" } } } } },
     "question": { "type": "object", "additionalProperties": false, "required": ["id", "type", "label"], "properties": {
-      "id": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9]{0,39}$" }, "type": { "enum": ["text", "choice", "multi", "info"] }, "label": { "type": "string", "minLength": 1 },
+      "id": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9]{0,39}$" }, "type": { "enum": ["text", "choice", "multi", "info", "accounts"] }, "label": { "type": "string", "minLength": 1 }, "resource": { "type": "string", "description": "For an accounts question: the resource whose connected accounts the person picks from (builder: Builder spaces)." },
       "placeholder": { "type": "string" }, "knowledge": { "type": "string" }, "help": { "type": "string" }, "text": { "type": "string" }, "required": { "type": "boolean" },
       "default": { "type": ["string", "array", "null"] }, "when": { "type": "object", "additionalProperties": false, "required": ["q", "is"], "properties": { "q": { "type": "string" }, "is": { "type": "array", "items": { "type": "string" } } } },
       "prefill": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["pattern", "value"], "properties": { "pattern": { "type": "string" }, "value": { "type": "string" } } } },

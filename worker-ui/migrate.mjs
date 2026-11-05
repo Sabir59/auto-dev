@@ -26,8 +26,8 @@ export function carryConfig(config = {}, m) {
   const out = {}, kept = [], dropped = [], defaulted = [];
   for (const q of m.questions) {
     if (q.type === "info" || !shown(q, out)) continue;
-    const v = config[q.id], ok = q.type === "text" ? typeof v === "string" : q.type === "multi" ? Array.isArray(v) && v.every((x) => q.choices.some((c) => c.id === x)) : v === null || q.choices.some((c) => c.id === v);
-    if (q.id in config && ok) { out[q.id] = v; kept.push(q.id); } else { out[q.id] = q.type === "text" ? "" : q.type === "multi" ? [].concat(q.default ?? []) : q.default ?? null; defaulted.push(q.id); }
+    const v = config[q.id], ok = q.type === "text" ? typeof v === "string" : q.type === "accounts" ? Array.isArray(v) && v.every((x) => typeof x === "string") : q.type === "multi" ? Array.isArray(v) && v.every((x) => q.choices.some((c) => c.id === x)) : v === null || q.choices.some((c) => c.id === v);
+    if (q.id in config && ok) { out[q.id] = v; kept.push(q.id); } else { out[q.id] = q.type === "text" ? "" : q.type === "multi" || q.type === "accounts" ? [].concat(q.default ?? []) : q.default ?? null; defaulted.push(q.id); }
   }
   for (const k of Object.keys(config)) if (!(k in out)) dropped.push(k);
   return { config: out, kept, dropped, defaulted };
@@ -75,7 +75,7 @@ function configsGiving(m, wanted) {
 }
 const subsets = (xs) => xs.reduce((acc, x) => [...acc, ...acc.map((s) => [...s, x])], [[]]).slice(0, 64);
 // A full configuration from partial answers: text questions empty, others as given (or their default).
-const complete = (m, partial) => { const cfg = {}; for (const q of m.questions) { if (q.type === "info" || !shown(q, cfg)) continue; cfg[q.id] = q.id in partial ? partial[q.id] : q.type === "text" ? "" : q.type === "multi" ? [] : q.default ?? null; } return cfg; };
+const complete = (m, partial) => { const cfg = {}; for (const q of m.questions) { if (q.type === "info" || !shown(q, cfg)) continue; cfg[q.id] = q.id in partial ? partial[q.id] : q.type === "text" ? "" : q.type === "multi" || q.type === "accounts" ? [] : q.default ?? null; } return cfg; };
 
 export function proposeMigration(w) {
   const coreIds = catalog.coreIds(), caps = [...(w.capabilities || [])], notes = [];

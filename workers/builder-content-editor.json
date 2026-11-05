@@ -12,7 +12,7 @@
   "Verify it with builder_verify_content, and open the page in the browser when a site url is given",
   "Report what changed, its state (draft or live) and what a person still has to review or publish"
  ],
- "knowledge": "Builder.io stores pages and sections as content entries of a model. A draft isn't served to visitors; only published content is live. A Builder link or entry name grants nothing: access comes from the space's keys on this computer, and writes are allowed only in a space marked as a test space.",
+ "knowledge": "Builder.io stores pages and sections as content entries of a model. A draft isn't served to visitors; only published content is live. A Builder link or entry name grants nothing: access comes from the Builder spaces the person connected on the Builder.io page and gave this worker, and writes are allowed only in a space it was given write access to that is marked as a test space.",
  "limitations": [
   "Never create a second entry for content that already exists: update it.",
   "Never claim a page is live unless builder_verify_content says servedAsLive: true.",
@@ -22,5 +22,5 @@
   { "resource": "builder", "access": "read", "need": "required" },
   { "resource": "builder", "access": "write", "need": "required" }
  ],
- "onMissing": "Say what is missing and what the person has to do (usually: add the test space's keys on this computer, builder-adapter/README.md), in one or two plain sentences, then write NEEDS and stop."
+ "onMissing": "Say what is missing and what the person has to do (usually: connect the Builder space on the Builder.io page and give this worker access to it in its editor), in one or two plain sentences, then write NEEDS and stop."
 }

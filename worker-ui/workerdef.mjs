@@ -32,6 +32,7 @@ export function evaluate(m, config = {}) {
     if (q.type === "info" || !shown(q, config)) continue;
     const v = config[q.id];
     if (q.type === "text") { if (v && q.knowledge) out.know.push(`${q.knowledge}: ${v}`); continue; }
+    if (q.type === "accounts") continue; // which of the person's accounts (spaces) it may use: read by the console at run time
     const picked = q.type === "multi" ? (Array.isArray(v) ? v : []) : v == null ? [] : [v];
     for (const c of (q.choices || []).filter((c) => picked.includes(c.id))) {
       out.enables.push(...(c.enables || [])); out.core.push(...(c.core || [])); out.requires.push(...(c.requires || []).map((r) => ({ ...r })));

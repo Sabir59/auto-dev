@@ -4,13 +4,17 @@
 import http from "node:http";
 
 export const KEYS = { public: "pub-test-0123456789", private: "bpk-test-SECRET-abcdef0123456789" };
+// A second, separate space (its own models and content), for tests with several spaces.
+export const KEYS_B = { public: "pub-second-9876543210", private: "bpk-second-SECRET-fedcba9876543210" };
 
 export function startMock({ port = 0 } = {}) {
-  const models = [{ id: "m-page", name: "page", kind: "page" }, { id: "m-banner", name: "announcement-bat", kind: "data" }];
-  const entries = new Map();
-  const seed = (e) => entries.set(e.id, { createdDate: Date.now(), lastUpdated: Date.now(), query: [], data: {}, ...e });
-  seed({ id: "seedpublished01", modelName: "page", name: "Live page", published: "published", firstPublished: Date.now(), data: { url: "/live", title: "Live" }, query: [{ property: "urlPath", operator: "is", value: "/live" }] });
-  seed({ id: "seeddraft00001", modelName: "page", name: "Existing draft", published: "draft", data: { url: "/draft", title: "Draft" } });
+  const space = (keys, models) => { const entries = new Map(); return { keys, models, entries, seed: (e) => entries.set(e.id, { createdDate: Date.now(), lastUpdated: Date.now(), query: [], data: {}, ...e }) }; };
+  const A = space(KEYS, [{ id: "m-page", name: "page", kind: "page" }, { id: "m-banner", name: "announcement-bat", kind: "data" }]);
+  const B = space(KEYS_B, [{ id: "b-page", name: "page", kind: "page" }]);
+  A.seed({ id: "seedpublished01", modelName: "page", name: "Live page", published: "published", firstPublished: Date.now(), data: { url: "/live", title: "Live" }, query: [{ property: "urlPath", operator: "is", value: "/live" }] });
+  A.seed({ id: "seeddraft00001", modelName: "page", name: "Existing draft", published: "draft", data: { url: "/draft", title: "Draft" } });
+  B.seed({ id: "secondlive0001", modelName: "page", name: "Second space home", published: "published", firstPublished: Date.now(), data: { url: "/", title: "Home B" }, query: [{ property: "urlPath", operator: "is", value: "/" }] });
+  const entries = A.entries;
   const log = [];
   const fault = { publishIgnored: false, publishStatus: 0 }; // simulate an API that says OK without publishing, or refuses
   let n = 0;
@@ -24,7 +28,10 @@ export function startMock({ port = 0 } = {}) {
       const b = body && /json/.test(req.headers["content-type"] || "") ? JSON.parse(Buffer.from(body, "latin1").toString("utf8")) : null;
       log.push({ method: req.method, path: u.pathname, search: Object.fromEntries(u.searchParams), auth: req.headers.authorization || null, body: b });
       const send = (s, o) => { res.writeHead(s, { "content-type": "application/json" }); res.end(JSON.stringify(o)); };
-      const bearerOk = req.headers.authorization === `Bearer ${KEYS.private}`;
+      // Which space the request is for: its private key (Admin, Write, Upload) or public key (Content).
+      const sp = [A, B].find((s) => req.headers.authorization === `Bearer ${s.keys.private}` || u.searchParams.get("apiKey") === s.keys.public);
+      const models = sp?.models || [], entries = sp?.entries || new Map(), seed = sp?.seed || (() => {});
+      const bearerOk = !!sp && req.headers.authorization === `Bearer ${sp.keys.private}`;
 
       if (u.pathname === "/api/v2/admin" && req.method === "POST") {
         if (!bearerOk) return send(401, { message: "Unauthorized" });
@@ -32,7 +39,7 @@ export function startMock({ port = 0 } = {}) {
       }
       let m = /^\/api\/v3\/content\/([^/]+)$/.exec(u.pathname);
       if (m && req.method === "GET") {
-        if (u.searchParams.get("apiKey") !== KEYS.public) return send(401, { message: "Invalid apiKey" });
+        if (!sp || u.searchParams.get("apiKey") !== sp.keys.public) return send(401, { message: "Invalid apiKey" });
         if (!models.some((x) => x.name === m[1])) return send(404, { message: `Model ${m[1]} not found` });
         // Mirrors real Builder (observed 2026-10-09/10): a query by id returns the entry whatever its
         // state; otherwise drafts only with includeUnpublished; a urlPath lookup finds live pages
@@ -45,7 +52,8 @@ export function startMock({ port = 0 } = {}) {
         const off = Number(u.searchParams.get("offset") || 0), lim = Number(u.searchParams.get("limit") || 30);
         // Delivery (non-preview) injects a tracking-pixel block, as real Builder does (observed).
         const PIXEL = { id: "builder-pixel-mock01", "@type": "@builder.io/sdk:Element", tagName: "img", properties: { src: "https://cdn.builder.io/api/v1/pixel?apiKey=x", "aria-hidden": "true" } };
-        return send(200, { results: rows.slice(off, off + lim).map(({ modelName, autosave, ...e }) => (preview ? (autosave ? { ...e, ...autosave } : e) : Array.isArray(e.data?.blocks) ? { ...e, data: { ...e.data, blocks: [...e.data.blocks, PIXEL] } } : e)) });
+        const modelId = models.find((x) => x.name === m[1])?.id;
+        return send(200, { results: rows.slice(off, off + lim).map(({ modelName, ...rest }) => ({ modelId, ...rest })).map(({ autosave, ...e }) => (preview ? (autosave ? { ...e, ...autosave } : e) : Array.isArray(e.data?.blocks) ? { ...e, data: { ...e.data, blocks: [...e.data.blocks, PIXEL] } } : e)) });
       }
       m = /^\/api\/v1\/write\/([^/]+)(?:\/([^/]+))?$/.exec(u.pathname);
       if (m) {
@@ -81,5 +89,5 @@ export function startMock({ port = 0 } = {}) {
       send(404, { message: "no route" });
     });
   });
-  return new Promise((ok) => server.listen(port, "127.0.0.1", () => ok({ server, port: server.address().port, entries, log, fault, close: () => new Promise((r) => server.close(r)) })));
+  return new Promise((ok) => server.listen(port, "127.0.0.1", () => ok({ server, port: server.address().port, entries, entriesB: B.entries, log, fault, close: () => new Promise((r) => server.close(r)) })));
 }

@@ -6,7 +6,7 @@
 //   builder 2.0.0 — "Read only" now also prepares drafts (more access); "models" replaced by "locale"
 //   figma   1.2.0 — needs the web core capability too (more access); made from the real 1.1.0
 //   node bench/integrations/lifecycle-test.mjs
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, cpSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, cpSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
@@ -30,6 +30,8 @@ const assert = (c, m) => { if (!c) throw new Error(typeof m === "string" ? m : J
 
 // ---- the catalogue copy, with three new releases ----
 cpSync(join(REPO, "worker-ui", "integrations"), CAT, { recursive: true });
+// The real builder 1.1.0 (Builder spaces) is taken out of the copy: this test releases its own 1.1.0 and 2.0.0 from 1.0.0.
+{ const L = join(CAT, "releases.lock.json"), lock = JSON.parse(readFileSync(L, "utf8")); delete lock.released["builder@1.1.0"]; writeFileSync(L, JSON.stringify(lock, null, 1)); rmSync(join(CAT, "builder", "1.1.0.json")); }
 const mf = (id, v) => JSON.parse(readFileSync(join(CAT, id, `${v}.json`), "utf8")), put = (m) => writeFileSync(join(CAT, m.id, `${m.version}.json`), JSON.stringify(m, null, 2));
 { const m = mf("builder", "1.0.0"); m.version = "1.1.0"; m.instructions.steps = [...m.instructions.steps, "Check the page in each locale before saying it's done"]; m.changes = { "1.1.0": "One more step: check every locale." }; put(m); }
 { const m = mf("builder", "1.0.0"); m.version = "2.0.0"; m.changes = { "2.0.0": "Read-only workers also prepare drafts; “Models and pages” is replaced by “Locale”." };

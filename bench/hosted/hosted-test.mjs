@@ -443,7 +443,7 @@ await step("AI provider isolation: alice changing, then deleting, her key while 
   assert(back.status === 200, "alice's key couldn't be restored");
   return { bobRequests: bobReqs.length, bobOutcome: done.outcome, aliceNewKeyRequests: aliceReqs.length };
 });
-await step("integration credentials: the person's credential key goes only to their own live run's Figma and Builder tool servers, never into the run's files", async () => {
+await step("integration credentials: the person's credential key goes only to their own live run's Figma reader, never to Builder's server (it gets only its worker's spaces) and never into the run's files", async () => {
   const w = await A.req("POST", "/workers", { name: "Figma reader", mission: "Reads designs.", capabilities: ["files.read", "figma.read"] });
   assert(w.status === 200, JSON.stringify(w.json));
   await script("credLive", [{ delayMs: 5000, then: { text: "DONE: cred" } }]);
@@ -460,14 +460,14 @@ await step("integration credentials: the person's credential key goes only to th
   const own = await ask(url, tok, "figma-reader"), builder = await ask(url, tok, "builder"), other = await ask(url, tok, "repo"), wrong = await ask(url, "x".repeat(36), "figma-reader");
   const bobConsole = url.replace(/:\d+\//, `:${P.consoles + bob.seq}/`), viaBob = await ask(bobConsole, tok, "figma-reader");
   assert(own.status === 200 && own.key === mine, `own figma-reader → ${own.status}`);
-  assert(builder.status === 200 && builder.key === mine, `own builder → ${builder.status}`);
+  assert(builder.status === 403 && !builder.key, `own builder → ${builder.status} (Builder gets its worker's spaces, never the key)`);
   assert(other.status === 403 && !other.key && wrong.status === 403 && viaBob.status === 403, `other server ${other.status}, wrong token ${wrong.status}, bob's console ${viaBob.status}`);
   assert(mine !== personKey(bob.id).toString("base64"), "two people share a key");
   await A.req("POST", `/runs/${r.json.id}/end`, {});
   for (let i = 0; i < 60 && (await A.req("GET", "/runs")).json.active; i++) await sleep(250);
   const ended = await ask(url, tok, "figma-reader");
   assert(ended.status === 403, `after the run ended → ${ended.status}`);
-  return { ownServer: own.status, otherServer: other.status, wrongToken: wrong.status, bobsConsole: viaBob.status, afterEnd: ended.status };
+  return { ownServer: own.status, builderServer: builder.status, otherServer: other.status, wrongToken: wrong.status, bobsConsole: viaBob.status, afterEnd: ended.status };
 });
 await step("OS boundary (Linux): each person's folder is theirs alone (mode 700, own uid); their console and workers run as that uid; another uid can't read it", async () => {
   const st = (p) => { const s = statSync(p); return { uid: s.uid, mode: (s.mode & 0o777).toString(8) }; };

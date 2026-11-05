@@ -48,10 +48,10 @@ await step("the catalogue offers builder.read (both modes) and builder.write (Wo
   return caps;
 });
 
-await step("requirements: no credentials → both Not connected", async () => {
+await step("requirements: no space connected → both say so", async () => {
   creds(null);
   const s = await status(editor.id);
-  assert(s.join() === "read:Not connected,write:Not connected", s.join());
+  assert(s.join() === "read:No Builder space connected,write:No Builder space connected", s.join());
   return s;
 });
 

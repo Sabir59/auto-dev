@@ -234,6 +234,9 @@ const MCP_SERVERS = {
   // tried to call update_content that way (builder-adapter/builder.mjs). Local files it may read
   // (uploads, page data) are confined to the run's workspace (BUILDER_UPLOAD_ROOT), and only when
   // it may write.
+  // Which spaces it sees, and with what access, its console tells it at every call (builderSpacesFor):
+  // a write needs a space given with write access that's marked as a test space. Its write tools are
+  // also off while the worker has no such space (the "builder write" account check, run.authz.live).
   builder: (profile, scope = {}, usable = [], root = null) => {
     const full = profile === "full" && usable.includes("builder.write");
     const draft = !full && profile === "full" && usable.includes("builder.write.draft");
@@ -415,16 +418,29 @@ async function liveFor(runId, token, server, at, on) {
   if (run.authz !== a || !a.ready) return { live: [], v: -1 };
   return { live: [...a.live, ...(a.repo ? ["repo"] : [])], v: a.v };
 }
-// A tool server that reads a stored credential (the Figma reader, Builder) asking for the person's
+// A tool server that reads a stored credential (the Figma reader) asking for the person's
 // credential key at start (worker-ui/secret-file.mjs): only with its live run's token, only for those
 // servers. The key never goes into a run's files; locally there's none (null).
-const CREDENTIAL_SERVERS = new Set(["figma-reader", "builder"]);
+const CREDENTIAL_SERVERS = new Set(["figma-reader"]);
 function credentialKeyFor(runId, token, server) {
   const run = runs.get(runId), a = run?.authz;
   if (!a || !alive(run) || !CREDENTIAL_SERVERS.has(server)) return null;
   const t = Buffer.from(String(token)), want = Buffer.from(a.token);
   if (t.length !== want.length || !timingSafeEqual(t, want)) return null;
   return { key: process.env.AIW_CREDENTIAL_KEY || null };
+}
+// The Builder tool server of a live run asking which Builder spaces it may use now (at every call):
+// the spaces given to the worker that are still connected, each with the access it has now (write
+// only for a test space, and only when the run has Builder write tools), and their keys. Only to that
+// run's own Builder server, with the run's token: it never gets the person's credential key, so it
+// can't read a space the worker wasn't given.
+function builderSpacesFor(runId, token, server) {
+  const run = runs.get(runId), a = run?.authz;
+  if (!a || !alive(run) || server !== "builder" || ![...a.caps].some((c) => c.startsWith("builder."))) return null;
+  const t = Buffer.from(String(token)), want = Buffer.from(a.token);
+  if (t.length !== want.length || !timingSafeEqual(t, want)) return null;
+  const canWrite = a.caps.has("builder.write") || a.caps.has("builder.write.draft");
+  return { spaces: builderGrants(a.def).map(({ space: s, access }) => ({ id: s.id, label: s.label, environment: s.environment, access: canWrite && access === "write" ? "write" : "read", publicKey: s.publicKey, privateKey: s.privateKey })) };
 }
 // One account check, never throwing and never hanging: anything but a clear "available" is a no.
 async function checkAccount(a, ctx, timeout = 15000) {
@@ -443,7 +459,7 @@ async function accountGate(def, ctx, usable) {
   // Only a worker that can use the open Figma file has the Figma bridge started at its run's start
   // (so an open plugin connects first, and one opened later connects during the run); for any other
   // the bridge isn't started.
-  ctx = { ...ctx, start: !!ctx.start && usable.some((c) => c.startsWith("figma.plugin.")) };
+  ctx = { ...ctx, def, start: !!ctx.start && usable.some((c) => c.startsWith("figma.plugin.")) };
   for (const c of usable) {
     const accounts = bindings[c] ?? catalog.capabilityAccounts(c);
     if (accounts == null) { gate[c] = "not a capability this console knows"; continue; }
@@ -472,7 +488,7 @@ async function authorizeCall(runId, token, cap) {
   }
   for (const acc of accounts) {
     const k = `${acc.resource}:${acc.access}`, hit = a.checks.get(k);
-    const st = hit && Date.now() - hit.at < 10000 ? hit.value : await checkAccount(acc, a.ctx, 8000);
+    const st = hit && Date.now() - hit.at < 10000 ? hit.value : await checkAccount(acc, { ...a.ctx, def: a.def }, 8000);
     if (!hit || hit.value !== st) a.checks.set(k, { at: Date.now(), value: st });
     if (!st.ok) return { ok: false, reason: `${st.label}: ${st.state}${st.detail ? ` (${st.detail})` : ""}` };
   }
@@ -539,7 +555,7 @@ const generalDefinition = () => ({ id: null, name: "General", capabilities: read
 // The bridge launcher (bridge/launcher.mjs) is local-only code: the hosted image doesn't contain it.
 const bridgeLauncher = HOSTED ? null : await import("../bridge/launcher.mjs");
 const FIGMA_BRIDGE_BASE = `http://127.0.0.1:${Number(process.env.FIGMA_BRIDGE_PORT) || 8787}`;
-let figmaCheck = { at: 0, value: null }, builderCheck = { at: 0, value: null };
+let figmaCheck = { at: 0, value: null };
 const RESOURCES = {
   figma: { label: "Figma", access: {
     read: { label: "read designs", how: HOSTED ? "Connect Figma on the Figma page (a Figma personal access token with file_content:read). The connected account must be able to open the file." : "Connect Figma on this computer once: a Figma personal access token with file_content:read, or the OAuth flow (figma-reader/README.md). The connected account must be able to open the file.",
@@ -583,20 +599,29 @@ const RESOURCES = {
   browser: { label: "Browser", access: {
     use: { label: "open web pages", how: "Install the browser adapter (browser-adapter, npm install).", async check() { return existsSync(join(REPO, "browser-adapter", "node_modules", "playwright")) ? { ok: true, state: "Available" } : { ok: false, state: "Not installed" }; } },
   } },
+  // Builder spaces are connected on the Builder.io page (several per person) and given to each worker
+  // in its editor, read only or read and write (builderGrants). With a worker (ctx.def), the checks
+  // are about the spaces given to it; without one (a draft being composed), about the person's spaces.
   builder: { label: "Builder.io", access: {
-    read: { label: "read content", how: "Add the Builder space's keys once on this computer (builder-adapter/README.md). A Builder link alone grants nothing.",
-      async check() {
-        if (!builderApi.credentialsPresent()) return { ok: false, state: "Not connected" };
-        if (builderCheck.value && Date.now() - builderCheck.at < (builderCheck.value.ok ? 60000 : 5000)) return builderCheck.value;
-        let v; try { const s = builderApi.accessSummary(); await builderApi.listModels(); v = { ok: true, state: "Connected", detail: `${s.label} (${s.environment})` }; }
-        catch (e) { v = { ok: false, state: e.status === 401 || e.status === 403 ? "Key rejected" : "Can't verify", detail: clip(e.message, 120) }; }
-        builderCheck = { at: Date.now(), value: v }; return v;
+    read: { label: "read content", how: "Connect a Builder space on the Builder.io page (Integrations → Builder.io), then give this worker that space in its editor (Builder spaces it can use).",
+      async check(ctx = {}) {
+        let spaces; try { spaces = builderApi.readSpaces(); } catch (e) { return { ok: false, state: "Can't read the Builder spaces", detail: clip(e.message, 120) }; }
+        if (!spaces.length) return { ok: false, state: "No Builder space connected" };
+        const given = isWorkerDef(ctx.def) ? builderGrants(ctx.def, spaces) : spaces.map((space) => ({ space, access: "read" }));
+        if (!given.length) return { ok: false, state: "No Builder space given to this worker", detail: `${spaces.length} connected` };
+        const st = await Promise.all(given.map((g) => builderSpaceStatus(g.space)));
+        const good = given.filter((g, i) => st[i].ok);
+        if (!good.length) return { ok: false, state: st[0].state, detail: clip(`${given[0].space.label}: ${st[0].detail || ""}`, 120) };
+        return { ok: true, state: "Connected", detail: clip(good.map((g) => `${g.space.label} (${g.space.environment})`).join(", "), 160) };
       } },
-    write: { label: "change content", how: "Builder writes are only allowed in a space marked as a test space in builder-adapter's credentials; production spaces are never written by this adapter.",
-      async check() {
-        if (!builderApi.credentialsPresent()) return { ok: false, state: "Not connected" };
-        try { const s = builderApi.accessSummary(); return s.environment === "test" ? { ok: true, state: "Test space", detail: s.label } : { ok: false, state: "Production space: writes refused", detail: s.label }; }
-        catch (e) { return { ok: false, state: "Can't verify", detail: clip(e.message, 120) }; }
+    write: { label: "change content", how: "Give this worker write access to a Builder space marked as a test space (in its editor; spaces are marked on the Builder.io page). Production spaces are never written to.",
+      async check(ctx = {}) {
+        let spaces; try { spaces = builderApi.readSpaces(); } catch (e) { return { ok: false, state: "Can't read the Builder spaces", detail: clip(e.message, 120) }; }
+        if (!spaces.length) return { ok: false, state: "No Builder space connected" };
+        const given = isWorkerDef(ctx.def) ? builderGrants(ctx.def, spaces) : spaces.map((space) => ({ space, asked: "write", access: space.environment === "test" ? "write" : "read" }));
+        const w = given.filter((g) => g.access === "write");
+        if (w.length) return { ok: true, state: "Test space", detail: clip(w.map((g) => g.space.label).join(", "), 160) };
+        return { ok: false, state: given.some((g) => g.asked === "write") ? "Production space: writes refused" : isWorkerDef(ctx.def) ? "No test space with write access given to this worker" : "No test space connected", detail: clip(given.map((g) => g.space.label).join(", "), 120) };
       } },
   } },
   // Whether Git on this computer can reach the workspace's GitHub remote with the person's own
@@ -617,7 +642,33 @@ const RESOURCES = {
   } },
 };
 const githubChecks = new Map();
+// ---- Builder spaces: the person's (builderApi.readSpaces), and which of them a worker may use ----
+// A worker's spaces are its Builder integration's "spaces" setting (1.1.0 on): ids with read or write.
+// Write is only ever effective on a space marked as a test space; a space no longer connected is
+// skipped. A worker made before spaces (Builder 1.0.0, or a schema-1 worker with Builder tools) keeps
+// what it had then: the person's one space, if they have exactly one; with several, none until it's
+// upgraded and given its spaces.
+const isWorkerDef = (d) => !!d && (Array.isArray(d.integrations) || Array.isArray(d.capabilities));
+function builderGrants(def, spaces = null) {
+  try { spaces ??= builderApi.readSpaces(); } catch { return []; }
+  const ref = (def?.integrations || []).find((r) => r.id === "builder");
+  const hasSpaces = ref && catalog.get(ref.id, ref.version)?.questions.some((q) => q.type === "accounts");
+  let wanted = [];
+  if (hasSpaces) wanted = (Array.isArray(ref.config?.spaces) ? ref.config.spaces : []).map((x) => String(x).split(":")).map(([id, access]) => ({ id, access: access === "write" ? "write" : "read" }));
+  else if ((def?.capabilities || []).some((c) => c.startsWith("builder.")) && spaces.length === 1) wanted = [{ id: spaces[0].id, access: "write" }];
+  return wanted.flatMap((w) => { const space = spaces.find((s) => s.id === w.id); return space ? [{ space, asked: w.access, access: w.access === "write" && space.environment === "test" ? "write" : "read" }] : []; });
+}
+// Whether a space's keys work now (the private key lists its models), cached for a minute (5 s after a failure).
+const builderChecks = new Map();
+async function builderSpaceStatus(s, fresh = false) {
+  const hit = builderChecks.get(s.id);
+  if (!fresh && hit && hit.key === s.privateKey && Date.now() - hit.at < (hit.value.ok ? 60000 : 5000)) return hit.value;
+  let v; try { const n = await builderApi.spaceModels(s); v = { ok: true, state: "Connected", detail: `${n} model${n === 1 ? "" : "s"}`, models: n }; }
+  catch (e) { v = { ok: false, state: e.status === 401 || e.status === 403 || e.code === "KEY_REJECTED" ? "Key rejected" : e.code === "KEY_MISMATCH" ? "Keys from different spaces" : "Can't verify", detail: clip(e.message, 160) }; }
+  builderChecks.set(s.id, { at: Date.now(), key: s.privateKey, value: v }); return v;
+}
 async function requirementStatus(def, ctx) {
+  ctx = { ...ctx, def };
   return Promise.all((def.requirements || []).map(async (r) => {
     const a = RESOURCES[r.resource]?.access[r.access];
     const st = a ? await a.check(ctx).catch((e) => ({ ok: false, state: "Check failed", detail: e.message })) : { ok: false, state: "Unknown requirement" };
@@ -710,6 +761,7 @@ function normalizeWorker(b, prev) {
 
 function normalizeWorkerV2(b, prev, name) {
   const parts = workerdef.check(b, { resources: RESOURCES });
+  checkBuilderSpaces(parts.integrations);
   const known = new Set(readGithub().repos.map((r) => r.id)), repos = [];
   for (const g of (b.repos || []).slice(0, 50)) {
     const repo = String(g?.repo || ""), level = String(g?.level || "");
@@ -1312,6 +1364,82 @@ async function figmaReport(fresh) {
     desktop: way(desktop, ["figma.mcp.read"], "figma.mcp.read"), plugin: way(plugin, ["figma.plugin.read", "figma.plugin.edit"], "figma.plugin.edit") };
 }
 function figmaDisconnect() { rmSync(FIGMA_CRED_FILE, { force: true }); figmaCheck = { at: 0, value: null }; return { connected: false }; }
+
+// Builder.io: the person's spaces, connected on the Builder.io page (Integrations → Builder.io). Each
+// space's public and private API keys are checked with Builder (both work, same space) before they're
+// kept, in the person's encrypted credential file (builder-adapter/builder.mjs). Keys go in, never
+// out: the page sees each space's name, id, whether it's a test space, its state and the workers
+// given it. A space is production unless the person explicitly confirms it's a test space; only test
+// spaces are ever written to. Which spaces a worker may use is set in the worker's editor.
+const BUILDER_MAX_SPACES = 20;
+const httpErr = (message, status = 400) => Object.assign(new Error(message), { status });
+const builderFail = (e) => httpErr(e.message, e.code === "NETWORK" ? 502 : 400);
+const TEST_CONFIRM = "Confirm that this is a test or development space first: workers given write access to it may create, change and publish its content.";
+function builderReport() {
+  let spaces = [], error = null;
+  try { spaces = builderApi.readSpaces(); } catch (e) { error = e.message; }
+  let workers = []; try { workers = readWorkers(); } catch {}
+  const grants = workers.map((w) => ({ w, g: builderGrants(w, spaces) }));
+  return { spaces: spaces.map((s) => { const hit = builderChecks.get(s.id);
+    return { ...builderApi.publicSpace(s), check: hit ? { ok: hit.value.ok, state: hit.value.state, detail: hit.value.detail || "", at: new Date(hit.at).toISOString() } : null,
+      workers: grants.flatMap(({ w, g }) => g.filter((x) => x.space.id === s.id).map((x) => ({ id: w.id, name: w.name, access: x.access, asked: x.asked }))) }; }),
+    error, max: BUILDER_MAX_SPACES };
+}
+const builderLabel = (v, list, id) => {
+  const label = String(v || "").trim().replace(/\s+/g, " ").slice(0, 80);
+  if (!label) throw httpErr("Give the space a name you'll recognise, e.g. \"Marketing site (test)\".");
+  if (list.some((s) => s.id !== id && s.label.toLowerCase() === label.toLowerCase())) throw httpErr(`Another connected space is already called "${label}". Give this one a different name.`);
+  return label;
+};
+async function builderAdd(b) {
+  const list = builderApi.readSpaces();
+  const environment = b.environment === "test" ? "test" : "production";
+  if (environment === "test" && b.confirmTest !== true) throw httpErr(TEST_CONFIRM);
+  let v; try { v = await builderApi.verifySpace({ publicKey: b.publicKey, privateKey: b.privateKey }); } catch (e) { throw builderFail(e); }
+  const id = builderApi.spaceIdOf(v.publicKey), prev = list.find((s) => s.id === id), now = new Date().toISOString();
+  const label = builderLabel(b.label, list, id);
+  if (!prev && list.length >= BUILDER_MAX_SPACES) throw httpErr(`At most ${BUILDER_MAX_SPACES} Builder spaces can be connected. Remove one first.`);
+  const s = { id, label, environment, publicKey: v.publicKey, privateKey: v.privateKey, addedAt: prev?.addedAt || now, verifiedAt: now, ...(environment === "test" ? { testConfirmedAt: now } : {}), models: v.models };
+  builderApi.writeSpaces(prev ? list.map((x) => (x.id === id ? s : x)) : [...list, s]);
+  builderChecks.set(id, { at: Date.now(), key: s.privateKey, value: { ok: true, state: "Connected", detail: `${v.models} model${v.models === 1 ? "" : "s"}`, models: v.models } });
+  return { ...builderReport(), added: id, replaced: !!prev };
+}
+function builderSpaceOf(list, id) { const s = list.find((x) => x.id === id); if (!s) throw httpErr("No such Builder space is connected.", 404); return s; }
+function builderUpdate(id, b) {
+  const list = builderApi.readSpaces(), s = builderSpaceOf(list, id);
+  if (b.label !== undefined) s.label = builderLabel(b.label, list, id);
+  if (b.environment === "test" && s.environment !== "test") { if (b.confirmTest !== true) throw httpErr(TEST_CONFIRM); s.environment = "test"; s.testConfirmedAt = new Date().toISOString(); }
+  else if (b.environment === "production") { s.environment = "production"; delete s.testConfirmedAt; }
+  else if (b.environment !== undefined && b.environment !== s.environment) throw httpErr("A space is either a test space or a production space.");
+  builderApi.writeSpaces(list);
+  return builderReport();
+}
+async function builderCheckNow(id) {
+  const list = builderApi.readSpaces(), s = builderSpaceOf(list, id);
+  const st = await builderSpaceStatus(s, true);
+  if (st.ok) { s.verifiedAt = new Date().toISOString(); s.models = st.models; builderApi.writeSpaces(list); }
+  return builderReport();
+}
+function builderRemove(id) {
+  const list = builderApi.readSpaces(); builderSpaceOf(list, id);
+  builderApi.writeSpaces(list.filter((s) => s.id !== id)); builderChecks.delete(id);
+  return builderReport();
+}
+// A worker's Builder spaces when it's saved: one entry per space (write wins over read), and never
+// write access to a space that's connected as a production space. A space that isn't connected (any
+// more) is kept as it is and gives nothing until it is.
+function checkBuilderSpaces(integrations) {
+  const ref = integrations.find((r) => r.id === "builder"), want = ref?.config?.spaces;
+  if (!Array.isArray(want) || !want.length) return;
+  let spaces = []; try { spaces = builderApi.readSpaces(); } catch {}
+  const by = new Map();
+  for (const x of want) { const [id, acc] = String(x).split(":"); if (by.get(id) !== "write") by.set(id, acc); }
+  for (const [id, acc] of by) {
+    const s = spaces.find((y) => y.id === id);
+    if (acc === "write" && s && s.environment !== "test") throw httpErr(`"${s.label}" is a production Builder space, so workers can only read it. If it really is a test or development space, mark it as one on the Builder.io page first.`);
+  }
+  ref.config.spaces = [...by].map(([id, acc]) => `${id}:${acc}`);
+}
 
 // The person's actions on the GitHub page.
 const ghStatus = (e) => (e.kind === "input" || e.kind === "setup" ? 400 : e.status === 404 ? 404 : e.kind === "rate" ? 429 : e.kind === "auth" ? 401 : 502);
@@ -2842,6 +2970,13 @@ http.createServer(async (req, res) => {
     const r = credentialKeyFor(u.pathname.split("/")[2], req.headers["x-aiw-authz"] || "", u.searchParams.get("server") || "");
     return json(res, r ? 200 : 403, r || {});
   }
+  if (req.method === "GET" && /^\/authz\/[\w-]+\/builder-spaces$/.test(String(req.url).split("?")[0])) {
+    if (!HOSTS.has(String(req.headers.host || "").toLowerCase())) { res.writeHead(403); return res.end(); }
+    const u = new URL(req.url, `http://localhost:${PORT}`);
+    const r = builderSpacesFor(u.pathname.split("/")[2], req.headers["x-aiw-authz"] || "", u.searchParams.get("server") || "");
+    res.setHeader("cache-control", "no-store");
+    return json(res, r ? 200 : 403, r || {});
+  }
   if (req.method === "GET" && /^\/authz\/[\w-]+\/live$/.test(String(req.url).split("?")[0])) {
     if (!HOSTS.has(String(req.headers.host || "").toLowerCase())) { res.writeHead(403); return res.end(); }
     const u = new URL(req.url, `http://localhost:${PORT}`);
@@ -2929,6 +3064,12 @@ http.createServer(async (req, res) => {
     if (url.pathname === "/figma" && req.method === "GET") return json(res, 200, await figmaReport());
     if (url.pathname === "/figma/connection" && req.method === "POST") return json(res, 200, await figmaConnect((await body(req)).token));
     if (url.pathname === "/figma/connection" && req.method === "DELETE") return json(res, 200, figmaDisconnect());
+    // Builder.io: the person's spaces (keys go in, never out)
+    if (url.pathname === "/builder" && req.method === "GET") return json(res, 200, builderReport());
+    if (url.pathname === "/builder/spaces" && req.method === "POST") return json(res, 200, await builderAdd(await body(req)));
+    if (parts[0] === "builder" && parts[1] === "spaces" && parts[2] && parts.length === 3 && req.method === "PUT") return json(res, 200, builderUpdate(decodeURIComponent(parts[2]), await body(req)));
+    if (parts[0] === "builder" && parts[1] === "spaces" && parts[2] && parts.length === 4 && parts[3] === "check" && req.method === "POST") return json(res, 200, await builderCheckNow(decodeURIComponent(parts[2])));
+    if (parts[0] === "builder" && parts[1] === "spaces" && parts[2] && parts.length === 3 && req.method === "DELETE") return json(res, 200, builderRemove(decodeURIComponent(parts[2])));
     if (url.pathname === "/github" && req.method === "GET") return json(res, 200, ghReport());
     if (url.pathname === "/github/connection" && req.method === "POST") return json(res, 200, await ghConnect((await body(req)).token));
     if (url.pathname === "/github/connection/verify" && req.method === "POST") return json(res, 200, await ghVerify());

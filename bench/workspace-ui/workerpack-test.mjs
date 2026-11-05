@@ -264,8 +264,8 @@ await step("format 2 on another console: a version it doesn't have installs at i
   const states = Object.fromEntries(pl.integrations.map((x) => [x.id, x.state]));
   const no = await B.call("POST", `/workerpacks/${t}/install`, {}), yes = await B.call("POST", `/workerpacks/${t}/install`, { dropUnknown: true });
   const w = (await B.workers()).find((x) => x.id === yes.body.worker.id);
-  assert(states.builder === "other-version" && pl.integrations.find((x) => x.id === "builder").alternative === "1.0.0" && states.zendesk === "unknown" && states.web === "exact" && pl.issues.length === 2, pl.integrations);
-  assert(no.status === 400 && yes.status === 200 && w.schema === 2 && w.integrations.map((x) => `${x.id}@${x.version}`).join() === "builder@1.0.0,web@1.0.0" && w.integrations[0].config.publishing === "drafts" && yes.body.left.integrations.join() === "zendesk 2.0.0" && yes.body.left.versions.join() === "Builder.io 1.9.0 → 1.0.0", { w: w.integrations, left: yes.body.left });
+  assert(states.builder === "other-version" && pl.integrations.find((x) => x.id === "builder").alternative === "1.1.0" && states.zendesk === "unknown" && states.web === "exact" && pl.issues.length === 2, pl.integrations);
+  assert(no.status === 400 && yes.status === 200 && w.schema === 2 && w.integrations.map((x) => `${x.id}@${x.version}`).join() === "builder@1.1.0,web@1.0.0" && w.integrations[0].config.publishing === "drafts" && yes.body.left.integrations.join() === "zendesk 2.0.0" && yes.body.left.versions.join() === "Builder.io 1.9.0 → 1.1.0", { w: w.integrations, left: yes.body.left });
   assert(w.capabilities.join() === "files.read,web,builder.read,builder.write.draft", w.capabilities);
   return { states, installed: w.integrations.map((x) => `${x.id}@${x.version}`), left: yes.body.left };
 });

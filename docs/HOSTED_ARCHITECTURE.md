@@ -22,7 +22,7 @@ Browser ──HTTPS──► load balancer (TLS) ──HTTP──► gateway  wo
                          ├─ browser-executor (Playwright, fresh profile per worker process)
                          ├─ figma-reader (REST, the person's own Figma token)
                          ├─ repo (git in the workspace; the person's identity; no push)
-                         └─ builder (Builder.io, if the person's keys exist)
+                         └─ builder (Builder.io: only the spaces given to the worker, released per call)
 ```
 
 A run, step by step:
@@ -147,7 +147,7 @@ They're one deployable image. The split is by process and uid, not by service, w
 | GitHub App connection | **Hosted, verified against the mock**; live github.com **not verified** | hosted suite |
 | Figma Reader (links, REST) | **Hosted**; connection page verified against the live Figma API with a rejected token; reading a real file **not verified** (no token) | hosted suite |
 | Figma Executor (plugin, edit) | **Requires the person's interactive Figma desktop app; not hosted.** Requirement reports "Not available in the hosted product", worker writes `NEEDS:` | hosted suite |
-| Builder.io | Hosted code path unchanged; **no website flow to add keys** (requires implementation); reports "Not connected" | — |
+| Builder.io | Spaces connected on the website (Integrations → Builder.io), several per person, encrypted at rest; each worker is given its spaces, read or read and write (write only to spaces confirmed as test spaces). A run's Builder server gets only its worker's spaces, from its console, per call | `bench/builder/spaces-test.mjs` |
 
 ## 9. Security assumptions and known gaps
 

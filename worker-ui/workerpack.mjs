@@ -121,7 +121,7 @@ export function buildPackage({ worker: w, local = false, gitflow = null, repoNam
   const settings = (r) => {
     const secret = new Set(secretFields(r.id, r.version) || []), out = {};
     for (const [k, v] of Object.entries(r.config || {})) {
-      if (secret.has(k)) { withheld.push(`${r.id}: ${k}`); continue; }
+      if (secret.has(k) && !local) { withheld.push(`${r.id}: ${k}`); continue; } // a clone stays on this console, with its accounts
       out[k] = typeof v === "string" ? text(`${r.id} settings`, v, 300) : Array.isArray(v) ? v.slice(0, 20).map((x) => clip(x, 60)) : v === null || typeof v === "boolean" || typeof v === "number" ? v : null;
     }
     return out;
@@ -156,7 +156,7 @@ export function buildPackage({ worker: w, local = false, gitflow = null, repoNam
     generator: { name: clip(generator.name || "ai-workforce-console", 60), version: clip(generator.version || "", 40) }, worker: { name: def.name, schema: def.schema },
     files: Object.fromEntries(files.map(([n, c]) => { const b = Buffer.from(c, "utf8"); return [n, { sha256: sha256(b), size: b.length }]; })) };
   const excluded = ["credentials, tokens and connected accounts (yours stay here)", "its learnings, conversations, run history and logs", "its id, version history and dates (the copy starts at version 1)",
-    "Team membership", ...(w.repos?.length ? ["repository access grants (only which repositories it needs is included)"] : []), ...(withheld.length ? [`settings marked secret: ${withheld.join(", ")}`] : []),
+    "Team membership", ...(w.repos?.length ? ["repository access grants (only which repositories it needs is included)"] : []), ...(withheld.length ? [`settings tied to your own accounts (whoever installs it chooses theirs): ${withheld.join(", ")}`] : []),
     ...(gitflow ? ["Git workflow people, emails and ownership overrides, the repository location, audit trail, plans and notes", "proposal branches stay off until the person installing it turns them on"] : [])];
   return { files: [["manifest.json", JSON.stringify(manifest, null, 1)], ...files], manifest, definition: def, knowledge, dependencies: deps, gitflow: flow,
     preview: { format: formatVersion, included: files.map(([n]) => n), excluded, pathsRemoved: [...new Set(paths)], secrets: [...new Set(secrets)] } };

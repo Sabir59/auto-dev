@@ -203,7 +203,7 @@ What `deploy/docker-compose.yml` sets:
 ### Known limitations (accepted for the pilot, documented)
 - **Shell commands** (`node`, `curl`) aren't available to workers hosted, so workers can't run builds or tests.
 - **Figma editing** (the plugin) needs the person's Figma desktop app: not available hosted. Reading Figma links is.
-- **Builder.io** has no website flow to add keys.
+- **Builder.io** spaces are connected on the website (Integrations → Builder.io; keys checked with Builder, encrypted with the person's key). "Test space" is the person's confirmed statement: Builder has no such flag.
 - **One live worker per person;** one host.
 - **The gateway runs as root** in its container (to switch uids). Splitting out a minimal privileged spawner is the next hardening step.
 - **No disk quotas** per person; the daily model-request cap resets on restart.

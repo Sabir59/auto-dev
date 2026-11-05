@@ -9,34 +9,44 @@ worker ──MCP stdio──► mcp/builder-server.mjs ──► builder-adapter
                                                    Write API   POST/PATCH builder.io/api/v1/write/M  (private key)  create, update, publish
 ```
 
-## Connect a space (once per computer)
+## Connecting spaces (on the platform, not on a computer)
 
-Create `~/.builder-adapter/credentials.json`, outside the repo. Never commit it and never paste keys into a chat:
+People connect Builder in the console: **Integrations → Builder.io**. Nobody edits a file.
 
-```json
-{ "label": "MATW test space", "environment": "test", "publicKey": "<public API key>", "privateKey": "bpk-<private key>" }
-```
+1. **Connect a space.** Give it a name, plus its *Public API key* (Builder → Account settings → Space) and a *Private key* (Builder → Account settings → Private keys; it starts `bpk-`). The console checks both keys with Builder before anything is kept: the private key must list the space's models, the public key must read its content, and the content must belong to those models, so the two keys can't come from different spaces. A person can connect up to 20 spaces.
+2. **Production or test.** A new space is **production** unless the person chooses *Test or development* and ticks the confirmation. They can mark a space as test later (with the same confirmation) or as production again (immediately). A production space is never written to.
+3. **Give spaces to workers.** In a worker's editor, under Builder.io → *Builder spaces it can use*, each connected space is set to *No access*, *Read* or *Read and write*. *Read and write* can't be chosen for a production space, and the console refuses to save it.
 
-- **Public key:** Builder → Account settings → Space → *Public API Key*.
-- **Private key:** Builder → Account settings → *Private keys* → create one for this integration (it starts `bpk-`).
-- **`environment`:** only `"test"` allows writes. Anything else, including a missing value, is treated as **production**. Then every create, update and publish is refused before a request is sent. This version never writes to production.
-- **`BUILDER_ADAPTER_DIR`:** moves the folder (the tests use this). The console passes on only this path and never the keys. Workers never receive `BUILDER_*` variables.
+Storage: one file per person, `credentials.json` in `BUILDER_ADAPTER_DIR` (default `~/.builder-adapter`; hosted, the person's own folder), `{ "v": 2, "spaces": [...] }`, encrypted at rest with the person's credential key (`worker-ui/secret-file.mjs`, AES-256-GCM). Nothing but the console reads it. A space's id (`sp_` + 12 hex) is derived from its public key, so reconnecting the same space keeps the workers given it. A file in the earlier single-space form is read as one space.
+
+## How a run gets its spaces
+
+- The console starts the run's Builder tool server with the run's authz token, never the person's credential key and never a key in its MCP config.
+- At every call the tool server asks its own console (`/authz/<run>/builder-spaces`) for the spaces this run may use. The console answers with only the spaces given to the worker that are still connected, each with its access now. Write access requires both a test space and a run with Builder write tools.
+- So removing a space, or marking it as production, takes effect on the worker's next call.
+- With several spaces the worker names one (`space`: its id or name); with one, it's used by default.
+- The write tools are registered only when the worker has Builder write tools and at least one test space with write access.
+- Run on its own, outside a console (the adapter's tests, a person's own scripts), the server reads the file directly. Every space is readable, and only test spaces are writable.
+
+## Worker packages
+
+The space mapping is account-specific, so it's never exported (`config.secret: ["spaces"]` in the Builder manifest). A package carries Builder's version, its permission level (*What may it do with content?*) and its requirements (`builder read`, `builder write`). Whoever installs it connects their own spaces and gives the worker theirs. A clone on the same console keeps the mapping.
 
 ## Tools
 
 | Tool | What it does | Available |
 |---|---|---|
-| `builder_access_status` | Whether credentials exist, which space (label, test or production), whether writes are allowed, and whether the key works | Inspect + Work |
+| `builder_access_status` | The spaces available to this worker: each one's id, name, test or production, whether it may write, and whether its keys work | Inspect + Work |
 | `builder_list_models` | The space's models (id, name, kind) | Inspect + Work |
 | `builder_list_content` | Entries of a model, drafts included (or live only), read fresh, bypassing Builder's CDN cache | Inspect + Work |
 | `builder_get_content` | One entry by id: its state and data | Inspect + Work |
 | `builder_verify_content` | Two independent fresh reads: the entry's state, and whether the public Content API serves it live. It also returns the entry's URL so the page itself can be checked with the browser tools | Inspect + Work |
-| `builder_create_draft` | A new entry with `published: "draft"`. Refused if an entry with the same name or URL already exists | Work, `builder.write`, test space |
+| `builder_create_draft` | A new entry with `published: "draft"`. Refused if an entry with the same name or URL already exists | Work, `builder.write`, a test space given with write access |
 | `builder_update_content` | PATCH by id: name, top-level data fields, and/or `breakpoints`. Data can come from a JSON file in the workspace (`dataFile`). It never creates an entry and never changes publication state. On a **published** entry it needs `draft: true` (an autosave: the live page is unchanged, preview it at the returned `previewUrl`) or `live: true`. The current breakpoints go along with every write | Work, `builder.write`, test space |
 | `builder_publish_content` | Publishes the **latest saved version**, including a pending draft, then checks it with independent reads. The result reports what those reads show, not only what Builder's response said | Work, `builder.write`, test space |
 | `builder_upload_asset` | Uploads an image or font from the workspace (and only from there) to the space's asset library, and returns its CDN URL | Work, `builder.write`, test space |
 
-Worker capabilities: `builder.read` (read tools, both modes) and `builder.write` (write tools, Work only). Requirements: `builder read` and `builder write`. With no credentials, the tools answer `NEEDS: builder read: …`.
+Every tool takes an optional `space`. Worker capabilities: `builder.read` (read tools, both modes) and `builder.write` (write tools, Work only). Requirements: `builder read` and `builder write`. With no space available, the tools answer `NEEDS: builder read: …`, which points the person to the Builder.io page.
 
 ## What's documented vs. proven
 
@@ -67,12 +77,14 @@ These come from Builder's docs and a Builder staff answer on Builder's forum (ch
 ## Tests
 
 - `node bench/builder/adapter-test.mjs`: mocked Builder API, run through the real MCP server.
+- `node bench/builder/spaces-test.mjs`: Builder spaces as a platform capability, on two consoles (two people). It covers connecting (wrong and mismatched keys refused, a test space only with confirmation), encryption at rest and per-person isolation, per-worker read and write permissions, and production writes refused on save, at the tool, and when a space is marked as production mid-run. It also checks that only the run's spaces are released to its tool server, that export and import carry no keys or mapping, and that a clone keeps the mapping.
 - `bash bench/workspace-ui/run-suite.sh builder`: the platform's access control with the real worker. Builder itself is mocked.
 - `BUILDER_TEST_MODEL=page node bench/builder/real-builder-test.mjs`: the real proof. It needs credentials for a space marked `"test"`. Optional settings: `BUILDER_TEST_ENTRY_ID`, an existing unpublished entry made in Builder's editor, which is the case that matters; and `BUILDER_TEST_SITE`, a site that renders the test space.
 
 ## Limits
 
 - **No production writes.** Allowing them later must be a deliberate change, for example per Team, with explicit confirmation.
-- **No Team-level lock.** A Team can't yet pin a space or model the way it pins a Figma file. The space is whichever one the computer's credentials name.
-- **Shell can read the key.** A worker with the `shell` capability (Work) could read the credentials file with `node`. The same is true for Figma's credentials today (`docs/PROJECT_HANDOFF.md` §15).
+- **"Test space" is the person's statement.** Builder has no test flag. The console verifies the keys, and the person confirms the space is a test or development one.
+- **No Team-level lock.** A Team can't yet pin a space or model the way it pins a Figma file.
+- **Locally, without a credential key, the file is plain JSON**, as the other local credentials are. A worker with the `shell` capability could read it with `node` (`docs/PROJECT_HANDOFF.md` §15). Hosted, it's encrypted, and the worker runs as the person's own uid without the key.
 - **No delete or archive tools**, and none for symbols or assets.

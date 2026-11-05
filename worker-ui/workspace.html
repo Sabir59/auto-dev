@@ -366,6 +366,12 @@ select.wfield { height: 34px; }
 .ghdet dl { margin: 0; display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 4px 10px; }
 .ghdet dl > div { display: contents; } .ghdet dt { color: var(--t3); } .ghdet dd { margin: 0; min-width: 0; }
 .wrepo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 240px); gap: 8px; align-items: center; }
+.sprow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 8px; align-items: center; padding: 3px 0; }
+.sprow .seg button:disabled { opacity: .45; cursor: not-allowed; }
+.bdsp { border: 1px solid var(--line2); border-radius: var(--r2); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.bdsp .ih { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.bdconfirm { display: flex; gap: 8px; align-items: flex-start; }
+@media (max-width: 640px) { .sprow { grid-template-columns: minmax(0, 1fr); } }
 .klist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .klist li { display: flex; align-items: center; gap: 10px; padding: 4px 8px; border-radius: var(--r2); color: var(--t2); min-width: 0; }
 .klist li:hover { background: var(--surf); }
@@ -482,8 +488,8 @@ button.cbadge.pick:disabled .chev { display: none; }
 .foot kbd { font: 500 10.5px/14px var(--sans); padding: 0 4px; border: 1px solid var(--line2); border-radius: 3px; color: var(--t2); }
 /* management pages: defining work, not doing it, so there's no composer */
 body[data-view="pack"] .composer, body[data-view="pack"] .ctx { display: none; }
-body[data-view="worker"] .composer, body[data-view="team"] .composer, body[data-view="github"] .composer, body[data-view="figma"] .composer, body[data-view="create"] .composer, body[data-view="gitflow"] .composer,
-body[data-view="worker"] .ctx, body[data-view="team"] .ctx, body[data-view="github"] .ctx, body[data-view="figma"] .ctx, body[data-view="create"] .ctx, body[data-view="gitflow"] .ctx { display: none; }
+body[data-view="worker"] .composer, body[data-view="team"] .composer, body[data-view="github"] .composer, body[data-view="figma"] .composer, body[data-view="builder"] .composer, body[data-view="create"] .composer, body[data-view="gitflow"] .composer,
+body[data-view="worker"] .ctx, body[data-view="team"] .ctx, body[data-view="github"] .ctx, body[data-view="figma"] .ctx, body[data-view="builder"] .ctx, body[data-view="create"] .ctx, body[data-view="gitflow"] .ctx { display: none; }
 
 /* ---- right: activity ---- */
 aside.right { background: var(--low); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
@@ -1092,6 +1098,10 @@ svg.i.down { transform: rotate(180deg); }
       <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lFg">Figma</span></button></h2>
       <ul><li class="wsi"><button class="row ws" id="fgOpen" title="Figma reading: the account workers read Figma links with"><span class="grow"><span class="ell" id="fgState">Figma links</span></span><span class="meta m11" id="fgMeta"></span></button></li></ul>
     </nav>
+    <nav class="sect" data-sect="builder" aria-labelledby="lBd">
+      <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lBd">Builder.io</span></button></h2>
+      <ul><li class="wsi"><button class="row ws" id="bdOpen" title="Your Builder.io spaces, and the workers given each"><span class="grow"><span class="ell" id="bdState">Builder spaces</span></span><span class="meta m11" id="bdMeta"></span></button></li></ul>
+    </nav>
     <nav class="sect" data-sect="github" aria-labelledby="lGh">
       <h2 class="shd"><button class="fold" aria-expanded="true"><svg class="i" width="10" height="10" data-i="chevRight"></svg><span class="lab" id="lGh">GitHub</span></button></h2>
       <ul><li class="wsi"><button class="row ws" id="ghOpen" title="The GitHub connection, registered repositories and their workspaces"><span class="grow"><span class="ell" id="ghState">Repositories</span></span><span class="meta m11" id="ghMeta"></span></button></li></ul>
@@ -1493,7 +1503,7 @@ document.addEventListener("keydown", async (e) => {
   if (!$("swMenu").hidden) { closeMenus(); $("switcher").focus(); return; }
   if (!$("pickPop").hidden) { closePick(); return; }
   if (document.body.classList.contains("show-act") || document.body.classList.contains("show-nav")) { closeDrawers(); return; }
-  if (!["file", "version", "worker", "team", "github", "figma"].includes(view)) return;
+  if (!["file", "version", "worker", "team", "github", "figma", "builder"].includes(view)) return;
   e.preventDefault();
   if (await leaveDraft()) closeFile();
 });
@@ -1803,6 +1813,7 @@ function intProvides(m, config) {
   const out = { enables: [...m.base.enables], core: [...m.base.core], requires: [...m.base.requires], pending: [] };
   for (const q of m.questions) {
     if (q.type === "info" || !qShown(q, config)) continue;
+    if (q.type === "accounts") { if (![].concat(config[q.id] ?? []).length) out.pending.push(q.label); continue; }
     const v = config[q.id], picked = q.type === "multi" ? [].concat(v ?? []) : v == null || q.type === "text" ? [] : [v];
     if (q.required && (q.type === "text" ? !v : !picked.length)) out.pending.push(q.label);
     for (const c of (q.choices || []).filter((c) => picked.includes(c.id))) { out.enables.push(...(c.enables || [])); out.core.push(...(c.core || [])); out.requires.push(...(c.requires || [])); }
@@ -1813,8 +1824,29 @@ function intProvides(m, config) {
 // A new integration's settings: each question's default, as the creation flow starts them.
 function intDefaults(m) {
   const config = {};
-  for (const q of m.questions) { if (q.type === "info" || !qShown(q, config)) continue; config[q.id] = q.type === "text" ? "" : q.type === "multi" ? [].concat(q.default ?? []) : q.default ?? null; }
+  for (const q of m.questions) { if (q.type === "info" || !qShown(q, config)) continue; config[q.id] = q.type === "text" ? "" : q.type === "accounts" ? [] : q.type === "multi" ? [].concat(q.default ?? []) : q.default ?? null; }
   return config;
+}
+// An accounts question: which of the person's connected Builder spaces the worker may use, each with
+// no access, read, or read and write (production spaces: read at most). kind: "wk" (editor) or "cr"
+// (creation). The console checks it again when it's saved and at every call.
+const SP_ACCESS = [["none", "No access"], ["read", "Read"], ["write", "Read and write"]];
+function spacePicker(kind, key, q, config) {
+  const cur = new Map([].concat(config[q.id] ?? []).map((x) => String(x).split(":"))), spaces = BD?.spaces || [];
+  const lab = `<span class="qlab" id="sp-${esc(key)}">${esc(q.label)}</span>${q.help ? `<span class="sub m11">${esc(q.help)}</span>` : ""}`;
+  const rows = spaces.map((s) => { const a = cur.get(s.id) || "none", prod = s.environment !== "test";
+    return `<div class="sprow"><span class="ell"><b>${esc(s.label)}</b> <span class="tag ${prod ? "" : "ok"}">${prod ? "Production: read-only" : "Test space"}</span></span>
+      <div class="seg" role="radiogroup" aria-label="${esc(s.label)}: access">${SP_ACCESS.map(([v, t]) => `<button type="button" class="m11" role="radio" aria-checked="${a === v}" data-sp="${kind}" data-spq="${esc(key)}" data-space="${esc(s.id)}" data-acc="${v}"${v === "write" && prod ? ` disabled title="Production spaces are read-only. If this is a test or development space, mark it as one on the Builder.io page."` : ""}>${t}</button>`).join("")}</div></div>`; }).join("");
+  const gone = [...cur].filter(([id]) => !spaces.some((s) => s.id === id)).map(([id]) => `<div class="sprow"><span class="ell sub m11">${esc(id)}: no longer connected, gives nothing</span><button type="button" class="linkbtn m11" data-sp="${kind}" data-spq="${esc(key)}" data-space="${esc(id)}" data-acc="none">Remove</button></div>`).join("");
+  const writes = [...cur.values()].includes("write"), noWriteTools = config.publishing === "read";
+  return `<div class="opt">${lab}${rows}${gone}${!spaces.length ? '<span class="sub m11">No Builder space is connected yet: connect one, then come back and choose it here.</span>' : !cur.size ? '<span class="warnt m11">No space given yet: it can\'t reach Builder until you give it one.</span>' : ""}
+    ${writes && noWriteTools ? '<span class="sub m11">It has read-only tools (“Read only” below), so it won\'t write even where it has write access.</span>' : ""}
+    <span><button type="button" class="linkbtn m11" data-bd-open="1">${spaces.length ? "Manage Builder spaces" : "Connect a Builder space"}</button></span></div>`;
+}
+function setSpace(config, qid, space, acc) {
+  const list = [].concat(config[qid] ?? []).filter((x) => !String(x).startsWith(`${space}:`));
+  if (acc === "read" || acc === "write") list.push(`${space}:${acc}`);
+  config[qid] = list;
 }
 
 // Defining a worker. A worker is its role, its integrations (each pinned to an exact version, with its
@@ -1828,6 +1860,7 @@ async function openWorkerEditor(id, note) {
   if (!d) return;
   if (id && d.schema !== 2) return openLegacyEditor(d, note);
   for (const r of d.integrations) await manifestOf(r.id, r.version);
+  await loadBuilder();
   wkEdit = { id, schema: 2, d, integrations: structuredClone(d.integrations), core: new Set(d.core), coreAdded: {}, reqs: (d.extraRequirements || []).map((r) => ({ ...r })), confirmDelete: false, rec: [], find: "" };
   const repoRows = (WK.repos || []).map((r) => { const cur = ((d.repos || []).find((g) => g.repo === r.id) || {}).level || "";
     return `<div class="wrepo"><span class="ell">${esc(r.fullName)}${r.status !== "ok" ? ' <span class="err m11">needs attention</span>' : ""}</span><select data-repo="${esc(r.id)}" aria-label="Access to ${esc(r.fullName)}"><option value="">No access</option>${(WK.repoLevels || []).map((l) => `<option value="${l.id}" ${cur === l.id ? "selected" : ""}>${esc(l.label)}</option>`).join("")}</select></div>`; }).join("");
@@ -1907,12 +1940,13 @@ function renderWkInts() {
   }).join("") || '<span class="sub m12">No integrations yet: add the systems it works with below.</span>';
   renderWkFromInts();
 }
-const wkSetupLink = (r) => (r.resource === "figma" ? '<button type="button" class="linkbtn m11" data-wk-setup="figma">Open Figma connection</button>' : r.resource === "github" ? '<button type="button" class="linkbtn m11" data-wk-setup="github">Open GitHub connection</button>' : "");
+const wkSetupLink = (r) => (r.resource === "figma" ? '<button type="button" class="linkbtn m11" data-wk-setup="figma">Open Figma connection</button>' : r.resource === "github" ? '<button type="button" class="linkbtn m11" data-wk-setup="github">Open GitHub connection</button>' : r.resource === "builder" ? '<button type="button" class="linkbtn m11" data-wk-setup="builder">Open Builder.io spaces</button>' : "");
 // One question of an integration (the creation flow's form, for a saved worker's settings).
 function wkQuestion(m, q, config) {
   const key = `${m.id}.${q.id}`;
   if (q.type === "info") return `<div class="opt info"><span class="qlab">${esc(q.label)}</span><span class="sub m12">${esc(q.text)}</span></div>`;
   if (!qShown(q, config)) return "";
+  if (q.type === "accounts") return spacePicker("wk", key, q, config);
   const lab = `<span class="qlab" id="wq-${esc(key)}">${esc(q.label)}${q.required ? ' <span class="sub m11">needed</span>' : ""}</span>${q.help ? `<span class="sub m11">${esc(q.help)}</span>` : ""}`;
   if (q.type === "text") return `<label class="opt">${lab}<input class="wfield" data-wq="${esc(key)}" maxlength="300" value="${esc(config[q.id] || "")}" placeholder="${esc(q.placeholder || "")}" autocomplete="off"></label>`;
   const picked = [].concat(config[q.id] ?? []), multi = q.type === "multi";
@@ -1954,7 +1988,12 @@ function renderWkFind() {
 function wkGrantNeeded(m, config) { for (const c of intProvides(m, config).core) if (!wkEdit.core.has(c)) { wkEdit.core.add(c); wkEdit.coreAdded[c] = m.label; } }
 async function wkClick(e) {
   if (!wkEdit || wkEdit.schema !== 2) return;
-  const t = e.target, add = t.closest("[data-wk-addint]"), rm = t.closest("[data-wk-rmint]"), ch = t.closest("[data-wq][data-choice]"), up = t.closest("[data-wk-upgrade]"), setup = t.closest("[data-wk-setup]");
+  const t = e.target, add = t.closest("[data-wk-addint]"), rm = t.closest("[data-wk-rmint]"), ch = t.closest("[data-wq][data-choice]"), up = t.closest("[data-wk-upgrade]"), setup = t.closest("[data-wk-setup]"), sp = t.closest('[data-sp="wk"]');
+  if (t.closest("[data-bd-open]")) { if (await leaveDraft()) openBuilderPage(); return; }
+  if (sp) {
+    const [iid, qid] = sp.dataset.spq.split("."), ref = wkEdit.integrations.find((r) => r.id === iid); if (!ref) return;
+    setSpace((ref.config ||= {}), qid, sp.dataset.space, sp.dataset.acc); renderWkInts(); return;
+  }
   if (add) {
     const m = CAT.integrations.find((x) => x.id === add.dataset.wkAddint); if (!m || wkEdit.integrations.some((r) => r.id === m.id)) return;
     const config = intDefaults(m); wkEdit.integrations.push({ id: m.id, version: m.version, config }); wkGrantNeeded(m, config);
@@ -1965,7 +2004,7 @@ async function wkClick(e) {
     const [iid, qid] = ch.dataset.wq.split("."), ref = wkEdit.integrations.find((r) => r.id === iid), m = MANIFESTS.get(`${ref.id}@${ref.version}`), q = m.questions.find((x) => x.id === qid), cfg = (ref.config ||= {});
     if (q.type === "multi") { const cur = new Set([].concat(cfg[qid] ?? [])); cur.has(ch.dataset.choice) ? cur.delete(ch.dataset.choice) : cur.add(ch.dataset.choice); cfg[qid] = [...cur]; }
     else cfg[qid] = cfg[qid] === ch.dataset.choice && !q.required ? null : ch.dataset.choice; // a second click: not set
-    for (const x of m.questions) if (x.type !== "info" && !qShown(x, cfg)) delete cfg[x.id]; else if (x.type !== "info" && !(x.id in cfg)) cfg[x.id] = x.type === "text" ? "" : x.type === "multi" ? [] : x.default ?? null;
+    for (const x of m.questions) if (x.type !== "info" && !qShown(x, cfg)) delete cfg[x.id]; else if (x.type !== "info" && !(x.id in cfg)) cfg[x.id] = x.type === "text" ? "" : x.type === "multi" || x.type === "accounts" ? [] : x.default ?? null;
     // A choice that works through another integration (a Shopify products CSV is "Files in a folder") brings it in, as creating a worker does.
     for (const c of (q.choices || []).filter((c) => c.adds && [].concat(cfg[qid] ?? []).includes(c.id))) {
       const t = CAT.integrations.find((x) => x.id === c.adds.integration);
@@ -1973,7 +2012,7 @@ async function wkClick(e) {
     }
     wkGrantNeeded(m, cfg); renderWkInts(); renderWkCore();
   } else if (up) openUpgrade(wkEdit.id, up.dataset.wkUpgrade);
-  else if (setup) { if (setup.dataset.wkSetup === "github") openGithubPage(); else $("fgOpen").click(); }
+  else if (setup) { if (setup.dataset.wkSetup === "github") openGithubPage(); else if (setup.dataset.wkSetup === "builder") { if (await leaveDraft()) openBuilderPage(); } else $("fgOpen").click(); }
 }
 function wkChange(e) {
   if (!wkEdit || wkEdit.schema !== 2) return;
@@ -2321,6 +2360,7 @@ function crQuestion(i, q, a, pend) {
   const key = `${i.id}.${q.id}`, lab = `<span class="qlab" id="ql-${esc(key)}">${esc(q.label)}${pend ? ' <span class="err m11">Needs an answer</span>' : ""}</span>${q.help ? `<span class="sub m11">${esc(q.help)}</span>` : ""}`;
   if (q.type === "info") return `<div class="opt info"><span class="qlab">${esc(q.label)}</span><span class="sub m12">${esc(q.text)}</span></div>`;
   if (!(q.id in a)) return ""; // not asked for these answers
+  if (q.type === "accounts") return spacePicker("cr", key, q, a);
   if (q.type === "text") return `<label class="opt">${lab}<input class="wfield" data-q="${esc(key)}" data-focus="${esc(key)}" maxlength="300" value="${esc(a[q.id] || "")}" placeholder="${esc(q.placeholder || "")}" autocomplete="off"></label>`;
   const picked = [].concat(a[q.id] ?? []), multi = q.type === "multi";
   return `<div class="opt${pend ? " pend" : ""}">${lab}<div class="seg${multi ? " multi" : ""}" role="${multi ? "group" : "radiogroup"}" aria-labelledby="ql-${esc(key)}">${q.choices.map((ch) => {
@@ -2389,8 +2429,10 @@ async function crChanged(rerender = true) {
 $("canvas").addEventListener("click", (e) => {
   if (view !== "create" || !crEdit) return;
   const c = crEdit, t = e.target;
-  const ex = t.closest("[data-cr-ex]"), st = t.closest("[data-cr-step]"), ch = t.closest("[data-choice]"), rm = t.closest("[data-cr-rm]"), rmo = t.closest("[data-cr-rmo]");
-  if (ex) { $("crDesc").value = ex.dataset.crEx; c.description = ex.dataset.crEx; $("crDesc").focus(); }
+  const ex = t.closest("[data-cr-ex]"), st = t.closest("[data-cr-step]"), ch = t.closest("[data-choice]"), rm = t.closest("[data-cr-rm]"), rmo = t.closest("[data-cr-rmo]"), sp = t.closest('[data-sp="cr"]');
+  if (sp) { const [iid, qid] = sp.dataset.spq.split("."); setSpace((c.answers[iid] ||= {}), qid, sp.dataset.space, sp.dataset.acc); crChanged(); }
+  else if (t.closest("[data-bd-open]")) openBuilderPage();
+  else if (ex) { $("crDesc").value = ex.dataset.crEx; c.description = ex.dataset.crEx; $("crDesc").focus(); }
   else if (st) { if (c.step === 3) { c.name = $("crName").value; c.mission = $("crMission").value; } crToStep(+st.dataset.crStep); }
   else if (t.closest("#crCancel")) closeFile();
   else if (t.closest("#wkBlank")) openWorkerEditor(null);
@@ -2559,6 +2601,7 @@ async function pkReplan() {
 function pkSetup(r) {
   if (r.resource === "figma") return '<button type="button" class="linkbtn m12" data-pk-setup="figma">Open Figma connection</button>';
   if (r.resource === "github") return '<button type="button" class="linkbtn m12" data-pk-setup="github">Open GitHub connection</button>';
+  if (r.resource === "builder") return '<span class="sub m12">Connect your own Builder space, then choose which spaces it may use in its editor after installing.</span> <button type="button" class="linkbtn m12" data-pk-setup="builder">Open Builder.io spaces</button>';
   if (r.resource === "workspace") return '<span class="sub m12">Choose a Work workspace below.</span>';
   return "";
 }
@@ -2626,7 +2669,7 @@ $("impWk").onclick = () => openImport();
 $("migWk").onclick = () => openMigration();
 $("canvas").addEventListener("click", (e) => {
   const s = e.target.closest("[data-pk-setup]"); if (!s || view !== "pack") return;
-  if (s.dataset.pkSetup === "github") openGithubPage(); else if (s.dataset.pkSetup === "figma") $("fgOpen").click();
+  if (s.dataset.pkSetup === "github") openGithubPage(); else if (s.dataset.pkSetup === "figma") $("fgOpen").click(); else if (s.dataset.pkSetup === "builder") openBuilderPage();
 });
 
 // ---------------- Git workflow (a worker with gitflow.read) ----------------
@@ -3534,6 +3577,76 @@ function renderFigma() {
       if (t.id === "fgDisc") { FG = await api("DELETE", "/figma/connection"); fgSay("Disconnected. The token was deleted."); }
     } catch (err) { fgSay(err.message, true); }
     await loadFigma();
+  };
+}
+// Builder.io: the person's spaces. Each is connected with its public and private API keys, checked with
+// Builder before they're kept (encrypted, for this person only; they never come back to the page). A
+// space is production (read-only for every worker) unless the person confirms it's a test space.
+// Which spaces each worker may use is chosen in the worker's editor.
+let BD = null, bdConfirm = null, bdRemove = null, bdAddTest = false;
+async function loadBuilder() {
+  try { BD = await api("GET", "/builder"); } catch { return; }
+  const n = BD.spaces.length, t = BD.spaces.filter((s) => s.environment === "test").length;
+  $("bdState").textContent = BD.error ? "Needs attention" : n ? `${n} space${n === 1 ? "" : "s"}` : "Not connected";
+  $("bdMeta").textContent = n ? [t ? `${t} test` : "", n - t ? `${n - t} production` : ""].filter(Boolean).join(" · ") : "";
+  if (view === "builder") renderBuilder();
+}
+function openBuilderPage(note) {
+  setView("builder"); verOpen = null; renderVersions();
+  $("canvas").innerHTML = `<div class="viewer" role="region" aria-label="Builder.io"><div class="vbar m11"><span class="ell">Builder.io</span><span class="ro">your Builder spaces, and the workers given each</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 12, 12)}</button></div>
+    <div class="vbody"><div class="wform" id="bdBody"><div class="sub m11">Loading…</div></div><div class="wform" style="padding-top:0"><span class="msg m11" id="bdMsg" role="status">${esc(note || "")}</span></div></div></div>`;
+  wireViewer(); if (BD) renderBuilder(); loadBuilder();
+}
+$("bdOpen").onclick = () => openBuilderPage();
+const bdSay = (m, bad) => { const el = $("bdMsg"); if (el) el.innerHTML = bad ? `<span class="err">${esc(m)}</span>` : esc(m); };
+const bdWhen = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso; } };
+function renderBuilder() {
+  const b = $("bdBody"); if (!b || !BD) return;
+  const space = (s) => {
+    const prod = s.environment !== "test", st = s.check;
+    const users = s.workers.length ? `Given to: ${s.workers.map((w) => `${esc(w.name)} (${w.access === "write" ? "read and write" : w.asked === "write" ? "read: writes are off while it's a production space" : "read"})`).join(", ")}.` : "No worker has it yet. Give it to a worker in the worker's editor (Builder.io → Builder spaces it can use).";
+    const confirm = bdConfirm === s.id ? `<div class="bdconfirm m12"><label class="cap"><input type="checkbox" id="bdConfirmBox"><span class="t"><span>I confirm “${esc(s.label)}” is a test or development space.</span><span class="d m11">Workers I give write access to it may create, change and publish its content.</span></span></label></div>
+      <div class="ghline"><button type="button" class="btn pri m11" data-bd-test="${esc(s.id)}">Mark as test space</button><button type="button" class="btn m11" data-bd-cancel="1">Cancel</button></div>` : "";
+    return `<div class="bdsp" data-space="${esc(s.id)}"><div class="ih"><b>${esc(s.label)}</b><span class="tag ${prod ? "" : "ok"}">${prod ? "Production: read-only" : "Test space"}</span>${st ? `<span class="tag ${st.ok ? "ok" : "bad"}">${esc(st.state)}</span>` : ""}<span class="sp"></span></div>
+      <span class="sub m11 mono">${esc(s.id)}${s.models != null ? ` · ${s.models} model${s.models === 1 ? "" : "s"}` : ""}${s.verifiedAt ? ` · keys checked ${esc(bdWhen(s.verifiedAt))}` : ""}${st && !st.ok && st.detail ? ` · ${esc(st.detail)}` : ""}</span>
+      <span class="sub m11">${users}</span>
+      <div class="ghline"><input class="wfield" data-bd-label="${esc(s.id)}" maxlength="80" value="${esc(s.label)}" aria-label="Name of ${esc(s.label)}"><button type="button" class="btn m11" data-bd-rename="${esc(s.id)}">Rename</button>
+        <button type="button" class="btn m11" data-bd-check="${esc(s.id)}">Check keys</button>
+        ${prod ? `<button type="button" class="btn m11" data-bd-ask="${esc(s.id)}">Mark as test space…</button>` : `<button type="button" class="btn m11" data-bd-prod="${esc(s.id)}">Mark as production</button>`}
+        <button type="button" class="btn danger m11" data-bd-rm="${esc(s.id)}">${bdRemove === s.id ? "Remove: confirm" : "Remove"}</button></div>${confirm}</div>`;
+  };
+  b.innerHTML = `<div class="wf"><span class="sub m11">Connect each Builder space your workers need: its public API key and a private key. They're checked with Builder, kept encrypted for you only, and never shown again. Then give each worker the spaces it may use, in the worker's editor: read only, or read and write. Production spaces are always read-only; workers write only to spaces you've confirmed are test spaces.</span></div>
+    ${BD.error ? `<div class="wf"><span class="err m12">${esc(BD.error)}</span></div>` : ""}
+    <div class="wf"><span class="lab">Your spaces</span>${BD.spaces.map(space).join("") || '<div class="wstat m11"><span class="dot grey"></span>No Builder space connected yet.</div>'}</div>
+    <div class="wf" id="bdAdd"><span class="lab">${BD.spaces.length ? "Connect another space" : "Connect a Builder space"}</span>
+      <span class="sub m11">In Builder: Account settings → Space. Copy the <b>Public API key</b>, and create a <b>Private key</b> (bpk-…) under Private keys. Both must be from the same space. A private key can change any content in its space: it's only ever given to workers you assign that space to.</span>
+      <label class="wf"><span class="lab">Name</span><input class="wfield" id="bdName" maxlength="80" placeholder="e.g. Marketing site (test)" autocomplete="off"></label>
+      <label class="wf"><span class="lab">Public API key</span><input class="wfield" id="bdPub" autocomplete="off" spellcheck="false" placeholder="e.g. 4f6c…"></label>
+      <label class="wf"><span class="lab">Private key</span><input class="wfield" id="bdPriv" type="password" autocomplete="off" spellcheck="false" placeholder="bpk-…"></label>
+      <div class="opt"><span class="qlab" id="bdEnvL">What kind of space is it?</span><div class="seg" role="radiogroup" aria-labelledby="bdEnvL"><button type="button" class="m11" role="radio" aria-checked="${!bdAddTest}" data-bd-env="production">Production (read-only)</button><button type="button" class="m11" role="radio" aria-checked="${bdAddTest}" data-bd-env="test">Test or development</button></div></div>
+      ${bdAddTest ? `<div class="bdconfirm m12"><label class="cap"><input type="checkbox" id="bdAddConfirm"><span class="t"><span>I confirm this is a test or development space.</span><span class="d m11">Workers I give write access to it may create, change and publish its content.</span></span></label></div>` : ""}
+      <div class="ghline"><button type="button" class="btn pri m11" id="bdConnect">Connect space</button></div></div>`;
+  b.onclick = async (e) => {
+    const t = e.target.closest("button"); if (!t) return;
+    const run = async (label, fn, done) => { t.disabled = true; bdSay(label); try { BD = await fn(); bdSay(typeof done === "function" ? done(BD) : done); } catch (err) { bdSay(err.message, true); } finally { t.disabled = false; } await loadBuilder(); };
+    const id = t.dataset.bdCheck || t.dataset.bdRename || t.dataset.bdProd || t.dataset.bdTest || t.dataset.bdRm;
+    if (t.dataset.bdEnv) { const keep = { n: $("bdName").value, p: $("bdPub").value, k: $("bdPriv").value }; bdAddTest = t.dataset.bdEnv === "test"; renderBuilder(); $("bdName").value = keep.n; $("bdPub").value = keep.p; $("bdPriv").value = keep.k; return; }
+    if (t.dataset.bdAsk) { bdConfirm = t.dataset.bdAsk; bdRemove = null; return renderBuilder(); }
+    if (t.dataset.bdCancel) { bdConfirm = null; return renderBuilder(); }
+    if (t.dataset.bdCheck) return run("Checking with Builder…", () => api("POST", `/builder/spaces/${encodeURIComponent(id)}/check`), (r) => { const s = r.spaces.find((x) => x.id === id); return s?.check?.ok ? "The keys work." : `Builder didn't accept the keys: ${s?.check?.detail || s?.check?.state || "unknown"}.`; });
+    if (t.dataset.bdRename) { const v = b.querySelector(`[data-bd-label="${CSS.escape(id)}"]`).value; return run("Saving…", () => api("PUT", `/builder/spaces/${encodeURIComponent(id)}`, { label: v }), "Renamed."); }
+    if (t.dataset.bdProd) return run("Saving…", () => api("PUT", `/builder/spaces/${encodeURIComponent(id)}`, { environment: "production" }), "Marked as production: every worker can now only read it.");
+    if (t.dataset.bdTest) { if (!$("bdConfirmBox")?.checked) return bdSay("Tick the confirmation first.", true); bdConfirm = null; return run("Saving…", () => api("PUT", `/builder/spaces/${encodeURIComponent(id)}`, { environment: "test", confirmTest: true }), "Marked as a test space. Workers you give write access to it can now change it."); }
+    if (t.dataset.bdRm) { if (bdRemove !== id) { bdRemove = id; bdConfirm = null; return renderBuilder(); } bdRemove = null; return run("Removing…", () => api("DELETE", `/builder/spaces/${encodeURIComponent(id)}`), "Removed. Its keys were deleted; workers given it can't reach it any more."); }
+    if (t.id === "bdConnect") {
+      const body = { label: $("bdName").value, publicKey: $("bdPub").value, privateKey: $("bdPriv").value, environment: bdAddTest ? "test" : "production", confirmTest: bdAddTest ? !!$("bdAddConfirm")?.checked : false };
+      if (!body.label.trim() || !body.publicKey.trim() || !body.privateKey.trim()) return bdSay("Give the space a name and both keys.", true);
+      if (bdAddTest && !body.confirmTest) return bdSay("Tick the confirmation that it's a test or development space, or choose Production.", true);
+      t.disabled = true; bdSay("Checking the keys with Builder…");
+      try { BD = await api("POST", "/builder/spaces", body); bdAddTest = false; bdSay(BD.replaced ? `Updated “${body.label.trim()}” with the new keys.` : `Connected “${body.label.trim()}”. Give it to a worker in the worker's editor.`); }
+      catch (err) { bdSay(err.message, true); t.disabled = false; return; }
+      await loadBuilder();
+    }
   };
 }
 // Back from GitHub (/github/callback redirects here with a short outcome): say what happened, on the GitHub page.
@@ -4529,7 +4642,7 @@ function renderRunState() {
 // Before anything replaces another conversation, the composer says so (the console runs one worker at a time).
 function renderRunNote() {
   const n = $("runNote"), a = ACTIVE;
-  if (!a || a.id === runId || view === "worker" || view === "team" || view === "github" || view === "figma") { n.hidden = true; return; }
+  if (!a || a.id === runId || view === "worker" || view === "team" || view === "github" || view === "figma" || view === "builder") { n.hidden = true; return; }
   const where = (WS.find((w) => w.id === runWs(a)) || {}).name || "another workspace", t = esc(runTitle(a)), [label] = runLabel(a);
   n.hidden = false; n.dataset.kind = a.status === "waiting" ? "replace" : "busy";
   n.innerHTML = a.status === "waiting"
@@ -4902,7 +5015,7 @@ $("fullExit").onclick = () => {
   applyPlatform();
   try { await loadWorkspaces(); } catch (e) { notice(e); return; }
   await Promise.all([loadPrompts().catch(notice), loadRuns()]);
-  loadTree(); loadGit(); await loadWorkers(); await loadTeams(); loadGithub(); loadFigma();
+  loadTree(); loadGit(); await loadWorkers(); await loadTeams(); loadGithub(); loadFigma(); loadBuilder();
   if (TAB.worker) openWorkerTab(); else if (ACTIVE) openRun(ACTIVE.id); else openNewChat();
   githubLanding();
   pollDevServers();

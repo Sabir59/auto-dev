@@ -72,16 +72,16 @@ await step("invalid key → 401 explained, key never echoed", async () => {
   const s = await c.call("builder_access_status");
   const l = await c.call("builder_list_models");
   await c.close();
-  assert(s.json.connected === false && /401/.test(s.json.why), "should report 401");
+  assert(s.json.connected === false && /401/.test(s.json.spaces?.[0]?.why), "should report 401");
   assert(l.isError && /rejected the key \(401\)/.test(l.text), "list_models should explain 401");
   assert(!l.text.includes("bpk-WRONG") && !s.text.includes("bpk-WRONG"), "key must not appear");
-  return { why: s.json.why };
+  return { why: s.json.spaces[0].why };
 });
 
 await step("access status and models with a working test-space key", async () => {
   const s = await A.call("builder_access_status");
   const m = await A.call("builder_list_models");
-  assert(s.json.connected && s.json.environment === "test" && /allowed/.test(s.json.writes), "status");
+  assert(s.json.connected && s.json.spaces.length === 1 && s.json.spaces[0].environment === "test" && /allowed/.test(s.json.spaces[0].writes) && s.json.spaces[0].models === 2, "status");
   assert(m.json.map((x) => x.name).join() === "page,announcement-bat", "models");
   const adminReq = mock.log.filter((r) => r.path === "/api/v2/admin").at(-1);
   assert(adminReq.auth === `Bearer ${KEYS.private}` && /models/.test(adminReq.body.query), "admin request shape");
@@ -207,10 +207,10 @@ await step("production space (or unmarked) → every write refused, nothing sent
     out.push(await c.call("builder_update_content", { model: "page", id: "seeddraft00001", data: { x: 1 } }));
     out.push(await c.call("builder_publish_content", { model: "page", id: "seeddraft00001" }));
     const st = await c.call("builder_access_status");
-    assert(st.json.environment === "production" && /refused/.test(st.json.writes), "status shows refused");
+    assert(st.json.spaces[0].environment === "production" && /refused/.test(st.json.spaces[0].writes), "status shows refused");
     await c.close();
   }
-  assert(out.every((r) => r.isError && /never writes to a production space/.test(r.text)), "all refused");
+  assert(out.every((r) => r.isError && /production spaces are never written to/.test(r.text)), "all refused");
   assert(writesSince(i).length === 0, "no write request at all");
   return { refused: out.length };
 });

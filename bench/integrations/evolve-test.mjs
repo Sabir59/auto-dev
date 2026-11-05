@@ -260,7 +260,7 @@ await step("an unverified proposal (Builder not connected: blocked, its checks n
   rmSync(CRED);
   const p = await fetch(s.env.EVOLVE_URL + "/propose", { method: "POST", headers: h, body: JSON.stringify({ ...goodProposal(storedOf(W.id).version), title: "Variant C too", changes: { knowledge: storedOf(W.id).knowledge + "\nVariant letters go B, C, D." } }) }).then((r) => r.json());
   P2 = p.id; await stopAll();
-  assert(p.verification.status === "blocked" && /Not connected/.test(p.verification.why), p);
+  assert(p.verification.status === "blocked" && /No Builder space connected/.test(p.verification.why), p);
   const t = await call("POST", `/workers/${W.id}/proposals/${P2}/trial`, {}); await waitTurn(t.body.run); await stopAll();
   const g = await call("POST", `/workers/${W.id}/proposals/${P2}/grade`, { run: t.body.run });
   assert(g.body.verification.status === "blocked" && g.body.trials[0].grade.results[0].ran === false && /Not checked/.test(g.body.trials[0].grade.results[0].detail), g.body);

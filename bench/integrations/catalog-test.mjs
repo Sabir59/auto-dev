@@ -40,7 +40,7 @@ await step("the real catalogue: every manifest valid, released and owned, with i
   catalog.load({ dir: REAL, dev: false });
   const ms = catalog.latestAll(), unreleased = ms.filter((m) => !m.released);
   assert(ms.length >= 20 && !unreleased.length && ms.every((m) => m.owner.accountable && m.tests.every((t) => existsSync(join(REPO, t)))), { count: ms.length, unreleased: unreleased.map((m) => m.id) });
-  assert(INTEGRATIONS[0].id === "gitsync" && INTEGRATIONS.find((i) => i.id === "builder").version === "1.0.0" && INTEGRATIONS.every((i) => catalog.get(i.id, i.version)), INTEGRATIONS.map((i) => i.id));
+  assert(INTEGRATIONS[0].id === "gitsync" && INTEGRATIONS.find((i) => i.id === "builder").version === "1.1.0" && INTEGRATIONS.every((i) => catalog.get(i.id, i.version)), INTEGRATIONS.map((i) => i.id));
   const started = await consoleStarts(REAL); assert(started === true, started);
   return { manifests: ms.length, core: [...catalog.coreIds()], connectors: ms.filter((m) => m.status === "tested").map((m) => m.id) };
 });
@@ -62,13 +62,13 @@ await step("released manifests are immutable: a changed value is refused (the co
 });
 
 await step("a new version stays unreleased until it's released: refused normally, loaded in development; releasing it records its hash; a released version that disappears is refused", async () => {
-  const d = copy(); const m = JSON.parse(readFileSync(join(d, "builder", "1.0.0.json"), "utf8")); m.version = "1.1.0"; m.changes = { "1.1.0": "test" };
-  writeFileSync(join(d, "builder", "1.1.0.json"), JSON.stringify(m, null, 2));
+  const d = copy(); const m = JSON.parse(readFileSync(join(d, "builder", "1.0.0.json"), "utf8")); m.version = "1.2.0"; m.changes = { "1.2.0": "test" };
+  writeFileSync(join(d, "builder", "1.2.0.json"), JSON.stringify(m, null, 2));
   const prod = loads(d), dev = loads(d, true);
-  const r = await new Promise((ok) => { const p = spawn(process.execPath, [join(REPO, "worker-ui", "integrations", "release.mjs"), "builder@1.1.0"], { env: { ...process.env, AIW_INTEGRATIONS_DIR: d } }); p.on("exit", ok); });
+  const r = await new Promise((ok) => { const p = spawn(process.execPath, [join(REPO, "worker-ui", "integrations", "release.mjs"), "builder@1.2.0"], { env: { ...process.env, AIW_INTEGRATIONS_DIR: d } }); p.on("exit", ok); });
   const after = loads(d);
   const gone = copy(); rmSync(join(gone, "web", "1.0.0.json")); const missing = loads(gone);
-  assert(/builder@1\.1\.0 isn't released/.test(prod) && dev === true && r === 0 && after === true && catalog.versions("builder").join() === "1.0.0,1.1.0" && /web@1\.0\.0 is released but its manifest is missing/.test(missing), { prod, dev, r, after, missing });
+  assert(/builder@1\.2\.0 isn't released/.test(prod) && dev === true && r === 0 && after === true && catalog.versions("builder").join() === "1.0.0,1.1.0,1.2.0" && /web@1\.0\.0 is released but its manifest is missing/.test(missing), { prod, dev, r, after, missing });
   return { versions: catalog.versions("builder") };
 });
 

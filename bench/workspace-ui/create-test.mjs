@@ -84,11 +84,11 @@ await step("4. Next.js: repository, stack (recognised), conventions, editing, No
   return { questions: labelsOf(d), default: d.definition.capabilities, readOnly: ro.definition.capabilities };
 });
 
-await step("5. Builder.io: space, models, and what it may do with content (read / drafts / publish); drafts by default", async () => {
+await step("5. Builder.io: its spaces (ids only, kept as given), models, and what it may do with content (read / drafts / publish); drafts by default", async () => {
   const d = await draft({ description: "Create and maintain landing pages in Builder.io", workspace: "scratch" });
   assert(d.integrations.join() === "builder" && d.definition.capabilities.includes("builder.write.draft") && !d.definition.capabilities.includes("builder.write"), JSON.stringify(d.definition.capabilities));
-  const pub = await draft({ description: "Create and maintain landing pages in Builder.io", answers: { builder: { space: "MATW test", models: "page", publishing: "publish" } }, workspace: "scratch" });
-  assert(pub.definition.capabilities.includes("builder.write") && /Builder space: MATW test/.test(pub.definition.knowledge), JSON.stringify(pub.definition));
+  const pub = await draft({ description: "Create and maintain landing pages in Builder.io", answers: { builder: { spaces: ["sp_0123456789ab:write", "not a space", "sp_0123456789ab:admin"], models: "page", publishing: "publish" } }, workspace: "scratch" });
+  assert(pub.definition.capabilities.includes("builder.write") && /Models and pages: page/.test(pub.definition.knowledge) && pub.answers.builder.spaces.join() === "sp_0123456789ab:write", JSON.stringify({ d: pub.definition, a: pub.answers.builder }));
   return { questions: labelsOf(d), drafts: d.definition.capabilities, publish: pub.definition.capabilities };
 });
 
@@ -106,11 +106,11 @@ await step("7. no connector: Gmail (and a named \"Zendesk\") are explained, and 
   return { notPossible: d.unsupported, refused: r.body.error };
 });
 
-await step("8. missing credentials: Builder says Not connected and what to do; with a production space, writes are refused; only a test space is ready", async () => {
+await step("8. missing credentials: Builder says no space is connected and where to connect one (the Builder.io page); with a production space, writes are refused; only a test space is ready", async () => {
   const b = { description: "Create and maintain landing pages in Builder.io", workspace: "scratch" };
   const st = async () => (await draft(b)).status.map((s) => `${s.access}:${s.state}`).join();
   const none = await draft(b);
-  assert(none.status.every((s) => !s.ok && s.state === "Not connected" && /keys|test space/.test(s.how)), JSON.stringify(none.status));
+  assert(none.status.every((s) => !s.ok && s.state === "No Builder space connected" && /Builder.io page|test space/.test(s.how) && !/README|on this computer/.test(s.how)), JSON.stringify(none.status));
   creds({ label: "Prod", environment: "production", publicKey: KEYS.public, privateKey: KEYS.private }); const prod = await st();
   creds({ label: "Test", environment: "test", publicKey: KEYS.public, privateKey: KEYS.private }); const test = await st();
   creds(null);
@@ -203,7 +203,7 @@ await step("page: Google Sheets shows no Builder.io or publishing setting; Next.
   await cancel();
   assert(!/Builder|publish/i.test(sheets) && /Google Sheets/.test(sheets), sheets.slice(0, 300));
   assert(["Framework and stack", "What may it do with the code?", "Run Node scripts, such as tests and builds", "Check the result in a browser"].every((l) => next.includes(l)) && stack === "Next.js" && !next.some((l) => /publish|Shopify/i.test(l)), JSON.stringify(next));
-  assert(["Builder space", "Models and pages it works on", "What may it do with content?"].every((l) => builder.includes(l)) && !builder.some((l) => /scripts|code/i.test(l)), JSON.stringify(builder));
+  assert(["Builder spaces it can use", "Models and pages it works on", "What may it do with content?"].every((l) => builder.includes(l)) && !builder.some((l) => /scripts|code/i.test(l)), JSON.stringify(builder));
   return { nextjs: next, builder };
 });
 
