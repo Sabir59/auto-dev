@@ -1,5 +1,5 @@
 {
- "at": "2026-10-29T14:38:13.808Z",
+ "at": "2026-11-04T21:53:47.363Z",
  "results": [
   {
    "step": "recommendations (deterministic): a Shopify worker gets Shopify, not Builder.io; Builder.io is optional, with its reason, only for a headless storefront's content; branch sync gets no CI unless the work mentions deploying; nothing is added or changed by recommending",
@@ -99,7 +99,7 @@
      "Designer (likely)",
      "BAU branch sync worker (exact)"
     ],
-    "backup": "workers-2026-10-29T14-38-08-914Z.json",
+    "backup": "workers-2026-11-04T21-53-42-539Z.json",
     "accessUnchanged": true
    }
   },
@@ -122,8 +122,8 @@
      "-builder.write"
     ],
     "undone": [
-     "workers-2026-10-29T14-38-09-450Z.json",
-     "workers-2026-10-29T14-38-08-914Z.json"
+     "workers-2026-11-04T21-53-43-113Z.json",
+     "workers-2026-11-04T21-53-42-539Z.json"
     ]
    }
   },

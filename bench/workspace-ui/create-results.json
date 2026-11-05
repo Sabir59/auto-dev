@@ -1,5 +1,5 @@
 {
- "when": "2026-10-25T11:32:55.503Z",
+ "when": "2026-11-04T21:54:40.730Z",
  "results": [
   {
    "step": "1. Shopify: recognised as having no connector; asks what to work on (no guess); products → an exported CSV, and the live store stays out of reach",
@@ -80,11 +80,11 @@
    }
   },
   {
-   "step": "5. Builder.io: space, models, and what it may do with content (read / drafts / publish); drafts by default",
+   "step": "5. Builder.io: its spaces (ids only, kept as given), models, and what it may do with content (read / drafts / publish); drafts by default",
    "ok": true,
    "detail": {
     "questions": [
-     "Builder space",
+     "Builder spaces it can use",
      "Models and pages it works on",
      "What may it do with content?",
      "Check pages on the site",
@@ -142,12 +142,12 @@
    }
   },
   {
-   "step": "8. missing credentials: Builder says Not connected and what to do; with a production space, writes are refused; only a test space is ready",
+   "step": "8. missing credentials: Builder says no space is connected and where to connect one (the Builder.io page); with a production space, writes are refused; only a test space is ready",
    "ok": true,
    "detail": {
     "noKeys": [
-     "Builder.io: read content: Not connected → Add the Builder space's keys once on this computer (builder-adapter/README.md). A Builder link alone grants nothing.",
-     "Builder.io: change content: Not connected → Builder writes are only allowed in a space marked as a test space in builder-adapter's credentials; production spaces are never written by this adapter."
+     "Builder.io: read content: No Builder space connected → Connect a Builder space on the Builder.io page (Integrations → Builder.io), then give this worker that space in its editor (Builder spaces it can use).",
+     "Builder.io: change content: No Builder space connected → Give this worker write access to a Builder space marked as a test space (in its editor; spaces are marked on the Builder.io page). Production spaces are never written to."
     ],
     "production": "read:Connected,write:Production space: writes refused",
     "testSpace": "read:Connected,write:Test space"
@@ -179,25 +179,8 @@
   },
   {
    "step": "10. the created worker is stored with its request and runs through the existing runtime (real run): the runtime reports its tools",
-   "ok": true,
-   "detail": {
-    "status": "waiting",
-    "worker": {
-     "id": "next-js-engineer-5446",
-     "name": "Next.js engineer",
-     "version": 1
-    },
-    "tools": [
-     "Bash",
-     "Edit",
-     "Glob",
-     "Grep",
-     "Read",
-     "ToolSearch",
-     "Write"
-    ],
-    "reply": "OK"
-   }
+   "ok": false,
+   "error": "{\"status\":\"waiting\",\"tools\":[\"Bash\",\"Edit\",\"Glob\",\"Grep\",\"Read\",\"ToolSearch\",\"Write\",\"mcp__browser-executor__browser_click\",\"mcp__browser-executor__browser_fill\",\"mcp__browser-executor__browser_get_dom_state\",\"mcp__browser-executor__browser_navigate\",\"mcp__browser-executor__browser_screenshot\",\"mcp__evolve__evolve_propose\",\"mcp__evolve__evolve_read_self\"],\"result\":\"Failed to authenticate: OAuth session expired and could not be refreshed\"}"
   },
   {
    "step": "page: the guide asks what the worker should do; a Shopify example leads to Shopify's questions, which must be answered before review",
@@ -235,7 +218,7 @@
      "Commits and pushes"
     ],
     "builder": [
-     "Builder space",
+     "Builder spaces it can use",
      "Models and pages it works on",
      "What may it do with content?",
      "Check pages on the site",

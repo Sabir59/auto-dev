@@ -1,0 +1,56 @@
+{
+ "at": "2026-11-04T21:50:23.919Z",
+ "passed": 5,
+ "failed": 0,
+ "results": [
+  {
+   "step": "the sidebar has Builder.io under Integrations; the page offers Connect when nothing is connected",
+   "ok": true,
+   "detail": {
+    "state": "Not connected"
+   }
+  },
+  {
+   "step": "connect a production space (the default), then a test space only after ticking the confirmation",
+   "ok": true,
+   "detail": {
+    "cards": [
+     "Live siteProduction: read-onlyConnected",
+     "Site (test)Test spaceConnected"
+    ],
+    "sidebar": "2 spaces · 1 test · 1 production"
+   }
+  },
+  {
+   "step": "the worker editor lists the connected spaces: write can't be picked for production; read and read-and-write are saved",
+   "ok": true,
+   "detail": {
+    "spaces": [
+     "sp_9504bac61db9:read",
+     "sp_71ecdada16f1:write"
+    ],
+    "status": [
+     "read:true",
+     "write:true"
+    ]
+   }
+  },
+  {
+   "step": "the Builder.io page shows which workers each space is given to; marking a space as test asks for confirmation",
+   "ok": true,
+   "detail": {
+    "cards": [
+     "Live siteProduction: read-onlyConnected sp_9504bac61db9 · 1 model · keys checked 11/5/2026, 2:50:22 AM Given to: Landing",
+     "Site (test)Test spaceConnected sp_71ecdada16f1 · 2 models · keys checked 11/5/2026, 2:50:22 AM Given to: Landing pages ("
+    ]
+   }
+  },
+  {
+   "step": "no page errors",
+   "ok": true,
+   "detail": {
+    "errors": 0
+   }
+  }
+ ]
+}

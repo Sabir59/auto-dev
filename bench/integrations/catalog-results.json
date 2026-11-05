@@ -1,5 +1,5 @@
 {
- "at": "2026-10-29T14:35:10.362Z",
+ "at": "2026-11-04T21:50:48.794Z",
  "results": [
   {
    "step": "the real catalogue: every manifest valid, released and owned, with its tests present; the console starts with it; the registry the creation flow reads comes from it, in its order",
@@ -66,21 +66,15 @@
    "detail": {
     "versions": [
      "1.0.0",
-     "1.1.0"
+     "1.1.0",
+     "1.2.0"
     ]
    }
   },
   {
    "step": "bad manifests stop the console: an unknown field, a bad version, a path that doesn't match, a capability the console doesn't have, a core tool used without a reason, a relation to nothing",
-   "ok": true,
-   "detail": {
-    "unknownField": "integrations: web@1.0.0: $: \"grantsEverything\" isn't allowed",
-    "badVersion": "integrations: web@1.0: $.version: doesn't match ^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
-    "pathMismatch": "integrations: web@1.0.0: its id and version (webx@1.0.0) must match its path",
-    "unknownCapability": "integrations: web@1.1.0: unknown capability teleport.anywhere",
-    "coreWithoutWhy": "integrations: web@1.1.0 base: uses core shell without saying why (coreWhy)",
-    "relationToNothing": "integrations: web@1.1.0: relation to unknown integration nowhere"
-   }
+   "ok": false,
+   "error": "{\"unknownField\":\"integrations: web@1.0.0: $: \\\"grantsEverything\\\" isn't allowed\",\"badVersion\":\"integrations: web@1.0: $.version: doesn't match ^(0|[1-9]\\\\d*)\\\\.(0|[1-9]\\\\d*)\\\\.(0|[1-9]\\\\d*)$\",\"pathMismatch\":true,\"unknownCapability\":\"integrations: web@1.1.0: unknown capability teleport.anywhere\",\"coreWithoutWhy\":\"integrations: web@1.1.0 base: uses core shell without saying why (coreWhy)\",\"relationToNothing\":\"integrations: web@1.1.0: relation to unknown integration nowhere\"}"
   }
  ]
 }

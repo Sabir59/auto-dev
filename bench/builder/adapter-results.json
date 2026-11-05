@@ -1,5 +1,5 @@
 {
- "when": "2026-11-04T17:39:06.863Z",
+ "when": "2026-11-04T21:53:13.921Z",
  "note": "Mocked Builder API: proves the adapter's requests and guards, not Builder's behaviour.",
  "results": [
   {
@@ -7,7 +7,7 @@
    "ok": true,
    "detail": {
     "status": false,
-    "error": "NEEDS: builder read: Builder API credentials for the target "
+    "error": "NEEDS: builder read: No Builder space is available to this w"
    }
   },
   {
@@ -23,10 +23,17 @@
    "detail": {
     "status": {
      "connected": true,
-     "label": "Mock test space",
-     "environment": "test",
-     "writes": "allowed (test space)",
-     "models": 2
+     "spaces": [
+      {
+       "id": "sp_71ecdada16f1",
+       "space": "Mock test space",
+       "environment": "test",
+       "access": "write",
+       "writes": "allowed (test space)",
+       "works": true,
+       "models": 2
+      }
+     ]
     },
     "models": 2
    }
@@ -103,6 +110,7 @@
     "allowed": {
      "id": "seedpublished01",
      "model": "page",
+     "space": "Mock test space",
      "updated": [
       "data"
      ],
@@ -119,6 +127,7 @@
    "detail": {
     "id": "created00000001",
     "model": "page",
+    "space": "Mock test space",
     "before": "draft",
     "publishedPendingDraft": false,
     "apiSaid": "published",
@@ -130,8 +139,8 @@
      "servedAtUrl": true,
      "pendingDraft": false,
      "previewUrl": "/adapter-test?builder.preview=page&builder.cachebust=true&builder.overrides.page=created00000001",
-     "lastUpdated": 1793813929174,
-     "firstPublished": 1793813929174
+     "lastUpdated": 1793829186896,
+     "firstPublished": 1793829186896
     }
    }
   },
@@ -146,7 +155,7 @@
     "servedAtUrl": false,
     "pendingDraft": false,
     "previewUrl": "/draft?builder.preview=page&builder.cachebust=true&builder.overrides.page=seeddraft00001",
-    "lastUpdated": 1793813924631,
+    "lastUpdated": 1793829184608,
     "firstPublished": null
    }
   },
@@ -163,7 +172,7 @@
      "servedAtUrl": false,
      "pendingDraft": false,
      "previewUrl": "/ignored?builder.preview=page&builder.cachebust=true&builder.overrides.page=created00000002",
-     "lastUpdated": 1793813929287,
+     "lastUpdated": 1793829187068,
      "firstPublished": null
     }
    }
@@ -230,6 +239,7 @@
     "updated": {
      "id": "created00000004",
      "model": "page",
+     "space": "Mock test space",
      "updated": [
       "data"
      ],
@@ -362,11 +372,11 @@
    "ok": true,
    "detail": {
     "refused": [
-     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\bld-out-VW",
-     "Refused: ../bld-out-VWYRca/secret.png is outside t",
+     "Refused: C:\\Users\\hp\\AppData\\Local\\Temp\\bld-out-9n",
+     "Refused: ../bld-out-9nH0rW/secret.png is outside t",
      "Only images and fonts can be uploaded (.png, .jpg,",
      "Reading local files isn't available in this run (n",
-     "Refused: the connected Builder space (\"Mock test s"
+     "Refused: the Builder space \"Mock test space\" isn't"
     ]
    }
   },

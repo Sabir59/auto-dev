@@ -1,16 +1,17 @@
 {
- "when": "2026-10-20T18:41:46.281Z",
+ "when": "2026-11-05T06:38:55.165Z",
  "platform": "linux",
  "isolation": "uid",
+ "tag": null,
  "egressFirewall": true,
- "node": "v20.19.5",
+ "node": "v22.23.3",
  "results": [
   {
-   "step": "config: a production gateway refuses to start without https, an API key, isolation and a real provider address",
+   "step": "config: a production gateway refuses to start without https, isolation, a secrets key and a real provider address, or with a central provider key; it needs no provider key",
    "ok": true,
    "detail": {
     "exit": 1,
-    "problems": 4
+    "problems": 5
    }
   },
   {
@@ -81,13 +82,26 @@
    }
   },
   {
+   "step": "AI provider: with none connected the platform is ready and a run is refused in the person's own console; a rejected key isn't kept; each person's key is stored encrypted, bound to them, and never shown",
+   "ok": true,
+   "detail": {
+    "refused": 409,
+    "rejectedKey": 400,
+    "crossOrigin": 403,
+    "connected": [
+     "anthropic-api",
+     "anthropic-api"
+    ]
+   }
+  },
+  {
    "step": "hosted workspace: a new one is a folder of the person's own; a path from the page is ignored; Executor, folder browsing and the platform's files don't exist",
    "ok": true,
    "detail": {
-    "root": "<data>/users/u-f69ea9cc-0ec/data/workspaces/site-8310",
+    "root": "<data>/users/u-0919e730-652/data/workspaces/site-2122",
     "list": [
      "scratch",
-     "site-8310"
+     "site-2122"
     ]
    }
   },
@@ -97,19 +111,19 @@
    "detail": {
     "outcome": "done",
     "refusals": [
-     "/var/tmp/aiw-hosted-WCsUey/users/u-51defc5a-9ed/data/bob-secret.txt is outside /var/tmp/ai",
-     "/var/tmp/aiw-hosted-WCsUey/control/users.json is outside /var/tmp/aiw-hosted-WCsUey/users/",
+     "Refused: /var/tmp/aiw-hosted-rMG0po/users/u-e7223b14-f87/data/bob-secret.txt is outside th",
+     "Refused: /var/tmp/aiw-hosted-rMG0po/control/users.json is outside the folders this run can",
      "<tool_use_error>Error: No such tool available: Bash. Bash is disabled for this session, in",
      "WebFetch denied access to domain:169.254.169.254."
     ]
    }
   },
   {
-   "step": "the provider key stays in the gateway: the provider saw it, nothing else did (activity, run records, API answers, logs)",
+   "step": "each person's provider key stays in the gateway: the provider saw it on that person's requests, nothing else did (activity, run records, API answers, logs, processes)",
    "ok": true,
    "detail": {
-    "providerRequests": 6,
-    "filesScanned": 25,
+    "providerRequests": 9,
+    "filesScanned": 24,
     "processes": [
      {
       "role": "console",
@@ -150,8 +164,17 @@
      "Read",
      "WebFetch",
      "WebSearch",
-     "Write"
+     "Write",
+     "mcp__evolve__evolve_propose",
+     "mcp__evolve__evolve_read_self"
     ]
+   }
+  },
+  {
+   "step": "Scratch (the default with no workspace): the conversation gets its own folder under the person's data; the worker writes there; it's listed only through the conversation",
+   "ok": true,
+   "detail": {
+    "folder": "<data>/users/u-0919e730-652/data/scratch-runs/2026-11-05T06-37-33-449Z"
    }
   },
   {
@@ -159,7 +182,7 @@
    "ok": true,
    "detail": {
     "status": "stopped",
-    "ms": 530
+    "ms": 527
    }
   },
   {
@@ -177,7 +200,7 @@
    "detail": {
     "status": "waiting",
     "outcome": "error",
-    "seconds": 12
+    "seconds": 4
    }
   },
   {
@@ -188,6 +211,27 @@
     "events": 404,
     "file": 404,
     "message": 404
+   }
+  },
+  {
+   "step": "AI provider isolation: alice changing, then deleting, her key while bob's run is live doesn't touch bob's run; alice's next run uses her new key",
+   "ok": true,
+   "detail": {
+    "bobRequests": 2,
+    "bobOutcome": "done",
+    "aliceNewKeyRequests": 1
+   }
+  },
+  {
+   "step": "integration credentials: the person's credential key goes only to their own live run's Figma reader, never to Builder's server (it gets only its worker's spaces) and never into the run's files",
+   "ok": true,
+   "detail": {
+    "ownServer": 200,
+    "builderServer": 403,
+    "otherServer": 403,
+    "wrongToken": 403,
+    "bobsConsole": 403,
+    "afterEnd": 403
    }
   },
   {
@@ -202,7 +246,7 @@
      "uid": 20002,
      "mode": "700"
     },
-    "crossRead": "cat: /var/tmp/aiw-hosted-WCsUey/users/u-51defc5a-9ed/data/bob-secret.txt: Permis",
+    "crossRead": "cat: /var/tmp/aiw-hosted-rMG0po/users/u-e7223b14-f87/data/bob-secret.txt: Permis",
     "processUids": [
      20001
     ]
@@ -214,6 +258,14 @@
    "detail": {
     "connectedAs": "alice",
     "replay": "/?github=state"
+   }
+  },
+  {
+   "step": "GitHub credential at rest: stored encrypted with alice's own key (no token on disk); copied into bob's folder it doesn't open as alice's",
+   "ok": true,
+   "detail": {
+    "encrypted": true,
+    "bobConnected": false
    }
   },
   {
@@ -230,10 +282,10 @@
    "ok": true,
    "detail": {
     "refused": [
-     "Refused: 127.0.0.1:18770 is on this server; the browser can'",
+     "Refused: 127.0.0.1:8770 is on this server; the browser can't",
      "Refused: 169.254.169.254 is a private or internal network ad",
      "Refused: 10.1.2.3 is a private or internal network address; ",
-     "Refused: localhost.:18772 is on this server; the browser can",
+     "Refused: localhost.:8772 is on this server; the browser can'",
      "Refused: files outside the workspace can't be opened."
     ],
     "publicPage": "{ \"url\": \"https://example.com/\", \"title\": \"Example Domain\", ",

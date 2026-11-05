@@ -1,5 +1,5 @@
 {
- "at": "2026-10-29T10:09:19.038Z",
+ "at": "2026-11-04T21:53:58.833Z",
  "results": [
   {
    "step": "creating a worker records version 1; each save records the next version with its parent and reason, never overwriting one",
@@ -96,7 +96,7 @@
    "step": "a valid proposal is stored as proposed: its base version, provenance (this run), what it relies on checked now, and verification UNTESTED — nothing changed in the worker",
    "ok": true,
    "detail": {
-    "id": "p-mvtdsle3-1ba543",
+    "id": "p-mw2nlx8r-4b21a9",
     "base": 4,
     "verification": {
      "status": "untested",
@@ -112,7 +112,7 @@
    "step": "a trial run uses the proposed definition (marked, no evolve tools, the worker unchanged); a REMEMBER in a trial doesn't reach the worker's memory",
    "ok": true,
    "detail": {
-    "run": "2026-10-29T10-09-10-973Z",
+    "run": "2026-11-04T21-53-51-372Z",
     "snapshotHasChange": true,
     "memory": 0
    }
@@ -123,11 +123,11 @@
    "detail": {
     "candidate": {
      "status": "passed",
-     "why": "All 1 checks passed in trial run 2026-10-29T10-09-10-973Z.",
-     "run": "2026-10-29T10-09-10-973Z"
+     "why": "All 1 checks passed in trial run 2026-11-04T21-53-51-372Z.",
+     "run": "2026-11-04T21-53-51-372Z"
     },
     "baseline": {
-     "run": "2026-10-29T10-09-16-868Z",
+     "run": "2026-11-04T21-53-57-174Z",
      "ok": false,
      "ran": true
     },
@@ -150,11 +150,11 @@
     "version": 5,
     "source": {
      "kind": "proposal",
-     "proposal": "p-mvtdsle3-1ba543",
+     "proposal": "p-mw2nlx8r-4b21a9",
      "verification": {
       "status": "passed",
-      "why": "All 1 checks passed in trial run 2026-10-29T10-09-10-973Z.",
-      "run": "2026-10-29T10-09-10-973Z"
+      "why": "All 1 checks passed in trial run 2026-11-04T21-53-51-372Z.",
+      "run": "2026-11-04T21-53-51-372Z"
      }
     }
    }
@@ -172,7 +172,7 @@
    "detail": {
     "verification": {
      "status": "blocked",
-     "why": "Read Builder.io content: Builder.io: read content: Not connected; Create and change Builder.io content as drafts only (test spaces only) — publishing is not available: Builder.io: read content: Not connected"
+     "why": "Read Builder.io content: Builder.io: read content: No Builder space connected; Create and change Builder.io content as drafts only (test spaces only) — publishing is not available: Builder.io: read content: No Builder space connected"
     },
     "approve": "Approving this needs your explicit acknowledgement: it isn't verified (blocked: Read Builder.io content: Builder.io: rea"
    }

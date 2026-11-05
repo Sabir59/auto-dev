@@ -1,0 +1,158 @@
+{
+ "at": "2026-11-04T21:53:03.883Z",
+ "passed": 12,
+ "failed": 0,
+ "results": [
+  {
+   "step": "connecting a space: wrong keys, keys from two different spaces, and a test space without confirmation are all refused; nothing is stored",
+   "ok": true,
+   "detail": {
+    "wrong": "Builder rejected the private key (revoked or mistyped).",
+    "mixed": "The public key and the private key belong to different Builder spaces. Copy both from the same space.",
+    "unconfirmed": "Confirm that this is a test or development space first: work"
+   }
+  },
+  {
+   "step": "two spaces connected from the console: a confirmed test space and a production space (the default)",
+   "ok": true,
+   "detail": {
+    "spaces": [
+     "Site (test): test (sp_71ecdada16f1)",
+     "Live site: production (sp_9504bac61db9)"
+    ]
+   }
+  },
+  {
+   "step": "encrypted at rest: the file holds no key and no space name; another person's key can't read it",
+   "ok": true,
+   "detail": {
+    "own": "[\"Site (test)\",\"Live site\"]",
+    "otherPersonsKey": "ERR BAD_CREDENTIALS",
+    "noKey": "ERR BAD_CREDENTIALS"
+   }
+  },
+  {
+   "step": "isolation: the other person's console has no spaces, and can't use the first person's space ids",
+   "ok": true,
+   "detail": {
+    "bobSpaces": 0,
+    "status": "No Builder space connected",
+    "how": "Connect a Builder space on the Builder.io page (Integrations → Builder.io), then give this worker that space in its editor (Builder spaces it can use)."
+   }
+  },
+  {
+   "step": "per-worker permissions on save: write access to a production space is refused; read is allowed",
+   "ok": true,
+   "detail": {
+    "refused": "\"Live site\" is a production Builder space, so workers can only read it. If it really is a test or development space, mark it as one on the Builder.io page first.",
+    "onThePage": {
+     "sp_71ecdada16f1": [
+      "Editor:write"
+     ],
+     "sp_9504bac61db9": [
+      "Editor:read",
+      "Reader:read"
+     ]
+    },
+    "status": {
+     "Editor": [
+      "read:ok",
+      "write:ok"
+     ],
+     "Unassigned": [
+      "read:No Builder space given to this worker",
+      "write:No test space with write access given to this worker"
+     ]
+    }
+   }
+  },
+  {
+   "step": "a run's tool server gets only that worker's spaces, never the person's credential key; writes go only to the test space it may write to",
+   "ok": true,
+   "detail": {
+    "tools": 9,
+    "statusSpaces": [
+     "Site (test):write",
+     "Live site:read"
+    ],
+    "created": "created00000001",
+    "refused": "Refused: the Builder space \"Live site\" isn't marked as a test space, and product",
+    "afterMarkedProduction": "Refused: the Builder space \"Site (test)\" isn't marked as a test space, and produ"
+   }
+  },
+  {
+   "step": "a read-only worker: its server has no write tools, sees only its own space, and can't name another",
+   "ok": true,
+   "detail": {
+    "tools": [
+     "builder_access_status",
+     "builder_get_content",
+     "builder_list_content",
+     "builder_list_models",
+     "builder_verify_content"
+    ],
+    "spaces": [
+     "Live site"
+    ]
+   }
+  },
+  {
+   "step": "a worker given no space: told to connect and assign one on the platform (not a README)",
+   "ok": true,
+   "detail": {
+    "how": "Connect a Builder space on the Builder.io page (Integrations → Builder.io), then give this worker that space in its editor (Builder spaces it can use).",
+    "server": "NEEDS: builder read: No Builder space is available to this worker. The person connects a space on the console's Builder."
+   }
+  },
+  {
+   "step": "export: the package declares Builder and its permission level, with no keys and no space mapping",
+   "ok": true,
+   "detail": {
+    "config": {
+     "models": "page",
+     "publishing": "publish",
+     "check": "no"
+    },
+    "requirements": [
+     "builder read",
+     "builder write"
+    ],
+    "excluded": "credentials, tokens and connected accounts (yours stay here)"
+   }
+  },
+  {
+   "step": "import on the other person's console: installs with no spaces; they connect their own and map it",
+   "ok": true,
+   "detail": {
+    "installed": "Editor",
+    "before": "No Builder space connected",
+    "after": "Connected · Bob's site (production)"
+   }
+  },
+  {
+   "step": "clone on the same console keeps the worker's space mapping (it never leaves this person)",
+   "ok": true,
+   "detail": {
+    "spaces": [
+     "sp_71ecdada16f1:write",
+     "sp_9504bac61db9:read"
+    ]
+   }
+  },
+  {
+   "step": "an earlier single-space credentials file is read as one space, with the same id it gets when connected from the console",
+   "ok": true,
+   "detail": {
+    "legacy": {
+     "id": "sp_71ecdada16f1",
+     "label": "Old test space",
+     "environment": "test",
+     "addedAt": null,
+     "verifiedAt": null,
+     "testConfirmedAt": "set in the credentials file",
+     "models": null
+    }
+   }
+  }
+ ]
+}

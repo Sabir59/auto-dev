@@ -1,5 +1,5 @@
 {
- "at": "2026-10-29T15:54:51.189Z",
+ "at": "2026-11-04T21:43:35.163Z",
  "results": [
   {
    "step": "at the start: with the Figma plugin running, the worker's Figma tool is loaded, and its server gets the per-call check",
@@ -28,7 +28,7 @@
    "ok": true,
    "detail": {
     "disconnected": "Figma: change the open file: Plugin not running (Run the AI Executor plugin in the Figma file.)",
-    "hung": "Figma: change the open file: Bridge not running (It starts by itself on the first Figma call.) (2017 ms)"
+    "hung": "Figma: change the open file: Bridge not running (It starts by itself on the first Figma call.) (2009 ms)"
    }
   },
   {

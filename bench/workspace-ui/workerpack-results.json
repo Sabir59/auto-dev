@@ -1,8 +1,8 @@
 {
- "at": "2026-10-29T14:41:12.297Z",
+ "at": "2026-11-04T21:55:53.443Z",
  "consoles": {
-  "A": "port 8781, data C:\\Users\\hp\\AppData\\Local\\Temp\\wpk-1793284806490\\A",
-  "B": "port 8782, data C:\\Users\\hp\\AppData\\Local\\Temp\\wpk-1793284806490\\B"
+  "A": "port 8781, data C:\\Users\\hp\\AppData\\Local\\Temp\\wpk-1793829284113\\A",
+  "B": "port 8782, data C:\\Users\\hp\\AppData\\Local\\Temp\\wpk-1793829284113\\B"
  },
  "results": [
   {
@@ -89,11 +89,11 @@
    "step": "A, clone: a new worker (new id, version 1, a copy of its learnings, each marked where it came from) with the same definition and Git workflow rules (people and overrides not copied, proposals off); the original and its settings are untouched; a taken name is refused",
    "ok": true,
    "detail": {
-    "clone": "bau-branch-sync-worker-c-30ea",
+    "clone": "bau-branch-sync-worker-c-45fe",
     "name": "BAU branch sync worker (copy)",
     "learnings": 1,
     "copiedFrom": "BAU branch sync worker",
-    "gitflowWorkspace": "a-repo-060a"
+    "gitflowWorkspace": "a-repo-aee1"
    }
   },
   {
@@ -112,9 +112,9 @@
    "step": "B, install: never over a worker of the same name; with a new name it's a new worker (its own id, version 1, no memory, no runs) with B's repository for its Git workflow, proposals off, and the package's definition; B's existing worker is untouched; a token can't be installed twice",
    "ok": true,
    "detail": {
-    "installed": "bau-branch-sync-worker-2-cfae",
+    "installed": "bau-branch-sync-worker-2-b0c9",
     "name": "BAU branch sync worker (2)",
-    "gitflowWorkspace": "b-repo-2eda",
+    "gitflowWorkspace": "b-repo-a0bb",
     "usableInB": [
      "files.read",
      "gitflow.read"
@@ -154,7 +154,7 @@
    "step": "round trip across both consoles: B exports what it imported, A imports it, and the definition, steps, knowledge and Git workflow rules are what A started with",
    "ok": true,
    "detail": {
-    "id": "bau-sync-round-trip-5520",
+    "id": "bau-sync-round-trip-4a12",
     "preserved": "definition, steps, knowledge, tools, requirements, Git workflow rules"
    }
   },
@@ -187,7 +187,7 @@
      "web": "exact"
     },
     "installed": [
-     "builder@1.0.0",
+     "builder@1.1.0",
      "web@1.0.0"
     ],
     "left": {
@@ -198,7 +198,7 @@
       "zendesk 2.0.0"
      ],
      "versions": [
-      "Builder.io 1.9.0 → 1.0.0"
+      "Builder.io 1.9.0 → 1.1.0"
      ]
     }
    }
@@ -223,7 +223,7 @@
    "step": "page, B: Import worker → choose the file → its review (identity, steps, knowledge, tools here, missing Figma access with where to set it up) → Install (asks first, because access is missing) → installed, with a new task offered",
    "ok": true,
    "detail": {
-    "installed": "designer-from-a-c996",
+    "installed": "designer-from-a-5b93",
     "composer": "Describe the task, or reply to the worker\n◆\nDesigner from A\n"
    }
   },
