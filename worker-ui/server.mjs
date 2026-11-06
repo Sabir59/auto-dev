@@ -1596,7 +1596,11 @@ function teamSection(t) {
 // as-is: an inherited CLAUDE_CONFIG_DIR (the VS Code extension sets one) and the other CLAUDE_*
 // variables of whatever started the console (its session id, messaging socket and token, entry
 // point) are dropped, so sessions never land in, or resume from, another tool's directory.
-const CONFIG_DIR = resolve(process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR || join(homedir(), ".claude"));
+// A local console remembers which Claude profile it uses in <data>/claude-profile.json
+// ({ "configDir": "C:\\Users\\me\\.claude-personal" }), so starting it from the dashboard's switch or a
+// new terminal keeps that profile's sign-in. The variable still wins; hosted, the gateway always sets it.
+const SAVED_CONFIG_DIR = HOSTED ? null : (() => { try { const d = JSON.parse(readFileSync(join(DATA, "claude-profile.json"), "utf8")).configDir; return typeof d === "string" && d.trim() ? d.trim() : null; } catch { return null; } })();
+const CONFIG_DIR = resolve(process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR || SAVED_CONFIG_DIR || join(homedir(), ".claude"));
 const DEFAULT_CONFIG_DIR = ((a, b) => (process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b))(CONFIG_DIR, resolve(homedir(), ".claude"));
 const workerEnv = () => {
   // Integration tokens (FIGMA_TOKEN, BUILDER_*, GH_TOKEN, GITHUB_*, ...) never reach workers; the *_DIR ones are only paths.
