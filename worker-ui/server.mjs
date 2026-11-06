@@ -1753,6 +1753,7 @@ function runtimeQuery(requests, timeoutMs = 30000) {
       }
     });
     p.on("error", (e) => finish(e));
+    p.stdin.on("error", () => {}); // it exited before reading (EOF/EPIPE): "close" says so
     p.on("close", () => finish(Object.keys(answers).length === requests.length ? null : new Error("The Claude runtime exited without answering.")));
     requests.forEach((r, i) => p.stdin.write(JSON.stringify({ type: "control_request", request_id: String(i), request: r }) + "\n"));
   });
@@ -2263,6 +2264,8 @@ function spawnWorker(run, { resume }) {
     run.stopRequested = run.endRequested = run.reloadRequested = false;
   });
   child.on("error", (e) => { emit(run, { type: "failure", summary: `could not start worker: ${e.message}` }); setStatus(run, "failed", e.message); });
+  // A write to a worker that just exited fails (EOF/EPIPE); "exit" reports the run, and the console stays up.
+  child.stdin.on("error", (e) => emit(run, { type: "note", summary: `worker input closed: ${e.code || e.message}` }));
 }
 
 // ---- attachments ------------------------------------------------------------------
@@ -2669,6 +2672,7 @@ async function git(cwd, args, { timeout = 30000, input, auth = false } = {}) {
       if (code === 0) return ok(stdout);
       const e = new Error(timedOut ? "git timed out" : stderr || `git exited with code ${code}`); e.stderr = stderr; e.timedOut = timedOut; fail(e);
     });
+    p.stdin.on("error", () => {}); // git exited before reading its input: "close" reports it
     if (input !== undefined) p.stdin.end(input); else p.stdin.end();
   });
 }
