@@ -1600,8 +1600,10 @@ function teamSection(t) {
 // ({ "configDir": "C:\\Users\\me\\.claude-personal" }), so starting it from the dashboard's switch or a
 // new terminal keeps that profile's sign-in. The variable still wins; hosted, the gateway always sets it.
 const SAVED_CONFIG_DIR = HOSTED ? null : (() => { try { const d = JSON.parse(readFileSync(join(DATA, "claude-profile.json"), "utf8")).configDir; return typeof d === "string" && d.trim() ? d.trim() : null; } catch { return null; } })();
-const CONFIG_DIR = resolve(process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR || SAVED_CONFIG_DIR || join(homedir(), ".claude"));
-const DEFAULT_CONFIG_DIR = ((a, b) => (process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b))(CONFIG_DIR, resolve(homedir(), ".claude"));
+// Switchable on a local console while no worker runs (the account panel: switchClaudeProfile).
+let CONFIG_DIR = resolve(process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR || SAVED_CONFIG_DIR || join(homedir(), ".claude"));
+const isDefaultDir = (d) => ((a, b) => (process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b))(resolve(d), resolve(homedir(), ".claude"));
+let DEFAULT_CONFIG_DIR = isDefaultDir(CONFIG_DIR);
 const workerEnv = () => {
   // Integration tokens (FIGMA_TOKEN, BUILDER_*, GH_TOKEN, GITHUB_*, ...) never reach workers; the *_DIR ones are only paths.
   // The hosted console's own secrets (AIW_*: the gateway's internal secret, the broker token) never
@@ -1612,6 +1614,93 @@ const workerEnv = () => {
   // person's ordinary `claude` login from the workers.
   return { ...env, ...PROVIDER.runtimeEnv(), ...(DEFAULT_CONFIG_DIR ? {} : { CLAUDE_CONFIG_DIR: CONFIG_DIR }) };
 };
+
+// ---- Claude accounts on this computer (local consoles only) -----------------------------
+// Each Claude profile is a config folder in the person's home folder: ~/.claude, or ~/.claude-<name>
+// (the VS Code extension's, a personal one, ...). The account panel lists them with who is signed in
+// (`claude auth status` in each), switches the console to one while no worker runs (remembered in
+// <data>/claude-profile.json), and signs one in with Claude Code's own sign-in (`claude auth login`:
+// claude.ai opens in the browser, Google sign-in included). Never hosted: there each person brings
+// their own API key, and a claude.ai sign-in may not back a hosted product.
+const PROFILE_DIR = /^\.claude(-[\w.-]{1,40})?$/i;
+const envFor = (dir) => { const e = { ...workerEnv() }; delete e.CLAUDE_CONFIG_DIR; return isDefaultDir(dir) ? e : { ...e, CLAUDE_CONFIG_DIR: dir }; };
+function authStatusIn(dir) {
+  return new Promise((ok) => {
+    let out = "", p;
+    try { p = spawn(CLAUDE.cmd, [...CLAUDE.pre, "auth", "status", "--json"], { shell: CLAUDE.shell, env: envFor(dir), windowsHide: true }); } catch { return ok(null); }
+    const timer = setTimeout(() => p.kill(), 20000);
+    p.stdout.on("data", (d) => (out += d)); p.on("error", () => {});
+    p.on("close", () => { clearTimeout(timer); try { ok(JSON.parse(out)); } catch { ok(null); } });
+  });
+}
+const sameDir = (a, b) => (process.platform === "win32" ? resolve(a).toLowerCase() === resolve(b).toLowerCase() : resolve(a) === resolve(b));
+let profilesCache = { at: 0, list: null };
+async function claudeProfiles(refresh) {
+  if (HOSTED) throw httpErr("Claude accounts are chosen on the person's own computer, not on the hosted platform.", 404);
+  if (!refresh && profilesCache.list && Date.now() - profilesCache.at < 60000) return profilesCache.list;
+  let dirs = [];
+  try { dirs = readdirSync(homedir(), { withFileTypes: true }).filter((d) => d.isDirectory() && PROFILE_DIR.test(d.name)).map((d) => join(homedir(), d.name)); } catch {}
+  if (!dirs.some((d) => sameDir(d, CONFIG_DIR))) dirs.push(CONFIG_DIR);
+  const list = await Promise.all(dirs.map(async (dir) => {
+    const s = await authStatusIn(dir);
+    return { dir, name: basename(dir), current: sameDir(dir, CONFIG_DIR), loggedIn: !!s?.loggedIn, email: s?.email || null, plan: s?.subscriptionType || null, authMethod: s?.authMethod || null, checked: !!s };
+  }));
+  list.sort((a, b) => Number(b.current) - Number(a.current) || Number(b.loggedIn) - Number(a.loggedIn) || a.name.localeCompare(b.name));
+  profilesCache = { at: Date.now(), list };
+  return list;
+}
+async function switchClaudeProfile(dir) {
+  if (HOSTED) throw httpErr("Not available on the hosted platform.", 404);
+  if (active()) throw httpErr("A worker is running. End it first, then switch accounts.", 409);
+  const p = (await claudeProfiles(true)).find((x) => sameDir(x.dir, String(dir || "")));
+  if (!p) throw httpErr("That isn't a Claude profile folder on this computer.");
+  if (!p.loggedIn) throw httpErr(`${p.name} isn't signed in. Sign it in first.`);
+  CONFIG_DIR = resolve(p.dir); DEFAULT_CONFIG_DIR = isDefaultDir(CONFIG_DIR);
+  writeAtomic(join(DATA, "claude-profile.json"), JSON.stringify({ configDir: CONFIG_DIR.replace(/\\/g, "/") }, null, 1) + "\n");
+  account = { at: 0, value: null }; usage = null; usageError = null; models = { at: 0, list: null }; profilesCache = { at: 0, list: null };
+  return { ...(await accountReport(true)), pinnedByEnv: !!process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR };
+}
+// Signing a profile in: Claude Code's own `claude auth login` opens claude.ai in the browser and
+// finishes by itself; if claude.ai shows a code instead, the person pastes it in the panel. One at a time.
+let login = null;
+const loginView = () => (login ? { dir: login.dir, name: basename(login.dir), state: login.state, url: login.url, message: login.message } : null);
+function startClaudeLogin(b) {
+  if (HOSTED) throw httpErr("Not available on the hosted platform.", 404);
+  if (login?.state === "waiting") throw httpErr("A sign-in is already open. Finish or cancel it first.", 409);
+  let dir;
+  if (b.dir) { dir = resolve(String(b.dir)); if (!PROFILE_DIR.test(basename(dir)) || !sameDir(dirname(dir), homedir())) throw httpErr("That isn't a Claude profile folder on this computer."); }
+  else {
+    const slug = String(b.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30);
+    if (!slug) throw httpErr("Give the new account a short name, e.g. work or personal.");
+    dir = join(homedir(), `.claude-${slug}`);
+    if (existsSync(dir)) throw httpErr(`~/.claude-${slug} already exists. Sign that one in from the list, or choose another name.`);
+    mkdirSync(dir, { recursive: true });
+  }
+  const p = spawn(CLAUDE.cmd, [...CLAUDE.pre, "auth", "login", "--claudeai"], { shell: CLAUDE.shell, env: envFor(dir), windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
+  const me = (login = { dir, proc: p, state: "waiting", url: null, message: "Opening claude.ai in your browser…", switchAfter: b.switchAfter !== false, out: "" });
+  const read = (d) => { me.out = (me.out + d).slice(-4000); const u = /https:\/\/\S+oauth\/authorize\S+/.exec(me.out); if (u) me.url = u[0]; };
+  p.stdout.on("data", read); p.stderr.on("data", read); p.stdin.on("error", () => {}); p.on("error", (e) => { me.state = "failed"; me.message = e.message; });
+  const timer = setTimeout(() => { if (me.state === "waiting") { me.state = "failed"; me.message = "The sign-in wasn't finished within 10 minutes."; try { p.kill(); } catch {} } }, 600000);
+  p.on("close", async (code) => {
+    clearTimeout(timer);
+    if (me.state !== "waiting") return;
+    const s = await authStatusIn(dir);
+    if (code === 0 && s?.loggedIn) {
+      me.state = "done"; me.message = `Signed in as ${s.email || "your account"}${s.subscriptionType ? ` (${s.subscriptionType})` : ""}.`;
+      profilesCache = { at: 0, list: null };
+      if (me.switchAfter && !active()) { try { await switchClaudeProfile(dir); me.message += " The console uses it now."; } catch (e) { me.message += ` Switch to it when you're ready (${e.message})`; } }
+    } else { me.state = "failed"; me.message = (me.out.split("\n").map((l) => l.trim()).filter((l) => l && !/^https?:/.test(l) && !/Paste code/i.test(l)).pop() || "The sign-in didn't finish.").slice(0, 200); }
+  });
+  return loginView();
+}
+function claudeLoginCode(code) {
+  const c = String(code || "").trim();
+  if (!login || login.state !== "waiting") throw httpErr("No sign-in is open.", 409);
+  if (!c || c.length > 2000 || /\s/.test(c)) throw httpErr("Paste the code claude.ai showed you.");
+  login.proc.stdin.write(c + "\n"); login.message = "Checking the code…";
+  return loginView();
+}
+function cancelClaudeLogin() { if (login?.state === "waiting") { login.state = "cancelled"; login.message = "Cancelled."; try { login.proc.kill(); } catch {} } return loginView(); }
 
 // ---- account & usage ----------------------------------------------------------------
 // Which Claude account the workers run as, and how much of its plan is used. The account comes
@@ -3060,6 +3149,13 @@ http.createServer(async (req, res) => {
 
     // the Claude account the workers use, and its usage (read-only)
     if (url.pathname === "/account" && req.method === "GET") return json(res, 200, await accountReport(url.searchParams.get("refresh") === "1"));
+    // the Claude accounts (profile folders) on this computer: list, switch, sign one in (local only)
+    if (url.pathname === "/account/profiles" && req.method === "GET") return json(res, 200, { profiles: await claudeProfiles(url.searchParams.get("refresh") === "1"), login: loginView(), pinnedByEnv: !!process.env.WORKER_CONSOLE_CLAUDE_CONFIG_DIR });
+    if (url.pathname === "/account/profile" && req.method === "PUT") return json(res, 200, await switchClaudeProfile((await body(req)).dir));
+    if (url.pathname === "/account/login" && req.method === "POST") return json(res, 200, startClaudeLogin(await body(req)));
+    if (url.pathname === "/account/login" && req.method === "GET") return json(res, 200, { login: loginView() });
+    if (url.pathname === "/account/login/code" && req.method === "POST") return json(res, 200, claudeLoginCode((await body(req)).code));
+    if (url.pathname === "/account/login" && req.method === "DELETE") return json(res, 200, cancelClaudeLogin());
     // the models this account can use, with the effort levels each takes (read-only)
     if (url.pathname === "/models" && req.method === "GET") return json(res, 200, { models: await modelCatalogue(url.searchParams.get("refresh") === "1"), efforts: EFFORTS });
 

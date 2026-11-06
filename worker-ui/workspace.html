@@ -104,6 +104,14 @@ button.pill:disabled { cursor: default; opacity: 1; }
 .acctpop .lab:first-child { padding-top: 0; border-top: 0; margin-top: 0; }
 .acctpop .kv { display: flex; justify-content: space-between; gap: 12px; font: 400 12.5px/18px var(--sans); color: var(--t3); }
 .acctpop .kv b { font-weight: 500; color: var(--t1); text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.acctpop .prof { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r2); }
+.acctpop .prof.cur { border-color: var(--pri-c); }
+.acctpop .prof .who { flex: 1; min-width: 0; display: flex; flex-direction: column; font: 400 12.5px/17px var(--sans); color: var(--t1); overflow-wrap: anywhere; }
+.acctpop .prof .who small { color: var(--t3); font-size: 11px; }
+.acctpop .prof .btn { flex: none; }
+.acctpop .row2 { display: flex; gap: 6px; }
+.acctpop .row2 .wfield { flex: 1; min-width: 0; height: 28px; padding: 3px 8px; }
+.acctpop a { color: var(--pri); }
 .acctpop .meter { display: flex; flex-direction: column; gap: 4px; }
 .acctpop .bar { height: 6px; border-radius: 3px; background: var(--high); overflow: hidden; }
 .acctpop .bar > span { display: block; height: 100%; background: var(--pri-c); border-radius: 3px; }
@@ -1545,7 +1553,7 @@ function renderAccount(r) {
     return;
   }
   if (a.error) h += `<div class="note warn">${esc(a.error)}</div>`;
-  else if (!a.loggedIn) h += '<div class="note warn">The workers\' Claude runtime isn\'t signed in. Run <code>' + (a.configDir && !/[\\/]\.claude$/.test(a.configDir) ? 'CLAUDE_CONFIG_DIR=&quot;' + esc(a.configDir) + '&quot; ' : '') + 'claude auth login</code> in a terminal, then restart the console.</div>';
+  else if (!a.loggedIn) h += `<div class="note warn">The workers' Claude account (${esc(a.configDir || "")}) isn't signed in. Sign it in, or switch to another account below.</div>`;
   else h += `<div class="kv"><span>Email</span><b id="acctEmail">${esc(a.email || "—")}</b></div>
     <div class="kv"><span>Plan</span><b>${esc(a.plan ? a.plan[0].toUpperCase() + a.plan.slice(1) : "—")}</b></div>
     ${a.orgName ? `<div class="kv"><span>Organization</span><b>${esc(a.orgName)}</b></div>` : ""}
@@ -1565,9 +1573,46 @@ function renderAccount(r) {
     <div class="kv"><span>All runs</span><b>${t.runs} · ${money(t.costUsd)}</b></div>
     ${t.active ? `<div class="kv"><span>Current run</span><b>${esc(t.active.worker)} · ${t.active.messages} message${t.active.messages === 1 ? "" : "s"} · ${money(t.active.costUsd)}</b></div>` : ""}
     <div class="note">Costs are the runtime's list-price estimates; a subscription doesn't bill them per run.</div>
+    <div class="lab">Claude accounts on this computer</div><div id="acctProfiles">${PROFS ? profilesHtml(PROFS) : '<div class="note">Looking for Claude accounts…</div>'}</div>
     <div class="foot"><span class="note">Checked ${esc(ago(r.checkedAt))}</span><button type="button" class="btn m11" id="acctRefresh">Check again</button></div>`;
   $("acctPop").innerHTML = h;
-  $("acctRefresh").onclick = () => loadAccount(true);
+  $("acctRefresh").onclick = () => { loadAccount(true); loadProfiles(true); };
+  if (!PROFS) loadProfiles(false);
+}
+// The Claude accounts (profile folders) on this computer: switch the workers to one, or sign one in
+// with Claude Code's own sign-in (claude.ai in the browser; Google sign-in works there).
+let PROFS = null, profPoll = null, profMsg = "";
+function profilesHtml(P) {
+  const l = P.login, waiting = l?.state === "waiting";
+  const rows = P.profiles.map((p) => `<div class="prof ${p.current ? "cur" : ""}"><span class="who">${esc(p.loggedIn ? p.email || p.name : p.checked ? "Signed out" : "Couldn't check (try Check again)")}<small>${esc(p.name)}${p.plan ? ` · ${esc(p.plan[0].toUpperCase() + p.plan.slice(1))}` : ""}${p.current ? " · in use" : ""}</small></span>
+    ${p.current && p.loggedIn ? "" : !p.checked ? "" : p.loggedIn ? `<button type="button" class="btn m11" data-prof-use="${esc(p.dir)}">Use</button>` : `<button type="button" class="btn m11" data-prof-login="${esc(p.dir)}" ${waiting ? "disabled" : ""}>Sign in</button>`}</div>`).join("");
+  const flow = waiting ? `<div class="note">Finish signing in on claude.ai in your browser (${esc(l.name)}). Continue with Google works there.${l.url ? ` <a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">Open the sign-in page</a> if it didn't open.` : ""}</div>
+      <div class="row2"><input class="wfield m11" id="profCode" placeholder="If claude.ai shows a code, paste it here" autocomplete="off" spellcheck="false"><button type="button" class="btn m11" id="profCodeGo">Send</button></div>
+      <div class="row2"><button type="button" class="btn m11" id="profCancel">Cancel sign-in</button></div>`
+    : `<div class="row2"><input class="wfield m11" id="profNew" maxlength="30" placeholder="Name, e.g. work" autocomplete="off"><button type="button" class="btn m11" id="profAdd">Sign in another account</button></div>`;
+  const msg = profMsg || (l && l.state !== "waiting" ? l.message : "");
+  return `${rows || '<div class="note">No Claude account found on this computer.</div>'}${flow}${msg ? `<div class="note ${l?.state === "failed" ? "warn" : ""}" id="profMsg">${esc(msg)}</div>` : ""}${P.pinnedByEnv ? '<div class="note">This console was started with WORKER_CONSOLE_CLAUDE_CONFIG_DIR: a switch lasts until it restarts.</div>' : ""}`;
+}
+function renderProfiles() {
+  const el = $("acctProfiles"); if (!el || !PROFS) return;
+  const keep = $("profNew")?.value || "";
+  el.innerHTML = profilesHtml(PROFS);
+  if ($("profNew")) $("profNew").value = keep;
+  const go = async (fn, after) => { profMsg = ""; try { await fn(); } catch (e) { profMsg = e.message; } await loadProfiles(true); if (after) after(); };
+  el.querySelectorAll("[data-prof-use]").forEach((b) => (b.onclick = () => { b.disabled = true; go(() => api("PUT", "/account/profile", { dir: b.dataset.profUse }), () => { profMsg = "Switched. New conversations run as this account."; renderProfiles(); loadAccount(true); }); }));
+  el.querySelectorAll("[data-prof-login]").forEach((b) => (b.onclick = () => { b.disabled = true; go(() => api("POST", "/account/login", { dir: b.dataset.profLogin })); }));
+  if ($("profAdd")) $("profAdd").onclick = () => { const n = $("profNew").value.trim(); if (!n) { profMsg = "Give it a short name first, e.g. work."; return renderProfiles(); } $("profAdd").disabled = true; go(() => api("POST", "/account/login", { name: n })); };
+  if ($("profCodeGo")) $("profCodeGo").onclick = () => go(() => api("POST", "/account/login/code", { code: $("profCode").value }));
+  if ($("profCancel")) $("profCancel").onclick = () => go(() => api("DELETE", "/account/login"));
+}
+async function loadProfiles(refresh) {
+  try { PROFS = await api("GET", `/account/profiles${refresh ? "?refresh=1" : ""}`); } catch (e) { const el = $("acctProfiles"); if (el) el.innerHTML = `<div class="note warn">${esc(e.message)}</div>`; return; }
+  renderProfiles();
+  clearTimeout(profPoll);
+  if (PROFS.login?.state === "waiting") profPoll = setTimeout(async () => {
+    const was = PROFS.login?.state; await loadProfiles(false);
+    try { const l = (await api("GET", "/account/login")).login; if (was === "waiting" && l && l.state !== "waiting") { await loadProfiles(true); loadAccount(true); } } catch {}
+  }, 2500);
 }
 async function loadAccount(refresh) {
   try { const r = await api("GET", `/account${refresh ? "?refresh=1" : ""}`); if (!$("acctPop").hidden) renderAccount(r); }
