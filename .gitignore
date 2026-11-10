@@ -10,6 +10,7 @@ worker-ui/runs/*.att/
 worker-ui/workers.json
 worker-ui/claude-profile.json
 worker-ui/workers/
+worker-ui/backups/
 worker-ui/runs/*.worker.*
 worker-ui/runs/*.mcp.json
 figma-read/

@@ -496,6 +496,73 @@ button.cbadge.pick:disabled .chev { display: none; }
 .foot kbd { font: 500 10.5px/14px var(--sans); padding: 0 4px; border: 1px solid var(--line2); border-radius: 3px; color: var(--t2); }
 /* management pages: defining work, not doing it, so there's no composer */
 body[data-view="pack"] .composer, body[data-view="pack"] .ctx { display: none; }
+/* ---- the worker's home: the worker as a place (identity, context, access, activity, history) with its assistant ---- */
+body[data-view="home"] .composer, body[data-view="home"] .ctx { display: none; }
+body[data-view="home"] .view { max-width: 1280px; }
+.whome .vbody { display: flex; flex-direction: column; }
+.whhead { display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px 14px; border-bottom: 1px solid var(--line); }
+.whhead .avatar { width: 44px; height: 44px; font-size: 16px; }
+.whhead h1 { margin: 0; font: 600 20px/28px var(--sans); letter-spacing: -.3px; color: var(--t1); }
+.whhead .whsub { color: var(--t2); font: 400 13px/20px var(--sans); margin-top: 2px; }
+.whhead .whmeta { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; color: var(--t3); align-items: center; }
+.whhead .whacts { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 46%; }
+.whgrid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; flex: 1; min-height: 0; }
+@media (max-width: 1180px) { .whgrid { grid-template-columns: minmax(0, 1fr); } .whassist { border-left: 0 !important; border-top: 1px solid var(--line); min-height: 520px; } .whhead .whacts { max-width: none; } }
+.whmain { min-width: 0; display: flex; flex-direction: column; }
+.whtabs { display: flex; gap: 2px; padding: 8px 16px 0; border-bottom: 1px solid var(--line); overflow-x: auto; position: sticky; top: 0; z-index: 2; background: var(--low); }
+.whtabs button { padding: 8px 12px; color: var(--t3); border-bottom: 2px solid transparent; font: 500 12.5px/18px var(--sans); white-space: nowrap; }
+.whtabs button[aria-selected="true"] { color: var(--t1); border-bottom-color: var(--pri-c); }
+.whtabs .n { color: var(--t4); margin-left: 4px; font-weight: 400; }
+.whpanel { padding: 4px 20px 24px; }
+.whsec { padding: 16px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.whsec:first-child { border-top: 0; }
+.whsec > h3 { margin: 0; font: 600 13px/18px var(--sans); color: var(--t1); display: flex; align-items: center; gap: 8px; }
+.whsec > h3 .sp { flex: 1; }
+.whsec > .sub { margin-top: -4px; }
+.whcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.whcard { background: var(--surf); border: 1px solid var(--line); border-radius: var(--r2); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.whcard b { font: 600 18px/24px var(--sans); color: var(--t1); }
+.whcard .sub { font-size: 12px; }
+.whitems { display: flex; flex-direction: column; gap: 6px; }
+.whitem { background: var(--surf); border: 1px solid var(--line); border-radius: var(--r2); padding: 9px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.whitem .hd { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.whitem .hd .t { font: 600 12.5px/18px var(--sans); color: var(--t1); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.whitem .body { color: var(--t2); font: 400 12.5px/19px var(--sans); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 9.5em; overflow: hidden; }
+.whitem.open .body { max-height: none; }
+.whitem .acts { display: flex; gap: 4px; }
+.whitem .acts button { color: var(--t3); padding: 2px 6px; border-radius: var(--r1); font: 500 11.5px/16px var(--sans); }
+.whitem .acts button:hover { color: var(--t1); background: var(--high); }
+.src { font: 500 10.5px/14px var(--sans); color: var(--t3); border: 1px solid var(--line2); border-radius: 10px; padding: 0 7px; white-space: nowrap; }
+.src.assistant { color: var(--pri); border-color: rgba(143,207,255,.3); } .src.package, .src.clone { color: var(--ok); border-color: rgba(79,214,156,.3); }
+.whform { display: flex; flex-direction: column; gap: 8px; background: var(--bg); border: 1px solid var(--line2); border-radius: var(--r2); padding: 12px; }
+.whform .row2 { display: flex; gap: 8px; } .whform .row2 > * { flex: 1; min-width: 0; }
+.whform .ft { display: flex; gap: 6px; justify-content: flex-end; align-items: center; } .whform .ft .msg { flex: 1; }
+.whlist { margin: 0; padding-left: 18px; color: var(--t2); font: 400 12.5px/20px var(--sans); }
+.whkv { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 1fr); gap: 6px 12px; font: 400 12.5px/19px var(--sans); color: var(--t2); }
+.whkv dt { color: var(--t3); } .whkv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.whcols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } @media (max-width: 900px) { .whcols { grid-template-columns: 1fr; } }
+.whrow { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--r2); background: var(--surf); font: 400 12.5px/18px var(--sans); color: var(--t2); min-width: 0; }
+.whrow .grow { flex: 1; min-width: 0; } .whrow b { color: var(--t1); font-weight: 500; }
+.whrow.click { cursor: pointer; text-align: left; width: 100%; } .whrow.click:hover { border-color: var(--line2); background: var(--high); }
+.whpre { margin: 0; white-space: pre-wrap; font: 400 12px/18px var(--mono); color: var(--t2); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r2); padding: 10px 12px; max-height: 360px; overflow: auto; }
+.whdiff { font: 400 12px/18px var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; } .whdiff .a { color: var(--ok); } .whdiff .r { color: var(--err); } .whdiff .e { color: var(--t4); }
+.whassist { border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: var(--bg); }
+.whassist .ah { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.whassist .ah b { font: 600 13px/18px var(--sans); color: var(--t1); display: flex; align-items: center; gap: 8px; }
+.whassist .alog { flex: 1; overflow: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 160px; }
+.whassist .am-u { align-self: flex-end; max-width: 88%; background: var(--surf); border: 1px solid var(--line2); border-radius: var(--r3); padding: 8px 11px; font: 400 13px/20px var(--sans); color: var(--t1); white-space: pre-wrap; overflow-wrap: anywhere; }
+.whassist .am-a { font: 400 13px/20px var(--sans); color: var(--t2); overflow-wrap: anywhere; } .whassist .am-a p { margin: 0 0 6px; }
+.whassist .am-t { color: var(--t4); font: 400 11.5px/16px var(--sans); }
+.whassist .am-c { border: 1px solid rgba(79,214,156,.3); background: var(--ok-soft); border-radius: var(--r2); padding: 8px 10px; font: 400 12px/18px var(--sans); color: var(--t1); display: flex; flex-direction: column; gap: 6px; }
+.whassist .am-c.wait { border-color: rgba(242,178,92,.35); background: var(--warn-soft); }
+.whassist .am-e { color: var(--err); font: 400 12px/18px var(--sans); }
+.whassist .acomp { border-top: 1px solid var(--line); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.whassist .acomp textarea { width: 100%; resize: vertical; min-height: 60px; }
+.whassist .acomp .ar { display: flex; gap: 6px; align-items: center; } .whassist .acomp .ar .sp { flex: 1; }
+.whassist .sugg { display: flex; flex-wrap: wrap; gap: 6px; }
+.whassist .sugg button { border: 1px solid var(--line2); border-radius: 14px; padding: 3px 10px; color: var(--t2); font: 400 12px/17px var(--sans); text-align: left; }
+.whassist .sugg button:hover { color: var(--t1); background: var(--surf); }
+.whassist .atts { display: flex; flex-wrap: wrap; gap: 6px; } .whassist .atts span { font: 400 11.5px/16px var(--sans); color: var(--t2); border: 1px solid var(--line2); border-radius: 10px; padding: 1px 8px; }
 body[data-view="worker"] .composer, body[data-view="team"] .composer, body[data-view="github"] .composer, body[data-view="figma"] .composer, body[data-view="builder"] .composer, body[data-view="create"] .composer, body[data-view="gitflow"] .composer,
 body[data-view="worker"] .ctx, body[data-view="team"] .ctx, body[data-view="github"] .ctx, body[data-view="figma"] .ctx, body[data-view="builder"] .ctx, body[data-view="create"] .ctx, body[data-view="gitflow"] .ctx { display: none; }
 
@@ -940,6 +1007,15 @@ body.full[data-view="chat"] .view { max-width: 1200px; }
   body[data-view="gitflow"].show-act .scrim { display: block; position: fixed; inset: 52px 0 0 0; background: rgba(0,0,0,.4); z-index: 14; }
 }
 @media (min-width: 1025px) and (max-width: 1240px) { body[data-view="gitflow"] { grid-template-columns: 244px minmax(0, 1fr); } }
+/* A worker's home has its own assistant column, so it takes the console's right column too (task Activity isn't about it). */
+@media (min-width: 1025px) {
+  body[data-view="home"]:not(.full) { grid-template-columns: 264px minmax(0, 1fr); }
+  body[data-view="home"] aside.right { display: none; }
+}
+@media (min-width: 1181px) {
+  /* Wide: the worker's sections and its assistant scroll on their own, so the assistant's box stays in view. */
+  .whome .vbody { overflow: hidden; } .whgrid { min-height: 0; } .whmain { overflow: auto; min-height: 0; } .whassist { min-height: 0; overflow: hidden; }
+}
 a.iconbtn, .wkr a.ed { text-decoration: none; }
 
 /* ---- worker packages: export, clone, import ---- */
@@ -1685,7 +1761,8 @@ $("saveP").onclick = async () => {
 async function loadRuns() {
   try {
     const r = await api("GET", "/runs");
-    RUNS = r.runs; ACTIVE = r.runs.find((x) => x.id === r.active) || null;
+    // A worker's assistant conversations belong to that worker's page (its Activity), not to the task list.
+    RUNS = r.runs.filter((x) => !x.assistant); ACTIVE = RUNS.find((x) => x.id === r.active) || null;
     setDot($("srvDot"), ""); renderRuns(); renderWorker();
   } catch { setDot($("srvDot"), "red"); $("wState").textContent = "Console offline"; setDot($("wDot"), "red"); }
 }
@@ -1836,7 +1913,10 @@ $("wkList").onclick = (e) => {
   if (b) {
     wkId = b.dataset.wk || null; store.set("worker", wkId || "");
     if (tm() && !tm().workers.includes(wkId)) { const name = tm().name; leaveTeam(); notice(`Left the ${name} team: ${wk()?.name || "General"} isn't a member.`, { info: true }); }
-    renderWorkers(); openNewChat();
+    renderWorkers();
+    // A defined worker opens its home (it's also chosen for the next task); General has no home.
+    if (wkId) { opener = b; return openWorkerHome(wkId); }
+    openNewChat();
   }
 };
 // A new worker starts from the work it's for (the full form is one link away, for advanced use).
@@ -1893,6 +1973,354 @@ function setSpace(config, qid, space, acc) {
   if (acc === "read" || acc === "write") list.push(`${space}:${acc}`);
   config[qid] = list;
 }
+
+// ---------------- the worker's home ----------------
+// Opening a worker opens its home: who it is and what it's for, what it knows (instructions, knowledge
+// entries, skills, references, documents, learnings), what it can reach (the person's accounts, and
+// what this worker was given of them), what it has done, and every version of it, with its assistant
+// beside it. Everything here is read from the console (GET /workers/:id/home); every change goes
+// through the console's change model (POST /workers/:id/edit, …) and becomes a version that can be
+// restored. Nothing on this page grants access by itself.
+let HM = null; // { id, tab, ws, data, form, open: Set, preview, diffs: Map, asst: { run, items, status, atts, busy } }
+let hmES = null;
+const HM_TABS = [["overview", "Overview"], ["context", "Knowledge & instructions"], ["access", "Tools & access"], ["activity", "Activity"], ["history", "History"]];
+const SRC = { owner: "you", assistant: "assistant", package: "imported", clone: "cloned", migration: "migrated" };
+const srcTag = (s) => `<span class="src ${esc(s?.kind || "")}" title="${esc(s?.kind === "assistant" && s.run ? `By its assistant (conversation ${s.run})` : s?.from ? `From ${s.from}` : "")}">${esc(SRC[s?.kind] || s?.kind || "you")}</span>`;
+const when = (iso) => { if (!iso) return ""; const d = new Date(iso), s = (Date.now() - d) / 1000; return s < 60 ? "just now" : s < 3600 ? `${Math.round(s / 60)} min ago` : s < 86400 ? `${Math.round(s / 3600)} h ago` : d.toLocaleDateString(); };
+const VKIND = { create: "Created", edit: "Edited in the editor", owner: "Changed by you", assistant: "Changed by its assistant", proposal: "Approved proposal", restore: "Restored", migration: "Migrated", upgrade: "Integration upgraded", clone: "Cloned", import: "Imported", "before-history": "Before history", save: "Saved" };
+
+async function openWorkerHome(id, tab) {
+  if (!(await leaveDraft())) return;
+  const keep = HM?.id === id ? HM : null;
+  HM = { id, tab: tab || keep?.tab || "overview", ws: keep?.ws || wsId || "console", data: null, form: null, open: new Set(), preview: null, diffs: new Map(), asst: keep?.asst || null };
+  setView("home"); verOpen = null; renderVersions(); wkEdit = null; tmEdit = null; crEdit = null;
+  $("canvas").innerHTML = `<div class="viewer whome" role="region" aria-label="Worker"><div class="vbar m11"><span class="ell">Worker</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div><div class="vbody"><div class="whpanel"><span class="sub m12">Loading…</span></div></div></div>`;
+  wireViewer();
+  await hmLoad();
+  if (HM?.id === id && !HM.asst) { const d = HM.data; if (d?.assistantOpen) hmAsstConnect(d.assistantOpen); else { HM.asst = { run: null, items: [], status: null, atts: [] }; hmRenderAssist(); } }
+}
+async function hmLoad() {
+  const h = HM; if (!h) return;
+  try { h.data = await api("GET", `/workers/${encodeURIComponent(h.id)}/home?workspace=${encodeURIComponent(h.ws)}`); }
+  catch (e) { if (HM === h) $("canvas").querySelector(".vbody").innerHTML = `<div class="whpanel"><div class="err m12">${esc(e.message)}</div></div>`; return; }
+  if (HM !== h || view !== "home") return;
+  hmRender();
+}
+let hmQueued = null;
+const hmRefresh = () => { clearTimeout(hmQueued); hmQueued = setTimeout(() => { hmLoad(); loadWorkers(); }, 300); };
+
+function hmRender() {
+  const h = HM, d = h.data, w = d.worker, i = d.inspect;
+  const missing = (w.status || []).filter((r) => !r.ok && r.need === "required");
+  const pending = d.changes.filter((c) => c.status === "pending").length + d.proposals;
+  const counts = { context: i ? i.context.knowledge.length + i.context.skills.length + i.context.references.length : 0, activity: d.tasks.length, history: pending };
+  const box = $("canvas").querySelector(".viewer"), draftText = $("hmAIn")?.value;
+  box.setAttribute("aria-label", w.name);
+  box.innerHTML = `<div class="vbar m11"><span class="ell">${esc(w.name)}</span><span class="ro">Your worker · v${w.version}</span><button class="iconbtn" id="vClose" aria-label="Close">${svgIcon("close", 14, 14)}</button></div>
+    <div class="vbody">
+      <header class="whhead"><div class="avatar" aria-hidden="true">${esc(initials(w.name))}</div>
+        <div style="min-width:0"><h1 id="whName">${esc(w.name)}</h1><div class="whsub">${esc(w.specialization || w.mission || "")}</div>
+          <div class="whmeta m11"><span>v${w.version}</span>
+            <label>Working in <select class="wfield" id="whWs" style="height:24px;padding:0 6px;width:auto">${WS.filter((x) => x.id && x.available !== false).map((x) => `<option value="${esc(x.id)}" ${x.id === d.workspace.id ? "selected" : ""}>${esc(x.name)} · ${modeOf(x)}</option>`).join("")}</select></label>
+            ${missing.length ? `<span class="missing">${plural(missing.length, "thing")} missing here</span>` : '<span><span class="dot" aria-hidden="true"></span> Ready here</span>'}
+            ${d.activeTask ? `<button type="button" class="linkbtn" data-hm-run="${esc(d.activeTask)}">Working on a task now</button>` : ""}
+            ${pending ? `<button type="button" class="linkbtn" data-hm-tab="history">${plural(pending, "change")} waiting for you</button>` : ""}</div></div>
+        <div class="whacts"><button type="button" class="btn pri" id="whNewTask">New task</button><button type="button" class="btn" data-hm-act="clone">Clone…</button><button type="button" class="btn" data-hm-act="export">Export…</button><button type="button" class="btn" data-hm-act="editor" title="Every setting, including integrations and access, in one form">All settings</button></div></header>
+      ${d.integrity ? `<div class="whpanel" style="padding-top:12px"><div class="oprow bad"><span class="dot red" aria-hidden="true"></span><span>${esc(d.integrity)}</span></div></div>` : ""}
+      ${!i ? `<div class="whpanel" style="padding-top:12px"><div class="oprow bad"><span class="dot warn" aria-hidden="true"></span><span>${esc(w.name)} was made before integrations. Its home, context and assistant work once it's migrated. <button type="button" class="linkbtn" data-hm-act="migrate">Review its migration</button></span></div></div>` : ""}
+      <div class="whgrid"><div class="whmain"><div class="whtabs" role="tablist" aria-label="${esc(w.name)}">${HM_TABS.map(([k, t]) => `<button type="button" role="tab" id="whTab-${k}" aria-selected="${h.tab === k}" data-hm-tab="${k}">${esc(t)}${counts[k] ? `<span class="n">${counts[k]}</span>` : ""}</button>`).join("")}</div>
+        <div class="whpanel" role="tabpanel" aria-labelledby="whTab-${h.tab}" id="whPanel">${hmPanel()}</div></div>
+        <aside class="whassist" id="whAssist" aria-label="${esc(w.name)}'s assistant"></aside></div></div>`;
+  wireViewer();
+  hmRenderAssist(draftText);
+}
+function hmPanel() {
+  const t = HM.tab;
+  try { return t === "context" ? hmContext() : t === "access" ? hmAccess() : t === "activity" ? hmActivity() : t === "history" ? hmHistory() : hmOverview(); }
+  catch (e) { return `<div class="err m12">${esc(e.message)}</div>`; }
+}
+const hmRerenderPanel = () => { const p = $("whPanel"); if (p) p.innerHTML = hmPanel(); };
+const capState = (c, rt) => rt.usable.includes(c) ? ["", "available here"] : rt.byPlatform?.includes(c) ? ["warn", "not on this platform"] : rt.byPolicy?.includes(c) ? ["warn", "off by a policy here"] : ["warn", `not in ${HM.data.workspace.profile === "inspect" ? "an Inspect" : "this"} workspace`];
+
+function hmOverview() {
+  const d = HM.data, w = d.worker, i = d.inspect, rt = w.runtime, f = HM.form;
+  const ctx = i?.context || { knowledge: [], skills: [], references: [] }, docs = ctx.references.filter((r) => r.kind === "document").length;
+  const purpose = f?.kind === "identity" ? `<form class="whform" data-hm-form="identity"><div class="row2"><label class="wf"><span class="lab">Name</span><input class="wfield" name="name" maxlength="60" value="${esc(i.identity.name)}"></label><label class="wf"><span class="lab">Specialization</span><input class="wfield" name="specialization" maxlength="200" value="${esc(i.identity.specialization)}"></label></div>
+      <label class="wf"><span class="lab">Purpose</span><textarea class="wtext" name="mission" rows="3" maxlength="600">${esc(i.identity.mission)}</textarea></label>
+      <label class="wf"><span class="lab">Objectives</span><span class="sub m11">What success looks like, one per line.</span><textarea class="wtext" name="outcomes" rows="3">${esc(i.identity.outcomes.join("\n"))}</textarea></label>
+      <div class="ft"><span class="msg m11" id="hmMsg"></span><button type="button" class="btn" data-hm-cancel>Cancel</button><button type="submit" class="btn pri">Save</button></div></form>`
+    : `<div class="m12" style="color:var(--t1);font-size:14px;line-height:22px">${esc(w.mission || "No purpose written yet.")}</div>${(w.outcomes || []).length ? `<span class="lab" style="margin-top:4px">Objectives</span><ul class="whlist">${w.outcomes.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>` : ""}`;
+  const recent = d.tasks.slice(0, 5);
+  return `<section class="whsec"><h3>Purpose<span class="sp"></span>${i && !f ? '<button type="button" class="linkbtn m11" data-hm-edit="identity">Edit</button>' : ""}</h3>${purpose}</section>
+    <section class="whsec"><h3>At a glance</h3><div class="whcards">
+      <button type="button" class="whcard whrow click" data-hm-tab="context" style="display:flex;flex-direction:column;align-items:flex-start"><span class="lab">Knows</span><b>${ctx.knowledge.length + (w.knowledge ? 1 : 0)}</b><span class="sub">${plural(ctx.knowledge.length, "knowledge entry")}${w.knowledge ? " + general knowledge" : ""}${docs ? `, ${plural(docs, "document")}` : ""}</span></button>
+      <button type="button" class="whcard whrow click" data-hm-tab="context" style="display:flex;flex-direction:column;align-items:flex-start"><span class="lab">Skills &amp; steps</span><b>${ctx.skills.length}</b><span class="sub">${plural(ctx.skills.length, "skill")}, ${plural((w.workflow || []).length, "working step")}</span></button>
+      <button type="button" class="whcard whrow click" data-hm-tab="access" style="display:flex;flex-direction:column;align-items:flex-start"><span class="lab">Can use here</span><b>${rt.usable.length}</b><span class="sub">of ${plural(w.capabilities.length, "capability", "capabilities")} in ${esc(d.workspace.name)}</span></button>
+      <button type="button" class="whcard whrow click" data-hm-tab="activity" style="display:flex;flex-direction:column;align-items:flex-start"><span class="lab">Tasks</span><b>${d.tasks.length}</b><span class="sub">${d.tasks[0] ? `last ${when(d.tasks[0].createdAt)}` : "none yet"}</span></button></div></section>
+    <section class="whsec"><h3>Ready to work in ${esc(d.workspace.name)}?</h3>${(w.status || []).length ? `<div class="oplist">${w.status.map(reqRow).join("")}</div>` : '<span class="sub m12">It needs nothing beyond the workspace.</span>'}
+      <div class="chips" style="display:flex;flex-wrap:wrap;gap:6px">${w.capabilities.map((c) => { const [cls, s] = capState(c, rt); return `<span class="cchip ${cls ? "off" : ""}" title="${esc(s)}">${esc(capName(c))}${cls ? `<span class="sub">&nbsp;· ${esc(s)}</span>` : ""}</span>`; }).join("")}</div></section>
+    <section class="whsec"><h3>Recent work<span class="sp"></span>${d.tasks.length > 5 ? '<button type="button" class="linkbtn m11" data-hm-tab="activity">All tasks</button>' : ""}</h3>${recent.length ? `<div class="whitems">${recent.map(hmTaskRow).join("")}</div>` : `<span class="sub m12">No tasks yet. <button type="button" class="linkbtn" data-hm-act="newtask">Give it its first task</button></span>`}</section>
+    <section class="whsec"><h3>Make it yours</h3><span class="sub m12">Ask its assistant (on the right) to explain or change anything about it: purpose, steps, knowledge, skills, references, limits. Every change is a version you can undo in History; changes to access wait for your approval.</span>
+      ${d.gitflow ? `<div class="whrow"><span class="grow"><b>Git workflow</b> · this worker's own view: commits by developer, simulated synchronisation plans.</span><button type="button" class="btn" data-hm-act="gitflow">Open</button></div>` : ""}
+      <span class="sub m11">Its page: every worker has this same page for now. Custom pages for a worker (its own dashboards and views) aren't available yet.</span></section>`;
+}
+const hmTaskRow = (t) => `<button type="button" class="whrow click" data-hm-run="${esc(t.id)}"><span class="dot ${t.outcome === "needs" ? "warn" : t.outcome === "error" || t.status === "failed" ? "red" : t.status === "running" || t.status === "starting" ? "pulse" : "grey"}" aria-hidden="true"></span><span class="grow"><span class="ell" style="display:block">${esc(t.prompt || "(no text)")}</span><span class="sub m11">${esc(t.workspace)} · v${t.version ?? "?"} · ${when(t.createdAt)} · ${esc(t.outcome || t.status)}${t.trial ? " · trial of a proposal" : ""}${t.costUsd ? ` · $${t.costUsd.toFixed(2)}` : ""}</span></span></button>`;
+
+// ---- knowledge & instructions: every piece with where it came from, editable ----
+function hmContext() {
+  const d = HM.data, i = d.inspect, f = HM.form;
+  if (!i) return '<span class="sub m12">Available once the worker is migrated.</span>';
+  const c = i.context, items = (list, key, render) => list.length ? `<div class="whitems">${list.map((x) => f?.kind === key && f.id === x.id ? hmItemForm(key, x) : render(x)).join("")}</div>` : "";
+  const addBtn = (key, label) => (f?.kind === key && !f.id ? hmItemForm(key, null) : `<button type="button" class="row add" style="width:auto" data-hm-add="${key}">${svgIcon("plus", 9, 9)}<span>${label}</span></button>`);
+  const itemCard = (key, x, title, body, extra = "") => `<div class="whitem ${HM.open.has(x.id) ? "open" : ""}"><div class="hd"><span class="t" title="${esc(title)}">${esc(title)}</span>${srcTag(x.source)}<span class="sub m11">${when(x.updatedAt)}</span><span class="acts">${body.length > 300 ? `<button type="button" data-hm-more="${esc(x.id)}">${HM.open.has(x.id) ? "Less" : "More"}</button>` : ""}<button type="button" data-hm-edit="${key}" data-id="${esc(x.id)}">Edit</button><button type="button" data-hm-rm="${key}" data-id="${esc(x.id)}" data-name="${esc(title)}">Remove</button></span></div>${extra}${body ? `<div class="body">${esc(body)}</div>` : ""}</div>`;
+  const refs = c.references.filter((r) => r.kind !== "document"), docs = c.references.filter((r) => r.kind === "document");
+  const instr = f?.kind === "instructions" ? `<form class="whform" data-hm-form="instructions"><label class="wf"><span class="lab">Working steps</span><span class="sub m11">One per line, in order.</span><textarea class="wtext" name="workflow" rows="6">${esc(i.instructions.workflow.join("\n"))}</textarea></label>
+      <label class="wf"><span class="lab">General knowledge</span><span class="sub m11">Conventions and facts it always keeps in mind. For separate topics, knowledge entries below are easier to keep up to date.</span><textarea class="wtext" name="knowledge" rows="8">${esc(i.instructions.knowledge)}</textarea></label>
+      <label class="wf"><span class="lab">When something is missing</span><textarea class="wtext" name="onMissing" rows="2">${esc(i.instructions.onMissing)}</textarea></label>
+      <label class="wf"><span class="lab">Hard limits</span><span class="sub m11">Things it must never do, one per line.</span><textarea class="wtext" name="limits" rows="4">${esc(i.limits.join("\n"))}</textarea></label>
+      <div class="ft"><span class="msg m11" id="hmMsg"></span><button type="button" class="btn" data-hm-cancel>Cancel</button><button type="submit" class="btn pri">Save</button></div></form>`
+    : `<dl class="whkv"><dt>Working steps</dt><dd>${i.instructions.workflow.length ? `<ol class="whlist" style="padding-left:16px">${i.instructions.workflow.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : '<span class="sub">None of its own</span>'}</dd>
+      <dt>General knowledge</dt><dd>${i.instructions.knowledge ? `<div class="whitem ${HM.open.has("_k") ? "open" : ""}" style="padding:6px 10px"><div class="body">${esc(i.instructions.knowledge)}</div>${i.instructions.knowledge.length > 300 ? `<div class="acts"><button type="button" data-hm-more="_k">${HM.open.has("_k") ? "Less" : "More"}</button></div>` : ""}</div>` : '<span class="sub">None</span>'}</dd>
+      <dt>When something is missing</dt><dd>${esc(i.instructions.onMissing) || '<span class="sub">Not set</span>'}</dd>
+      <dt>Hard limits</dt><dd>${i.limits.length ? `<ul class="whlist">${i.limits.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : '<span class="sub">None of its own</span>'}</dd></dl>`;
+  return `<section class="whsec"><h3>Instructions<span class="sp"></span>${f?.kind !== "instructions" ? '<button type="button" class="linkbtn m11" data-hm-edit="instructions">Edit</button>' : ""}</h3><span class="sub m11">Written by you (or its assistant, with your say). Given to every task.</span>${instr}</section>
+    <section class="whsec"><h3>Knowledge entries</h3><span class="sub m11">Separate topics it knows: your architecture, conventions, domain facts. Given to every task.</span>
+      ${items(c.knowledge, "knowledge", (x) => itemCard("knowledge", x, x.title, x.text))}${addBtn("knowledge", "Add knowledge")}</section>
+    <section class="whsec"><h3>Skills</h3><span class="sub m11">Named procedures it follows when a task matches (“when to use”). It says which skill it used.</span>
+      ${items(c.skills, "skills", (x) => itemCard("skills", x, x.name, x.instructions, x.description ? `<span class="sub m11">When to use: ${esc(x.description)}</span>` : ""))}${addBtn("skills", "Add a skill")}</section>
+    <section class="whsec"><h3>References</h3><span class="sub m11">Repositories, links and notes it works with. A reference isn't access: what it can reach is under Tools &amp; access.</span>
+      ${items(refs, "references", (x) => itemCard("references", x, x.title, x.note || "", `<span class="sub m11">${x.kind === "repository" ? "Repository" : x.kind === "link" ? "Link" : "Note"}: ${x.kind === "link" ? `<a href="${esc(x.value)}" target="_blank" rel="noopener noreferrer">${esc(x.value)}</a>` : esc(x.value)}${x.branch ? ` · branch ${esc(x.branch)}` : ""}</span>`))}${addBtn("references", "Add a reference")}</section>
+    <section class="whsec"><h3>Documents</h3><span class="sub m11">Files kept with the worker. Each task gets a read-only copy it can open${d.worker.capabilities.includes("files.read") ? "" : ' <b>(it needs “Read files” to open them, which it doesn\'t have)</b>'}. At most 10, 512 KB each.</span>
+      ${docs.length ? `<div class="whitems">${docs.map((x) => f?.kind === "references" && f.id === x.id ? hmItemForm("references", x) : `<div class="whitem"><div class="hd">${svgIcon("file", 12, 12)}<span class="t">${esc(x.title)}</span>${srcTag(x.source)}<span class="sub m11">${Math.max(1, Math.round((x.doc.size || 0) / 1024))} KB · ${when(x.updatedAt)}</span><span class="acts"><a class="linkbtn m11" href="/workers/${encodeURIComponent(HM.id)}/documents/${encodeURIComponent(x.doc.file)}" target="_blank" rel="noopener">Open</a><button type="button" data-hm-edit="references" data-id="${esc(x.id)}">Edit</button><button type="button" data-hm-rm="references" data-id="${esc(x.id)}" data-name="${esc(x.title)}">Remove</button></span></div>${x.note ? `<span class="sub m11">${esc(x.note)}</span>` : ""}</div>`).join("")}</div>` : ""}
+      ${f?.kind === "document" ? `<form class="whform" data-hm-form="document"><input type="file" name="file" accept="text/*,.md,.json,.csv,.txt,.yml,.yaml,application/pdf,image/png,image/jpeg"><div class="row2"><input class="wfield" name="title" maxlength="120" placeholder="What it is, e.g. Architecture overview"><input class="wfield" name="note" maxlength="600" placeholder="When to read it (optional)"></div><div class="ft"><span class="msg m11" id="hmMsg"></span><button type="button" class="btn" data-hm-cancel>Cancel</button><button type="submit" class="btn pri">Keep with the worker</button></div></form>` : `<button type="button" class="row add" style="width:auto" data-hm-add="document">${svgIcon("plus", 9, 9)}<span>Add a document</span></button>`}</section>
+    <section class="whsec"><h3>Learnings</h3><span class="sub m11">What it chose to remember from its work (LEARNED: lines). Not part of its definition: kept with it on this console, copied when cloned, never exported.</span>
+      ${i.learnings.length ? `<ul class="whlist">${i.learnings.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>${i.learningsCount > i.learnings.length ? `<span class="sub m11">The latest ${i.learnings.length} of ${i.learningsCount}. Manage them in All settings.</span>` : ""}` : '<span class="sub m12">Nothing learned yet.</span>'}</section>
+    <section class="whsec"><h3>What a task receives<span class="sp"></span><button type="button" class="linkbtn m11" data-hm-act="preview">${HM.preview ? "Refresh" : "Show"}</button></h3><span class="sub m11">The context a task in ${esc(d.workspace.name)} would start with, section by section, with where each comes from.</span>
+      ${HM.preview ? `<div class="whitems">${HM.preview.sections.map((s, n) => `<details class="whitem"><summary class="hd" style="cursor:pointer"><span class="t">${esc(s.title)}</span><span class="src">${esc(s.source)}</span><span class="sub m11">${s.text.length} chars</span></summary><pre class="whpre">${esc(s.text)}</pre></details>`).join("")}</div><span class="sub m11">${HM.preview.chars.toLocaleString()} characters in all.</span>` : ""}</section>`;
+}
+function hmItemForm(key, x) {
+  const f = (n, label, v, opts = "") => `<label class="wf"><span class="lab">${label}</span>${opts.startsWith("<textarea") ? opts.replace("%V%", esc(v || "")) : `<input class="wfield" name="${n}" value="${esc(v || "")}" ${opts}>`}</label>`;
+  const body = key === "knowledge" ? f("title", "Title", x?.title, 'maxlength="120" placeholder="e.g. Frontend architecture"') + f("text", "What it should know", x?.text, '<textarea class="wtext" name="text" rows="8" maxlength="8000">%V%</textarea>')
+    : key === "skills" ? f("name", "Name", x?.name, 'maxlength="80" placeholder="e.g. Deploy to staging"') + f("description", "When to use it", x?.description, 'maxlength="300" placeholder="e.g. When asked to deploy or release"') + f("instructions", "The procedure", x?.instructions, '<textarea class="wtext" name="instructions" rows="8" maxlength="6000" placeholder="1. …&#10;2. …">%V%</textarea>')
+    : x?.kind === "document" ? f("title", "Title", x?.title, 'maxlength="120"') + f("note", "When to read it", x?.note, 'maxlength="600"')
+    : `<div class="row2"><label class="wf"><span class="lab">Kind</span><select class="wfield" name="kind" ${x ? "disabled" : ""}>${[["repository", "Repository"], ["link", "Link"], ["note", "Note"]].map(([k, t]) => `<option value="${k}" ${x?.kind === k ? "selected" : ""}>${t}</option>`).join("")}</select></label>${f("title", "Title", x?.title, 'maxlength="120"')}</div>`
+      + `<div class="row2">${f("value", "Repository (owner/name), address or note", x?.value, 'maxlength="600" placeholder="e.g. acme/site, https://…"')}${f("branch", "Branch (repositories)", x?.branch, 'maxlength="120"')}</div>` + f("note", "Note", x?.note, 'maxlength="600" placeholder="Optional"');
+  return `<form class="whform" data-hm-form="${key}" data-id="${esc(x?.id || "")}">${body}<div class="ft"><span class="msg m11" id="hmMsg"></span><button type="button" class="btn" data-hm-cancel>Cancel</button><button type="submit" class="btn pri">${x ? "Save" : "Add"}</button></div></form>`;
+}
+
+// ---- tools & access: the person's accounts, then what this worker was given of them ----
+function hmAccess() {
+  const d = HM.data, w = d.worker, i = d.inspect, rt = w.runtime, cn = d.connections;
+  const fig = cn.figma, bd = cn.builder.spaces, gh = cn.github;
+  const conn = `<div class="whitems">
+    <div class="whrow"><span class="grow"><b>Figma</b> · ${fig.connected ? esc(fig.state || "account connected") + (fig.detail ? ` <span class="sub">${esc(fig.detail)}</span>` : "") : "not connected"}</span><button type="button" class="linkbtn m11" data-hm-act="figma">${fig.connected ? "Manage" : "Connect"}</button></div>
+    <div class="whrow"><span class="grow"><b>Builder.io</b> · ${bd.length ? plural(bd.length, "space") : "no space connected"}${bd.map((s) => `<span class="sub m11" style="display:block">${esc(s.label)} (${s.environment === "test" ? "test" : "production, read-only"}) → this worker: <b>${s.mine ? esc(s.mine.access) : "no access"}</b></span>`).join("")}</span><button type="button" class="linkbtn m11" data-hm-act="builder">${bd.length ? "Manage" : "Connect"}</button></div>
+    <div class="whrow"><span class="grow"><b>GitHub</b> · ${gh.connected ? "connected" : "not connected"}${gh.repos.map((r) => `<span class="sub m11" style="display:block">${esc(r.fullName)} → this worker: <b>${r.mine ? esc(r.mine) : "no access"}</b>${r.workspaces?.length ? ` · workspace ${esc(r.workspaces.join(", "))}` : ""}</span>`).join("")}</span><button type="button" class="linkbtn m11" data-hm-act="github">${gh.connected ? "Manage" : "Connect"}</button></div></div>`;
+  const ints = i ? i.integrations : [];
+  return `<section class="whsec"><h3>Your accounts on this console</h3><span class="sub m11">Connecting an account doesn't give it to any worker. A worker reaches an account only as far as it's been given it, below, and the console checks that again at every call.</span>${conn}</section>
+    <section class="whsec"><h3>What ${esc(w.name)} has<span class="sp"></span><button type="button" class="linkbtn m11" data-hm-act="editor">Change in All settings</button></h3><span class="sub m11">Or ask its assistant: changes to access always wait for your approval.</span>
+      ${ints.length ? `<span class="lab">Integrations</span><div class="whitems">${ints.map((r) => `<div class="whitem"><div class="hd"><span class="t">${esc(r.label)} <span class="sub">v${esc(r.version)}</span></span><span class="tag ${r.status === "tested" ? "enf" : "ins"}">${esc(r.status)}</span>${r.upgrade ? `<span class="sub m11">v${esc(r.upgrade)} available</span>` : ""}</div>
+        ${Object.keys(r.settings).length ? `<span class="sub m11">${Object.entries(r.settings).filter(([, v]) => v !== "" && v != null && !(Array.isArray(v) && !v.length)).map(([k, v]) => `${esc(k)}: ${esc(Array.isArray(v) ? v.join(", ") : v)}`).join(" · ")}</span>` : ""}${r.issues.length ? `<span class="err m11">${esc(r.issues.join("; "))}</span>` : ""}</div>`).join("")}</div>` : '<span class="sub m12">No integrations: only core tools.</span>'}
+      <span class="lab" style="margin-top:6px">Capabilities in ${esc(d.workspace.name)} (${modeOf(d.workspace)})</span>
+      <div class="whitems">${w.capabilities.map((c) => { const [cls, s] = capState(c, rt), t = i?.tools.find((x) => x.id === c); return `<div class="whrow"><span class="dot ${cls}" aria-hidden="true"></span><span class="grow"><b>${esc(capName(c))}</b> <span class="sub m11">${esc(t?.tools || "")}</span></span><span class="m11 ${cls ? "missing" : "sub"}">${esc(s)}${t?.core ? " · core" : ""}</span></div>`; }).join("") || '<span class="sub m12">None.</span>'}</div>
+      ${i?.repositories.length ? `<span class="lab" style="margin-top:6px">Repositories</span><div class="whitems">${i.repositories.map((r) => `<div class="whrow"><span class="grow"><b>${esc(r.fullName)}</b></span><span class="m11">${esc(r.level)}</span></div>`).join("")}</div>` : ""}</section>
+    <section class="whsec"><h3>Boundaries</h3><dl class="whkv">
+      <dt>Where it works</dt><dd>${d.workspace.profile === "inspect" ? `${esc(d.workspace.name)} is Inspect: it can read, not change anything.` : d.workspace.id === "scratch" ? "Scratch: each task gets its own empty folder." : `${esc(d.workspace.name)} · Work: it can change files in this folder. Commit and push stay yours.`}</dd>
+      <dt>Its hard limits</dt><dd>${i?.limits.length ? `<ul class="whlist">${i.limits.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : '<span class="sub">None of its own</span>'}</dd>
+      ${(i?.fromIntegrations || []).filter((x) => x.limits.length).map((x) => `<dt>From ${esc(x.integration)}</dt><dd><ul class="whlist">${x.limits.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></dd>`).join("")}
+      ${d.teams.length ? `<dt>Teams</dt><dd>${d.teams.map((t) => `${esc(t.name)}${t.policies.length ? `: <span class="tag enf">Enforced</span>${t.policies.map((p) => `never modify ${esc(p.branch)}`).join(", ")}` : ""}`).join("<br>")}</dd>` : ""}
+      ${rt.byPlatform?.length ? `<dt>Not on this platform</dt><dd>${rt.byPlatform.map((c) => esc(capName(c))).join(", ")}</dd>` : ""}</dl>
+      ${i?.namedWithoutConnector.length ? `<span class="sub m11">Recognised but with no connector yet (not usable by any worker): ${esc(i.namedWithoutConnector.join(", "))}.</span>` : ""}</section>`;
+}
+
+function hmActivity() {
+  const d = HM.data;
+  return `<section class="whsec"><h3>Tasks<span class="sp"></span><button type="button" class="btn m11" data-hm-act="newtask">New task</button></h3>${d.tasks.length ? `<div class="whitems">${d.tasks.map(hmTaskRow).join("")}</div>` : '<span class="sub m12">No tasks yet.</span>'}</section>
+    <section class="whsec"><h3>Conversations with its assistant</h3>${d.assistant.length ? `<div class="whitems">${d.assistant.map((t) => `<button type="button" class="whrow click" data-hm-asst="${esc(t.id)}"><span class="grow"><span class="ell" style="display:block">${esc(t.prompt || "(no text)")}</span><span class="sub m11">${when(t.createdAt)} · ${esc(t.status)}</span></span></button>`).join("")}</div>` : '<span class="sub m12">None yet.</span>'}</section>`;
+}
+
+function hmHistory() {
+  const d = HM.data, pend = d.changes.filter((c) => c.status === "pending"), done = d.changes.filter((c) => c.status !== "pending").slice(0, 8);
+  const diffHtml = (diff) => diff.map((x) => `<div class="lab" style="margin-top:6px">${esc(x.field)}</div><div class="whdiff">${x.lines.filter((l) => l.op !== "=").slice(0, 80).map((l) => `<div class="${l.op === "+" ? "a" : "r"}">${l.op} ${esc(l.text)}</div>`).join("") || '<div class="e">(order only)</div>'}</div>`).join("");
+  return `<section class="whsec"><h3>Waiting for your approval</h3>${pend.length || d.proposals ? "" : '<span class="sub m12">Nothing waiting.</span>'}
+      ${pend.map((c) => `<div class="whitem"><div class="hd"><span class="t">${esc(c.summary)}</span><span class="src assistant">assistant</span><span class="sub m11">${when(c.createdAt)} · for v${c.base}</span></div>
+        <span class="m12" style="color:var(--warn)">Needs your approval: ${esc(c.approval.join("; "))}</span>${c.low.length ? `<span class="sub m11">Also: ${esc(c.low.join("; "))}</span>` : ""}
+        <details><summary class="m11" style="cursor:pointer;color:var(--t3)">What changes</summary>${diffHtml(c.diff)}</details>
+        <div class="acts" style="justify-content:flex-end;gap:6px"><button type="button" class="btn m11" data-hm-change="reject" data-id="${esc(c.id)}">Reject</button><button type="button" class="btn pri m11" data-hm-change="approve" data-id="${esc(c.id)}">Approve</button></div></div>`).join("")}
+      ${d.proposals ? `<div class="whrow"><span class="grow">${plural(d.proposals, "proposal")} the worker made about its own steps or knowledge, with trial runs.</span><button type="button" class="btn m11" data-hm-act="editor">Review</button></div>` : ""}</section>
+    <section class="whsec"><h3>Versions</h3><span class="sub m11">Every change is a version. Restoring one makes it the newest version again; nothing is lost. Open tasks keep the version they started with.</span>
+      <div class="whitems">${d.versions.map((v, n) => `<div class="whitem"><div class="hd"><span class="t">v${v.version} · ${esc(VKIND[v.source?.kind] || v.source?.kind || "Saved")}</span><span class="sub m11">${when(v.savedAt)}</span>${n ? `<span class="acts"><button type="button" data-hm-diff="${v.version}">${HM.diffs.has(v.version) ? "Hide changes" : "Compare with now"}</button><button type="button" data-hm-restore="${v.version}">Restore</button></span>` : '<span class="tag enf">current</span>'}</div>
+        ${v.reason ? `<span class="sub m11">${esc(v.reason)}</span>` : ""}${HM.diffs.has(v.version) ? `<div>${HM.diffs.get(v.version).length ? diffHtml(HM.diffs.get(v.version)) : '<span class="sub m11">Same as now.</span>'}</div>` : ""}</div>`).join("")}</div></section>
+    ${done.length ? `<section class="whsec"><h3>Decided changes</h3><div class="whitems">${done.map((c) => `<div class="whrow"><span class="grow">${esc(c.summary)}</span><span class="m11 ${c.status === "approved" ? "" : "sub"}">${esc(c.status)}${c.decision?.version ? ` → v${c.decision.version}` : ""}</span></div>`).join("")}</div></section>` : ""}`;
+}
+
+// ---- the person's edits: one change at a time, through the console's change model ----
+const hmLines = (v) => String(v || "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+async function hmChange(change, summary) {
+  const r = await api("POST", `/workers/${encodeURIComponent(HM.id)}/edit`, { baseVersion: HM.data.worker.version, summary, change });
+  HM.form = null; await hmLoad(); loadWorkers();
+  notice(`Saved as version ${r.version}. You can restore v${r.previous} in History.`, { info: true });
+  return r;
+}
+async function hmSubmit(form) {
+  const kind = form.dataset.hmForm, id = form.dataset.id || "", v = (n) => form.elements[n]?.value ?? "", i = HM.data.inspect, msg = $("hmMsg");
+  try {
+    if (kind === "identity") return await hmChange({ identity: { name: v("name"), specialization: v("specialization"), mission: v("mission"), outcomes: hmLines(v("outcomes")) } }, "Purpose and objectives");
+    if (kind === "instructions") {
+      const limits = hmLines(v("limits")), add = limits.filter((l) => !i.limits.includes(l)), remove = i.limits.filter((l) => !limits.includes(l));
+      return await hmChange({ instructions: { workflow: hmLines(v("workflow")), knowledge: v("knowledge"), onMissing: v("onMissing") }, ...(add.length || remove.length ? { limits: { add, remove } } : {}) }, "Instructions");
+    }
+    if (kind === "document") {
+      const file = form.elements.file.files[0]; if (!file) throw new Error("Choose a file.");
+      const r = await api("POST", `/workers/${encodeURIComponent(HM.id)}/documents`, { baseVersion: HM.data.worker.version, name: file.name, data: await readB64(file), title: v("title") || file.name, note: v("note") });
+      HM.form = null; await hmLoad(); loadWorkers(); return notice(`Kept “${v("title") || file.name}” with the worker (version ${r.version}).`, { info: true });
+    }
+    const fields = kind === "knowledge" ? { title: v("title"), text: v("text") } : kind === "skills" ? { name: v("name"), description: v("description"), instructions: v("instructions") }
+      : { title: v("title"), note: v("note"), ...(form.elements.value ? { value: v("value"), branch: v("branch") } : {}), ...(!id ? { kind: v("kind") } : {}) };
+    return await hmChange({ [kind]: id ? { update: [{ id, ...fields }] } : { add: [fields] } }, `${id ? "Changed" : "Added"} ${kind === "knowledge" ? "knowledge" : kind === "skills" ? "a skill" : "a reference"}`);
+  } catch (e) { if (msg) msg.innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+$("canvas").addEventListener("submit", (e) => { const f = e.target.closest("[data-hm-form]"); if (!f || view !== "home") return; e.preventDefault(); hmSubmit(f); });
+$("canvas").addEventListener("change", (e) => { if (view === "home" && e.target.id === "whWs") { HM.ws = e.target.value; HM.preview = null; hmLoad(); } });
+$("canvas").addEventListener("click", async (e) => {
+  if (view !== "home" || !HM) return;
+  const t = (s) => e.target.closest(s);
+  let b;
+  if ((b = t("[data-hm-tab]"))) { HM.tab = b.dataset.hmTab; HM.form = null; return hmRender(); }
+  if ((b = t("#whNewTask"))) return hmNewTask();
+  if ((b = t("[data-hm-run]"))) return openRun(b.dataset.hmRun);
+  if ((b = t("[data-hm-asst]"))) return hmAsstConnect(b.dataset.hmAsst);
+  if ((b = t("[data-hm-more]"))) { const k = b.dataset.hmMore; HM.open.has(k) ? HM.open.delete(k) : HM.open.add(k); return hmRerenderPanel(); }
+  if ((b = t("[data-hm-edit]"))) { HM.form = { kind: b.dataset.hmEdit, id: b.dataset.id || null }; return hmRerenderPanel(); }
+  if ((b = t("[data-hm-add]"))) { HM.form = { kind: b.dataset.hmAdd, id: null }; hmRerenderPanel(); return $("whPanel").querySelector("[data-hm-form] input, [data-hm-form] textarea")?.focus(); }
+  if ((b = t("[data-hm-cancel]"))) { HM.form = null; return hmRerenderPanel(); }
+  if ((b = t("[data-hm-rm]"))) {
+    const ok = await ask({ title: `Remove “${b.dataset.name}”?`, body: `<p class="m12">It's removed from ${esc(HM.data.worker.name)} as a new version. You can restore the previous version in History.</p>`, actions: [{ id: "rm", label: "Remove", kind: "danger" }, { id: "keep", label: "Keep it" }], focus: "keep" });
+    if (ok === "rm") try { await hmChange({ [b.dataset.hmRm]: { remove: [b.dataset.id] } }, `Removed “${b.dataset.name}”`); } catch (err) { notice(err); }
+    return;
+  }
+  if ((b = t("[data-hm-change]"))) {
+    try { await api("POST", `/workers/${encodeURIComponent(HM.id)}/changes/${encodeURIComponent(b.dataset.id)}/${b.dataset.hmChange}`, {}); notice(b.dataset.hmChange === "approve" ? "Approved: applied as a new version." : "Rejected: nothing changed.", { info: true }); }
+    catch (err) { notice(err); }
+    await hmLoad(); return loadWorkers();
+  }
+  if ((b = t("[data-hm-diff]"))) {
+    const v = Number(b.dataset.hmDiff);
+    if (HM.diffs.has(v)) HM.diffs.delete(v); else { try { HM.diffs.set(v, (await api("GET", `/workers/${encodeURIComponent(HM.id)}/versions/${v}/diff?to=current`)).diff); } catch (err) { return notice(err); } }
+    return hmRerenderPanel();
+  }
+  if ((b = t("[data-hm-restore]"))) {
+    const v = Number(b.dataset.hmRestore);
+    const ok = await ask({ title: `Restore version ${v}?`, body: `<p class="m12">${esc(HM.data.worker.name)} becomes what it was at version ${v}, as a new version. The current version stays in History, so this can be undone too.</p>`, actions: [{ id: "go", label: `Restore v${v}`, kind: "pri" }, { id: "no", label: "Cancel" }], focus: "no" });
+    if (ok !== "go") return;
+    try { await api("POST", `/workers/${encodeURIComponent(HM.id)}/restore`, { version: v, reason: `Restored version ${v} from the worker's page` }); HM.diffs.clear(); await hmLoad(); loadWorkers(); notice(`Restored version ${v}.`, { info: true }); } catch (err) { notice(err); }
+    return;
+  }
+  if ((b = t("[data-hm-act]"))) {
+    const a = b.dataset.hmAct, id = HM.id;
+    if (a === "newtask") return hmNewTask();
+    if (a === "clone") return cloneWorker(id);
+    if (a === "export") return openExport(id);
+    if (a === "editor") { opener = b; return openWorkerEditor(id); }
+    if (a === "migrate") return openMigration(id);
+    if (a === "gitflow") return openGitflow(id);
+    if (a === "figma") return $("fgOpen").click();
+    if (a === "builder") return openBuilderPage();
+    if (a === "github") return openGithubPage();
+    if (a === "preview") { try { HM.preview = await api("GET", `/workers/${encodeURIComponent(id)}/context-preview?workspace=${encodeURIComponent(HM.ws)}`); } catch (err) { return notice(err); } return hmRerenderPanel(); }
+  }
+});
+// A task for this worker: the composer, with this worker chosen, in the workspace the page shows.
+function hmNewTask() {
+  wkId = HM.id; store.set("worker", wkId);
+  if (tm() && !tm().workers.includes(wkId)) leaveTeam(false);
+  if (HM.ws && HM.ws !== wsId && WS.some((x) => x.id === HM.ws)) { wsId = HM.ws; store.set("ws", wsId); renderWorkspaces(); loadTree(); }
+  renderWorkers(); openNewChat();
+  loadWorkers();
+}
+
+// ---- the assistant: a conversation about this worker (POST /workers/:id/assistant; /runs/:id/…) ----
+const ASST_TOOL = { worker_inspect: "Read its configuration", worker_change: "Submitted a change", worker_add_document: "Kept a document", ToolSearch: null };
+const ASST_SUGG = ["Explain your current configuration", "Which tools and integrations can you use?", "Add what I tell you about our project to your knowledge", "Create a skill for our deployment process"];
+function hmAsstConnect(runId) {
+  if (hmES) { hmES.close(); hmES = null; }
+  if (!HM) return;
+  // since: events from before this moment are the conversation's history (replayed), not news.
+  HM.asst = { run: runId, items: [], status: null, atts: HM.asst?.atts || [], since: Date.now() - 1500 };
+  hmRenderAssist();
+  const a = HM.asst;
+  hmES = new EventSource(`/events?run=${encodeURIComponent(runId)}`);
+  hmES.onmessage = (m) => { if (HM?.asst !== a) return; let e; try { e = JSON.parse(m.data); } catch { return; } hmAsstEvent(a, e); };
+}
+function hmAsstEvent(a, e) {
+  if (e.type === "user") a.items.push({ k: "u", text: e.summary, atts: (e.attachments || []).map((x) => x.name) });
+  else if (e.type === "reply") a.items.push({ k: "a", text: e.summary });
+  else if (e.type === "tool" && ASST_TOOL[e.tool] !== null) a.items.push({ k: "t", text: ASST_TOOL[e.tool] || e.tool });
+  else if (e.type === "failure") a.items.push({ k: "e", text: e.summary });
+  else if (e.type === "worker-change") { let d = {}; try { d = JSON.parse(e.detail || "{}"); } catch {} a.items.push({ k: "c", text: e.summary, d }); if (Date.parse(e.ts) >= a.since) hmRefresh(); }
+  else if (e.type === "status") a.status = e.summary;
+  hmScheduleAssist();
+}
+let hmAQ = false;
+function hmScheduleAssist() { if (hmAQ) return; hmAQ = true; requestAnimationFrame(() => { hmAQ = false; hmRenderAssist(); }); }
+function hmRenderAssist(keep) {
+  const box = $("whAssist"); if (!box || !HM) return;
+  const a = HM.asst || { items: [], atts: [] }, d = HM.data, busy = ["starting", "running"].includes(a.status);
+  const keepDraft = keep ?? $("hmAIn")?.value ?? "", log = $("hmALog"), atEnd = !log || log.scrollHeight - log.scrollTop - log.clientHeight < 60;
+  const item = (x) => x.k === "u" ? `<div class="am-u">${esc(x.text)}${x.atts?.length ? `<div class="atts">${x.atts.map((n) => `<span>${esc(n)}</span>`).join("")}</div>` : ""}</div>`
+    : x.k === "a" ? `<div class="am-a">${md(x.text)}</div>`
+    : x.k === "t" ? `<div class="am-t">· ${esc(x.text)}</div>`
+    : x.k === "c" ? `<div class="am-c ${x.d.status === "applied" ? "" : "wait"}"><span>${esc(x.text)}</span>${x.d.status === "applied" && x.d.previous ? `<span><button type="button" class="linkbtn m11" data-hm-undo="${x.d.previous}">Undo (restore v${x.d.previous})</button></span>` : x.d.status === "waiting-for-approval" ? '<span><button type="button" class="linkbtn m11" data-hm-tab="history">Review it in History</button></span>' : ""}</div>`
+    : `<div class="am-e">${esc(x.text)}</div>`;
+  const blocked = !d?.inspect ? "Its assistant works once the worker is migrated." : d.integrity ? "Its definition was changed outside the console: open it in All settings and save it first." : d.assistantBusy && !a.run ? `Another worker's assistant is open (${d.assistantBusy}). Close that conversation first.` : "";
+  box.innerHTML = `<div class="ah"><b>${svgIcon("tune", 12, 12)} Assistant</b><span class="sub m11">Ask it to explain or change ${esc(d?.worker.name || "this worker")}. It changes only the worker's configuration (never your files or accounts). Every change is a version you can undo; access changes wait for your approval.</span>
+      ${a.run ? `<span class="m11" style="display:flex;gap:10px"><span class="sub">${busy ? "Working…" : a.status === "waiting" ? "Waiting for you" : a.status ? esc(a.status) : ""}</span><span style="flex:1"></span><button type="button" class="linkbtn m11" data-hm-anew>New conversation</button></span>` : ""}</div>
+    <div class="alog" id="hmALog" role="log" aria-label="Conversation with the assistant">${a.items.length ? a.items.map(item).join("") : `<span class="sub m12">Try:</span><div class="sugg">${ASST_SUGG.map((s) => `<button type="button" data-hm-sugg="${esc(s)}">${esc(s)}</button>`).join("")}</div>`}
+      ${busy ? '<div class="am-t"><span class="dot pulse" aria-hidden="true"></span> Working…</div>' : ""}</div>
+    <form class="acomp" id="hmAForm">${blocked ? `<span class="sub m12">${esc(blocked)}</span>` : `${a.atts?.length ? `<div class="atts">${a.atts.map((x, n) => `<span>${esc(x.name)} <button type="button" class="linkbtn" data-hm-aatt="${n}" aria-label="Remove ${esc(x.name)}">×</button></span>`).join("")}</div>` : ""}
+      <label class="sr" for="hmAIn">Message to the assistant</label><textarea class="wtext" id="hmAIn" rows="3" maxlength="8000" placeholder="e.g. Add our deployment process as a skill" ${busy ? "disabled" : ""}>${esc(keepDraft)}</textarea>
+      <div class="ar"><label class="btn m11" title="Attach a document (text, PDF or image)">Attach<input type="file" id="hmAFile" multiple hidden accept="text/*,.md,.json,.csv,.txt,.yml,.yaml,application/pdf,image/png,image/jpeg,image/webp"></label><span class="sp"></span><button type="submit" class="btn pri" ${busy ? "disabled" : ""}>Send</button></div>`}</form>`;
+  const nl = $("hmALog"); if (nl && atEnd) nl.scrollTop = nl.scrollHeight;
+}
+async function hmAsstSend(text) {
+  const a = HM.asst || (HM.asst = { run: null, items: [], atts: [] }), atts = a.atts || [];
+  if (!text.trim() && !atts.length) return;
+  try {
+    if (!a.run) {
+      const m = await api("POST", `/workers/${encodeURIComponent(HM.id)}/assistant`, { prompt: text, attachments: atts.map(({ name, data }) => ({ name, data })) });
+      a.atts = []; hmAsstConnect(m.id);
+    } else {
+      const m = await api("POST", `/runs/${encodeURIComponent(a.run)}/message`, { text, attachments: atts.map(({ name, data }) => ({ name, data })) });
+      a.atts = []; if (m.id && m.id !== a.run) hmAsstConnect(m.id); else { a.status = "running"; hmRenderAssist(); }
+    }
+    const inp = $("hmAIn"); if (inp) inp.value = "";
+  } catch (e) { a.items.push({ k: "e", text: e.message }); hmRenderAssist(); }
+}
+document.addEventListener("submit", (e) => { if (e.target.id !== "hmAForm") return; e.preventDefault(); const v = $("hmAIn")?.value || ""; hmAsstSend(v); });
+document.addEventListener("keydown", (e) => { if (e.target.id === "hmAIn" && e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); hmAsstSend(e.target.value); } });
+document.addEventListener("change", async (e) => {
+  if (e.target.id !== "hmAFile" || !HM) return;
+  const a = HM.asst || (HM.asst = { run: null, items: [], atts: [] });
+  for (const f of [...e.target.files].slice(0, 5)) { try { a.atts = [...(a.atts || []), { name: f.name, data: await readB64(f) }]; } catch {} }
+  hmRenderAssist();
+});
+document.addEventListener("click", async (e) => {
+  if (view !== "home" || !HM || !e.target.closest("#whAssist")) return;
+  const s = e.target.closest("[data-hm-sugg]"), u = e.target.closest("[data-hm-undo]"), n = e.target.closest("[data-hm-anew]"), at = e.target.closest("[data-hm-aatt]");
+  if (s) { const inp = $("hmAIn"); if (inp) { inp.value = s.dataset.hmSugg; inp.focus(); } return; }
+  if (at) { HM.asst.atts.splice(Number(at.dataset.hmAatt), 1); return hmRenderAssist(); }
+  if (u) {
+    const v = Number(u.dataset.hmUndo);
+    try { await api("POST", `/workers/${encodeURIComponent(HM.id)}/restore`, { version: v, reason: "Undone from the assistant" }); notice(`Restored version ${v}.`, { info: true }); hmRefresh(); } catch (err) { notice(err); }
+    return;
+  }
+  if (n) {
+    const run = HM.asst?.run;
+    if (run) { try { await api("POST", `/runs/${encodeURIComponent(run)}/end`, {}); } catch {} }
+    if (hmES) { hmES.close(); hmES = null; }
+    HM.asst = { run: null, items: [], status: null, atts: [] }; hmRenderAssist(); $("hmAIn")?.focus(); hmRefresh();
+  }
+});
 
 // Defining a worker. A worker is its role, its integrations (each pinned to an exact version, with its
 // settings), the core capabilities granted to it explicitly, and its own instructions. What an

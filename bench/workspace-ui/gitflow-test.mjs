@@ -403,7 +403,7 @@ await page.goto(BASE, { waitUntil: "networkidle" });
 await page.click(`#wsList [data-ws="${ws.id}"]`);
 
 await step("page: the worker's new task opens its Git workflow on Overview (counts, branch rules, mode); Changes lists your team's selectable changes; Sameem's two excluded ones appear only when asked, and can't be ticked; a commit shows evidence, its diff and the worker's explanation", async () => {
-  await page.click(`#wkList [data-wk="${W.id}"]`); await page.waitForSelector("#gfCard");
+  await page.click(`#wkList [data-wk="${W.id}"]`); await page.click("#whNewTask"); await page.waitForSelector("#gfCard"); // the worker's home, then New task
   await page.click('[data-gs="gitflow"]'); await page.waitForSelector(".gfkpis");
   await page.waitForFunction(() => /PENDING COMMITS\s*\n?\s*\d+/i.test(document.querySelector(".gfkpis")?.innerText || ""));
   const ov = await bodyText(); await shot("overview");

@@ -78,7 +78,7 @@ await page.goto(BASE, { waitUntil: "networkidle" });
 
 await step("the worker, in the UI, gets the Builder tools and its requirements are met", async () => {
   await page.click('#wsList [data-ws="scratch"]');
-  await page.click('#wkList [data-wk]:has-text("Builder Editor")');
+  await page.click('#wkList [data-wk]:has-text("Builder Editor")'); await page.click("#whNewTask"); // the worker's home, then New task
   const st = (await call("GET", "/workers?workspace=scratch")).body.workers.find((w) => w.id === worker.id).status.map((s) => `${s.access}:${s.state}`);
   assert(st.join() === "read:Connected,write:Test space", st.join());
   return { requirements: st };

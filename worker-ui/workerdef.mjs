@@ -20,7 +20,7 @@ import { validate } from "./jsonschema.mjs";
 
 export const SCHEMA = 2;
 export const isV2 = (w) => w?.schema === SCHEMA;
-const STORED = ["schema", "id", "name", "specialization", "mission", "outcomes", "integrations", "core", "workflow", "knowledge", "limitations", "onMissing", "extraRequirements", "repos", "version", "createdAt", "updatedAt", "fromRequest", "origin", "migratedFrom"];
+const STORED = ["schema", "id", "name", "specialization", "mission", "outcomes", "integrations", "core", "workflow", "knowledge", "limitations", "onMissing", "extraRequirements", "repos", "context", "version", "createdAt", "updatedAt", "fromRequest", "origin", "migratedFrom"];
 export const toStored = (w) => (isV2(w) ? Object.fromEntries(STORED.filter((k) => w[k] !== undefined).map((k) => [k, w[k]])) : (({ status, memoryCount, runtime, ...rest }) => rest)(w));
 const shown = (q, config) => !q.when || [].concat(config[q.when.q] ?? []).some((v) => q.when.is.includes(v));
 

@@ -1,0 +1,65 @@
+{
+ "ran": "2026-11-06T23:33:44.167Z",
+ "passed": 8,
+ "total": 8,
+ "steps": [
+  {
+   "step": "clicking a worker opens its home: identity, purpose, at a glance, readiness, its assistant",
+   "ok": true,
+   "detail": {
+    "tabs": [
+     "Overview",
+     "Knowledge & instructions2",
+     "Tools & access",
+     "Activity",
+     "History"
+    ]
+   }
+  },
+  {
+   "step": "Overview: editing the purpose saves a new version",
+   "ok": true,
+   "detail": {
+    "version": 3
+   }
+  },
+  {
+   "step": "Knowledge & instructions: entries with their source, add one, remove one (confirmed), see what a task receives",
+   "ok": true,
+   "detail": {
+    "sections": 12
+   }
+  },
+  {
+   "step": "Tools & access: the person's accounts kept apart from what this worker has",
+   "ok": true,
+   "detail": "ok"
+  },
+  {
+   "step": "Assistant pane: a message runs a real assistant conversation; its change shows as a card with Undo; the home refreshes",
+   "ok": true,
+   "detail": {
+    "version": 6
+   }
+  },
+  {
+   "step": "History: the pending change can be approved; versions list who changed what; Undo restores the version before the skill",
+   "ok": true,
+   "detail": {
+    "version": 8
+   }
+  },
+  {
+   "step": "Activity lists the assistant conversation; New task opens the composer with this worker chosen",
+   "ok": true,
+   "detail": {
+    "composer": "Frontend Engineer"
+   }
+  },
+  {
+   "step": "no page errors",
+   "ok": true,
+   "detail": "none"
+  }
+ ]
+}

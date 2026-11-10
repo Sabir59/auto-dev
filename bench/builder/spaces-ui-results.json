@@ -1,5 +1,5 @@
 {
- "at": "2026-11-04T21:50:23.919Z",
+ "at": "2026-11-06T23:36:24.095Z",
  "passed": 5,
  "failed": 0,
  "results": [
@@ -40,8 +40,8 @@
    "ok": true,
    "detail": {
     "cards": [
-     "Live siteProduction: read-onlyConnected sp_9504bac61db9 · 1 model · keys checked 11/5/2026, 2:50:22 AM Given to: Landing",
-     "Site (test)Test spaceConnected sp_71ecdada16f1 · 2 models · keys checked 11/5/2026, 2:50:22 AM Given to: Landing pages ("
+     "Live siteProduction: read-onlyConnected sp_9504bac61db9 · 1 model · keys checked 11/7/2026, 4:36:22 AM Given to: Landing",
+     "Site (test)Test spaceConnected sp_71ecdada16f1 · 2 models · keys checked 11/7/2026, 4:36:22 AM Given to: Landing pages ("
     ]
    }
   },

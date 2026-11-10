@@ -1,0 +1,202 @@
+{
+ "ran": "2026-11-06T23:36:36.670Z",
+ "passed": 18,
+ "total": 18,
+ "steps": [
+  {
+   "step": "migration: schema 1 → 2 keeps its tools, steps, limits and knowledge; access the same; undo restores it",
+   "ok": true,
+   "detail": {
+    "usable": [
+     "files.read",
+     "files.write",
+     "web"
+    ],
+    "version": 6
+   }
+  },
+  {
+   "step": "worker home: identity, configuration (inspect), connections, versions, no context yet",
+   "ok": true,
+   "detail": {
+    "versions": [
+     "6:migration",
+     "5:migration",
+     "4:before-history"
+    ]
+   }
+  },
+  {
+   "step": "owner edits: knowledge entry, skill and references are added as a new version, with source and ids",
+   "ok": true,
+   "detail": {
+    "version": 7,
+    "changed": [
+     "Adds knowledge entry “Brand”",
+     "Adds knowledge entry “Old notes”",
+     "Adds skill “Landing page review”",
+     "Adds reference “Site”",
+     "Adds reference “Design system”"
+    ]
+   }
+  },
+  {
+   "step": "owner edits are refused when stale, when they hold a credential, or when they'd give something the editor wouldn't",
+   "ok": true,
+   "detail": {
+    "secret": "Part of this change looks like a password, key or token. Credentials never go into a worke",
+    "badCore": "“figma.plugin.edit” isn't a core capability: it comes from an integration."
+   }
+  },
+  {
+   "step": "a document uploaded by the owner is stored with the worker (content-addressed) and served read-only",
+   "ok": true,
+   "detail": {
+    "file": "020eaf0b41535980-style_guide.md"
+   }
+  },
+  {
+   "step": "saving in the existing editor form (which sends no context) keeps the worker's context",
+   "ok": true,
+   "detail": {
+    "version": 9
+   }
+  },
+  {
+   "step": "context preview: the sections a task would get, each with its source",
+   "ok": true,
+   "detail": [
+    "Platform rules (every worker g ← Platform",
+    "You are: Old designer ← Worked out by the console for this workspace",
+    "What you can use in this run ← Worked out by the console for this workspace",
+    "Requirements and access (check ← Worked out by the console for this workspace",
+    "How you work ← This worker's instructions",
+    "What you know ← This worker's instructions",
+    "Hard limits (never cross these ← This worker's instructions",
+    "Knowledge entries (from your o ← This worker's context",
+    "Skills ← This worker's context",
+    "References ← This worker's context",
+    "Reference documents ← This worker's context",
+    "When something is missing ← This worker's instructions",
+    "Learnings ← Learnings from its earlier work",
+    "Changing how you work (proposa ← Platform: proposals"
+   ]
+  },
+  {
+   "step": "a task run gets the knowledge, skills, references and a read-only copy of the document",
+   "ok": true,
+   "detail": {
+    "status": "waiting",
+    "docs": [
+     "020eaf0b41535980-style_guide.md"
+    ],
+    "calls": 1
+   }
+  },
+  {
+   "step": "in that run the worker can read its document copy and can't change it (runtime-enforced)",
+   "ok": true,
+   "detail": {
+    "read": "ok",
+    "write": "<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>"
+   }
+  },
+  {
+   "step": "assistant conversation: inspects the worker, applies a low-risk change at once, sends removals and access for approval, refuses a credential, keeps an attached document",
+   "ok": true,
+   "detail": {
+    "results": [
+     "ok",
+     "applied",
+     "waiting-for-approval",
+     "refused: Part of this change looks like a password, key or token. Cre",
+     "waiting-for-approval",
+     "applied"
+    ]
+   }
+  },
+  {
+   "step": "the assistant has only its own tools: no files, shell, web or integrations, and no evolve tools",
+   "ok": true,
+   "detail": {
+    "tools": [
+     "mcp__assistant__worker_add_document",
+     "mcp__assistant__worker_change",
+     "mcp__assistant__worker_inspect"
+    ]
+   }
+  },
+  {
+   "step": "while the assistant conversation is open, a task can run; a second assistant conversation can't open",
+   "ok": true,
+   "detail": {
+    "second": "An assistant conversation is already open. Close it first.",
+    "task": "started"
+   }
+  },
+  {
+   "step": "the assistant's endpoints answer only its own run's token, and only for an assistant conversation",
+   "ok": true,
+   "detail": [
+    403,
+    403,
+    403,
+    403
+   ]
+  },
+  {
+   "step": "pending changes: the owner approves one (applied as a new version) and rejects the other; nothing is applied twice",
+   "ok": true,
+   "detail": {
+    "approved": 12,
+    "rejected": "c-mw5m5oz9-c676f0"
+   }
+  },
+  {
+   "step": "every change is a version that can be restored: restoring brings the removed entry back",
+   "ok": true,
+   "detail": [
+    "13:restore",
+    "12:owner",
+    "11:assistant",
+    "10:assistant",
+    "9:edit",
+    "8:owner",
+    "7:owner",
+    "6:migration"
+   ]
+  },
+  {
+   "step": "export: format 3 with context.json and the documents; a worker without context still exports as format 2",
+   "ok": true,
+   "detail": {
+    "files": [
+     "manifest.json",
+     "worker.json",
+     "dependencies.json",
+     "knowledge/knowledge.md",
+     "context.json",
+     "documents/020eaf0b41535980-style_guide.md",
+     "documents/843745d9897ba287-deploy.md"
+    ]
+   }
+  },
+  {
+   "step": "import and clone: a new, independent worker with the same context and its own copies of the documents",
+   "ok": true,
+   "detail": {
+    "imported": "imported-designer-f234",
+    "clone": "designer-copy-53ea"
+   }
+  },
+  {
+   "step": "packages are checked: a stray document, a context in an older format, a newer format are refused",
+   "ok": true,
+   "detail": {
+    "stray": "malformed",
+    "old": "malformed",
+    "newer": "incompatible"
+   }
+  }
+ ]
+}

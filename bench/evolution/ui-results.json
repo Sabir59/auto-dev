@@ -1,17 +1,10 @@
 {
- "at": "2026-10-29T08:23:15.692Z",
+ "at": "2026-11-06T23:36:19.728Z",
  "results": [
   {
    "step": "the worker's editor shows the proposal: title, waiting, blocked (no Builder account here), what isn't possible, the diff, its checks and where it came from",
-   "ok": true,
-   "detail": {
-    "card": [
-     "A/B variant drafts in our convention",
-     "proposed",
-     "Blocked",
-     "for v1 · proposed by the worker · 10/29/2026, 1:23:02 PM"
-    ]
-   }
+   "ok": false,
+   "error": "{\"card\":\"A/B variant drafts in our convention\\nproposed\\nBlocked\\nfor v1 · proposed by the worker · 11/7/2026, 4:36:17 AM\\nThe person described their A/B convention; there are no A/B steps today.\\nCreate and change Builder.io content as drafts only (test spaces only) — publishing is not available: Builder.io: read content: No Builder space connected; Read Builder.io content (the console grades the checks with it): Builder.io: read content: No Builder space connected\\nNot possible with its tools\\nBuilder's own A/B traffic split\\nThe Builder tools can't write an entry's variations.\\nworkflow\\n+ For an A/B variant: a separate DRAFT entry \\\"<control> | <experiment> | <letter>\\\" with abExperiment, abVariant, abControlId, abHypothesis.\\nRelies on Create and change Builder.io content as drafts only (test spaces only) — publishing is not available: Builder.io: read content: No Builder space connected Read Builder.io \",\"diff\":[\"+ For an A/B variant: a separate DRAFT entry \\\"<control> | <experiment> | <letter>\\\" with abExperiment, abVariant, abControlId, abHypothesis.\"]}"
   },
   {
    "step": "approving an unverified proposal: the Approve button stays disabled until you tick that you approve it anyway; then it's v2",
@@ -28,9 +21,9 @@
     "list": [
      "v2",
      "current",
-     "approved proposal (blocked) · A/B variant drafts in our convention · 10/29/2026, 1:23:14 PM",
+     "approved proposal (blocked) · A/B variant drafts in our convention · 11/7/2026, 4:36:19 AM",
      "v1",
-     "created · 10/29/2026, 1:23:01 PM · 1 conversation",
+     "created · 11/7/2026, 4:36:17 AM · 1 conversation",
      "Compare with current"
     ],
     "now": 3

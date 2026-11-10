@@ -96,7 +96,7 @@ await step("memory: it remembers a preference into its own memory, and a secret 
   return { memory: mem.map((m) => m.text), memoryEvents: ev, secretStored: mem.some((m) => /figd_/.test(m.text)) };
 });
 await step("a new run of the same worker starts with that memory", async () => {
-  await page.click("#wkList [data-wk]:has-text(\"Figma Specialist\")");
+  await page.click("#wkList [data-wk]:has-text(\"Figma Specialist\")"); await page.click("#whNewTask");
   await send("What do you remember about the stakeholder's preferences? One sentence.");
   const id = await page.evaluate(() => runId), r = await lastReply();
   const card = await page.locator('#acts .card:has-text("Worker")').first().innerText();
@@ -123,7 +123,7 @@ await step("edit the worker in the UI: v2 for new runs; the earlier run keeps v1
   await send("Repeat your mission in one sentence.");
   const resumed = await lastReply();
   await endRun();
-  await page.click("#wkList [data-wk]:has-text(\"Figma Specialist\")");
+  await page.click("#wkList [data-wk]:has-text(\"Figma Specialist\")"); await page.click("#whNewTask");
   await send("Repeat your mission in one sentence.");
   const fresh = await lastReply(), id2 = await page.evaluate(() => runId);
   await endRun();
@@ -132,7 +132,7 @@ await step("edit the worker in the UI: v2 for new runs; the earlier run keeps v1
 await step("a stored Figma authorization that Figma rejects is detected and reported", async () => {
   mkdirSync(FIGDIR, { recursive: true }); writeFileSync(join(FIGDIR, "credentials.json"), JSON.stringify({ type: "pat", token: "figd_invalid_for_test" }));
   const st = (await call("GET", `/workers?workspace=${canary.id}`)).body.workers[0].status;
-  await page.click("#wkList [data-wk]:has-text(\"Figma Specialist\")"); // a new chat, so the check runs at its start
+  await page.click("#wkList [data-wk]:has-text(\"Figma Specialist\")"); await page.click("#whNewTask"); // a new chat, so the check runs at its start
   await send("Check whether you can access Figma right now, and tell me in one sentence.");
   const id = await page.evaluate(() => runId), ev = events(id);
   await endRun();

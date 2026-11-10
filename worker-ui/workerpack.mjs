@@ -11,6 +11,11 @@
 //   knowledge/knowledge.md   what it knows (its knowledge text)
 //   workflows/gitflow.json   (optional) its Git workflow rules: teams, branch patterns, relationships,
 //                            exclusion and branch rules. Never people, overrides, a repository, audit or plans.
+//   context.json             (format 3) its own context: knowledge entries, skills, references
+//                            (worker-ui/worker-context.mjs), without who changed what when
+//   documents/<file>         (format 3) the documents its context refers to, at most 10
+// A worker with no context of its own is still written as format 2, so a console that reads only
+// formats 1 and 2 can install it.
 //
 // Never in a package: credentials of any kind, memory, runs, logs, checkpoints, Team membership, the
 // worker's id, version or dates, repository grants (only what repositories it would need), the
@@ -24,9 +29,11 @@ import zlib from "node:zlib";
 import { createHash, randomUUID } from "node:crypto";
 
 // Format 2: workers with pinned integrations (schema 2). Format 1 (schema 1) is still read and written for workers made before integrations.
-export const FORMAT = "ai-workforce.workerpack", FORMAT_VERSION = 2, SCHEMA = 2;
+export const FORMAT = "ai-workforce.workerpack", FORMAT_VERSION = 3, SCHEMA = 2;
 export const LIMITS = { package: 2 * 1024 * 1024, file: 512 * 1024, total: 2 * 1024 * 1024, entries: 16, ratio: 200 };
-const FILES = ["manifest.json", "worker.json", "dependencies.json", "knowledge/knowledge.md", "workflows/gitflow.json"];
+const FILES = ["manifest.json", "worker.json", "dependencies.json", "knowledge/knowledge.md", "workflows/gitflow.json", "context.json"];
+const DOC_ENTRY = /^documents\/[a-f0-9]{16}-[A-Za-z0-9._-]{1,80}$/;
+const allowedFile = (n) => FILES.includes(n) || DOC_ENTRY.test(n);
 const REQUIRED = ["manifest.json", "worker.json", "dependencies.json", "knowledge/knowledge.md"];
 
 // ---- text that must not leave this computer ----
@@ -110,7 +117,7 @@ export function unzip(buf, limits = LIMITS) {
 // Format 2 (a worker with pinned integrations, schema 2): its integration references (id, exact
 // version, settings), explicit core capabilities and its own text. Format 1: a worker made before
 // integrations, as it is (its flat tools and text).
-export function buildPackage({ worker: w, local = false, gitflow = null, repoName = () => null, catalog = {}, generator = {}, secretFields = () => [], integrationInfo = () => null }) {
+export function buildPackage({ worker: w, local = false, gitflow = null, repoName = () => null, catalog = {}, generator = {}, secretFields = () => [], integrationInfo = () => null, documentBytes = () => null }) {
   const paths = [], secrets = [], withheld = [], v2 = w.schema === 2;
   const text = (field, v, n) => { const s = clip(v, n); if (SECRET.test(s)) secrets.push(field); return local ? s : redact(s, paths); };
   const list = (field, v, max, len) => strs(v, max, len).map((x) => text(field, x, len));
@@ -151,14 +158,33 @@ export function buildPackage({ worker: w, local = false, gitflow = null, repoNam
     : { capabilities: def.capabilities.map(capLabel), requirements: def.requirements.map(reqLabel), repositories: repos, workflows: flow ? ["gitflow"] : [], integrations: request.integrations };
   const files = [["worker.json", JSON.stringify(def, null, 1)], ["dependencies.json", JSON.stringify(deps, null, 1)], ["knowledge/knowledge.md", knowledge]];
   if (flow) files.push(["workflows/gitflow.json", JSON.stringify(flow, null, 1)]);
-  const formatVersion = v2 ? 2 : 1;
+  // Its own context (format 3): the same text checks as the rest; documents as files of their own.
+  const c = v2 ? w.context : null;
+  let context = null;
+  if (c && (c.knowledge?.length || c.skills?.length || c.references?.length)) {
+    const docs = [];
+    context = { schema: 1,
+      knowledge: (c.knowledge || []).slice(0, 40).map((k) => ({ id: clip(k.id, 42), title: text("knowledge entries", k.title, 120), text: text("knowledge entries", k.text, 8000) })),
+      skills: (c.skills || []).slice(0, 20).map((s) => ({ id: clip(s.id, 42), name: text("skills", s.name, 80), description: text("skills", s.description, 300), instructions: text("skills", s.instructions, 6000) })),
+      references: (c.references || []).slice(0, 40).flatMap((r) => {
+        const base = { id: clip(r.id, 42), kind: r.kind, title: text("references", r.title, 120), note: text("references", r.note, 600) };
+        if (r.kind !== "document") return [{ ...base, value: text("references", r.value, 600), ...(r.branch ? { branch: text("references", r.branch, 120) } : {}) }];
+        const file = String(r.doc?.file || "").replace(/[^A-Za-z0-9._-]/g, "_"), buf = documentBytes(r.doc?.file);
+        if (!buf || docs.length >= 10 || !/^[a-f0-9]{16}-/.test(file)) { withheld.push(`document “${clip(r.title, 60)}” (missing or over the limit)`); return []; }
+        if (/^text\/|json|xml|svg/.test(r.doc.mime || "") && SECRET.test(buf.toString("utf8"))) secrets.push(`document “${clip(r.title, 60)}”`);
+        docs.push([`documents/${file}`, buf]);
+        return [{ ...base, doc: { path: `documents/${file}`, name: clip(r.doc.name, 120), mime: clip(r.doc.mime, 80) } }];
+      }) };
+    files.push(["context.json", JSON.stringify(context, null, 1)], ...docs);
+  }
+  const formatVersion = context ? 3 : v2 ? 2 : 1;
   const manifest = { format: FORMAT, formatVersion, packageId: randomUUID(), createdAt: new Date().toISOString(),
     generator: { name: clip(generator.name || "ai-workforce-console", 60), version: clip(generator.version || "", 40) }, worker: { name: def.name, schema: def.schema },
-    files: Object.fromEntries(files.map(([n, c]) => { const b = Buffer.from(c, "utf8"); return [n, { sha256: sha256(b), size: b.length }]; })) };
+    files: Object.fromEntries(files.map(([n, c]) => { const b = Buffer.isBuffer(c) ? c : Buffer.from(c, "utf8"); return [n, { sha256: sha256(b), size: b.length }]; })) };
   const excluded = ["credentials, tokens and connected accounts (yours stay here)", "its learnings, conversations, run history and logs", "its id, version history and dates (the copy starts at version 1)",
     "Team membership", ...(w.repos?.length ? ["repository access grants (only which repositories it needs is included)"] : []), ...(withheld.length ? [`settings tied to your own accounts (whoever installs it chooses theirs): ${withheld.join(", ")}`] : []),
     ...(gitflow ? ["Git workflow people, emails and ownership overrides, the repository location, audit trail, plans and notes", "proposal branches stay off until the person installing it turns them on"] : [])];
-  return { files: [["manifest.json", JSON.stringify(manifest, null, 1)], ...files], manifest, definition: def, knowledge, dependencies: deps, gitflow: flow,
+  return { files: [["manifest.json", JSON.stringify(manifest, null, 1)], ...files], manifest, definition: def, knowledge, dependencies: deps, gitflow: flow, context,
     preview: { format: formatVersion, included: files.map(([n]) => n), excluded, pathsRemoved: [...new Set(paths)], secrets: [...new Set(secrets)] } };
 }
 export const packBytes = (built) => zip(built.files);
@@ -178,7 +204,7 @@ const readSettings = (c) => (c && typeof c === "object" && !Array.isArray(c) ? O
   typeof v === "string" ? v.slice(0, 300) : Array.isArray(v) ? v.slice(0, 20).map((x) => clip(x, 60)) : v === null || typeof v === "boolean" ? v : null])) : {});
 export function readPackage(buf, limits = LIMITS) {
   const files = unzip(buf, limits);
-  for (const n of files.keys()) if (!FILES.includes(n)) throw bad("unsupported", `The package contains "${n}", which isn't part of a worker package. Nothing was installed.`);
+  for (const n of files.keys()) if (!allowedFile(n)) throw bad("unsupported", `The package contains "${n}", which isn't part of a worker package. Nothing was installed.`);
   for (const n of REQUIRED) if (!files.has(n)) throw bad("malformed", `The package is missing ${n}.`);
   const manifest = parseJson(files, "manifest.json");
   if (manifest.format !== FORMAT) throw bad("unsupported", "This isn't a worker package (unknown format).");
@@ -217,6 +243,28 @@ export function readPackage(buf, limits = LIMITS) {
     if (declared !== integrations.map((x) => `${x.id}@${x.version}`).sort().join()) throw bad("malformed", "dependencies.json doesn't match the worker's integrations.");
   }
   const knowledge = files.get("knowledge/knowledge.md").toString("utf8").slice(0, 20000);
+  // Format 3: its own context, and the documents it refers to (each listed and checksummed above).
+  let context = null; const documents = new Map();
+  if (v < 3 && (files.has("context.json") || [...files.keys()].some((n) => DOC_ENTRY.test(n)))) throw bad("malformed", `A format-${v} package can't contain a worker's context or documents.`);
+  if (files.has("context.json")) {
+    const c = parseJson(files, "context.json");
+    if (c.schema !== 1) throw bad("incompatible", "The worker's context uses a schema this console doesn't read.");
+    const KIND = new Set(["link", "repository", "note", "document"]), rid = (x) => (/^[a-z0-9][a-z0-9-]{1,40}$/.test(String(x || "")) ? String(x) : undefined);
+    context = { knowledge: (Array.isArray(c.knowledge) ? c.knowledge : []).slice(0, 40).map((k) => ({ id: rid(k?.id), title: clip(k?.title, 120), text: clip(k?.text, 8000) })).filter((k) => k.title && k.text),
+      skills: (Array.isArray(c.skills) ? c.skills : []).slice(0, 20).map((s) => ({ id: rid(s?.id), name: clip(s?.name, 80), description: clip(s?.description, 300), instructions: clip(s?.instructions, 6000) })).filter((s) => s.name && s.instructions),
+      references: [] };
+    for (const r of (Array.isArray(c.references) ? c.references : []).slice(0, 40)) {
+      if (!KIND.has(r?.kind)) continue;
+      const base = { id: rid(r.id), kind: r.kind, title: clip(r.title, 120), note: clip(r.note, 600) };
+      if (r.kind !== "document") { context.references.push({ ...base, value: clip(r.value, 600), ...(r.branch ? { branch: clip(r.branch, 120) } : {}) }); continue; }
+      const p = String(r.doc?.path || "");
+      if (!DOC_ENTRY.test(p) || !files.has(p)) throw bad("malformed", `The document “${clip(r.title, 60)}” isn't in the package.`);
+      documents.set(p, files.get(p));
+      context.references.push({ ...base, doc: { path: p, name: clip(r.doc?.name, 120) || p.slice(27), mime: clip(r.doc?.mime, 80) } });
+    }
+    if (documents.size > 10) throw bad("too-many", "The package has more than 10 documents.");
+  }
+  for (const n of files.keys()) if (DOC_ENTRY.test(n) && !documents.has(n)) throw bad("malformed", `${n} isn't referred to by the worker's context.`);
   const repositories = (Array.isArray(deps.repositories) ? deps.repositories : []).slice(0, 20).map((g) => ({ fullName: clip(g?.fullName, 140), level: clip(g?.level, 20) })).filter((g) => /^[\w.-]+\/[\w.-]+$/.test(g.fullName));
   let gitflow = null;
   if (files.has("workflows/gitflow.json")) {
@@ -228,10 +276,10 @@ export function readPackage(buf, limits = LIMITS) {
       shared: strs(g.shared, 30, 120), forbidden: strs(g.forbidden, 20, 120), tickets: strs(g.tickets, 5, 60) };
   }
   // Untrusted text: what looks like a credential or a path from another computer is pointed out.
-  const all = JSON.stringify([definition, knowledge, gitflow]), warnings = [];
+  const all = JSON.stringify([definition, knowledge, gitflow, context]), warnings = [];
   if (SECRET.test(all)) warnings.push("Some of its text looks like a password or token. Check it before you install; this console never uses one from a package.");
   if (new RegExp(PATHS.source).test(all)) warnings.push("Some of its text mentions folders on another computer; they don't exist here.");
   if (schema === 1) warnings.push("It was made before integrations: it installs in that form (its tools as a flat list). Review its migration after installing to give it pinned integrations.");
   return { manifest: { packageId: clip(manifest.packageId, 60), createdAt: clip(manifest.createdAt, 40), generator: { name: clip(manifest.generator?.name, 60), version: clip(manifest.generator?.version, 40) }, formatVersion: v },
-    definition, knowledge, repositories, gitflow, warnings, files: [...files.keys()] };
+    definition, knowledge, repositories, gitflow, context, documents, warnings, files: [...files.keys()] };
 }
